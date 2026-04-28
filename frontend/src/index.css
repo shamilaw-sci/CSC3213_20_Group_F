@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+@theme {
+  --color-lumina-purple: #2d1b64;
+  --color-lumina-light: #f3f4f6;
+}
