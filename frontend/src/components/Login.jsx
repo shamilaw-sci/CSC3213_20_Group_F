@@ -15,6 +15,10 @@ const Login = () => {
       const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
       localStorage.setItem('token', res.data.token);
       
+      // Save the entire user object (which should contain the role)
+// Make sure your backend login route returns 'user' in the response
+localStorage.setItem('user', JSON.stringify(res.data.user));
+
       toast.success("Welcome back!"); // A nice greeting!
       navigate('/dashboard'); 
     } catch (err) {

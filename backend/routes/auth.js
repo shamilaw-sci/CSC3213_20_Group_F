@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 // --- REGISTER ROUTE ---
@@ -9,21 +10,30 @@ router.post('/register', async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
-    // 1. Check if user already exists
+    // Basic validation
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Please provide all fields" });
+    }
+
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ message: "User already exists" });
 
-    // 2. Hash the password (security!)
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 3. Create and Save user
-    user = new User({ name, email, password: hashedPassword, role });
+    user = new User({ 
+      name, 
+      email, 
+      password: hashedPassword, 
+      role: role || 'teacher', // Default to teacher if role is undefined
+      mustChangePassword: false 
+    });
+    
     await user.save();
-
     res.status(201).json({ message: "User registered successfully!" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("REGISTER ERROR:", err); // Visible in your terminal
+    res.status(500).json({ error: "Server error during registration" });
   }
 });
 
@@ -32,24 +42,51 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Find user
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
-    // 2. Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-    // 3. Create JWT Token (The "ID Badge")
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '1d' } // Token expires in 1 day
+      { expiresIn: '1d' }
     );
 
-    res.json({ token, user: { id: user._id, name: user.name, role: user.role } });
+    res.json({ 
+      token, 
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        role: user.role,
+        mustChangePassword: user.mustChangePassword 
+      } 
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("LOGIN ERROR:", err); // Visible in your terminal
+    res.status(500).json({ error: "Server error during login" });
+  }
+});
+
+// --- CHANGE PASSWORD ROUTE ---
+router.post('/change-password', protect, async (req, res) => {
+  const { newPassword } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.mustChangePassword = false; 
+
+    await user.save(); // Triggers mongoose hooks safely
+
+    res.json({ message: "Password updated successfully!" });
+  } catch (err) {
+    console.error("PASSWORD CHANGE ERROR:", err); // Visible in your terminal
+    res.status(500).json({ error: "Server error during password update" });
   }
 });
 
