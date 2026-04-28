@@ -4,8 +4,6 @@ const User = require('../models/User');
 // --- PROTECT MIDDLEWARE ---
 const protect = async (req, res, next) => {
   try {
-    console.log("--- PROTECT MIDDLEWARE HIT ---");
-    
     let token;
 
     // 1. Check if token exists in header
@@ -18,7 +16,6 @@ const protect = async (req, res, next) => {
 
     // 2. If no token found
     if (!token) {
-      console.log("FAILED: No token provided");
       return res.status(401).json({ message: "Not authorized, no token" });
     }
 
@@ -29,7 +26,6 @@ const protect = async (req, res, next) => {
     const user = await User.findById(decoded.id).select('-password');
 
     if (!user) {
-      console.log("FAILED: User not found in DB");
       return res.status(401).json({ message: "User not found" });
     }
 
@@ -37,24 +33,19 @@ const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.log("PROTECT ERROR:", error.message);
+    console.error("Auth Middleware Error:", error.message);
     res.status(401).json({ message: "Not authorized, token failed" });
   }
 };
 
 // --- ISADMIN MIDDLEWARE ---
 const isAdmin = (req, res, next) => {
-  console.log("--- ISADMIN MIDDLEWARE HIT ---");
-  console.log("Checking user role:", req.user ? req.user.role : "No user");
-
   // Check if user exists and role is admin
   if (req.user && req.user.role === 'admin') {
-    next(); // Proceed to the route
+    next();
   } else {
-    console.log("FAILED: User is not admin");
     return res.status(403).json({ message: "Access denied. Admins only." });
   }
 };
 
-// --- EXPORT BOTH FUNCTIONS ---
 module.exports = { protect, isAdmin };
