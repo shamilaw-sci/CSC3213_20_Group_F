@@ -1,22 +1,34 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; // This is our "GPS"
+import { useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate(); // Initialize the navigator
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
-      localStorage.setItem('token', res.data.token);
       
-      toast.success("Welcome back!"); // A nice greeting!
-      navigate('/dashboard'); 
+      // Save token and user object
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+
+      toast.success("Welcome back!");
+
+      // --- THE FIX ---
+      // Check if the user needs to change their password
+      if (res.data.user.mustChangePassword) {
+        navigate('/change-password');
+      } else {
+        navigate('/dashboard');
+      }
+      // ---------------
+
     } catch (err) {
       toast.error(err.response?.data?.message || "Invalid Login!");
     }
@@ -24,14 +36,14 @@ const Login = () => {
 
   return (
     <div className="flex min-h-screen bg-white font-sans">
-      {/* LEFT SIDE: Same branding as Register for consistency */}
+      {/* LEFT SIDE */}
       <div className="hidden lg:flex w-1/2 bg-lumina-purple items-center justify-center p-12 text-white flex-col">
         <h1 className="text-4xl font-bold mb-4">Welcome Back! 👋</h1>
         <p className="text-purple-200 text-center mb-8">Login to your LuminaLearn account to continue your studies.</p>
         <div className="w-64 h-64 bg-purple-500/20 rounded-full flex items-center justify-center text-8xl">📚</div>
       </div>
 
-      {/* RIGHT SIDE: Login Form */}
+      {/* RIGHT SIDE */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 md:p-16">
         <div className="max-w-md w-full mx-auto">
           <h2 className="text-3xl font-bold text-gray-800 mb-2">Login</h2>

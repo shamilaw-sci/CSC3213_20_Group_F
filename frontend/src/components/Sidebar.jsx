@@ -1,12 +1,16 @@
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { FaThLarge, FaBook, FaUserCheck, FaWallet, FaChartBar } from "react-icons/fa";
 
 const Sidebar = () => {
+  const location = useLocation(); // To highlight the active link
+
   const menuItems = [
-    { name: "Dashboard", icon: <FaThLarge /> },
-    { name: "Courses", icon: <FaBook /> },
-    { name: "Attendance", icon: <FaUserCheck /> },
-    { name: "Payments", icon: <FaWallet /> },
-    { name: "Analytics", icon: <FaChartBar /> },
+    { name: "Dashboard", icon: <FaThLarge />, path: "/dashboard" },
+    { name: "Courses", icon: <FaBook />, path: "/courses" },
+    { name: "Attendance", icon: <FaUserCheck />, path: "/attendance" },
+    { name: "Payments", icon: <FaWallet />, path: "/payments" },
+    { name: "Analytics", icon: <FaChartBar />, path: "/analytics" },
   ];
 
   return (
@@ -14,12 +18,21 @@ const Sidebar = () => {
       <h1 className="text-2xl font-bold mb-10 flex items-center gap-2">
         <span className="text-yellow-400">💡</span> LuminaLearn
       </h1>
+      
       <nav className="flex flex-col gap-4">
         {menuItems.map((item) => (
-          <div key={item.name} className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/10 cursor-pointer transition">
+          <Link 
+            key={item.name} 
+            to={item.path}
+            className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-200 
+              ${location.pathname === item.path 
+                ? "bg-white/20 font-bold shadow-md" 
+                : "hover:bg-white/10"
+              }`}
+          >
             <span className="text-xl">{item.icon}</span>
             <span className="font-medium">{item.name}</span>
-          </div>
+          </Link>
         ))}
       </nav>
     </div>

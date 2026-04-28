@@ -1,19 +1,45 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
 require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
+
+// Import Routes
+const authRoutes = require('./routes/auth');
+const courseRoutes = require('./routes/courseRoutes');
 
 const app = express();
 
-app.use(express.json());
-app.use(cors());
+// --- MIDDLEWARE ---
+app.use(express.json()); // Parses incoming JSON requests
+app.use(cors());         // Enables Cross-Origin Resource Sharing
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected! 🚀"))
-  .catch((err) => console.log("Uh oh, database error:", err));
+// --- ROOT HEALTH CHECK ---
+// Useful to verify your server is running in the browser/Postman
+app.get('/', (req, res) => {
+    res.send("LuminaLearn API is running! 🚀");
+});
 
-// Start the server
+// --- ROUTES ---
+app.use('/api/auth', authRoutes);
+app.use('/api/courses', courseRoutes);
+
+// --- DATABASE CONNECTION ---
+const dbURI = process.env.MONGO_URI;
+
+if (!dbURI) {
+    console.error("FATAL ERROR: MONGO_URI is not defined in .env file.");
+    process.exit(1);
+}
+
+mongoose.connect(dbURI)
+    .then(() => console.log("MongoDB Connected! 🚀"))
+    .catch((err) => {
+        console.error("Database connection error:", err);
+        process.exit(1); 
+    });
+
+// --- START SERVER ---
 const PORT = process.env.PORT || 5000;
-app.use('/api/auth', require('./routes/auth'));
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server is up and running on port ${PORT}`);
+});
