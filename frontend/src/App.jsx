@@ -9,8 +9,9 @@ import Dashboard from './components/Dashboard';
 import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
 import DashboardLayout from './components/DashboardLayout';
-// 1. ADD THIS IMPORT
 import Courses from './pages/Courses'; 
+// අලුත් පේජ් එක
+import CourseDetails from './pages/CourseDetails'; 
 
 const ProtectedRoute = ({ children }) => {
   const storedUser = localStorage.getItem('user');
@@ -38,14 +39,13 @@ function App() {
         <Route path="/" element={<Navigate to="/login" />} />
 
         {/* PROTECTED ROUTES */}
-        {/* We nest the pages inside DashboardLayout so the Sidebar always shows */}
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/add-course" element={<AddCourse />} />
           <Route path="/courses" element={<Courses />} /> 
+          <Route path="/course/:courseId" element={<CourseDetails />} /> 
         </Route>
         
-        {/* Catch-all for undefined routes */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>

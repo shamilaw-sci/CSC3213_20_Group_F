@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom'; // 1. useNavigate එක import කරන්න
 
 const Courses = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate(); // 2. navigate function එක සකස් කරගන්න
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -38,7 +40,9 @@ const Courses = () => {
           {courses.map((course) => (
             <div 
               key={course._id} 
-              className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition"
+              // 3. onClick එකක් එකතු කරලා අදාළ කෝස් එකේ පේජ් එකට යවන්න
+              onClick={() => navigate(`/course/${course._id}`)} 
+              className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition cursor-pointer"
             >
               <h3 className="text-xl font-bold text-gray-800 mb-2">{course.title}</h3>
               <p className="text-gray-600 text-sm mb-4 line-clamp-3">{course.description}</p>
