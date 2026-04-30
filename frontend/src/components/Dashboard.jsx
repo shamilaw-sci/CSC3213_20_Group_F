@@ -1,45 +1,49 @@
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 
+// --- SUB-COMPONENTS (You can move these to separate files later!) ---
+const AdminDashboard = ({ user }) => (
+  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+    <h3 className="text-xl font-bold text-lumina-purple mb-4">System Overview</h3>
+    <p>Welcome, Admin {user.name}. Here you can manage all users and platform settings.</p>
+    {/* Add admin stats cards here */}
+  </div>
+);
+
+const TeacherDashboard = ({ user }) => (
+  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+    <h3 className="text-xl font-bold text-lumina-purple mb-4">Instructor Portal</h3>
+    <p>Welcome, Teacher {user.name}. Here are your active classes and student analytics.</p>
+    {/* Add course management quick-links here */}
+  </div>
+);
+
+const StudentDashboard = ({ user }) => (
+  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+    <h3 className="text-xl font-bold text-lumina-purple mb-4">My Learning</h3>
+    <p>Welcome back, {user.name}! You have 2 assignments due this week.</p>
+    {/* Add enrolled courses list here */}
+  </div>
+);
+
+// --- MAIN DASHBOARD COMPONENT ---
 const Dashboard = () => {
-  // Retrieve the string from storage, then parse it back into a JavaScript object
+  // 1. Grab the user data from localStorage
   const storedUser = localStorage.getItem('user');
-  const user = storedUser ? JSON.parse(storedUser) : null;
-  const navigate = useNavigate();
+  const user = storedUser ? JSON.parse(storedUser) : { name: 'Guest', role: 'student' };
 
-  console.log("THE USER OBJECT:", user);
-
-  {user?.role?.toString() === 'admin' && (
-    <button 
-     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-     onClick={() => navigate('/add-course')}
-    >
-     + Add New Course
-    </button>
-  )}
-  
+  // 2. Render the correct view based on the role
   return (
-    <div className="flex-1 bg-gray-50 p-8 min-h-screen ml-64">
-      <header className="flex justify-between items-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800">Welcome back, {user?.name || "User"}! 👋</h2>
-        
-        {/* 2. ADD COURSE BUTTON - Visible ONLY to Admins */}
-        {user?.role === 'admin' && (
-           <button 
-             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-             onClick={() => window.location.href = '/add-course'} // or your navigation logic
-           >
-             + Add New Course
-           </button>
-        )}
-      </header>
-
-      {/* Dummy Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* ... your existing cards ... */}
-      </div>
+    <div className="w-full">
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">
+        {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Dashboard
+      </h1>
+      
+      {/* The Traffic Cop Logic */}
+      {user.role === 'admin' && <AdminDashboard user={user} />}
+      {user.role === 'teacher' && <TeacherDashboard user={user} />}
+      {user.role === 'student' && <StudentDashboard user={user} />}
     </div>
   );
-  console.log("Current user object:", user);
 };
-// THIS LINE IS MISSING OR INCORRECT
+
 export default Dashboard;

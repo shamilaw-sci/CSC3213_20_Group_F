@@ -1,27 +1,40 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import Settings from './pages/Settings';
 
-// Components
+// --- COMPONENTS & LAYOUTS ---
 import Register from './components/Register';
 import Login from './components/Login';
+import DashboardLayout from './components/DashboardLayout';
 import Dashboard from './components/Dashboard';
+
+// --- PAGES ---
 import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
-import DashboardLayout from './components/DashboardLayout';
-// 1. ADD THIS IMPORT
 import Courses from './pages/Courses'; 
+import ManageUsers from './pages/ManageUsers';
 
-const ProtectedRoute = ({ children }) => {
+// --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
 
+  // 1. Not logged in? Kick back to login screen.
   if (!user) return <Navigate to="/login" />;
 
+  // 2. Forced password change check.
   if (user.mustChangePassword && window.location.pathname !== '/change-password') {
     return <Navigate to="/change-password" />;
   }
 
+  // 3. Role verification (The Bouncer).
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    console.warn(`Access denied. Role '${user.role}' cannot access this route.`);
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // 4. All checks passed! Let them through.
   return children;
 };
 
@@ -31,21 +44,38 @@ function App() {
       <Toaster position="top-center" reverseOrder={false} />
       
       <Routes>
-        {/* PUBLIC ROUTES */}
+        {/* === PUBLIC ROUTES === */}
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/" element={<Navigate to="/login" />} />
 
-        {/* PROTECTED ROUTES */}
-        {/* We nest the pages inside DashboardLayout so the Sidebar always shows */}
+        {/* === DASHBOARD & PROTECTED ROUTES === */}
+        {/* Everything inside here gets the Sidebar and Header automatically */}
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          
+          {/* Level 1: Accessible to EVERYONE (Student, Teacher, Admin) */}
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/add-course" element={<AddCourse />} />
           <Route path="/courses" element={<Courses />} /> 
+          <Route path="/settings" element={<Settings />} />
+
+          {/* Level 2: Restricted Access (Only Teachers and Admins) */}
+          <Route path="/add-course" element={
+            <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+              <AddCourse />
+            </ProtectedRoute>
+          } />
+
+          {/* Level 3: Top Secret (Admin Only) */}
+          <Route path="/manage-users" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <ManageUsers />
+            </ProtectedRoute>
+          } />
+
         </Route>
         
-        {/* Catch-all for undefined routes */}
+        {/* Catch-all for random URLs */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
