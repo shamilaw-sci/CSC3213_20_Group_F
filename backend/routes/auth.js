@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
+const Course = require('../models/Course');
 
 // --- LOGIN ROUTE ---
 router.post('/login', async (req, res) => {
@@ -186,6 +187,25 @@ router.delete('/users/:id', protect, async (req, res) => {
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete user" });
+  }
+});
+
+// --- GET ADMIN DASHBOARD STATS ---
+router.get('/admin-stats', protect, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+
+  try {
+    const totalStudents = await User.countDocuments({ role: 'student' });
+    const totalTeachers = await User.countDocuments({ role: 'teacher' });
+    const totalCourses = await Course.countDocuments();    
+
+    res.json({
+      students: totalStudents,
+      teachers: totalTeachers,
+      courses: totalCourses
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching stats" });
   }
 });
 
