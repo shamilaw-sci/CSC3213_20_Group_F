@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { FaBell, FaUserCircle, FaCog } from 'react-icons/fa';
+// MERGED: All icons are now in one single import line
+import { FaBell, FaUserCircle, FaCog, FaSearch } from 'react-icons/fa';
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -13,7 +14,6 @@ const DashboardLayout = () => {
   const [hasUnread, setHasUnread] = useState(true); // Controls the red dot
   
   // --- CLICK OUTSIDE REFS ---
-  // These act like "nametags" so React knows exactly which HTML elements are the menus
   const notifRef = useRef(null);
   const profileRef = useRef(null);
   
@@ -32,19 +32,15 @@ const DashboardLayout = () => {
   // --- CLICK OUTSIDE LOGIC ---
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // If the click is NOT inside the notification menu, close it
       if (notifRef.current && !notifRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
-      // If the click is NOT inside the profile menu, close it
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setShowProfileMenu(false);
       }
     };
 
-    // Attach the listener to the whole webpage
     document.addEventListener('mousedown', handleClickOutside);
-    // Cleanup the listener when the component unmounts
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
@@ -80,11 +76,25 @@ const DashboardLayout = () => {
         
         <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm sticky top-0 z-10">
            
-           <h2 className="text-xl font-bold text-gray-800">
+           <h2 className="text-xl font-bold text-gray-800 w-1/4 truncate">
              {getPageTitle()}
            </h2>
+
+           {/* --- SEARCH BAR --- */}
+           <div className="flex-1 max-w-xl mx-8">
+             <div className="relative group">
+               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 group-focus-within:text-lumina-purple transition-colors">
+                 <FaSearch />
+               </span>
+               <input 
+                 type="text" 
+                 placeholder="Search for courses, students, or teachers..." 
+                 className="w-full py-2.5 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all text-sm"
+               />
+             </div>
+           </div>
            
-           <div className="flex items-center gap-6">
+           <div className="flex items-center gap-6 w-1/4 justify-end">
              
              {showAddCourseButton && (
                <button 
@@ -95,13 +105,13 @@ const DashboardLayout = () => {
                </button>
              )}
 
-             {/* --- NOTIFICATION SYSTEM (Now with ref) --- */}
+             {/* --- NOTIFICATION SYSTEM --- */}
              <div className="relative" ref={notifRef}>
                 <button 
                   onClick={() => { 
                     setShowNotifications(!showNotifications); 
                     setShowProfileMenu(false);
-                    setHasUnread(false); // Removes the red dot instantly!
+                    setHasUnread(false); 
                   }}
                   className="p-2 text-gray-500 hover:text-lumina-purple hover:bg-purple-50 rounded-full transition-all relative outline-none"
                 >
@@ -138,7 +148,7 @@ const DashboardLayout = () => {
                 )}
              </div>
 
-             {/* --- USER PROFILE SYSTEM (Now with ref) --- */}
+             {/* --- USER PROFILE SYSTEM --- */}
              <div className="relative" ref={profileRef}>
                 <button 
                   onClick={() => { 
