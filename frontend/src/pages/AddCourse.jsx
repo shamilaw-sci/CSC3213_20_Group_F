@@ -104,7 +104,7 @@ const AddCourse = () => {
         <button 
           type="submit" 
           disabled={isLoading}
-          className={`w-full text-white p-3 rounded-lg font-bold transition ${isLoading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+          className={`w-full text-white p-3 rounded-lg font-bold transition ${isLoading ? 'bg-gray-400' : 'bg-lumina-purple hover:bg-purple-800'}`}
         >
           {isLoading ? 'Processing...' : 'Create Course & Teacher'}
         </button>

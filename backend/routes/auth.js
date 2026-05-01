@@ -104,4 +104,89 @@ router.post('/change-password', protect, async (req, res) => {
   }
 });
 
+// --- UPDATE PROFILE ROUTE (Name and/or Password) ---
+router.put('/update-profile', protect, async (req, res) => {
+  const { name, newPassword } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id || req.user._id);;
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // 1. Update the name if provided
+    if (name) user.name = name;
+
+    // 2. Update the password if provided
+    if (newPassword) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+    }
+
+    await user.save();
+
+    // 3. Send back the updated user info (excluding password)
+    res.json({
+      message: "Profile updated successfully!",
+      user: {
+        id: user._id,
+        name: user.name,
+        role: user.role,
+        mustChangePassword: user.mustChangePassword
+      }
+    });
+
+  } catch (err) {
+    console.error("Update Profile Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ==========================================
+//          ADMIN ONLY ROUTES
+// ==========================================
+
+// 1. GET ALL USERS
+router.get('/users', protect, async (req, res) => {
+  // Check if the person making the request is actually an admin
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Access Denied: Admins only." });
+  }
+
+  try {
+    // Fetch all users but DO NOT send passwords back to the frontend!
+    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Server error fetching users" });
+  }
+});
+
+// 2. UPDATE USER ROLE
+router.put('/users/:id/role', protect, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: "Access Denied" });
+
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id, 
+      { role: req.body.role }, 
+      { new: true }
+    ).select('-password');
+    
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update role" });
+  }
+});
+
+// 3. DELETE USER
+router.delete('/users/:id', protect, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: "Access Denied" });
+
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete user" });
+  }
+});
+
 module.exports = router;
