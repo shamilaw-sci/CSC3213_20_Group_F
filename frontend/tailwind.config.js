@@ -1,0 +1,17 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // Your custom brand colors from the mockup!
+        luminaPurple: '#2d1b64', 
+        luminaLight: '#f3f4f6',
+      }
+    },
+  },
+  plugins: [],
+}
