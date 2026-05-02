@@ -66,7 +66,7 @@ const DashboardLayout = () => {
     }
   };
 
-  const showAddCourseButton = (role === 'teacher' || role === 'admin') && (location.pathname === '/dashboard' || location.pathname === '/courses');
+  const showAddCourseButton = (role === 'admin') && (location.pathname === '/dashboard' || location.pathname === '/courses');
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -88,7 +88,7 @@ const DashboardLayout = () => {
                </span>
                <input 
                  type="text" 
-                 placeholder="Search for courses, students, or teachers..." 
+                 placeholder="Search for courses and teachers..." 
                  className="w-full py-2.5 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all text-sm"
                />
              </div>
