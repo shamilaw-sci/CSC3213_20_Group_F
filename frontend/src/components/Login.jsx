@@ -3,34 +3,51 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
+  // --- TRADITIONAL LOGIN ---
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
       
-      // Save token and user object
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
 
       toast.success("Welcome back!");
 
-      // --- THE FIX ---
-      // Check if the user needs to change their password
       if (res.data.user.mustChangePassword) {
         navigate('/change-password');
       } else {
         navigate('/dashboard');
       }
-      // ---------------
-
     } catch (err) {
       toast.error(err.response?.data?.message || "Invalid Login!");
+    }
+  };
+
+  // --- GOOGLE LOGIN HANDLER ---
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      // Send the Google credential to your new backend route
+      const res = await axios.post('http://localhost:5000/api/auth/google', {
+        credential: credentialResponse.credential,
+      });
+
+      // Save the session just like the normal login
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+
+      toast.success("Successfully logged in with Google!");
+      navigate('/dashboard');
+    } catch (err) {
+      console.error(err);
+      toast.error("Google authentication failed. Please try again.");
     }
   };
 
@@ -80,6 +97,24 @@ const Login = () => {
               Login
             </button>
           </form>
+
+          {/* --- THE "OR" DIVIDER --- */}
+          <div className="flex items-center my-6 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200">
+            <p className="text-center font-semibold mx-4 text-gray-400 text-sm">OR</p>
+          </div>
+
+          {/* --- THE GOOGLE BUTTON --- */}
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error('Google Login Failed')}
+              useOneTap
+              theme="outline"
+              shape="pill"
+              size="large"
+              width="384" // Matches the width of your input fields (max-w-md)
+            />
+          </div>
 
           <p className="mt-8 text-center text-gray-600">
             Don't have an account? <span onClick={() => navigate('/register')} className="text-purple-600 font-bold cursor-pointer">Register</span>

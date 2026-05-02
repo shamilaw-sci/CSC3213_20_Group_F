@@ -3,14 +3,14 @@ import axios from 'axios';
 import { FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+// 1. Import the Google component
+import { GoogleLogin } from '@react-oauth/google';
 
 const Register = () => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'student' });
-  
-  // 1. Initialize the navigator at the top level of the component
   const navigate = useNavigate();
 
-  // 2. Define the submit handler directly in the component
+  // --- TRADITIONAL REGISTRATION ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -19,6 +19,26 @@ const Register = () => {
       navigate('/login');
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration failed!");
+    }
+  };
+
+  // --- GOOGLE REGISTRATION/LOGIN HANDLER ---
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      // We use the exact same backend route as Login!
+      const res = await axios.post('http://localhost:5000/api/auth/google', {
+        credential: credentialResponse.credential,
+      });
+
+      // Save the session
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+
+      toast.success("Account created successfully with Google!");
+      navigate('/dashboard');
+    } catch (err) {
+      console.error(err);
+      toast.error("Google registration failed. Please try again.");
     }
   };
 
@@ -44,6 +64,7 @@ const Register = () => {
                 type="text" placeholder="Full Name" 
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition"
                 onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                required
               />
             </div>
             <div className="relative">
@@ -52,6 +73,7 @@ const Register = () => {
                 type="email" placeholder="Email Address" 
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition"
                 onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                required
               />
             </div>
             <div className="relative">
@@ -60,6 +82,7 @@ const Register = () => {
                 type="password" placeholder="Password" 
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition"
                 onChange={(e) => setFormData({...formData, password: e.target.value})} 
+                required
               />
             </div>
             
@@ -67,6 +90,25 @@ const Register = () => {
               Register
             </button>
           </form>
+
+          {/* --- THE "OR" DIVIDER --- */}
+          <div className="flex items-center my-6 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200">
+            <p className="text-center font-semibold mx-4 text-gray-400 text-sm">OR</p>
+          </div>
+
+          {/* --- THE GOOGLE BUTTON --- */}
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error('Google Registration Failed')}
+              theme="outline"
+              shape="pill"
+              size="large"
+              width="384"
+              text="signup_with" // Changes the button text to "Sign up with Google"
+            />
+          </div>
+
           <p className="mt-8 text-center text-gray-600">
             Already have an account?{" "}
             <span 
