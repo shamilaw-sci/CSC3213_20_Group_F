@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
 const Course = require('../models/Course');
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // --- LOGIN ROUTE ---
 router.post('/login', async (req, res) => {
@@ -72,6 +74,61 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error("Registration Error:", err);
     res.status(500).json({ message: "Server error during registration" });
+  }
+});
+
+// --- GOOGLE LOGIN/REGISTER ROUTE ---
+router.post('/google', async (req, res) => {
+  const { credential } = req.body;
+
+  try {
+    // 1. Verify the token with Google
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, name } = payload;
+
+    // 2. Check if user already exists in our database
+    let user = await User.findOne({ email });
+
+    // 3. If they don't exist, create a new 'student' account
+    if (!user) {
+      // Generate a random secure password since Google users don't type one
+      const salt = await bcrypt.genSalt(10);
+      const randomPassword = await bcrypt.hash(Date.now().toString() + Math.random(), salt);
+
+      user = await User.create({
+        name: name,
+        email: email,
+        password: randomPassword,
+        role: 'student', // Defaulting to student as requested!
+        mustChangePassword: false 
+      });
+    }
+
+    // 4. Create our own JWT token for them
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    // 5. Send it back to the frontend
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        role: user.role,
+        mustChangePassword: user.mustChangePassword
+      }
+    });
+
+  } catch (err) {
+    console.error("Google Auth Error:", err);
+    res.status(500).json({ message: "Google authentication failed" });
   }
 });
 
