@@ -149,13 +149,18 @@ const TeacherDashboard = ({ user }) => {
       <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm text-center">
         <div className="max-w-md mx-auto py-8">
           <FaBookOpen className="text-6xl text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">You haven't created any courses yet</h3>
-          <p className="text-gray-500 mb-6">Share your knowledge with the world. Start building your first course today!</p>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">You haven't assigned to any courses yet</h3>
+          <p className="text-gray-500 mb-6">Share your knowledge with the world. Contact LuminaLearn to Start your first course today!</p>
           <button 
-              onClick={() => navigate('/add-course')} // This maps it to your actual form!
+              onClick={() => {
+                const email = "thanukavishal22@gmail.com";
+                const subject = encodeURIComponent("Request to add new course");
+                const body = encodeURIComponent('Hi LuminaLearn \n\nI would like to start a new course.');
+                window.location.href = 'mailto:${email}?subject=${subject}&body=${body}';
+              }}
               className="bg-lumina-purple hover:bg-purple-800 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-md flex items-center justify-center gap-2 mx-auto active:scale-95"
             >
-              <FaPlusCircle /> Create New Course
+              <FaPlusCircle className='inline mr-2'/> Contact LuminaLearn
             </button>
         </div>
       </div>
