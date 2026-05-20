@@ -16,7 +16,6 @@ router.get('/', protect, async (req, res) => {
 });
 
 // @route   GET /api/courses/:id
-// Fetch single course details
 router.get('/:id', protect, async (req, res) => {
     try {
         const course = await Course.findById(req.params.id).populate('instructor', 'name');
@@ -73,32 +72,34 @@ router.post('/add-with-teacher', protect, isAdmin, async (req, res) => {
     }
 });
 
-// --- NEW ROUTES FOR GRADES AND MESSAGES ---
-
-// @route   POST /api/courses/:id/add-grade
-// Admin adds a grade to the course
-router.post('/:id/add-grade', protect, isAdmin, async (req, res) => {
+// @route   POST /api/courses/:id/toggle-grade
+// Admin toggles (adds/removes) a grade to the course
+router.post('/:id/toggle-grade', protect, isAdmin, async (req, res) => {
     try {
         const { gradeNumber } = req.body;
         const course = await Course.findById(req.params.id);
 
         if (!course) return res.status(404).json({ error: "Course not found" });
 
-        // Check if grade already exists
-        const exists = course.enrolledGrades.find(g => g.gradeNumber === gradeNumber);
-        if (exists) return res.status(400).json({ error: "Grade already added to this course" });
+        const existingIndex = course.enrolledGrades.findIndex(g => g.gradeNumber === gradeNumber);
 
-        course.enrolledGrades.push({ gradeNumber, messages: [] });
-        await course.save();
-
-        res.status(200).json({ message: `Grade ${gradeNumber} added successfully` });
+        if (existingIndex !== -1) {
+            // තිබේ නම් අයින් කරන්න
+            course.enrolledGrades.splice(existingIndex, 1);
+            await course.save();
+            return res.status(200).json({ message: `Grade ${gradeNumber} removed` });
+        } else {
+            // නැත්නම් ඇඩ් කරන්න
+            course.enrolledGrades.push({ gradeNumber, messages: [] });
+            await course.save();
+            return res.status(200).json({ message: `Grade ${gradeNumber} added` });
+        }
     } catch (err) {
-        res.status(500).json({ error: "Failed to add grade" });
+        res.status(500).json({ error: "Failed to toggle grade" });
     }
 });
 
 // @route   POST /api/courses/:id/send-message
-// Teacher sends a message to a specific grade
 router.post('/:id/send-message', protect, async (req, res) => {
     try {
         const { gradeNumber, text } = req.body;
