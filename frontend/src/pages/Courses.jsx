@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const Courses = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate(); 
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -55,7 +57,10 @@ const Courses = () => {
             {courses.map((course) => (
               <div 
                 key={course._id} 
-                className="bg-white p-8 rounded-[30px] shadow-sm border border-transparent hover:border-[#2d1b64]/20 hover:shadow-xl transition-all duration-300 group flex flex-col justify-between"
+                /* --- INJECTED FRIEND'S NAVIGATION LOGIC HERE --- */
+                onClick={() => navigate(`/course/${course._id}`)} 
+                /* Added cursor-pointer to your existing beautiful styling */
+                className="bg-white p-8 rounded-[30px] shadow-sm border border-transparent hover:border-[#2d1b64]/20 hover:shadow-xl transition-all duration-300 group flex flex-col justify-between cursor-pointer"
               >
                 <div>
                   {/* Top Meta Details */}
