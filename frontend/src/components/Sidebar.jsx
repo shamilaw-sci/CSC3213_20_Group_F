@@ -23,7 +23,7 @@ const Sidebar = () => {
     : "hover:bg-purple-700 text-purple-100";
 
   return (
-    <div className="w-64 h-full bg-lumina-purple text-white fixed left-0 top-0 flex flex-col shadow-2xl">
+    <div className="w-64 h-screen bg-lumina-purple text-white fixed left-0 top-0 flex flex-col overflow-hidden shadow-2xl">
       
       {/* Brand / Logo Area */}
       <div className="p-6 mb-4">
@@ -33,7 +33,7 @@ const Sidebar = () => {
       </div>
       
       {/* Navigation Links */}
-      <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 min-h-0 px-4 pb-6 space-y-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Link to="/dashboard" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/dashboard')}`}><FaHome /> Dashboard</Link>
         <Link to="/courses" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/courses')}`}><FaBook /> Courses</Link>
         <Link to="/attendance" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/attendance')}`}><FaCalendarCheck /> Attendance</Link>

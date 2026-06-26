@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 // MERGED: All icons are now in one single import line
 import { FaBell, FaUserCircle, FaCog, FaSearch } from 'react-icons/fa';
 
@@ -66,7 +66,8 @@ const DashboardLayout = () => {
     }
   };
 
-  const showAddCourseButton = (role === 'admin') && (location.pathname === '/dashboard' || location.pathname === '/courses');
+  const canCreateCourse = role === 'admin';
+  const showAddCourseButton = canCreateCourse && (location.pathname === '/dashboard' || location.pathname === '/courses');
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -97,12 +98,12 @@ const DashboardLayout = () => {
            <div className="flex items-center gap-6 w-1/4 justify-end">
              
              {showAddCourseButton && (
-               <button 
-                 onClick={() => navigate('/add-course')}
+               <Link 
+                 to="/add-course"
                  className="bg-lumina-purple hover:bg-purple-800 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md flex items-center gap-2"
                >
                  <span className="text-xl leading-none">+</span> Create Course
-               </button>
+               </Link>
              )}
 
              {/* --- NOTIFICATION SYSTEM --- */}
