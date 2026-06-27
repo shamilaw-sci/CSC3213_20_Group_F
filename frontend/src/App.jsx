@@ -4,7 +4,6 @@ import { Toaster } from 'react-hot-toast';
 import Settings from './pages/Settings';
 
 // --- COMPONENTS & LAYOUTS ---
-import Register from './components/Register';
 import Login from './components/Login';
 import DashboardLayout from './components/DashboardLayout';
 import Dashboard from './components/Dashboard';
@@ -45,7 +44,6 @@ function App() {
       
       <Routes>
         {/* === PUBLIC ROUTES === */}
-        <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/" element={<Navigate to="/login" />} />

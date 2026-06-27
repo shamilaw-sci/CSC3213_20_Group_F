@@ -98,13 +98,13 @@ const DashboardLayout = () => {
            <div className="flex items-center gap-6 w-1/4 justify-end">
              
              {showAddCourseButton && (
-               <Link 
-                 to="/add-course"
-                 className="bg-lumina-purple hover:bg-purple-800 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md flex items-center gap-2"
-               >
-                 <span className="text-xl leading-none">+</span> Create Course
-               </Link>
-             )}
+              <Link 
+                to="/add-course"
+                className="bg-lumina-purple hover:bg-purple-800 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md flex items-center gap-2 whitespace-nowrap flex-shrink-0"
+              >
+                <span className="text-xl leading-none">+</span> Create Course
+              </Link>
+            )}
 
              {/* --- NOTIFICATION SYSTEM --- */}
              <div className="relative" ref={notifRef}>
