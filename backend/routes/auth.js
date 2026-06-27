@@ -3,9 +3,10 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, isAdmin } = require('../middleware/authMiddleware');
 const Course = require('../models/Course');
 const { OAuth2Client } = require('google-auth-library');
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // --- LOGIN ROUTE ---
@@ -50,72 +51,48 @@ router.post('/login', async (req, res) => {
 
 // --- REGISTER ROUTE ---
 router.post('/register', async (req, res) => {
-  const { name, email, password, role } = req.body;
-
-  try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User with this email already exists." });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newUser = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: role || 'student',
-      mustChangePassword: false 
-    });
-
-    res.status(201).json({ message: "User registered successfully!" });
-
-  } catch (err) {
-    console.error("Registration Error:", err);
-    res.status(500).json({ message: "Server error during registration" });
-  }
+  res.status(410).json({
+    message: "Self-registration is disabled. Please contact the institute administration."
+  });
 });
 
-// --- GOOGLE LOGIN/REGISTER ROUTE ---
+// --- GOOGLE LOGIN ROUTE ---
 router.post('/google', async (req, res) => {
   const { credential } = req.body;
 
+  if (!credential) {
+    return res.status(400).json({ message: "Google credential is required" });
+  }
+
   try {
-    // 1. Verify the token with Google
     const ticket = await client.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
-    const { email, name } = payload;
+    const email = payload?.email?.trim().toLowerCase();
 
-    // 2. Check if user already exists in our database
-    let user = await User.findOne({ email });
+    if (!email) {
+      return res.status(400).json({ message: "Google account email could not be verified" });
+    }
 
-    // 3. If they don't exist, create a new 'student' account
+    if (payload?.email_verified === false) {
+      return res.status(400).json({ message: "Google account email is not verified" });
+    }
+
+    const user = await User.findOne({ email });
     if (!user) {
-      // Generate a random secure password since Google users don't type one
-      const salt = await bcrypt.genSalt(10);
-      const randomPassword = await bcrypt.hash(Date.now().toString() + Math.random(), salt);
-
-      user = await User.create({
-        name: name,
-        email: email,
-        password: randomPassword,
-        role: 'student', // Defaulting to student as requested!
-        mustChangePassword: false 
+      return res.status(403).json({
+        message: "This Google email is not registered. Please contact the institute administration."
       });
     }
 
-    // 4. Create our own JWT token for them
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
 
-    // 5. Send it back to the frontend
     res.json({
       token,
       user: {
@@ -125,10 +102,9 @@ router.post('/google', async (req, res) => {
         mustChangePassword: user.mustChangePassword
       }
     });
-
   } catch (err) {
-    console.error("Google Auth Error:", err);
-    res.status(500).json({ message: "Google authentication failed" });
+    console.error("Google Login Error:", err);
+    res.status(401).json({ message: err?.message || "Google authentication failed" });
   }
 });
 
@@ -218,7 +194,66 @@ router.get('/users', protect, async (req, res) => {
   }
 });
 
-// 2. UPDATE USER ROLE
+// 2. CREATE USER
+router.post('/users', protect, isAdmin, async (req, res) => {
+  const { name, email, registrationNumber, temporaryPassword, role = 'student' } = req.body;
+  const normalizedName = name?.trim();
+  const normalizedEmail = email?.trim().toLowerCase();
+  const normalizedRegistrationNumber = registrationNumber?.trim();
+  const allowedRoles = ['student', 'teacher', 'admin'];
+
+  if (!allowedRoles.includes(role)) {
+    return res.status(400).json({ message: "Invalid user role." });
+  }
+
+  if (!normalizedName || !normalizedEmail || !temporaryPassword) {
+    return res.status(400).json({ message: "Name, email, and temporary password are required." });
+  }
+
+  if (role === 'student' && !normalizedRegistrationNumber) {
+    return res.status(400).json({ message: "Registration number is required for students." });
+  }
+
+  try {
+    const existingUser = await User.findOne({
+      $or: [
+        { email: normalizedEmail },
+        ...(normalizedRegistrationNumber ? [{ registrationNumber: normalizedRegistrationNumber }] : [])
+      ]
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: existingUser.email === normalizedEmail
+          ? "User with this email already exists."
+          : "User with this registration number already exists."
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(temporaryPassword, salt);
+
+    const user = await User.create({
+      name: normalizedName,
+      email: normalizedEmail,
+      registrationNumber: normalizedRegistrationNumber || undefined,
+      password: hashedPassword,
+      role,
+      mustChangePassword: true
+    });
+
+    const createdUser = await User.findById(user._id).select('-password');
+    res.status(201).json({
+      message: "User created successfully. Share the temporary password securely.",
+      user: createdUser
+    });
+  } catch (err) {
+    console.error("Create User Error:", err);
+    res.status(500).json({ message: "Failed to create user" });
+  }
+});
+
+// 3. UPDATE USER ROLE
 router.put('/users/:id/role', protect, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: "Access Denied" });
 
@@ -235,7 +270,7 @@ router.put('/users/:id/role', protect, async (req, res) => {
   }
 });
 
-// 3. DELETE USER
+// 4. DELETE USER
 router.delete('/users/:id', protect, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: "Access Denied" });
 
