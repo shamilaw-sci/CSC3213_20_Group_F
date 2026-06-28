@@ -77,12 +77,12 @@ const DashboardLayout = () => {
         
         <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm sticky top-0 z-10">
            
-           <h2 className="text-xl font-bold text-gray-800 w-1/4 truncate">
+           <h2 className="text-xl font-bold text-gray-800 flex-shrink-0 truncate max-w-[25%] mr-4">
              {getPageTitle()}
            </h2>
 
            {/* --- SEARCH BAR --- */}
-           <div className="flex-1 max-w-xl mx-8">
+           <div className="flex-1 max-w-xl mx-4 min-w-[200px]">
              <div className="relative group">
                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 group-focus-within:text-lumina-purple transition-colors">
                  <FaSearch />
@@ -95,7 +95,7 @@ const DashboardLayout = () => {
              </div>
            </div>
            
-           <div className="flex items-center gap-6 w-1/4 justify-end">
+           <div className="flex items-center gap-4 w-auto flex-shrink-0 justify-end">
              
              {showAddCourseButton && (
               <Link 
