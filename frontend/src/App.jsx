@@ -12,6 +12,7 @@ import Dashboard from './components/Dashboard';
 import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
 import Courses from './pages/Courses'; 
+import CourseDetails from './pages/CourseDetails';
 import ManageUsers from './pages/ManageUsers';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
@@ -40,8 +41,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 function App() {
   return (
     <Router>
-      <Toaster position="top-center" reverseOrder={false} />
-      
+      <Toaster position="top-center" />
       <Routes>
         {/* === PUBLIC ROUTES === */}
         <Route path="/login" element={<Login />} />
@@ -55,6 +55,7 @@ function App() {
           {/* Level 1: Accessible to EVERYONE (Student, Teacher, Admin) */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<Courses />} /> 
+          <Route path="/course/:courseId" element={<CourseDetails />} />
           <Route path="/settings" element={<Settings />} />
 
           {/* Level 2: Restricted Access (Only Teachers and Admins) */}

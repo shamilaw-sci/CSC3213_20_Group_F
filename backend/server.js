@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 // Import Routes
 const authRoutes = require('./routes/auth');
 const courseRoutes = require('./routes/courseRoutes');
+const lessonRoutes = require('./routes/lessonRoutes'); // New change
 
 const app = express();
 
@@ -14,7 +15,6 @@ app.use(express.json()); // Parses incoming JSON requests
 app.use(cors());         // Enables Cross-Origin Resource Sharing
 
 // --- ROOT HEALTH CHECK ---
-// Useful to verify your server is running in the browser/Postman
 app.get('/', (req, res) => {
     res.send("LuminaLearn API is running! 🚀");
 });
@@ -22,6 +22,7 @@ app.get('/', (req, res) => {
 // --- ROUTES ---
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/lessons', lessonRoutes); // New change
 
 // --- DATABASE CONNECTION ---
 const dbURI = process.env.MONGO_URI;
