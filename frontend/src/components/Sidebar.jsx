@@ -28,7 +28,8 @@ const Sidebar = () => {
       {/* Brand / Logo Area */}
       <div className="p-6 mb-4">
         <h2 className="text-2xl font-bold flex items-center gap-3">
-          <span className="text-3xl">🚀</span> LuminaLearn
+          <img src="/assets/LuminaLearn_Logo_icon.png" alt="LuminaLearn Logo" className="h-10 w-auto" />
+          LuminaLearn
         </h2>
       </div>
       
@@ -55,7 +56,7 @@ const Sidebar = () => {
       <div className="p-4 border-t border-purple-800 mt-auto">
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-3 p-3 w-full rounded-lg hover:bg-red-500 hover:text-white transition-colors text-purple-200 font-medium"
+          className="flex items-center gap-3 p-3 w-full rounded-lg hover:bg-red-500 hover:text-white transition-colors text-purple-200 font-medium cursor-pointer"
         >
           <FaSignOutAlt /> Logout
         </button>

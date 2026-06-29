@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaLock } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaArrowRight } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
 
@@ -63,70 +63,98 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-white font-sans">
-      <div className="hidden lg:flex w-1/2 bg-lumina-purple items-center justify-center p-12 text-white flex-col">
-        <h1 className="text-4xl font-bold mb-4">Welcome Back!</h1>
-        <p className="text-purple-200 text-center mb-8">
-          Use your institute-issued LuminaLearn credentials to continue.
-        </p>
-        <div className="w-64 h-64 bg-purple-500/20 rounded-full flex items-center justify-center text-8xl">
-          LL
+    <div 
+      className="flex min-h-screen font-sans text-slate-900 bg-cover bg-center overflow-hidden"
+      style={{ backgroundImage: "url('/assets/Login_screen_BG.png')" }}
+    >
+      
+      {/* Left Side - Welcome Text */}
+      <div className="relative hidden w-full flex-col justify-start pt-5 px-12 lg:flex lg:w-[55%] xl:px-24">
+        <div className="relative z-10 max-w-lg">
+          <img
+            src="/assets/LuminaLearn_Logo_banner.png"
+            alt="LuminaLearn logo"
+            className="mb-2 h-30 w-auto object-contain" 
+          />
+          <h1 className="text-5xl font-bold tracking-tight text-white xl:text-6xl">
+            Welcome Back!
+          </h1>
+          <p className="mt-6 text-lg leading-relaxed text-slate-200">
+            Continue your learning journey with <br />
+            <span className="font-medium text-[#00e5ff]">LuminaLearn</span> Smart Learning Platform.
+          </p>
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 md:p-16">
-        <div className="max-w-md w-full mx-auto">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">Login</h2>
-          <p className="text-gray-500 mb-8">Enter the credentials provided by the institute</p>
+      {/* Right Side - White Login Panel */}
+      <div className="flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20">
+        <div className="w-full max-w-md">
+          
+          {/* Header */}
+          <div className="mb-10">
+            <h2 className="text-4xl font-bold text-[#1e1e38]">Login</h2>
+            <p className="mt-3 text-sm text-slate-500">
+              Enter the credentials provided by the institute
+            </p>
+          </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="relative">
-              <FaEnvelope className="absolute left-3 top-4 text-gray-400" />
+          <form onSubmit={handleLogin} className="space-y-5">
+            {/* Email Input */}
+            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+              <FaEnvelope className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="email"
-                placeholder="Email Address"
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition"
+                placeholder="Enter your email"
+                className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
 
-            <div className="relative">
-              <FaLock className="absolute left-3 top-4 text-gray-400" />
+            {/* Password Input */}
+            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+              <FaLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="password"
                 placeholder="Password"
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition"
+                className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
 
-            <div className="flex justify-between items-center text-sm">
-              <label className="flex items-center gap-2 text-gray-600">
-                <input type="checkbox" className="accent-purple-600" /> Remember me
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between text-sm py-2">
+              <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
+                <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-[#3a1c8a] accent-[#3a1c8a] cursor-pointer" />
+                Remember me
               </label>
-              <span className="text-purple-600 font-medium cursor-pointer">Forgot password?</span>
+              <button type="button" className="font-medium text-[#3a1c8a] hover:text-purple-800 transition-colors">
+                Forgot password?
+              </button>
             </div>
 
+            {/* Login Button */}
             <button
               type="submit"
-              className="w-full bg-lumina-purple hover:bg-purple-800 text-white font-bold py-3 rounded-xl shadow-lg transition duration-300"
+              className="group relative flex w-full items-center justify-center rounded-xl bg-lumina-purple px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-purple-800 shadow-lg shadow-purple-900/20 cursor-pointer"
             >
               Login
-            </button>
+              <span className="absolute right-5 transition-transform group-hover:translate-x-1">
+                <FaArrowRight />
+              </span>
+            </button> 
           </form>
 
+          {/* Google Sign In Divider */}
           {googleClientId && (
             <div className="mt-8">
-              <div className="relative mb-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              <div className="relative mb-6">
+                <div className="absolute inset-x-0 top-1/2 h-px bg-slate-200" />
+                <div className="relative mx-auto w-max bg-white px-4 text-sm text-slate-400">
+                  Or continue with
                 </div>
               </div>
 
@@ -135,17 +163,32 @@ const Login = () => {
                   onSuccess={handleGoogleSuccess}
                   onError={handleGoogleError}
                   useOneTap={false}
+                  shape="pill"
                 />
               </div>
             </div>
           )}
 
-          <p className="mt-8 text-center text-gray-600">
-            Only accounts already created by the institute can sign in with Google.
-          </p>
-          <p className="mt-2 text-center text-gray-600">
-            Need an account? Please contact the institute administration.
-          </p>
+          {/* Footer Text */}
+          <div className="mt-10 space-y-3 text-center text-sm text-slate-500">
+            <p>Only accounts already created by the institute can sign in with Google.</p>
+            <p>
+              Need an account? Please{' '}
+              <button
+                className="font-medium text-[#3a1c8a] hover:underline cursor-pointer"
+                onClick={() => {
+                  const email = "thanukavishal22@gmail.com";
+                  const subject = encodeURIComponent("Request to add new course");
+                  const body = encodeURIComponent("Hi LuminaLearn \n\nI would like to start a new course.");
+                  window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+                }}
+              >
+                contact the institute administration.
+              </button>
+            </p>
+          </div>
+
+
         </div>
       </div>
     </div>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-// MERGED: All icons are now in one single import line
 import { FaBell, FaUserCircle, FaCog, FaSearch } from 'react-icons/fa';
 
 const DashboardLayout = () => {
@@ -114,7 +113,7 @@ const DashboardLayout = () => {
                     setShowProfileMenu(false);
                     setHasUnread(false); 
                   }}
-                  className="p-2 text-gray-500 hover:text-lumina-purple hover:bg-purple-50 rounded-full transition-all relative outline-none"
+                  className="p-2 text-gray-500 hover:text-lumina-purple hover:bg-purple-50 rounded-full transition-all relative outline-none cursor-pointer"
                 >
                   <FaBell className="text-2xl" />
                   {hasUnread && notifications.length > 0 && (
@@ -156,7 +155,7 @@ const DashboardLayout = () => {
                     setShowProfileMenu(!showProfileMenu); 
                     setShowNotifications(false); 
                   }}
-                  className="flex items-center gap-2 p-1 text-gray-500 hover:text-lumina-purple rounded-full transition-all outline-none"
+                  className="flex items-center gap-2 p-1 text-gray-500 hover:text-lumina-purple rounded-full transition-all outline-none cursor-pointer"
                 >
                   <FaUserCircle className="text-3xl" />
                 </button>
@@ -173,7 +172,7 @@ const DashboardLayout = () => {
                     <div className="p-2">
                       <button 
                         onClick={() => { navigate('/settings'); setShowProfileMenu(false); }}
-                        className="w-full flex items-center gap-3 p-3 hover:bg-purple-50 text-gray-700 hover:text-lumina-purple rounded-lg transition-colors font-medium text-sm"
+                        className="w-full flex items-center gap-3 p-3 hover:bg-purple-50 text-gray-700 hover:text-lumina-purple rounded-lg transition-colors font-medium text-sm cursor-pointer"
                       >
                         <FaCog className="text-lg" /> Account Settings
                       </button>
