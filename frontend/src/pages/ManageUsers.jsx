@@ -13,6 +13,7 @@ const emptyStudentForm = {
   name: '',
   email: '',
   registrationNumber: '',
+  grade: '',
   temporaryPassword: ''
 };
 
@@ -60,7 +61,8 @@ const ManageUsers = () => {
         'http://localhost:5000/api/auth/users',
         {
           ...studentForm,
-          role: 'student'
+          role: 'student',
+          grade: Number(studentForm.grade)
         },
         { headers: getAuthHeaders() }
       );
@@ -141,31 +143,42 @@ const ManageUsers = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <input
-            type="text"
-            placeholder="Student Full Name"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-            value={studentForm.name}
-            onChange={(e) => handleStudentFieldChange('name', e.target.value)}
-            required
-          />
-          <input
-            type="email"
-            placeholder="Email Address"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-            value={studentForm.email}
-            onChange={(e) => handleStudentFieldChange('email', e.target.value)}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Registration Number"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-            value={studentForm.registrationNumber}
-            onChange={(e) => handleStudentFieldChange('registrationNumber', e.target.value)}
-            required
-          />
+<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+            <input
+              type="text"
+              placeholder="Student Full Name"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={studentForm.name}
+              onChange={(e) => handleStudentFieldChange('name', e.target.value)}
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email Address"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={studentForm.email}
+              onChange={(e) => handleStudentFieldChange('email', e.target.value)}
+              required
+            />
+            <input
+              type="text"
+              placeholder="Registration Number"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={studentForm.registrationNumber}
+              onChange={(e) => handleStudentFieldChange('registrationNumber', e.target.value)}
+              required
+            />
+            <select
+              value={studentForm.grade}
+              onChange={(e) => handleStudentFieldChange('grade', e.target.value)}
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              required
+            >
+              <option value="">Select Grade</option>
+              {[6, 7, 8, 9, 10, 11].map((grade) => (
+                <option key={grade} value={grade}>Grade {grade}</option>
+              ))}
+            </select>
           <input
             type="password"
             placeholder="Temporary Password"
@@ -211,6 +224,7 @@ const ManageUsers = () => {
               <th className="p-4 font-semibold">User</th>
               <th className="p-4 font-semibold">Email</th>
               <th className="p-4 font-semibold">Registration No.</th>
+              <th className="p-4 font-semibold">Grade</th>
               <th className="p-4 font-semibold">Current Role</th>
               <th className="p-4 font-semibold">Password Status</th>
               <th className="p-4 font-semibold">Joined</th>
@@ -229,6 +243,7 @@ const ManageUsers = () => {
                   </td>
                   <td className="p-4 text-gray-600 text-sm">{u.email}</td>
                   <td className="p-4 text-gray-600 text-sm">{u.registrationNumber || '-'}</td>
+                  <td className="p-4 text-gray-600 text-sm">{u.grade || '-'}</td>
                   <td className="p-4">
                     <select
                       value={u.role}

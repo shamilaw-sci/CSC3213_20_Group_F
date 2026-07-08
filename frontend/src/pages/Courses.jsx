@@ -6,7 +6,9 @@ import { useNavigate } from 'react-router-dom';
 const Courses = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate(); 
+  const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -27,6 +29,20 @@ const Courses = () => {
     fetchCourses();
   }, []);
 
+  // Filter courses based on search query
+  const recommendedCourses = user?.role === 'student' && user?.grade
+    ? courses.filter(course => course.enrolledGrades?.some(g => g.gradeNumber === user.grade))
+    : [];
+
+  const filteredCourses = (user?.role === 'admin'
+    ? courses
+    : courses.filter(course => course.enrolledGrades?.some(g => g.gradeNumber === user?.grade))
+  ).filter(course => 
+    course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (course.instructor?.name && course.instructor.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center">
@@ -39,37 +55,83 @@ const Courses = () => {
     <div className="min-h-screen bg-[#f3f4f6] p-4 md:p-10 font-sans text-gray-800">
       <div className="max-w-7xl mx-auto">
         
-        {/* Header Section - Button completely removed */}
-        <div className="flex justify-between items-center mb-10">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
             <h2 className="text-3xl font-extrabold text-gray-800">Available Courses</h2>
             <p className="text-gray-500 mt-1">Manage and view all your educational content</p>
           </div>
+          {user?.role === 'teacher' && (
+            <button
+              onClick={() => navigate('/add-course')}
+              className="bg-lumina-purple hover:bg-purple-800 text-white font-bold px-6 py-3 rounded-xl transition duration-200 shadow-sm cursor-pointer"
+            >
+              + Create Course
+            </button>
+          )}
         </div>
 
-        {courses.length === 0 ? (
+        {/* Search Bar */}
+        <div className="mb-8 max-w-md">
+          <input
+            type="text"
+            placeholder="Search courses by title, description or teacher..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none shadow-sm transition"
+          />
+        </div>
+
+        {recommendedCourses.length > 0 && (
+          <div className="mb-8 rounded-[30px] bg-white p-8 border border-gray-200 shadow-sm">
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Recommended for Grade {user.grade}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recommendedCourses.slice(0, 4).map((course) => (
+                <div
+                  key={course._id}
+                  onClick={() => navigate(`/course/${course._id}`)}
+                  className="cursor-pointer rounded-3xl border border-purple-100 bg-purple-50 p-6 shadow-sm transition hover:border-purple-300 hover:shadow-lg"
+                >
+                  <h4 className="text-lg font-bold text-purple-700 mb-2">{course.title}</h4>
+                  <p className="text-sm text-purple-700/80 line-clamp-3">{course.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {filteredCourses.length === 0 ? (
           <div className="bg-white p-20 rounded-[30px] text-center shadow-sm">
             <div className="text-6xl mb-4">📚</div>
-            <p className="text-gray-500 text-lg">No courses available at the moment.</p>
+            <p className="text-gray-500 text-lg">No courses found matching your criteria.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course) => (
+            {filteredCourses.map((course) => (
               <div 
                 key={course._id} 
-                /* --- INJECTED FRIEND'S NAVIGATION LOGIC HERE --- */
                 onClick={() => navigate(`/course/${course._id}`)} 
-                /* Added cursor-pointer to your existing beautiful styling */
                 className="bg-white p-8 rounded-[30px] shadow-sm border border-transparent hover:border-[#2d1b64]/20 hover:shadow-xl transition-all duration-300 group flex flex-col justify-between cursor-pointer"
               >
                 <div>
-                  {/* Top Meta Details */}
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="w-12 h-12 bg-[#f3f4f6] rounded-2xl flex items-center justify-center text-2xl group-hover:bg-[#2d1b64] group-hover:text-white transition-colors">
-                      📖
-                    </div>
-                    <div className="bg-green-100 text-green-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
-                      Active
+                  {/* Top Meta Details / Card Thumbnail */}
+                  <div className="mb-6">
+                    {course.cardImage ? (
+                      <img
+                        src={course.cardImage}
+                        alt={course.title}
+                        className="w-full h-32 object-cover rounded-2xl mb-4"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-[#f3f4f6] rounded-2xl flex items-center justify-center text-2xl group-hover:bg-[#2d1b64] group-hover:text-white transition-colors mb-4">
+                        📖
+                      </div>
+                    )}
+                    <div className="flex justify-between items-start">
+                      <span className="bg-green-100 text-green-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
+                        Active
+                      </span>
                     </div>
                   </div>
 

@@ -39,6 +39,8 @@ router.post('/login', async (req, res) => {
         id: user._id,
         name: user.name,
         role: user.role,
+        grade: user.grade,
+        registrationNumber: user.registrationNumber,
         mustChangePassword: user.mustChangePassword
       }
     });
@@ -99,6 +101,8 @@ router.post('/google', async (req, res) => {
         id: user._id,
         name: user.name,
         role: user.role,
+        grade: user.grade,
+        registrationNumber: user.registrationNumber,
         mustChangePassword: user.mustChangePassword
       }
     });
@@ -196,11 +200,12 @@ router.get('/users', protect, async (req, res) => {
 
 // 2. CREATE USER
 router.post('/users', protect, isAdmin, async (req, res) => {
-  const { name, email, registrationNumber, temporaryPassword, role = 'student' } = req.body;
+  const { name, email, registrationNumber, temporaryPassword, role = 'student', grade } = req.body;
   const normalizedName = name?.trim();
   const normalizedEmail = email?.trim().toLowerCase();
   const normalizedRegistrationNumber = registrationNumber?.trim();
   const allowedRoles = ['student', 'teacher', 'admin'];
+  const normalizedGrade = grade !== undefined ? Number(grade) : undefined;
 
   if (!allowedRoles.includes(role)) {
     return res.status(400).json({ message: "Invalid user role." });
@@ -210,8 +215,13 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     return res.status(400).json({ message: "Name, email, and temporary password are required." });
   }
 
-  if (role === 'student' && !normalizedRegistrationNumber) {
-    return res.status(400).json({ message: "Registration number is required for students." });
+  if (role === 'student') {
+    if (!normalizedRegistrationNumber) {
+      return res.status(400).json({ message: "Registration number is required for students." });
+    }
+    if (!Number.isInteger(normalizedGrade) || normalizedGrade < 6 || normalizedGrade > 11) {
+      return res.status(400).json({ message: "A valid student grade is required (6-11)." });
+    }
   }
 
   try {
@@ -237,6 +247,7 @@ router.post('/users', protect, isAdmin, async (req, res) => {
       name: normalizedName,
       email: normalizedEmail,
       registrationNumber: normalizedRegistrationNumber || undefined,
+      grade: role === 'student' ? normalizedGrade : undefined,
       password: hashedPassword,
       role,
       mustChangePassword: true

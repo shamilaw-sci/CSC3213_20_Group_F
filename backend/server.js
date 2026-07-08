@@ -13,6 +13,7 @@ const app = express();
 // --- MIDDLEWARE ---
 app.use(express.json()); // Parses incoming JSON requests
 app.use(cors());         // Enables Cross-Origin Resource Sharing
+app.use('/uploads', express.static('uploads')); // Serve uploaded images
 
 // --- ROOT HEALTH CHECK ---
 app.get('/', (req, res) => {

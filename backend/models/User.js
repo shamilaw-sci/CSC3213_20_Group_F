@@ -12,6 +12,14 @@ const UserSchema = new mongoose.Schema({
       return this.role === 'student';
     }
   },
+  grade: {
+    type: Number,
+    min: 6,
+    max: 11,
+    required: function () {
+      return this.role === 'student';
+    }
+  },
   password: { type: String, required: true },
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
   mustChangePassword: { 

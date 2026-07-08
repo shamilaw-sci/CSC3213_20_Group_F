@@ -8,28 +8,37 @@ const messageSchema = new mongoose.Schema({
 
 const gradeSchema = new mongoose.Schema({
   gradeNumber: { type: Number, required: true }, // e.g., 6, 7, 8, 9, 10, 11
+  title: { type: String, trim: true, default: '' },
   messages: [messageSchema] // List of messages for this specific grade
 });
 
 const courseSchema = new mongoose.Schema({
-  title: { 
-    type: String, 
-    required: true, 
-    trim: true 
+  title: {
+    type: String,
+    required: true,
+    trim: true
   },
-  description: { 
-    type: String, 
-    required: true 
+  description: {
+    type: String,
+    required: true
   },
-  instructor: { 
-    type: mongoose.Schema.Types.ObjectId, 
+  instructor: {
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: false 
+    required: false
   },
-  // Admin add කරන grades ටික මෙතන save වෙනවා
-  enrolledGrades: [gradeSchema] 
-}, { 
-  timestamps: true 
+  banner: {
+    type: String,
+    default: ""
+  },
+  cardImage: {
+    type: String,
+    default: ""
+  },
+  enrolledGrades: [gradeSchema],
+  enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+}, {
+  timestamps: true
 });
 
 module.exports = mongoose.model('Course', courseSchema);
