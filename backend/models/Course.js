@@ -11,6 +11,11 @@ const gradeSchema = new mongoose.Schema({
   messages: [messageSchema] // List of messages for this specific grade
 });
 
+const classSchema = new mongoose.Schema({
+  className: { type: String, required: true }, // e.g. "Grade 8", "Grade 12 Science"
+  enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+});
+
 const courseSchema = new mongoose.Schema({
   title: { 
     type: String, 
@@ -27,7 +32,8 @@ const courseSchema = new mongoose.Schema({
     required: false 
   },
   // Admin add කරන grades ටික මෙතන save වෙනවා
-  enrolledGrades: [gradeSchema] 
+  enrolledGrades: [gradeSchema],
+  classes: [classSchema]
 }, { 
   timestamps: true 
 });

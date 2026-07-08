@@ -196,7 +196,7 @@ router.get('/users', protect, async (req, res) => {
 
 // 2. CREATE USER
 router.post('/users', protect, isAdmin, async (req, res) => {
-  const { name, email, registrationNumber, temporaryPassword, role = 'student' } = req.body;
+  const { name, email, registrationNumber, parentsPhoneNumber, grade, temporaryPassword, role = 'student' } = req.body;
   const normalizedName = name?.trim();
   const normalizedEmail = email?.trim().toLowerCase();
   const normalizedRegistrationNumber = registrationNumber?.trim();
@@ -210,8 +210,16 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     return res.status(400).json({ message: "Name, email, and temporary password are required." });
   }
 
-  if (role === 'student' && !normalizedRegistrationNumber) {
-    return res.status(400).json({ message: "Registration number is required for students." });
+  if (role === 'student') {
+    if (!normalizedRegistrationNumber) {
+      return res.status(400).json({ message: "Registration number is required for students." });
+    }
+    if (!parentsPhoneNumber || !parentsPhoneNumber.trim()) {
+      return res.status(400).json({ message: "Parents phone number is required for students." });
+    }
+    if (!grade || !grade.trim()) {
+      return res.status(400).json({ message: "Student grade is required." });
+    }
   }
 
   try {
@@ -237,6 +245,8 @@ router.post('/users', protect, isAdmin, async (req, res) => {
       name: normalizedName,
       email: normalizedEmail,
       registrationNumber: normalizedRegistrationNumber || undefined,
+      parentsPhoneNumber: role === 'student' ? parentsPhoneNumber.trim() : undefined,
+      grade: role === 'student' ? grade.trim() : undefined,
       password: hashedPassword,
       role,
       mustChangePassword: true
@@ -279,6 +289,60 @@ router.delete('/users/:id', protect, async (req, res) => {
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete user" });
+  }
+});
+
+// 5. UPDATE STUDENT GRADE MANUALLY (Individual)
+router.put('/users/:id/grade', protect, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: "Access Denied: Admins only." });
+
+  const { grade } = req.body;
+  if (!grade) {
+    return res.status(400).json({ message: "Grade is required." });
+  }
+
+  try {
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: req.params.id, role: 'student' },
+      { grade: grade.trim() },
+      { new: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Student not found." });
+    }
+    
+    res.json(updatedUser);
+  } catch (err) {
+    console.error("Update Grade Error:", err);
+    res.status(500).json({ message: "Failed to update student grade" });
+  }
+});
+
+// 6. BATCH UPDATE STUDENT GRADES
+router.post('/users/batch-update-grade', protect, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: "Access Denied: Admins only." });
+
+  const { sourceGrade, targetGrade } = req.body;
+  if (!sourceGrade || !targetGrade) {
+    return res.status(400).json({ message: "Both source grade and target grade are required." });
+  }
+
+  try {
+    const result = await User.updateMany(
+      { role: 'student', grade: sourceGrade.trim() },
+      { grade: targetGrade.trim() }
+    );
+
+    const modifiedCount = result.modifiedCount ?? result.nModified ?? 0;
+
+    res.json({
+      message: `Successfully updated ${modifiedCount} students from ${sourceGrade} to ${targetGrade}.`,
+      modifiedCount
+    });
+  } catch (err) {
+    console.error("Batch Update Grade Error:", err);
+    res.status(500).json({ message: "Failed to update grades in batch" });
   }
 });
 

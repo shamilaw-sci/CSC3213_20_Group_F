@@ -12,6 +12,20 @@ const UserSchema = new mongoose.Schema({
       return this.role === 'student';
     }
   },
+  parentsPhoneNumber: {
+    type: String,
+    trim: true,
+    required: function () {
+      return this.role === 'student';
+    }
+  },
+  grade: {
+    type: String,
+    trim: true,
+    required: function () {
+      return this.role === 'student';
+    }
+  },
   password: { type: String, required: true },
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
   mustChangePassword: { 
