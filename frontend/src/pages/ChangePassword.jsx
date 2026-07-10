@@ -18,7 +18,7 @@ const ChangePassword = () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/auth/change-password', 
+      await axios.post('http://localhost:5000/api/auth/change-password',
         { newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -41,10 +41,10 @@ const ChangePassword = () => {
   return (
     // Background set to luminaLight (#f3f4f6)
     <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 font-sans">
-      
+
       {/* Main Container */}
       <div className="flex w-full max-w-4xl bg-white rounded-[30px] shadow-2xl overflow-hidden min-h-[550px]">
-        
+
         {/* Left Sidebar - Background set to luminaPurple (#2d1b64) */}
         <div className="hidden md:flex md:w-5/12 bg-[#2d1b64] p-10 flex-col justify-between text-white">
           <div>
@@ -61,7 +61,7 @@ const ChangePassword = () => {
               To keep your account secure, please set a new password before accessing your dashboard.
             </p>
           </div>
-          
+
           <div className="relative">
             <div className="text-[100px] opacity-10 absolute -bottom-5 -left-5 rotate-12">🔐</div>
           </div>
@@ -80,9 +80,9 @@ const ChangePassword = () => {
                 New Password
               </label>
               {/* Input field background set to luminaLight (#f3f4f6) */}
-              <input 
-                type="password" 
-                placeholder="••••••••" 
+              <input
+                type="password"
+                placeholder="••••••••"
                 className="w-full p-4 bg-[#f3f4f6] border-none rounded-xl focus:ring-2 focus:ring-[#2d1b64] transition-all outline-none text-gray-700"
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
@@ -94,9 +94,9 @@ const ChangePassword = () => {
                 Confirm Password
               </label>
               {/* Input field background set to luminaLight (#f3f4f6) */}
-              <input 
-                type="password" 
-                placeholder="••••••••" 
+              <input
+                type="password"
+                placeholder="••••••••"
                 className="w-full p-4 bg-[#f3f4f6] border-none rounded-xl focus:ring-2 focus:ring-[#2d1b64] transition-all outline-none text-gray-700"
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
@@ -104,17 +104,28 @@ const ChangePassword = () => {
             </div>
 
             {/* Button background set to luminaPurple (#2d1b64) */}
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading}
-              className="w-full bg-[#2d1b64] hover:opacity-90 text-white font-bold py-4 rounded-xl shadow-lg transition-all transform active:scale-[0.98] disabled:bg-gray-300 disabled:shadow-none"
+              className="w-full bg-[#2d1b64] hover:bg-purple-700 cursor-pointer text-white font-bold py-4 rounded-xl shadow-lg transition-all transform active:scale-[0.98] disabled:bg-gray-300 disabled:shadow-none"
             >
               {isLoading ? 'Updating Security...' : 'Update Password'}
             </button>
           </form>
 
           <p className="mt-8 text-center text-xs text-gray-400">
-            Need help? <span className="text-[#2d1b64] cursor-pointer font-medium">Contact Support</span>
+            Need Help?{' '}
+            <button
+              className="font-medium text-[#3a1c8a] hover:underline cursor-pointer"
+              onClick={() => {
+                const email = "thanukavishal22@gmail.com";
+                const subject = encodeURIComponent("Request to change password");
+                const body = encodeURIComponent("Hi LuminaLearn \n\nI would like to change my password.");
+                window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+              }}
+            >
+              Contact Us.
+            </button>
           </p>
         </div>
       </div>

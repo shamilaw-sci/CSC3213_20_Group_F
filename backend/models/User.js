@@ -1,5 +1,3 @@
-const mongoose = require('mongoose');
-
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
@@ -12,6 +10,14 @@ const UserSchema = new mongoose.Schema({
       return this.role === 'student';
     }
   },
+  parentsPhoneNumber: {
+    type: String,
+    trim: true,
+    required: function () {
+      return this.role === 'student';
+    }
+  },
+ 
   grade: {
     type: Number,
     min: 6,
@@ -24,8 +30,8 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
   mustChangePassword: { 
     type: Boolean, 
-    default: false // Existing users don't need this
+    default: false 
   }
-}, { timestamps: true }); 
+}, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);
