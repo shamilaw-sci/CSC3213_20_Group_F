@@ -205,7 +205,7 @@ router.post('/users', protect, isAdmin, async (req, res) => {
   const normalizedName = name?.trim();
   const normalizedEmail = email?.trim().toLowerCase();
   const normalizedRegistrationNumber = registrationNumber?.trim();
-  const normalizedGrade = grade !== undefined ? Number(grade) : undefined;
+  const normalizedGrade = grade !== undefined ? String(grade).trim() : undefined;
   
   const allowedRoles = ['student', 'teacher', 'admin'];
 
@@ -225,9 +225,9 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     if (!parentsPhoneNumber || !parentsPhoneNumber.trim()) {
       return res.status(400).json({ message: "Parents phone number is required for students." });
     }
-    // Validation for Grade (Strict Number 6-11)
-    if (!Number.isInteger(normalizedGrade) || normalizedGrade < 6 || normalizedGrade > 11) {
-      return res.status(400).json({ message: "A valid student grade is required (6-11)." });
+    // Validation for Grade (Strict String check)
+    if (!normalizedGrade) {
+      return res.status(400).json({ message: "A valid student grade is required." });
     }
   }
 
