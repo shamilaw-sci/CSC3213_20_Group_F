@@ -39,6 +39,8 @@ router.post('/login', async (req, res) => {
         id: user._id,
         name: user.name,
         role: user.role,
+        grade: user.grade,
+        registrationNumber: user.registrationNumber,
         mustChangePassword: user.mustChangePassword
       }
     });
@@ -99,6 +101,8 @@ router.post('/google', async (req, res) => {
         id: user._id,
         name: user.name,
         role: user.role,
+        grade: user.grade,
+        registrationNumber: user.registrationNumber,
         mustChangePassword: user.mustChangePassword
       }
     });
@@ -196,10 +200,13 @@ router.get('/users', protect, async (req, res) => {
 
 // 2. CREATE USER
 router.post('/users', protect, isAdmin, async (req, res) => {
-  const { name, email, registrationNumber, parentsPhoneNumber, grade, temporaryPassword, role = 'student' } = req.body;
+  const { name, email, registrationNumber, parentsPhoneNumber, temporaryPassword, role = 'student', grade } = req.body;
+  
   const normalizedName = name?.trim();
   const normalizedEmail = email?.trim().toLowerCase();
   const normalizedRegistrationNumber = registrationNumber?.trim();
+  const normalizedGrade = grade !== undefined ? Number(grade) : undefined;
+  
   const allowedRoles = ['student', 'teacher', 'admin'];
 
   if (!allowedRoles.includes(role)) {
@@ -214,11 +221,13 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     if (!normalizedRegistrationNumber) {
       return res.status(400).json({ message: "Registration number is required for students." });
     }
+    // Validation for Parent Phone
     if (!parentsPhoneNumber || !parentsPhoneNumber.trim()) {
       return res.status(400).json({ message: "Parents phone number is required for students." });
     }
-    if (!grade || !grade.trim()) {
-      return res.status(400).json({ message: "Student grade is required." });
+    // Validation for Grade (Strict Number 6-11)
+    if (!Number.isInteger(normalizedGrade) || normalizedGrade < 6 || normalizedGrade > 11) {
+      return res.status(400).json({ message: "A valid student grade is required (6-11)." });
     }
   }
 
@@ -246,7 +255,7 @@ router.post('/users', protect, isAdmin, async (req, res) => {
       email: normalizedEmail,
       registrationNumber: normalizedRegistrationNumber || undefined,
       parentsPhoneNumber: role === 'student' ? parentsPhoneNumber.trim() : undefined,
-      grade: role === 'student' ? grade.trim() : undefined,
+      grade: role === 'student' ? normalizedGrade : undefined,
       password: hashedPassword,
       role,
       mustChangePassword: true
