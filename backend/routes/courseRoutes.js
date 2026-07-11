@@ -200,8 +200,8 @@ router.post('/:id/enroll-grade/:gradeNumber', protect, isAdmin, async (req, res)
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
-        const gradeNumber = Number(req.params.gradeNumber);
-        if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
+        const gradeNumber = req.params.gradeNumber;
+        if (!gradeNumber || !gradeNumber.trim()) {
             return res.status(400).json({ error: 'Invalid grade selection.' });
         }
 

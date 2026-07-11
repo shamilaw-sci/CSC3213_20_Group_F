@@ -8,11 +8,12 @@ const { protect, isAdmin } = require('../middleware/authMiddleware');
 // @desc    Admin විසින් Course එකක් තුළට Grade එකක් ඇතුළත් කිරීම
 router.post('/add-grade', protect, isAdmin, async (req, res) => {
     const { grade, courseId } = req.body;
-    const gradeNumber = Number(grade);
 
-    if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
-        return res.status(400).json({ error: "Invalid grade selection. Grades must be between 6 and 11." });
+    if (!grade || !String(grade).trim()) {
+        return res.status(400).json({ error: "Invalid grade selection." });
     }
+
+    const gradeVal = String(grade).trim();
 
     try {
         const course = await Course.findById(courseId);
@@ -20,61 +21,61 @@ router.post('/add-grade', protect, isAdmin, async (req, res) => {
             return res.status(404).json({ error: "Course not found." });
         }
 
-        const existingCourseGrade = course.enrolledGrades.find(g => g.gradeNumber === gradeNumber);
+        const existingCourseGrade = course.enrolledGrades.find(g => g.gradeNumber === gradeVal);
         if (existingCourseGrade) {
-            return res.status(400).json({ error: "මෙම ශ්‍රේණිය දැනටමත් මෙම පාඨමාලාවට ඇතුළත් කර ඇත." });
+            return res.status(400).json({ error: "This class was already added to this course" });
         }
 
-        const existingLesson = await Lesson.findOne({ grade: gradeNumber, course: courseId });
+        const existingLesson = await Lesson.findOne({ grade: gradeVal, course: courseId });
         if (existingLesson) {
-            return res.status(400).json({ error: "මෙම ශ්‍රේණිය දැනටමත් මෙම පාඨමාලාවට ඇතුළත් කර ඇත." });
+            return res.status(400).json({ error: "This class was already added to this course" });
         }
 
-        const gradeTitle = String(req.body.title || `Grade ${gradeNumber}`).trim();
-        course.enrolledGrades.push({ gradeNumber, title: gradeTitle, messages: [] });
+        const gradeTitle = String(req.body.title || gradeVal).trim();
+        course.enrolledGrades.push({ gradeNumber: gradeVal, title: gradeTitle, messages: [] });
         await course.save();
 
         const newLesson = await Lesson.create({
             course: course._id,
-            grade: gradeNumber,
-            teacherMessage: "මෙම ශ්‍රේණිය සඳහා ගුරුවරයාගෙන් පණිවිඩයක් නැත."
+            grade: gradeVal,
+            teacherMessage: "No teacher message for this class yet."
         });
 
-        const newGradeEntry = course.enrolledGrades.find(g => g.gradeNumber === gradeNumber);
-        res.status(201).json({ message: "ශ්‍රේණිය සාර්ථකව ඇතුළත් කළා!", newGradeEntry, lesson: newLesson });
+        const newGradeEntry = course.enrolledGrades.find(g => g.gradeNumber === gradeVal);
+        res.status(201).json({ message: "Class added successfully!", newGradeEntry, lesson: newLesson });
     } catch (err) {
-        res.status(500).json({ error: "Grade එක ඇතුළත් කිරීම අසාර්ථකයි: " + err.message });
+        res.status(500).json({ error: "Failed to add class: " + err.message });
     }
 });
 
 // @route   PATCH /api/lessons/update-message/:lessonId
-// @desc    ගුරුවරයා විසින් ශ්‍රේණිය ඇතුළත පණිවිඩය පළ කිරීම
+// @desc    Teacher posting a message to a class
 router.patch('/update-message/:lessonId', protect, async (req, res) => {
     const { teacherMessage } = req.body;
 
     try {
         const lesson = await Lesson.findById(req.params.lessonId);
-        
-        if (!lesson) return res.status(404).json({ error: "අදාළ ශ්‍රේණිය සොයාගත නොහැක." });
+
+        if (!lesson) return res.status(404).json({ error: "Class not found." });
 
         // පණිවිඩය පමණක් යාවත්කාලීන කිරීම[cite: 1]
         lesson.teacherMessage = teacherMessage;
         await lesson.save();
 
-        res.json({ message: "පණිවිඩය සාර්ථකව පළ කළා!", lesson });
+        res.json({ message: "Message posted successfully!", lesson });
     } catch (err) {
-        res.status(500).json({ error: "පණිවිඩය යාවත්කාලීන කිරීම අසාර්ථකයි." });
+        res.status(500).json({ error: "Failed to post message." });
     }
 });
 
 // @route   GET /api/lessons/course/:courseId
-// @desc    Course එක ඇතුළේ තියෙන සියලුම Grades ලබාගැනීම[cite: 1]
+// @desc    Get all classes in a course
 router.get('/course/:courseId', protect, async (req, res) => {
     try {
         const grades = await Lesson.find({ course: req.params.courseId }).sort('grade');
         res.json(grades);
     } catch (err) {
-        res.status(500).json({ error: "දත්ත ලබාගැනීම අසාර්ථකයි." });
+        res.status(500).json({ error: "Failed to get data." });
     }
 });
 
@@ -86,7 +87,7 @@ router.put('/:lessonId', protect, async (req, res) => {
     try {
         const lesson = await Lesson.findById(req.params.lessonId);
         if (!lesson) {
-            return res.status(404).json({ error: "අදාළ ශ්‍රේණිය සොයාගත නොහැක." });
+            return res.status(404).json({ error: "Class not found." });
         }
 
         if (teacherMessage !== undefined) {
@@ -97,9 +98,9 @@ router.put('/:lessonId', protect, async (req, res) => {
         }
 
         await lesson.save();
-        res.json({ message: "පාඩම් විස්තර සාර්ථකව යාවත්කාලීන කළා!", lesson });
+        res.json({ message: "Lesson details updated successfully!", lesson });
     } catch (err) {
-        res.status(500).json({ error: "යාවත්කාලීන කිරීම අසාර්ථකයි: " + err.message });
+        res.status(500).json({ error: "Failed to update lesson details: " + err.message });
     }
 });
 

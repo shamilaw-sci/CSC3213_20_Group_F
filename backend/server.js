@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const courseRoutes = require('./routes/courseRoutes');
 const lessonRoutes = require('./routes/lessonRoutes'); // New change
+const scheduleRoutes = require('./routes/scheduleRoutes');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/lessons', lessonRoutes); // New change
+app.use('/api/schedule', scheduleRoutes);
 
 // --- DATABASE CONNECTION ---
 const dbURI = process.env.MONGO_URI;

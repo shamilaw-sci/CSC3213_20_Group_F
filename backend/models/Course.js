@@ -1,3 +1,22 @@
+const mongoose = require('mongoose');
+
+const messageSchema = new mongoose.Schema({
+  text: { type: String, required: true },
+  sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const gradeSchema = new mongoose.Schema({
+  gradeNumber: { type: String, required: true },
+  title: { type: String, trim: true, default: '' },
+  messages: [messageSchema]
+});
+
+const classSchema = new mongoose.Schema({
+  className: { type: String, required: true },
+  enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+});
+
 const courseSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -22,9 +41,7 @@ const courseSchema = new mongoose.Schema({
     default: ""
   },
   enrolledGrades: [gradeSchema],
-  
   classes: [classSchema],
-  
   enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, {
   timestamps: true

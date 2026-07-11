@@ -3,10 +3,8 @@ const mongoose = require('mongoose');
 const lessonSchema = new mongoose.Schema({
   // Admin විසින් තෝරන ශ්‍රේණිය (Grade 6-11)
   grade: {
-    type: Number,
-    required: true,
-    min: 6,
-    max: 11
+    type: String,
+    required: true
   },
   // මෙම ශ්‍රේණිය අයිති වන පාඨමාලාව (Course)
   course: {
