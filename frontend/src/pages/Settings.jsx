@@ -92,7 +92,7 @@ const Settings = () => {
           />
         </div>
 
-        <button type="submit" className="w-full bg-lumina-purple hover:bg-purple-800 text-white font-bold py-3 rounded-lg shadow-md transition-all">
+        <button type="submit" className="w-full bg-lumina-purple hover:bg-purple-800 text-white font-bold py-3 rounded-lg shadow-md transition-all cursor-pointer">
           Save Changes
         </button>
 

@@ -4,7 +4,6 @@ import { Toaster } from 'react-hot-toast';
 import Settings from './pages/Settings';
 
 // --- COMPONENTS & LAYOUTS ---
-import Register from './components/Register';
 import Login from './components/Login';
 import DashboardLayout from './components/DashboardLayout';
 import Dashboard from './components/Dashboard';
@@ -13,7 +12,10 @@ import Dashboard from './components/Dashboard';
 import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
 import Courses from './pages/Courses'; 
+import CourseDetails from './pages/CourseDetails';
 import ManageUsers from './pages/ManageUsers';
+import Enrollments from './pages/Enrollments';
+import Attendance from './pages/Attendance';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -41,11 +43,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 function App() {
   return (
     <Router>
-      <Toaster position="top-center" reverseOrder={false} />
-      
+      <Toaster position="top-center" />
       <Routes>
         {/* === PUBLIC ROUTES === */}
-        <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/" element={<Navigate to="/login" />} />
@@ -57,6 +57,7 @@ function App() {
           {/* Level 1: Accessible to EVERYONE (Student, Teacher, Admin) */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<Courses />} /> 
+          <Route path="/course/:courseId" element={<CourseDetails />} />
           <Route path="/settings" element={<Settings />} />
 
           {/* Level 2: Restricted Access (Only Teachers and Admins) */}
@@ -70,6 +71,18 @@ function App() {
           <Route path="/manage-users" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <ManageUsers />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/enrollments" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Enrollments />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/attendance" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Attendance />
             </ProtectedRoute>
           } />
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaHome, FaBook, FaCalendarCheck, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaBook, FaCalendarCheck, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt, FaUserPlus } from 'react-icons/fa';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -23,17 +23,18 @@ const Sidebar = () => {
     : "hover:bg-purple-700 text-purple-100";
 
   return (
-    <div className="w-64 h-full bg-lumina-purple text-white fixed left-0 top-0 flex flex-col shadow-2xl">
+    <div className="w-64 h-screen bg-lumina-purple text-white fixed left-0 top-0 flex flex-col overflow-hidden shadow-2xl">
       
       {/* Brand / Logo Area */}
       <div className="p-6 mb-4">
         <h2 className="text-2xl font-bold flex items-center gap-3">
-          <span className="text-3xl">🚀</span> LuminaLearn
+          <img src="/assets/LuminaLearn_Logo_icon.png" alt="LuminaLearn Logo" className="h-10 w-auto" />
+          LuminaLearn
         </h2>
       </div>
       
       {/* Navigation Links */}
-      <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 min-h-0 px-4 pb-6 space-y-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Link to="/dashboard" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/dashboard')}`}><FaHome /> Dashboard</Link>
         <Link to="/courses" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/courses')}`}><FaBook /> Courses</Link>
         <Link to="/attendance" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/attendance')}`}><FaCalendarCheck /> Attendance</Link>
@@ -47,6 +48,7 @@ const Sidebar = () => {
               <p className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Administration</p>
             </div>
             <Link to="/manage-users" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/manage-users')}`}><FaUsers /> Manage Users</Link>
+            <Link to="/enrollments" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/enrollments')}`}><FaUserPlus /> Enrollments</Link>
           </>
         )}
       </nav>
@@ -55,7 +57,7 @@ const Sidebar = () => {
       <div className="p-4 border-t border-purple-800 mt-auto">
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-3 p-3 w-full rounded-lg hover:bg-red-500 hover:text-white transition-colors text-purple-200 font-medium"
+          className="flex items-center gap-3 p-3 w-full rounded-lg hover:bg-red-500 hover:text-white transition-colors text-purple-200 font-medium cursor-pointer"
         >
           <FaSignOutAlt /> Logout
         </button>

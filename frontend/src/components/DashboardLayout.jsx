@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-// MERGED: All icons are now in one single import line
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { FaBell, FaUserCircle, FaCog, FaSearch } from 'react-icons/fa';
 
 const DashboardLayout = () => {
@@ -66,7 +65,8 @@ const DashboardLayout = () => {
     }
   };
 
-  const showAddCourseButton = (role === 'teacher' || role === 'admin') && (location.pathname === '/dashboard' || location.pathname === '/courses');
+  const canCreateCourse = role === 'admin';
+  const showAddCourseButton = canCreateCourse && (location.pathname === '/dashboard' || location.pathname === '/courses');
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -76,34 +76,34 @@ const DashboardLayout = () => {
         
         <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm sticky top-0 z-10">
            
-           <h2 className="text-xl font-bold text-gray-800 w-1/4 truncate">
+           <h2 className="text-xl font-bold text-gray-800 flex-shrink-0 truncate max-w-[25%] mr-4">
              {getPageTitle()}
            </h2>
 
            {/* --- SEARCH BAR --- */}
-           <div className="flex-1 max-w-xl mx-8">
+           <div className="flex-1 max-w-xl mx-4 min-w-[200px]">
              <div className="relative group">
                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 group-focus-within:text-lumina-purple transition-colors">
                  <FaSearch />
                </span>
                <input 
                  type="text" 
-                 placeholder="Search for courses, students, or teachers..." 
+                 placeholder="Search for courses and teachers..." 
                  className="w-full py-2.5 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all text-sm"
                />
              </div>
            </div>
            
-           <div className="flex items-center gap-6 w-1/4 justify-end">
+           <div className="flex items-center gap-4 w-auto flex-shrink-0 justify-end">
              
              {showAddCourseButton && (
-               <button 
-                 onClick={() => navigate('/add-course')}
-                 className="bg-lumina-purple hover:bg-purple-800 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md flex items-center gap-2"
-               >
-                 <span className="text-xl leading-none">+</span> Create Course
-               </button>
-             )}
+              <Link 
+                to="/add-course"
+                className="bg-lumina-purple hover:bg-purple-800 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md flex items-center gap-2 whitespace-nowrap flex-shrink-0"
+              >
+                <span className="text-xl leading-none">+</span> Create Course
+              </Link>
+            )}
 
              {/* --- NOTIFICATION SYSTEM --- */}
              <div className="relative" ref={notifRef}>
@@ -113,7 +113,7 @@ const DashboardLayout = () => {
                     setShowProfileMenu(false);
                     setHasUnread(false); 
                   }}
-                  className="p-2 text-gray-500 hover:text-lumina-purple hover:bg-purple-50 rounded-full transition-all relative outline-none"
+                  className="p-2 text-gray-500 hover:text-lumina-purple hover:bg-purple-50 rounded-full transition-all relative outline-none cursor-pointer"
                 >
                   <FaBell className="text-2xl" />
                   {hasUnread && notifications.length > 0 && (
@@ -155,7 +155,7 @@ const DashboardLayout = () => {
                     setShowProfileMenu(!showProfileMenu); 
                     setShowNotifications(false); 
                   }}
-                  className="flex items-center gap-2 p-1 text-gray-500 hover:text-lumina-purple rounded-full transition-all outline-none"
+                  className="flex items-center gap-2 p-1 text-gray-500 hover:text-lumina-purple rounded-full transition-all outline-none cursor-pointer"
                 >
                   <FaUserCircle className="text-3xl" />
                 </button>
@@ -172,7 +172,7 @@ const DashboardLayout = () => {
                     <div className="p-2">
                       <button 
                         onClick={() => { navigate('/settings'); setShowProfileMenu(false); }}
-                        className="w-full flex items-center gap-3 p-3 hover:bg-purple-50 text-gray-700 hover:text-lumina-purple rounded-lg transition-colors font-medium text-sm"
+                        className="w-full flex items-center gap-3 p-3 hover:bg-purple-50 text-gray-700 hover:text-lumina-purple rounded-lg transition-colors font-medium text-sm cursor-pointer"
                       >
                         <FaCog className="text-lg" /> Account Settings
                       </button>
