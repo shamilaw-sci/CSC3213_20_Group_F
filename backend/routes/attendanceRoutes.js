@@ -1,0 +1,248 @@
+const express = require('express');
+const router = express.Router();
+const Attendance = require('../models/Attendance');
+const User = require('../models/User');
+const Schedule = require('../models/Schedule');
+const { protect } = require('../middleware/authMiddleware');
+
+// --- HELPER: Normalize date to Midnight UTC/Local (YYYY-MM-DD) ---
+const normalizeDate = (dateVal) => {
+  const d = dateVal ? new Date(dateVal) : new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+// ==========================================
+//          1. MARK ATTENDANCE (ADMIN ONLY)
+// ==========================================
+router.post('/', protect, async (req, res) => {
+  // Only admin is allowed to mark attendance
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Access Denied: Admins only." });
+  }
+
+  const { studentId, scheduleId, status = 'Present', date } = req.body;
+
+  if (!studentId || !scheduleId) {
+    return res.status(400).json({ message: "Student ID and Schedule ID are required." });
+  }
+
+  try {
+    // 1. Verify Student Exists
+    const student = await User.findById(studentId);
+    if (!student || student.role !== 'student') {
+      return res.status(404).json({ message: "Student not found." });
+    }
+
+    // 2. Verify Schedule Exists and extract courseId
+    const schedule = await Schedule.findById(scheduleId);
+    if (!schedule) {
+      return res.status(404).json({ message: "Schedule/Class entry not found." });
+    }
+
+    if (!schedule.courseId) {
+      return res.status(400).json({ message: "Selected schedule is not linked to a course." });
+    }
+
+    // 3. Normalize Date to prevent multiple markings on the same calendar day
+    const normalizedDate = normalizeDate(date);
+
+    // 4. Create Attendance Record
+    const newAttendance = new Attendance({
+      studentId,
+      scheduleId,
+      courseId: schedule.courseId,
+      date: normalizedDate,
+      status,
+      markedBy: req.user.id || req.user._id,
+      notificationSentParent: false,
+      notificationSentStudent: false
+    });
+
+    await newAttendance.save();
+
+    // 5. Populate and Return
+    const populatedAttendance = await Attendance.findById(newAttendance._id)
+      .populate('studentId', 'name email registrationNumber parentsPhoneNumber')
+      .populate('scheduleId', 'title startTime endTime room className')
+      .populate('courseId', 'title')
+      .populate('markedBy', 'name');
+
+    // =========================================================================
+    // FUTURE PHASE NOTIFICATION TRIGGER HOOKS
+    // =========================================================================
+    /*
+      TODO: Send SMS to Parent & Email to Student.
+      
+      const parentPhone = student.parentsPhoneNumber;
+      const studentEmail = student.email;
+      const smsMessage = `Dear Parent, your child ${student.name} (${student.registrationNumber}) has arrived and marked ${status} for ${schedule.title} on ${normalizedDate.toDateString()}.`;
+      const emailSubject = `LuminaLearn - Attendance Confirmation`;
+      const emailBody = `Hello ${student.name},\n\nYour physical attendance for class "${schedule.title}" has been marked as ${status} on ${normalizedDate.toLocaleDateString()}.\n\nBest regards,\nLuminaLearn Administration`;
+
+      try {
+        // Trigger notification services
+        await smsService.send(parentPhone, smsMessage);
+        await emailService.send(studentEmail, emailSubject, emailBody);
+        
+        // Update flags
+        newAttendance.notificationSentParent = true;
+        newAttendance.notificationSentStudent = true;
+        await newAttendance.save();
+      } catch (notifErr) {
+        console.error("Delayed notifications failure:", notifErr);
+      }
+    */
+    // =========================================================================
+
+    res.status(201).json({
+      message: "Attendance marked successfully!",
+      attendance: populatedAttendance
+    });
+
+  } catch (err) {
+    console.error("Mark Attendance Error:", err);
+    
+    // Check for MongoDB Duplicate Key error (code 11000)
+    if (err.code === 11000) {
+      return res.status(400).json({ 
+        message: "Attendance has already been marked for this student for this class on this date." 
+      });
+    }
+    
+    res.status(500).json({ message: "Server error marking attendance." });
+  }
+});
+
+// ==========================================
+//          2. GET ATTENDANCE HISTORY FOR STUDENT
+// ==========================================
+router.get('/student/:studentId', protect, async (req, res) => {
+  const { studentId } = req.params;
+  const userId = req.user.id || req.user._id;
+
+  // Authorization check: Admins and Teachers can view. Students can only view their own.
+  if (req.user.role === 'student' && userId.toString() !== studentId) {
+    return res.status(403).json({ message: "Access Denied: You can only view your own records." });
+  }
+
+  try {
+    const history = await Attendance.find({ studentId })
+      .populate('scheduleId', 'title startTime endTime room className')
+      .populate('courseId', 'title')
+      .populate('markedBy', 'name')
+      .sort({ date: -1 });
+
+    res.json(history);
+  } catch (err) {
+    console.error("Fetch Student Attendance History Error:", err);
+    res.status(500).json({ message: "Server error fetching attendance history." });
+  }
+});
+
+// ==========================================
+//          3. GET MY ATTENDANCE (STUDENT DASHBOARD)
+// ==========================================
+router.get('/my', protect, async (req, res) => {
+  if (req.user.role !== 'student') {
+    return res.status(403).json({ message: "Access Denied: Students only." });
+  }
+
+  const userId = req.user.id || req.user._id;
+
+  try {
+    const history = await Attendance.find({ studentId: userId })
+      .populate('scheduleId', 'title startTime endTime room className')
+      .populate('courseId', 'title')
+      .populate('markedBy', 'name')
+      .sort({ date: -1 });
+
+    res.json(history);
+  } catch (err) {
+    console.error("Fetch My Attendance Error:", err);
+    res.status(500).json({ message: "Server error fetching attendance." });
+  }
+});
+
+// ==========================================
+//          4. GET TEACHER ATTENDANCE LOGS
+// ==========================================
+router.get('/teacher', protect, async (req, res) => {
+  if (req.user.role !== 'teacher') {
+    return res.status(403).json({ message: "Access Denied: Teachers only." });
+  }
+
+  const userId = req.user.id || req.user._id;
+
+  try {
+    // 1. Find all schedules taught by this teacher or courses instructured by this teacher
+    const teacherCourses = await Course.find({ instructor: userId }).select('_id');
+    const courseIds = teacherCourses.map(c => c._id);
+
+    const teacherSchedules = await Schedule.find({
+      $or: [
+        { teacherId: userId },
+        { courseId: { $in: courseIds } }
+      ]
+    }).select('_id');
+
+    const scheduleIds = teacherSchedules.map(s => s._id);
+
+    // 2. Fetch attendance matching these schedules
+    const logs = await Attendance.find({
+      $or: [
+        { scheduleId: { $in: scheduleIds } },
+        { courseId: { $in: courseIds } }
+      ]
+    })
+      .populate('studentId', 'name registrationNumber email grade')
+      .populate('scheduleId', 'title startTime endTime className room')
+      .populate('courseId', 'title')
+      .sort({ date: -1 });
+
+    res.json(logs);
+  } catch (err) {
+    console.error("Fetch Teacher Attendance Logs Error:", err);
+    res.status(500).json({ message: "Server error fetching teacher attendance logs." });
+  }
+});
+
+// ==========================================
+//          5. GET GENERAL STATS (ADMIN DASHBOARD)
+// ==========================================
+router.get('/stats/summary', protect, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Access Denied: Admins only." });
+  }
+
+  try {
+    const today = normalizeDate(new Date());
+
+    // Stats for today
+    const todayRecords = await Attendance.find({ date: today });
+    const totalToday = todayRecords.length;
+    const presentToday = todayRecords.filter(r => r.status === 'Present').length;
+    const lateToday = todayRecords.filter(r => r.status === 'Late').length;
+    const absentToday = todayRecords.filter(r => r.status === 'Absent').length;
+
+    // Overall metrics
+    const totalRecordsCount = await Attendance.countDocuments();
+    
+    res.json({
+      today: {
+        total: totalToday,
+        present: presentToday,
+        late: lateToday,
+        absent: absentToday
+      },
+      overall: {
+        totalCount: totalRecordsCount
+      }
+    });
+  } catch (err) {
+    console.error("Fetch Attendance Stats Error:", err);
+    res.status(500).json({ message: "Server error fetching stats." });
+  }
+});
+
+module.exports = router;

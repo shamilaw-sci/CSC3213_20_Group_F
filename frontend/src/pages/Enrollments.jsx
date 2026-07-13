@@ -26,6 +26,10 @@ const Enrollments = () => {
   // Table filters
   const [tableSearch, setTableSearch] = useState('');
 
+  // Delete modal states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [enrollmentToDelete, setEnrollmentToDelete] = useState(null);
+
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`
   });
@@ -99,10 +103,14 @@ const Enrollments = () => {
     }
   };
 
-  const handleUnenroll = async (studentId, courseId, className, studentName, courseTitle) => {
-    if (!window.confirm(`Are you sure you want to remove ${studentName} from ${courseTitle} (${className})?`)) {
-      return;
-    }
+  const handleUnenroll = (studentId, courseId, className, studentName, courseTitle) => {
+    setEnrollmentToDelete({ studentId, courseId, className, studentName, courseTitle });
+    setShowDeleteModal(true);
+  };
+
+  const executeUnenroll = async () => {
+    if (!enrollmentToDelete) return;
+    const { studentId, courseId, className, studentName, courseTitle } = enrollmentToDelete;
 
     try {
       await axios.post(
@@ -115,6 +123,9 @@ const Enrollments = () => {
       setEnrollments(enrollments.filter(e => !(e.studentId === studentId && e.courseId === courseId && e.className === className)));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to unenroll student');
+    } finally {
+      setShowDeleteModal(false);
+      setEnrollmentToDelete(null);
     }
   };
 
@@ -321,6 +332,42 @@ const Enrollments = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Custom Modal */}
+      {showDeleteModal && enrollmentToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-150 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-red-200">
+                <FaTrash className="text-xl text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Unenroll Student</h3>
+              <p className="text-gray-500 text-sm mb-6">
+                Are you sure you want to remove <strong className="text-[#2d1b64] font-semibold">{enrollmentToDelete.studentName}</strong> from <strong className="text-purple-800 font-semibold">{enrollmentToDelete.courseTitle} ({enrollmentToDelete.className})</strong>?
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setEnrollmentToDelete(null);
+                  }}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={executeUnenroll}
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 cursor-pointer"
+                >
+                  Yes, Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

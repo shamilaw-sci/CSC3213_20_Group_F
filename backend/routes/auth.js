@@ -182,6 +182,34 @@ router.put('/update-profile', protect, async (req, res) => {
 //          ADMIN ONLY ROUTES
 // ==========================================
 
+// 0. SEARCH STUDENTS (ADMIN ONLY)
+router.get('/users/search-students', protect, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Access Denied: Admins only." });
+  }
+
+  const { query } = req.query;
+  if (!query) {
+    return res.status(400).json({ message: "Search query is required." });
+  }
+
+  try {
+    const searchRegex = new RegExp(query, 'i');
+    const students = await User.find({
+      role: 'student',
+      $or: [
+        { name: searchRegex },
+        { registrationNumber: searchRegex }
+      ]
+    }).select('-password').sort({ name: 1 }).limit(20);
+
+    res.json(students);
+  } catch (err) {
+    console.error("Search Students Error:", err);
+    res.status(500).json({ message: "Server error searching students." });
+  }
+});
+
 // 1. GET ALL USERS
 router.get('/users', protect, async (req, res) => {
   // Check if the person making the request is actually an admin
