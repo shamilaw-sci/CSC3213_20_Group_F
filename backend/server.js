@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const courseRoutes = require('./routes/courseRoutes');
 const lessonRoutes = require('./routes/lessonRoutes'); // New change
 const scheduleRoutes = require('./routes/scheduleRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/lessons', lessonRoutes); // New change
 app.use('/api/schedule', scheduleRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // --- DATABASE CONNECTION ---
 const dbURI = process.env.MONGO_URI;

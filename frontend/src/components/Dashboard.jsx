@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { 
-  FaUsers, 
-  FaChalkboardTeacher, 
-  FaBookOpen, 
-  FaChartLine, 
-  FaUserGraduate, 
-  FaStar, 
-  FaVideo, 
-  FaPlusCircle, 
-  FaPlayCircle, 
-  FaTrophy, 
+import {
+  FaUsers,
+  FaChalkboardTeacher,
+  FaBookOpen,
+  FaChartLine,
+  FaUserGraduate,
+  FaStar,
+  FaVideo,
+  FaPlusCircle,
+  FaPlayCircle,
+  FaTrophy,
   FaClock,
   FaCalendarAlt,
   FaTrash,
@@ -20,7 +20,8 @@ import {
   FaTimes,
   FaMapMarkerAlt,
   FaFileInvoiceDollar,
-  FaBullhorn
+  FaBullhorn,
+  FaCalendarCheck
 } from 'react-icons/fa';
 
 // Grade options matching registration grade requirements
@@ -45,7 +46,7 @@ const SvgLineChart = ({ data }) => {
   const width = 500;
   const height = 220;
   const maxVal = Math.max(...data.map(d => d.count)) * 1.25 || 10;
-  
+
   // Calculate points for path
   const points = data.map((d, index) => {
     const x = padding + (index * (width - padding * 2) / (data.length - 1 || 1));
@@ -68,7 +69,7 @@ const SvgLineChart = ({ data }) => {
           <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.0" />
         </linearGradient>
       </defs>
-      
+
       {/* Grid Lines */}
       {[0, 0.25, 0.5, 0.75, 1].map((r, i) => {
         const y = padding + r * (height - padding * 2);
@@ -92,7 +93,7 @@ const SvgLineChart = ({ data }) => {
         <g key={i} className="group cursor-pointer">
           <circle cx={p.x} cy={p.y} r="4.5" fill="#6366f1" stroke="white" strokeWidth="2" />
           <circle cx={p.x} cy={p.y} r="10" fill="#6366f1" opacity="0" className="hover:opacity-15 transition-opacity" />
-          
+
           {/* Tooltip */}
           <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <rect x={p.x - 22} y={p.y - 28} width="44" height="18" rx="4" fill="#1e1b4b" />
@@ -120,18 +121,18 @@ const PaymentDonut = () => {
         </svg>
         <div className="absolute flex flex-col items-center justify-center">
           <span className="text-3xl font-extrabold text-gray-800">83%</span>
-          <span className="text-3xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">Collected</span>
+          <span className="text-3xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">Complete</span>
         </div>
       </div>
-      
+
       <div className="mt-5 grid grid-cols-2 gap-4 w-full text-xs font-semibold">
         <div className="bg-emerald-50/50 p-2 rounded-lg border border-emerald-100 flex flex-col items-center">
           <span className="text-gray-400 font-bold text-3xs uppercase">Paid Invoices</span>
-          <span className="text-sm font-bold text-emerald-600 mt-0.5">$12,450.00</span>
+          <span className="text-sm font-bold text-emerald-600 mt-0.5">Rs.10000</span>
         </div>
         <div className="bg-amber-50/50 p-2 rounded-lg border border-amber-100 flex flex-col items-center">
           <span className="text-gray-400 font-bold text-3xs uppercase">Pending Dues</span>
-          <span className="text-sm font-bold text-amber-600 mt-0.5">$2,550.00</span>
+          <span className="text-sm font-bold text-amber-600 mt-0.5">Rs.200</span>
         </div>
       </div>
     </div>
@@ -170,7 +171,8 @@ const AdminDashboard = ({ user }) => {
   const [schedule, setSchedule] = useState([]);
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
-  
+  const [attendanceStats, setAttendanceStats] = useState({ today: { present: 0, late: 0, absent: 0, total: 0 } });
+
   // Modal & Form state
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -194,6 +196,9 @@ const AdminDashboard = ({ user }) => {
     try {
       const res = await axios.get('http://localhost:5000/api/auth/admin-stats', getAuthHeaders());
       setStats(res.data);
+
+      const attRes = await axios.get('http://localhost:5000/api/attendance/stats/summary', getAuthHeaders());
+      setAttendanceStats(attRes.data);
     } catch (err) {
       console.error("Admin stats fetch failed", err);
     }
@@ -295,12 +300,14 @@ const AdminDashboard = ({ user }) => {
         </div>
 
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-green-50 text-emerald-500 rounded-lg">
-            <FaFileInvoiceDollar className="text-2xl" />
+          <div className="p-4 bg-emerald-50 text-emerald-600 rounded-lg">
+            <FaCalendarCheck className="text-2xl" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-400">Collections (July)</p>
-            <h3 className="text-2xl font-bold text-gray-855">$12,450.00</h3>
+            <p className="text-sm font-semibold text-gray-400">Arrived Today</p>
+            <h3 className="text-2xl font-bold text-gray-855">
+              {attendanceStats.today?.present || 0} Student{attendanceStats.today?.present !== 1 ? 's' : ''}
+            </h3>
           </div>
         </div>
       </div>
@@ -380,7 +387,7 @@ const AdminDashboard = ({ user }) => {
                 <div key={sch._id} className="flex justify-between items-center p-3.5 rounded-lg border border-gray-100 hover:border-purple-200 hover:bg-purple-50/20 transition-all">
                   <div className="flex items-center gap-4">
                     <div className="bg-purple-50 text-lumina-purple p-3 rounded-lg flex flex-col items-center min-w-[70px]">
-                      <span className="text-3xs font-extrabold uppercase text-purple-500">{sch.dayOfWeek.slice(0,3)}</span>
+                      <span className="text-3xs font-extrabold uppercase text-purple-500">{sch.dayOfWeek.slice(0, 3)}</span>
                       <FaCalendarAlt className="text-sm mt-0.5" />
                     </div>
                     <div>
@@ -557,6 +564,7 @@ const TeacherDashboard = ({ user }) => {
   const [stats, setStats] = useState({ coursesCount: 0, studentsCount: 0, rating: 4.8, coursesList: [] });
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [attendanceLogs, setAttendanceLogs] = useState([]);
 
   // Quick Attendance Mock State
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -570,7 +578,17 @@ const TeacherDashboard = ({ user }) => {
   useEffect(() => {
     fetchTeacherStats();
     fetchTeacherSchedule();
+    fetchTeacherAttendanceLogs();
   }, []);
+
+  const fetchTeacherAttendanceLogs = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/attendance/teacher', getAuthHeaders());
+      setAttendanceLogs(res.data);
+    } catch (err) {
+      console.error("Teacher attendance logs fetch failed", err);
+    }
+  };
 
   const fetchTeacherStats = async () => {
     try {
@@ -596,7 +614,7 @@ const TeacherDashboard = ({ user }) => {
   };
 
   const handleToggleAttendance = (id) => {
-    setMarkedStudents(markedStudents.map(student => 
+    setMarkedStudents(markedStudents.map(student =>
       student.id === id ? { ...student, present: !student.present } : student
     ));
   };
@@ -654,13 +672,13 @@ const TeacherDashboard = ({ user }) => {
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Left Side: Timetable Schedule */}
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm lg:col-span-2 flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-gray-800 text-lg mb-1">My Timetable</h3>
             <p className="text-xs text-gray-400 mb-4">Timetable entries for courses assigned to you</p>
-            
+
             <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1">
               {schedule && schedule.length > 0 ? (
                 schedule.map((sch) => (
@@ -690,57 +708,97 @@ const TeacherDashboard = ({ user }) => {
           </div>
         </div>
 
-        {/* Right Side: Quick Attendance Logging Mockup */}
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
-          <form onSubmit={handleSubmitAttendance} className="space-y-4">
-            <div>
-              <h3 className="font-bold text-gray-800 text-lg">Record Attendance</h3>
-              <p className="text-xs text-gray-400">Quick logging helper tool for teachers</p>
-            </div>
+        {/* Right Side: Column for Forms and Real-time Logs */}
+        <div className="space-y-6 lg:col-span-1">
+          {/* Quick Attendance Logging Mockup */}
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
+            <form onSubmit={handleSubmitAttendance} className="space-y-4">
+              <div>
+                <h3 className="font-bold text-gray-800 text-lg">Record Attendance</h3>
+                <p className="text-xs text-gray-400">Quick logging helper tool for teachers</p>
+              </div>
 
-            <div>
-              <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Select Class/Batch</label>
-              <select
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
-                value={selectedCourse}
-                onChange={(e) => setSelectedCourse(e.target.value)}
+              <div>
+                <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Select Class/Batch</label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
+                  value={selectedCourse}
+                  onChange={(e) => setSelectedCourse(e.target.value)}
+                >
+                  {stats.coursesList?.length > 0 ? (
+                    stats.coursesList.map(c => (
+                      <option key={c.id} value={c.id}>{c.title}</option>
+                    ))
+                  ) : (
+                    <option value="">No Course Linked</option>
+                  )}
+                </select>
+              </div>
+
+              <div className="space-y-2 border border-gray-100 rounded-lg p-2 max-h-[170px] overflow-y-auto">
+                <span className="block text-4xs font-bold text-gray-400 uppercase tracking-widest px-1">Roll Call</span>
+                {markedStudents.map(student => (
+                  <div key={student.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md">
+                    <span className="text-xs font-semibold text-gray-700">{student.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAttendance(student.id)}
+                      className={`p-1 px-3 rounded-full text-4xs font-extrabold uppercase transition cursor-pointer
+                        ${student.present
+                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                          : 'bg-red-50 text-red-600 border border-red-200'}`}
+                    >
+                      {student.present ? "Present" : "Absent"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-lumina-purple hover:bg-purple-800 text-white font-bold text-xs py-3 rounded-lg transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
               >
-                {stats.coursesList?.length > 0 ? (
-                  stats.coursesList.map(c => (
-                    <option key={c.id} value={c.id}>{c.title}</option>
-                  ))
-                ) : (
-                  <option value="">No Course Linked</option>
-                )}
-              </select>
-            </div>
+                <FaCheck /> Save Attendance
+              </button>
+            </form>
+          </div>
 
-            <div className="space-y-2 border border-gray-100 rounded-lg p-2 max-h-[170px] overflow-y-auto">
-              <span className="block text-4xs font-bold text-gray-400 uppercase tracking-widest px-1">Roll Call</span>
-              {markedStudents.map(student => (
-                <div key={student.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md">
-                  <span className="text-xs font-semibold text-gray-700">{student.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleAttendance(student.id)}
-                    className={`p-1 px-3 rounded-full text-4xs font-extrabold uppercase transition cursor-pointer
-                      ${student.present 
-                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
-                        : 'bg-red-50 text-red-600 border border-red-200'}`}
-                  >
-                    {student.present ? "Present" : "Absent"}
-                  </button>
+          {/* Live Check-ins Box */}
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+            <h3 className="font-bold text-gray-800 text-lg mb-1 flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              Recent Arrivals
+            </h3>
+            <p className="text-xs text-gray-400 mb-4">Real-time check-ins for your classes</p>
+
+            <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+              {attendanceLogs && attendanceLogs.length > 0 ? (
+                attendanceLogs.slice(0, 5).map((log) => (
+                  <div key={log._id} className="flex justify-between items-center p-2.5 rounded-lg border border-gray-50 hover:bg-gray-50 transition">
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-800">{log.studentId?.name || 'Student'}</h4>
+                      <p className="text-4xs text-gray-400 font-medium mt-0.5">
+                        {log.scheduleId?.title || 'Class'} • {new Date(log.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-4xs font-extrabold uppercase ${log.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                      log.status === 'Late' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+                        'bg-red-50 text-red-600 border border-red-200'
+                      }`}>
+                      {log.status}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-450 italic text-xs">
+                  No physical arrivals recorded yet.
                 </div>
-              ))}
+              )}
             </div>
-
-            <button
-              type="submit"
-              className="w-full bg-lumina-purple hover:bg-purple-800 text-white font-bold text-xs py-3 rounded-lg transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <FaCheck /> Save Attendance
-            </button>
-          </form>
+          </div>
         </div>
 
       </div>
@@ -755,6 +813,8 @@ const StudentDashboard = ({ user }) => {
   const [stats, setStats] = useState({ coursesCount: 0, grade: 'Grade 10', enrolledCoursesList: [] });
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [attendance, setAttendance] = useState([]);
+  const [attendancePercentage, setAttendancePercentage] = useState(100);
 
   // Mock Notification Alert State
   const [showInvoiceMock, setShowInvoiceMock] = useState(false);
@@ -762,7 +822,24 @@ const StudentDashboard = ({ user }) => {
   useEffect(() => {
     fetchStudentStats();
     fetchStudentSchedule();
+    fetchStudentAttendance();
   }, []);
+
+  const fetchStudentAttendance = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/attendance/my', getAuthHeaders());
+      setAttendance(res.data);
+      if (res.data.length > 0) {
+        const presentCount = res.data.filter(r => r.status === 'Present' || r.status === 'Late').length;
+        const pct = Math.round((presentCount / res.data.length) * 100);
+        setAttendancePercentage(pct);
+      } else {
+        setAttendancePercentage(100);
+      }
+    } catch (err) {
+      console.error("Student attendance fetch failed", err);
+    }
+  };
 
   const fetchStudentStats = async () => {
     try {
@@ -785,8 +862,8 @@ const StudentDashboard = ({ user }) => {
   };
 
   // Determine continue learning card course title
-  const activeCourseTitle = stats.enrolledCoursesList?.length > 0 
-    ? stats.enrolledCoursesList[0].title 
+  const activeCourseTitle = stats.enrolledCoursesList?.length > 0
+    ? stats.enrolledCoursesList[0].title
     : "No Registered Course Enrolled";
 
   return (
@@ -795,20 +872,20 @@ const StudentDashboard = ({ user }) => {
       <div className="bg-gradient-to-r from-indigo-900 to-purple-850 rounded-xl shadow-lg p-7 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
         {/* Subtle geometric circles */}
         <div className="absolute right-0 top-0 w-44 h-44 bg-white/5 rounded-full blur-2xl transform translate-x-12 -translate-y-12"></div>
-        
+
         <div className="relative z-5">
           <span className="bg-white/20 border border-white/10 px-3.5 py-1 rounded-full text-4xs font-extrabold uppercase tracking-widest mb-3 inline-block">
             Resume Course
           </span>
           <h2 className="text-2xl font-bold mb-1.5 tracking-tight">{activeCourseTitle}</h2>
           <p className="text-purple-200 text-xs mb-4">Module 1: General Core Lectures</p>
-          
+
           <div className="w-56 h-1.5 bg-indigo-950/80 rounded-full overflow-hidden mb-2">
             <div className="bg-indigo-400 h-full w-[35%] rounded-full animate-pulse"></div>
           </div>
           <p className="text-4xs text-purple-200 font-bold uppercase tracking-wider">35% Completed</p>
         </div>
-        
+
         {stats.enrolledCoursesList?.length > 0 ? (
           <button className="bg-white text-indigo-900 hover:bg-gray-150 px-6 py-3 rounded-lg font-bold text-xs transition shadow-lg flex items-center gap-1.5 cursor-pointer relative z-5 active:scale-95">
             <FaPlayCircle className="text-base" /> Resume Learning
@@ -835,9 +912,14 @@ const StudentDashboard = ({ user }) => {
         <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
           <div>
             <h4 className="text-sm font-semibold text-gray-500">Attendance Rating</h4>
-            <p className="text-3xs text-gray-400 mt-1">Calculated from class entries</p>
+            <p className="text-3xs text-gray-450 font-medium mt-1">
+              Logged: {attendance.length} class{attendance.length !== 1 ? 'es' : ''}
+            </p>
+            <p className="text-4xs text-gray-400 mt-1">
+              Present: {attendance.filter(r => r.status === 'Present' || r.status === 'Late').length} | Absent: {attendance.filter(r => r.status === 'Absent').length}
+            </p>
           </div>
-          <AttendanceRing percentage={96} />
+          <AttendanceRing percentage={attendancePercentage} />
         </div>
 
         {/* Fees status mockup widget */}
@@ -857,7 +939,7 @@ const StudentDashboard = ({ user }) => {
               <p className="text-3xs font-bold text-gray-800">July Fees Receipt</p>
               <p className="text-4xs text-gray-400">LKR 2,500.00 | Paid 05/07</p>
             </div>
-            <button 
+            <button
               onClick={() => setShowInvoiceMock(true)}
               className="text-lumina-purple hover:underline text-3xs font-extrabold cursor-pointer"
             >
@@ -869,20 +951,20 @@ const StudentDashboard = ({ user }) => {
 
       {/* TIMETABLE & ANNOUNCEMENTS SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Timetable List filtered for student grade */}
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm lg:col-span-2 flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-gray-800 text-lg mb-1">My Timetable ({stats.grade})</h3>
             <p className="text-xs text-gray-400 mb-4">Timetable classes matching your registered grade</p>
-            
+
             <div className="space-y-3.5 max-h-[300px] overflow-y-auto">
               {schedule && schedule.length > 0 ? (
                 schedule.map((sch) => (
                   <div key={sch._id} className="flex justify-between items-center p-3 rounded-lg border border-gray-50 hover:bg-purple-50/10 transition">
                     <div className="flex items-center gap-3">
                       <div className="bg-purple-50 text-lumina-purple font-bold px-3 py-1.5 rounded-lg text-xs min-w-[70px] text-center uppercase">
-                        {sch.dayOfWeek.slice(0,3)}
+                        {sch.dayOfWeek.slice(0, 3)}
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-gray-800">{sch.title}</h4>
@@ -907,25 +989,56 @@ const StudentDashboard = ({ user }) => {
           </div>
         </div>
 
-        {/* Announcements widget */}
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
-              <FaBullhorn className="text-purple-600" /> Institute Announcements
-            </h3>
-            
-            <div className="space-y-4">
-              <div className="border-l-3 border-purple-600 pl-3">
-                <h4 className="text-xs font-bold text-gray-850">Class Reschedule Notice</h4>
-                <p className="text-3xs text-gray-500 mt-0.5">Grade 10 Science class will commence at 11 AM instead of 10 AM this Saturday.</p>
-                <span className="text-4xs text-gray-400 mt-1 block">Just now</span>
+        {/* Announcements + Attendance Side Column */}
+        <div className="space-y-6 lg:col-span-1">
+          {/* Announcements widget */}
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
+            <div>
+              <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
+                <FaBullhorn className="text-purple-600" /> Institute Announcements
+              </h3>
+
+              <div className="space-y-4">
+                <div className="border-l-3 border-purple-600 pl-3">
+                  <h4 className="text-xs font-bold text-gray-850">Class Reschedule Notice</h4>
+                  <p className="text-3xs text-gray-500 mt-0.5">Grade 10 Science class will commence at 11 AM instead of 10 AM this Saturday.</p>
+                  <span className="text-4xs text-gray-400 mt-1 block">Just now</span>
+                </div>
+
+                <div className="border-l-3 border-gray-300 pl-3">
+                  <h4 className="text-xs font-bold text-gray-850">Monthly Exams - Term 2</h4>
+                  <p className="text-3xs text-gray-500 mt-0.5">Term 2 evaluation exams for Grade 10-12 batches will begin on July 25th.</p>
+                  <span className="text-4xs text-gray-400 mt-1 block">2 days ago</span>
+                </div>
               </div>
-              
-              <div className="border-l-3 border-gray-300 pl-3">
-                <h4 className="text-xs font-bold text-gray-850">Monthly Exams - Term 2</h4>
-                <p className="text-3xs text-gray-500 mt-0.5">Term 2 evaluation exams for Grade 10-12 batches will begin on July 25th.</p>
-                <span className="text-4xs text-gray-400 mt-1 block">2 days ago</span>
-              </div>
+            </div>
+          </div>
+
+          {/* My Check-in Log widget */}
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+            <h3 className="font-bold text-gray-800 text-base mb-1">My Check-in Log</h3>
+            <p className="text-xs text-gray-400 mb-3">Your physical class entrance logs</p>
+            <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
+              {attendance && attendance.length > 0 ? (
+                attendance.slice(0, 5).map((log) => (
+                  <div key={log._id} className="flex justify-between items-center p-2 rounded-lg border border-gray-50 text-xs">
+                    <div>
+                      <h4 className="font-bold text-gray-850">{log.scheduleId?.title || 'Class'}</h4>
+                      <p className="text-4xs text-gray-450">{new Date(log.date).toLocaleDateString()}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-4xs font-bold uppercase ${log.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                      log.status === 'Late' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                        'bg-red-50 text-red-600 border border-red-200'
+                      }`}>
+                      {log.status}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-gray-450 italic text-xs">
+                  No physical arrivals logged yet.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -940,7 +1053,7 @@ const StudentDashboard = ({ user }) => {
               <h3 className="text-base font-bold text-gray-800">LuminaLearn Tuition Institute</h3>
               <p className="text-3xs text-gray-400 font-medium">Receipt #LL-2026-0798</p>
             </div>
-            
+
             <div className="py-4 space-y-2.5 text-xs text-gray-600">
               <div className="flex justify-between font-medium">
                 <span>Student Name:</span>
@@ -991,7 +1104,7 @@ const Dashboard = () => {
       <h1 className="text-3xl font-extrabold text-gray-850 mb-6 tracking-tight">
         {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Dashboard
       </h1>
-      
+
       {/* Role-Based Switchboard */}
       {user.role === 'admin' && <AdminDashboard user={user} />}
       {user.role === 'teacher' && <TeacherDashboard user={user} />}

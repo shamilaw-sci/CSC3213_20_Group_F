@@ -34,6 +34,8 @@ const ManageUsers = () => {
   const [batchTarget, setBatchTarget] = useState('');
   const [updatingBatch, setUpdatingBatch] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -151,9 +153,14 @@ const ManageUsers = () => {
     }
   };
 
-  const handleDelete = async (userId, userName) => {
-    if (!window.confirm(`Are you sure you want to permanently delete ${userName}?`)) return;
+  const handleDelete = (userId, userName) => {
+    setUserToDelete({ id: userId, name: userName });
+    setShowDeleteModal(true);
+  };
 
+  const executeDelete = async () => {
+    if (!userToDelete) return;
+    const { id: userId, name: userName } = userToDelete;
     try {
       await axios.delete(`http://localhost:5000/api/auth/users/${userId}`, {
         headers: getAuthHeaders()
@@ -163,6 +170,9 @@ const ManageUsers = () => {
       setUsers(users.filter((u) => u._id !== userId));
     } catch (err) {
       toast.error('Failed to delete user');
+    } finally {
+      setShowDeleteModal(false);
+      setUserToDelete(null);
     }
   };
 
@@ -459,6 +469,42 @@ const ManageUsers = () => {
                   className="px-5 py-2.5 bg-[#2d1b64] hover:bg-purple-900 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 cursor-pointer"
                 >
                   {updatingBatch ? 'Updating...' : 'Yes, Update Batch'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Custom Modal */}
+      {showDeleteModal && userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-150 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-red-200">
+                <FaTrash className="text-xl text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Delete User</h3>
+              <p className="text-gray-500 text-sm mb-6">
+                Are you sure you want to permanently delete <strong className="text-red-600 font-semibold">{userToDelete.name}</strong>? This action is irreversible and will delete all user data associated with this account.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setUserToDelete(null);
+                  }}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={executeDelete}
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 cursor-pointer"
+                >
+                  Yes, Delete User
                 </button>
               </div>
             </div>
