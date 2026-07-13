@@ -9,7 +9,7 @@ const CourseDetails = () => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const user = JSON.parse(localStorage.getItem('user'));
-  
+
   // Track selected class. When null, show class cards grid.
   const [selectedGrade, setSelectedGrade] = useState(null);
   const [editingMessage, setEditingMessage] = useState("");
@@ -28,7 +28,11 @@ const CourseDetails = () => {
   const [isLoadingGradeStudents, setIsLoadingGradeStudents] = useState(false);
   const [isUpdatingGradeStudents, setIsUpdatingGradeStudents] = useState(false);
 
-  const allGrades = [6, 7, 8, 9, 10, 11];
+  const allGrades = [
+    "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11",
+    "Grade 12 Science", "Grade 12 Commerce", "Grade 12 Arts", "Grade 12 Tech",
+    "Grade 13 Science", "Grade 13 Commerce", "Grade 13 Arts", "Grade 13 Tech"
+  ];
 
   useEffect(() => {
     fetchCourseDetails();
@@ -63,17 +67,17 @@ const CourseDetails = () => {
   const handleToggleGrade = async (gradeNumber) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post(`http://localhost:5000/api/courses/${courseId}/toggle-grade`, 
-        { gradeNumber }, 
+      const res = await axios.post(`http://localhost:5000/api/courses/${courseId}/toggle-grade`,
+        { gradeNumber },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success(res.data.message || "Class updated!");
       setCourse((prev) => prev ? {
         ...prev,
-        enrolledGrades: (prev.enrolledGrades || []).filter((g) => g.gradeNumber !== Number(gradeNumber))
+        enrolledGrades: (prev.enrolledGrades || []).filter((g) => g.gradeNumber !== gradeNumber)
       } : prev);
       await fetchCourseDetails();
-    } catch (err) { 
+    } catch (err) {
       toast.error(err.response?.data?.error || "Error updating grade");
     }
   };
@@ -100,7 +104,7 @@ const CourseDetails = () => {
       });
       toast.success(res.data.message || `Grade ${newGradeTitle} added successfully.`);
       const newGradeEntry = res.data.newGradeEntry || {
-        gradeNumber: Number(newGradeNumber),
+        gradeNumber: newGradeNumber,
         title: newGradeTitle.trim(),
         messages: []
       };
@@ -198,8 +202,8 @@ const CourseDetails = () => {
     if (!currentLesson) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/lessons/${currentLesson._id}`, 
-        { teacherMessage: editingMessage }, 
+      await axios.put(`http://localhost:5000/api/lessons/${currentLesson._id}`,
+        { teacherMessage: editingMessage },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Announcement updated!");
@@ -216,8 +220,8 @@ const CourseDetails = () => {
     const updatedVideos = [...(currentLesson.videoLessons || []), { title: videoTitle, url: videoUrl }];
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/lessons/${currentLesson._id}`, 
-        { videoLessons: updatedVideos }, 
+      await axios.put(`http://localhost:5000/api/lessons/${currentLesson._id}`,
+        { videoLessons: updatedVideos },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Video lesson added!");
@@ -235,8 +239,8 @@ const CourseDetails = () => {
     const updatedVideos = currentLesson.videoLessons.filter(v => v._id !== videoId);
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/lessons/${currentLesson._id}`, 
-        { videoLessons: updatedVideos }, 
+      await axios.put(`http://localhost:5000/api/lessons/${currentLesson._id}`,
+        { videoLessons: updatedVideos },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Video lesson removed!");
@@ -257,7 +261,7 @@ const CourseDetails = () => {
 
   return (
     <div className="p-8 max-w-5xl mx-auto font-sans text-gray-800">
-      
+
       {/* Dynamic Header: Shows course details or class breadcrumbs */}
       {selectedGrade === null ? (
         <div className="mb-8">
@@ -281,14 +285,14 @@ const CourseDetails = () => {
             ← Back to Classes
           </button>
           <h1 className="text-3xl font-extrabold text-gray-800 mb-1">{course?.title}</h1>
-          <p className="text-purple-600 font-bold text-lg">Class {selectedGrade} Workspace</p>
+          <p className="text-purple-600 font-bold text-lg">{selectedGrade} Workspace</p>
         </div>
       )}
 
       {/* VIEW 1: GRID OF CLASS CARDS (Shown when no class is selected) */}
       {selectedGrade === null && (
         <div className="space-y-8">
-          
+
           {/* Admin Management Section */}
           {user?.role === 'admin' && (
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
@@ -338,7 +342,7 @@ const CourseDetails = () => {
                     >
                       <option value="">Choose class</option>
                       {allGrades.map((grade) => (
-                        <option key={grade} value={grade}>Grade {grade}</option>
+                        <option key={grade} value={grade}>{grade}</option>
                       ))}
                     </select>
                   </div>
@@ -383,8 +387,8 @@ const CourseDetails = () => {
                         Remove
                       </button>
                     </div>
-                    <div className="mb-4 text-sm text-gray-500">Grade {eg.gradeNumber}</div>
-                    <h4 className="text-xl font-bold text-gray-800 mb-2">{eg.title || `Class ${eg.gradeNumber}`}</h4>
+                    <div className="mb-4 text-sm text-gray-500">{eg.gradeNumber}</div>
+                    <h4 className="text-xl font-bold text-gray-800 mb-2">{eg.title || eg.gradeNumber}</h4>
                     <p className="text-gray-500 text-sm">This class can enrol in the course when assigned.</p>
                   </div>
                 ))}
@@ -416,7 +420,7 @@ const CourseDetails = () => {
                         </span>
                       </div>
                       <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-[#2d1b64] transition-colors">
-                        {eg.title || `Class ${eg.gradeNumber}`}
+                        {eg.title || eg.gradeNumber}
                       </h3>
                       <p className="text-gray-400 text-xs mt-2">
                         Click to view announcements and lessons
@@ -433,13 +437,13 @@ const CourseDetails = () => {
       {/* VIEW 2: CLASS WORKSPACE CONTENT PANEL (Shown when a class is clicked) */}
       {selectedGrade !== null && (
         <div className="space-y-6">
-          
+
           {/* Announcement Card */}
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
             <h4 className="font-bold text-lg text-gray-800 mb-4">Teacher's Announcement</h4>
             {user?.role === 'student' ? (
               <p className="text-gray-600 bg-gray-50 p-4 rounded-xl leading-relaxed whitespace-pre-line">
-                {currentLesson?.teacherMessage || "මෙම පන්තිය සඳහා ගුරුවරයාගෙන් පණිවිඩයක් නැත."}
+                {currentLesson?.teacherMessage || "No Contents available for this course yet."}
               </p>
             ) : (
               <div className="space-y-3">
@@ -496,8 +500,8 @@ const CourseDetails = () => {
                   className="p-3 bg-white border border-gray-200 rounded-lg outline-none"
                   required
                 />
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer"
                 >
                   + Add Video
@@ -530,7 +534,7 @@ const CourseDetails = () => {
                   </div>
                 ))
               ) : (
-                <p className="text-gray-400 italic">මෙම පන්තිය සඳහා පාඩම් දත්ත නොමැත.</p>
+                <p className="text-gray-400 italic">No lesson Data for this Class</p>
               )}
             </div>
           </div>

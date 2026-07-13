@@ -7,9 +7,14 @@ const messageSchema = new mongoose.Schema({
 });
 
 const gradeSchema = new mongoose.Schema({
-  gradeNumber: { type: Number, required: true }, // e.g., 6, 7, 8, 9, 10, 11
+  gradeNumber: { type: String, required: true },
   title: { type: String, trim: true, default: '' },
-  messages: [messageSchema] // List of messages for this specific grade
+  messages: [messageSchema]
+});
+
+const classSchema = new mongoose.Schema({
+  className: { type: String, required: true },
+  enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
 
 const courseSchema = new mongoose.Schema({
@@ -36,6 +41,7 @@ const courseSchema = new mongoose.Schema({
     default: ""
   },
   enrolledGrades: [gradeSchema],
+  classes: [classSchema],
   enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, {
   timestamps: true

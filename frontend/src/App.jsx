@@ -14,6 +14,8 @@ import ChangePassword from './pages/ChangePassword';
 import Courses from './pages/Courses'; 
 import CourseDetails from './pages/CourseDetails';
 import ManageUsers from './pages/ManageUsers';
+import Enrollments from './pages/Enrollments';
+import Attendance from './pages/Attendance';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -69,6 +71,18 @@ function App() {
           <Route path="/manage-users" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <ManageUsers />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/enrollments" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Enrollments />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/attendance" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Attendance />
             </ProtectedRoute>
           } />
 

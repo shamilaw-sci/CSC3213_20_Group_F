@@ -8,6 +8,8 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const courseRoutes = require('./routes/courseRoutes');
 const lessonRoutes = require('./routes/lessonRoutes'); // New change
+const scheduleRoutes = require('./routes/scheduleRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
 
 const app = express();
 
@@ -32,6 +34,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/lessons', lessonRoutes); // New change
+app.use('/api/schedule', scheduleRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // --- DATABASE CONNECTION ---
 const fallbackDbURI = 'mongodb://developer:dev1234@ac-zqvmyqq-shard-00-00.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-01.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-02.br5bcum.mongodb.net:27017/?ssl=true&replicaSet=atlas-l6y6kk-shard-0&authSource=admin&appName=LuminaLearnCluster';
