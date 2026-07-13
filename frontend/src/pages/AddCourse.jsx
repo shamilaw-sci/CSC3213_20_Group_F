@@ -201,6 +201,8 @@ const AddCourse = () => {
     openCropper(file, type);
   };
 
+  const cropAspectRatio = cropSourceType === 'banner' ? 1200 / 400 : 600 / 450;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -284,14 +286,14 @@ const AddCourse = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ImageUploadZone
             label="Course Banner Image"
-            hint="1200 × 256 px"
+            hint="1200 × 400 px"
             accept="image/jpeg,image/png,image/webp,image/gif"
             file={bannerFile}
             onFileChange={(file) => handleRawFileChange(file, 'banner')}
           />
           <ImageUploadZone
             label="Course Card Thumbnail"
-            hint="400 × 160 px"
+            hint="600 × 450 px"
             accept="image/jpeg,image/png,image/webp,image/gif"
             file={cardImageFile}
             onFileChange={(file) => handleRawFileChange(file, 'card')}
@@ -379,6 +381,75 @@ const AddCourse = () => {
           {isLoading ? 'Uploading & Creating...' : 'Create Course & Assign Teacher'}
         </button>
       </form>
+
+      {isCropping && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-4xl rounded-2xl bg-white p-4 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {cropSourceType === 'banner' ? 'Crop Banner Image' : 'Crop Thumbnail Image'}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Drag the image, zoom in or out, and confirm the selected area.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCropper}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div className="relative h-[420px] overflow-hidden rounded-xl bg-gray-100">
+              <Cropper
+                image={cropFile}
+                crop={crop}
+                zoom={zoom}
+                aspect={cropAspectRatio}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={handleCropComplete}
+                cropShape="rect"
+                showGrid={true}
+              />
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">Zoom</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="0.1"
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full accent-purple-600"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={closeCropper}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCropConfirm}
+                  className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+                >
+                  Use cropped image
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -22,6 +23,13 @@ app.get('/', (req, res) => {
     res.send("LuminaLearn API is running! 🚀");
 });
 
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    });
+});
+
 // --- ROUTES ---
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
@@ -30,22 +38,38 @@ app.use('/api/schedule', scheduleRoutes);
 app.use('/api/attendance', attendanceRoutes);
 
 // --- DATABASE CONNECTION ---
-const dbURI = process.env.MONGO_URI;
+const fallbackDbURI = 'mongodb://developer:dev1234@ac-zqvmyqq-shard-00-00.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-01.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-02.br5bcum.mongodb.net:27017/?ssl=true&replicaSet=atlas-l6y6kk-shard-0&authSource=admin&appName=LuminaLearnCluster';
+const dbURI = fallbackDbURI;
 
 if (!dbURI) {
     console.error("FATAL ERROR: MONGO_URI is not defined in .env file.");
     process.exit(1);
 }
 
-mongoose.connect(dbURI)
-    .then(() => console.log("MongoDB Connected! 🚀"))
-    .catch((err) => {
-        console.error("Database connection error:", err);
-        process.exit(1); 
-    });
+const startServer = async () => {
+    try {
+        await mongoose.connect(dbURI, {
+            serverSelectionTimeoutMS: 15000,
+            socketTimeoutMS: 45000,
+            tls: true,
+            retryWrites: true
+        });
+        console.log("MongoDB Connected! 🚀");
+    } catch (err) {
+        console.error("Database connection error:", err.message);
+        console.error("Atlas connection details:", {
+            uri: dbURI.replace(/:([^@]+)@/, ':******@'),
+            name: err.name,
+            reason: err.reason?.message || err.message,
+            code: err.code
+        });
+        console.warn("MongoDB Atlas connection failed. Please allow this IP in Atlas Network Access or use a different network.");
+    }
 
-// --- START SERVER ---
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server is up and running on port ${PORT}`);
-});
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`Server is up and running on port ${PORT}`);
+    });
+};
+
+startServer();
