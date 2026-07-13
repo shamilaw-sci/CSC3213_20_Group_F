@@ -58,9 +58,9 @@ function App() {
           <Route path="/course/:courseId" element={<CourseDetails />} />
           <Route path="/settings" element={<Settings />} />
 
-          {/* Level 2: Restricted Access (Only Teachers and Admins) */}
+          {/* Level 2: Restricted Access (Admin Only) */}
           <Route path="/add-course" element={
-            <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+            <ProtectedRoute allowedRoles={['admin']}>
               <AddCourse />
             </ProtectedRoute>
           } />

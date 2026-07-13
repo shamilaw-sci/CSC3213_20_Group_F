@@ -145,6 +145,102 @@ router.post(
     }
 );
 
+// @route   GET /api/courses/:id/students/:gradeNumber
+// Admin fetches all students belonging to a specific grade with current enrollment status
+router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
+    try {
+        const gradeNumber = Number(req.params.gradeNumber);
+        if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
+            return res.status(400).json({ error: 'Invalid grade selection.' });
+        }
+
+        const course = await Course.findById(req.params.id);
+        if (!course) return res.status(404).json({ error: 'Course not found' });
+
+        const students = await User.find({ role: 'student', grade: gradeNumber })
+            .select('_id name email registrationNumber grade')
+            .sort({ name: 1 });
+
+        const enrolledIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
+        const studentsWithStatus = students.map(student => ({
+            ...student.toObject(),
+            isEnrolled: enrolledIds.has(student._id.toString())
+        }));
+
+        res.status(200).json(studentsWithStatus);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load grade students' });
+    }
+});
+
+// @route   POST /api/courses/:id/enroll-students/:gradeNumber
+router.post('/:id/enroll-students/:gradeNumber', protect, isAdmin, async (req, res) => {
+    try {
+        const gradeNumber = Number(req.params.gradeNumber);
+        const { studentIds = [] } = req.body;
+
+        if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
+            return res.status(400).json({ error: 'Invalid grade selection.' });
+        }
+
+        if (!Array.isArray(studentIds) || studentIds.length === 0) {
+            return res.status(400).json({ error: 'Please select at least one student.' });
+        }
+
+        const course = await Course.findById(req.params.id);
+        if (!course) return res.status(404).json({ error: 'Course not found' });
+
+        const students = await User.find({
+            _id: { $in: studentIds },
+            role: 'student',
+            grade: gradeNumber
+        }).select('_id');
+
+        const validStudentIds = students.map(student => student._id.toString());
+        const existingIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
+        const newIds = validStudentIds.filter(studentId => !existingIds.has(studentId));
+
+        if (!newIds.length) {
+            return res.status(200).json({ message: 'Selected students are already enrolled.' });
+        }
+
+        course.enrolledStudents.push(...newIds.map(studentId => studentId));
+        await course.save();
+
+        res.status(200).json({ message: `Enrolled ${newIds.length} student(s).` });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to enroll selected students' });
+    }
+});
+
+// @route   POST /api/courses/:id/remove-students/:gradeNumber
+router.post('/:id/remove-students/:gradeNumber', protect, isAdmin, async (req, res) => {
+    try {
+        const gradeNumber = Number(req.params.gradeNumber);
+        const { studentIds = [] } = req.body;
+
+        if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
+            return res.status(400).json({ error: 'Invalid grade selection.' });
+        }
+
+        if (!Array.isArray(studentIds) || studentIds.length === 0) {
+            return res.status(400).json({ error: 'Please select at least one student.' });
+        }
+
+        const course = await Course.findById(req.params.id);
+        if (!course) return res.status(404).json({ error: 'Course not found' });
+
+        const validIds = new Set(studentIds.map(id => id.toString()));
+        const beforeCount = course.enrolledStudents.length;
+        course.enrolledStudents = course.enrolledStudents.filter(studentId => !validIds.has(studentId.toString()));
+        await course.save();
+
+        res.status(200).json({ message: `Removed ${beforeCount - course.enrolledStudents.length} student(s).` });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to remove selected students' });
+    }
+});
+
 // @route   POST /api/courses/:id/toggle-grade
 // Admin toggles (adds/removes) a grade to the course
 router.post('/:id/toggle-grade', protect, isAdmin, async (req, res) => {

@@ -21,6 +21,12 @@ const CourseDetails = () => {
   const [gradeMessage, setGradeMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [showStudentPicker, setShowStudentPicker] = useState(false);
+  const [selectedEnrollGrade, setSelectedEnrollGrade] = useState(null);
+  const [gradeStudents, setGradeStudents] = useState([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [isLoadingGradeStudents, setIsLoadingGradeStudents] = useState(false);
+  const [isUpdatingGradeStudents, setIsUpdatingGradeStudents] = useState(false);
 
   const allGrades = [6, 7, 8, 9, 10, 11];
 
@@ -144,20 +150,46 @@ const CourseDetails = () => {
     }
   };
 
-  const handleEnrollGradeStudents = async (gradeNumber) => {
-    if (!window.confirm(`Enroll all students from Grade ${gradeNumber} into this course?`)) return;
+  const openStudentPicker = async (gradeNumber) => {
+    setSelectedEnrollGrade(gradeNumber);
+    setShowStudentPicker(true);
+    setSelectedStudentIds([]);
+    setIsLoadingGradeStudents(true);
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `http://localhost:5000/api/courses/${courseId}/enroll-grade/${gradeNumber}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success(res.data.message || `Grade ${gradeNumber} students enrolled.`);
-      await fetchCourseDetails();
+      const res = await axios.get(`http://localhost:5000/api/courses/${courseId}/students/${gradeNumber}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setGradeStudents(res.data);
+      setSelectedStudentIds(res.data.filter((student) => student.isEnrolled).map((student) => student._id));
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to enroll grade students.');
+      toast.error(err.response?.data?.error || 'Failed to load grade students.');
+    } finally {
+      setIsLoadingGradeStudents(false);
+    }
+  };
+
+  const handleUpdateGradeStudents = async (mode) => {
+    if (!selectedEnrollGrade) return;
+
+    try {
+      setIsUpdatingGradeStudents(true);
+      const token = localStorage.getItem('token');
+      const endpoint = mode === 'enroll'
+        ? `http://localhost:5000/api/courses/${courseId}/enroll-students/${selectedEnrollGrade}`
+        : `http://localhost:5000/api/courses/${courseId}/remove-students/${selectedEnrollGrade}`;
+
+      const res = await axios.post(endpoint, { studentIds: selectedStudentIds }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(res.data.message || 'Student enrollment updated.');
+      await fetchCourseDetails();
+      setShowStudentPicker(false);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update student enrollment.');
+    } finally {
+      setIsUpdatingGradeStudents(false);
     }
   };
 
@@ -233,7 +265,7 @@ const CourseDetails = () => {
             <img 
               src={course.banner} 
               alt={course.title} 
-              className="w-full h-64 object-cover rounded-3xl mb-6 shadow-sm"
+              className="w-full h-72 md:h-96 object-cover object-center rounded-3xl mb-6 shadow-sm"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           )}
@@ -333,11 +365,11 @@ const CourseDetails = () => {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleEnrollGradeStudents(eg.gradeNumber);
+                            openStudentPicker(eg.gradeNumber);
                           }}
                           className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-100"
                         >
-                          Enroll Grade
+                          Manage Students
                         </button>
                       )}
                       <button
@@ -503,6 +535,91 @@ const CourseDetails = () => {
             </div>
           </div>
 
+        </div>
+      )}
+
+      {showStudentPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-3xl rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Manage Grade {selectedEnrollGrade} Students</h3>
+                <p className="text-sm text-gray-500">Select students to enroll or remove from this course.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStudentPicker(false)}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+
+            {isLoadingGradeStudents ? (
+              <div className="py-6 text-center text-gray-500">Loading students...</div>
+            ) : (
+              <div className="max-h-[420px] space-y-2 overflow-y-auto rounded-2xl border border-gray-200 p-3">
+                {gradeStudents.length === 0 ? (
+                  <p className="text-sm text-gray-500">No students found for this grade.</p>
+                ) : gradeStudents.map((student) => (
+                  <label
+                    key={student._id}
+                    className="flex cursor-pointer items-center justify-between rounded-xl border border-gray-200 px-3 py-2 hover:bg-gray-50"
+                  >
+                    <div>
+                      <p className="font-semibold text-gray-800">{student.name}</p>
+                      <p className="text-xs text-gray-500">{student.email} • Reg. {student.registrationNumber || 'N/A'}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={selectedStudentIds.includes(student._id)}
+                      onChange={() => {
+                        setSelectedStudentIds((prev) =>
+                          prev.includes(student._id)
+                            ? prev.filter((id) => id !== student._id)
+                            : [...prev, student._id]
+                        );
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedStudentIds(gradeStudents.map((student) => student._id))}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedStudentIds([])}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => handleUpdateGradeStudents('enroll')}
+                disabled={isUpdatingGradeStudents || selectedStudentIds.length === 0}
+                className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                {isUpdatingGradeStudents ? 'Updating...' : 'Enroll Selected'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleUpdateGradeStudents('remove')}
+                disabled={isUpdatingGradeStudents || selectedStudentIds.length === 0}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                {isUpdatingGradeStudents ? 'Updating...' : 'Remove Selected'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
