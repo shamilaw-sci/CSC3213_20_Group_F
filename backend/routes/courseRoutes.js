@@ -6,6 +6,7 @@ const path = require('path');
 const User = require('../models/User');
 const Course = require('../models/Course');
 const Lesson = require('../models/Lesson');
+const Attendance = require('../models/Attendance');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 
@@ -60,10 +61,6 @@ router.get('/', protect, async (req, res) => {
         const courses = await Course.find({})
             .populate('instructor', 'name')
             .populate('enrolledStudents', '_id');
-<<<<<<< Updated upstream
-        res.json(courses);
-=======
-            
         // Map to include full URLs dynamically based on request host
         const coursesWithUrls = courses.map(course => {
             const courseObj = course.toObject();
@@ -77,7 +74,6 @@ router.get('/', protect, async (req, res) => {
         });
 
         res.json(coursesWithUrls);
->>>>>>> Stashed changes
     } catch (err) {
         res.status(500).json({ error: "Failed to fetch courses" });
     }
@@ -235,29 +231,75 @@ router.post(
 );
 
 // @route   GET /api/courses/:id/students/:gradeNumber
-// Admin fetches all students belonging to a specific grade with current enrollment status
+// Admin fetches all students belonging to a specific grade with current enrollment status, attendance, and payments
 router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
     try {
         const gradeNumber = Number(req.params.gradeNumber);
-        if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
-            return res.status(400).json({ error: 'Invalid grade selection.' });
-        }
+        const gradeQuery = [String(gradeNumber), `Grade ${gradeNumber}`];
 
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
-        const students = await User.find({ role: 'student', grade: gradeNumber })
-            .select('_id name email registrationNumber grade')
-            .sort({ name: 1 });
+        const students = await User.find({ 
+            role: 'student', 
+            grade: { $in: gradeQuery } 
+        })
+        .select('_id name email registrationNumber grade parentsPhoneNumber')
+        .sort({ name: 1 });
 
         const enrolledIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
-        const studentsWithStatus = students.map(student => ({
-            ...student.toObject(),
-            isEnrolled: enrolledIds.has(student._id.toString())
+        
+        // Fetch detailed attendance and payments for each student
+        const studentsWithDetails = await Promise.all(students.map(async (student) => {
+            const studentObj = student.toObject();
+            studentObj.isEnrolled = enrolledIds.has(student._id.toString());
+            
+            // 1. Get attendance records for this student and course
+            const attendanceRecords = await Attendance.find({
+                studentId: student._id,
+                courseId: course._id
+            }).sort({ date: -1 }).limit(10);
+            
+            // Count consecutive absences
+            let consecutiveAbsences = 0;
+            for (const r of attendanceRecords) {
+                if (r.status === 'Absent') {
+                    consecutiveAbsences++;
+                } else if (r.status === 'Present' || r.status === 'Late') {
+                    break;
+                }
+            }
+            
+            studentObj.attendance = {
+                history: attendanceRecords.map(r => ({
+                    date: r.date,
+                    status: r.status
+                })),
+                totalPresent: attendanceRecords.filter(r => r.status === 'Present' || r.status === 'Late').length,
+                totalAbsent: attendanceRecords.filter(r => r.status === 'Absent').length,
+                consecutiveAbsences,
+                isChronicallyAbsent: consecutiveAbsences >= 3
+            };
+
+            // 2. Deterministic mock payments based on user ID hash
+            const hash = student._id.toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const isDue = hash % 3 === 0;
+            studentObj.payment = {
+                status: isDue ? 'Due' : 'Paid',
+                amountDue: isDue ? 6000 : 0,
+                dueDate: '2026-08-05',
+                history: [
+                    { month: 'July 2026', amount: 6000, status: 'Settled', date: '2026-07-02' },
+                    { month: 'June 2026', amount: 6000, status: 'Settled', date: '2026-06-03' }
+                ]
+            };
+
+            return studentObj;
         }));
 
-        res.status(200).json(studentsWithStatus);
+        res.status(200).json(studentsWithDetails);
     } catch (err) {
+        console.error("Fetch Grade Students Error:", err);
         res.status(500).json({ error: 'Failed to load grade students' });
     }
 });
@@ -279,10 +321,11 @@ router.post('/:id/enroll-students/:gradeNumber', protect, isAdmin, async (req, r
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
+        const gradeQuery = [String(gradeNumber), `Grade ${gradeNumber}`];
         const students = await User.find({
             _id: { $in: studentIds },
             role: 'student',
-            grade: gradeNumber
+            grade: { $in: gradeQuery }
         }).select('_id');
 
         const validStudentIds = students.map(student => student._id.toString());
@@ -421,6 +464,113 @@ router.post('/:id/send-message', protect, async (req, res) => {
         res.status(200).json({ message: "Message sent successfully" });
     } catch (err) {
         res.status(500).json({ error: "Failed to send message" });
+    }
+});
+
+// @route   GET /api/courses/enrollments/all
+// @desc    Admin retrieves all active class enrollments
+router.get('/enrollments/all', protect, isAdmin, async (req, res) => {
+    try {
+        const courses = await Course.find({})
+            .populate('classes.enrolledStudents', 'name email registrationNumber grade parentsPhoneNumber');
+        
+        let enrollments = [];
+        courses.forEach(course => {
+            if (course.classes && course.classes.length > 0) {
+                course.classes.forEach(cls => {
+                    if (cls.enrolledStudents && cls.enrolledStudents.length > 0) {
+                        cls.enrolledStudents.forEach(student => {
+                            if (student) {
+                                enrollments.push({
+                                    courseId: course._id,
+                                    courseTitle: course.title,
+                                    className: cls.className,
+                                    studentId: student._id,
+                                    studentName: student.name,
+                                    studentEmail: student.email,
+                                    studentRegNo: student.registrationNumber,
+                                    studentGrade: student.grade,
+                                    studentPhone: student.parentsPhoneNumber
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+        res.json(enrollments);
+    } catch (err) {
+        console.error("Fetch all enrollments error:", err);
+        res.status(500).json({ error: "Failed to fetch enrollments" });
+    }
+});
+
+// @route   POST /api/courses/enroll
+// @desc    Admin enrolls a student in a specific course and class
+router.post('/enroll', protect, isAdmin, async (req, res) => {
+    const { studentId, courseId, className } = req.body;
+    if (!studentId || !courseId || !className) {
+        return res.status(400).json({ error: "Student ID, Course ID, and Class Name are required." });
+    }
+
+    try {
+        const course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ error: "Course not found." });
+
+        const student = await User.findById(studentId);
+        if (!student || student.role !== 'student') {
+            return res.status(400).json({ error: "Invalid student." });
+        }
+
+        let cls = course.classes.find(c => c.className === className.trim());
+        if (!cls) {
+            course.classes.push({
+                className: className.trim(),
+                enrolledStudents: [studentId]
+            });
+        } else {
+            if (cls.enrolledStudents.includes(studentId)) {
+                return res.status(400).json({ error: "Student is already enrolled in this class for this course." });
+            }
+            cls.enrolledStudents.push(studentId);
+        }
+
+        await course.save();
+        res.status(200).json({ message: "Student enrolled in class successfully." });
+    } catch (err) {
+        console.error("Enroll student error:", err);
+        res.status(500).json({ error: "Failed to enroll student." });
+    }
+});
+
+// @route   POST /api/courses/unenroll
+// @desc    Admin removes a student from a specific course and class
+router.post('/unenroll', protect, isAdmin, async (req, res) => {
+    const { studentId, courseId, className } = req.body;
+    if (!studentId || !courseId || !className) {
+        return res.status(400).json({ error: "Student ID, Course ID, and Class Name are required." });
+    }
+
+    try {
+        const course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ error: "Course not found." });
+
+        let cls = course.classes.find(c => c.className === className.trim());
+        if (!cls) {
+            return res.status(400).json({ error: "Class not found in this course." });
+        }
+
+        const index = cls.enrolledStudents.indexOf(studentId);
+        if (index === -1) {
+            return res.status(400).json({ error: "Student is not enrolled in this class." });
+        }
+
+        cls.enrolledStudents.splice(index, 1);
+        await course.save();
+        res.status(200).json({ message: "Student removed from class successfully." });
+    } catch (err) {
+        console.error("Unenroll student error:", err);
+        res.status(500).json({ error: "Failed to unenroll student." });
     }
 });
 
