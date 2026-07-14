@@ -1,32 +1,79 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 const User = require('../models/User');
 const Course = require('../models/Course');
 const Lesson = require('../models/Lesson');
+const Attendance = require('../models/Attendance');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
+
+// Extract the raw filename if a full path is stored, and build a dynamic URL based on the request host
+const getFullUrl = (req, filenameOrUrl) => {
+    if (!filenameOrUrl) return "";
+    // If it is a Base64 string, return it directly
+    if (filenameOrUrl.startsWith('data:')) {
+        return filenameOrUrl;
+    }
+    let filename = filenameOrUrl;
+    if (filenameOrUrl.includes('/uploads/')) {
+        filename = filenameOrUrl.split('/uploads/').pop();
+    }
+    return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+};
+
+// Extract filename to locate the file in the filesystem
+const getFilename = (filenameOrUrl) => {
+    if (!filenameOrUrl) return null;
+    // Base64 strings are stored in database, no local file to delete
+    if (filenameOrUrl.startsWith('data:')) {
+        return null;
+    }
+    if (filenameOrUrl.includes('/uploads/')) {
+        return filenameOrUrl.split('/uploads/').pop();
+    }
+    return filenameOrUrl;
+};
+
+// Helper function to read an uploaded file from disk, convert it to Base64, and delete the file immediately
+const fileToBase64 = (fileObject) => {
+    if (!fileObject) return "";
+    try {
+        const buffer = fs.readFileSync(fileObject.path);
+        const mimeType = fileObject.mimetype;
+        const base64Data = buffer.toString('base64');
+        
+        // Delete the file from the disk immediately after converting
+        fs.unlinkSync(fileObject.path);
+        
+        return `data:${mimeType};base64,${base64Data}`;
+    } catch (err) {
+        console.error("Failed to convert file to Base64:", err.message);
+        return "";
+    }
+};
 
 // @route   GET /api/courses
 router.get('/', protect, async (req, res) => {
     try {
-        let query = {};
-        
-        // Use the security/filtering logic from devBranch
-        if (req.user.role === 'teacher') {
-            query = { instructor: req.user._id };
-        } else if (req.user.role === 'student') {
-            // Note: We use 'enrolledStudents' because that is the field 
-            // we kept in our Course.js model resolution earlier.
-            query = { enrolledStudents: req.user._id };
-        }
-
-        // Apply the filtering query, and add the population from temp_featureCheck
-        const courses = await Course.find(query)
+        const courses = await Course.find({})
             .populate('instructor', 'name')
             .populate('enrolledStudents', '_id');
-            
-        res.json(courses);
+        // Map to include full URLs dynamically based on request host
+        const coursesWithUrls = courses.map(course => {
+            const courseObj = course.toObject();
+            if (courseObj.banner) {
+                courseObj.banner = getFullUrl(req, courseObj.banner);
+            }
+            if (courseObj.cardImage) {
+                courseObj.cardImage = getFullUrl(req, courseObj.cardImage);
+            }
+            return courseObj;
+        });
+
+        res.json(coursesWithUrls);
     } catch (err) {
         res.status(500).json({ error: "Failed to fetch courses" });
     }
@@ -39,7 +86,15 @@ router.get('/:id', protect, async (req, res) => {
             .populate('instructor', 'name')
             .populate('enrolledStudents', 'name grade registrationNumber');
         if (!course) return res.status(404).json({ error: "Course not found" });
-        res.json(course);
+
+        const courseObj = course.toObject();
+        if (courseObj.banner) {
+            courseObj.banner = getFullUrl(req, courseObj.banner);
+        }
+        if (courseObj.cardImage) {
+            courseObj.cardImage = getFullUrl(req, courseObj.cardImage);
+        }
+        res.json(courseObj);
     } catch (err) {
         res.status(500).json({ error: "Server error" });
     }
@@ -84,10 +139,28 @@ router.delete('/:id', protect, isAdmin, async (req, res) => {
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: "Course not found" });
 
+        // Delete physical files from filesystem
+        const bannerFile = getFilename(course.banner);
+        const cardImageFile = getFilename(course.cardImage);
+
+        if (bannerFile) {
+            const bannerFilePath = path.join(__dirname, '..', 'uploads', bannerFile);
+            if (fs.existsSync(bannerFilePath)) {
+                fs.unlinkSync(bannerFilePath);
+            }
+        }
+        if (cardImageFile) {
+            const cardImageFilePath = path.join(__dirname, '..', 'uploads', cardImageFile);
+            if (fs.existsSync(cardImageFilePath)) {
+                fs.unlinkSync(cardImageFilePath);
+            }
+        }
+
         await Lesson.deleteMany({ course: course._id });
+        const courseTitle = course.title;
         await course.deleteOne();
 
-        res.json({ message: "Course deleted successfully" });
+        res.json({ message: `Course "${courseTitle}" Successfully Deleted!` });
     } catch (err) {
         res.status(500).json({ error: "Failed to delete course" });
     }
@@ -134,20 +207,19 @@ router.post(
                 instructorId = newTeacher._id;
             }
 
-            // Build image URL paths from uploaded files
-            const bannerPath = req.files?.banner?.[0]
-                ? `http://localhost:5000/uploads/${req.files.banner[0].filename}`
+            const bannerDataUri = req.files?.banner?.[0]
+                ? fileToBase64(req.files.banner[0])
                 : "";
-            const cardImagePath = req.files?.cardImage?.[0]
-                ? `http://localhost:5000/uploads/${req.files.cardImage[0].filename}`
+            const cardImageDataUri = req.files?.cardImage?.[0]
+                ? fileToBase64(req.files.cardImage[0])
                 : "";
 
             const newCourse = await Course.create({
                 title,
                 description,
                 instructor: instructorId,
-                banner: bannerPath,
-                cardImage: cardImagePath
+                banner: bannerDataUri,
+                cardImage: cardImageDataUri
             });
 
             res.status(201).json({ message: "Course created successfully!", courseId: newCourse._id });
@@ -159,29 +231,75 @@ router.post(
 );
 
 // @route   GET /api/courses/:id/students/:gradeNumber
-// Admin fetches all students belonging to a specific grade with current enrollment status
+// Admin fetches all students belonging to a specific grade with current enrollment status, attendance, and payments
 router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
     try {
         const gradeNumber = Number(req.params.gradeNumber);
-        if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
-            return res.status(400).json({ error: 'Invalid grade selection.' });
-        }
+        const gradeQuery = [String(gradeNumber), `Grade ${gradeNumber}`];
 
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
-        const students = await User.find({ role: 'student', grade: gradeNumber })
-            .select('_id name email registrationNumber grade')
-            .sort({ name: 1 });
+        const students = await User.find({ 
+            role: 'student', 
+            grade: { $in: gradeQuery } 
+        })
+        .select('_id name email registrationNumber grade parentsPhoneNumber')
+        .sort({ name: 1 });
 
         const enrolledIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
-        const studentsWithStatus = students.map(student => ({
-            ...student.toObject(),
-            isEnrolled: enrolledIds.has(student._id.toString())
+        
+        // Fetch detailed attendance and payments for each student
+        const studentsWithDetails = await Promise.all(students.map(async (student) => {
+            const studentObj = student.toObject();
+            studentObj.isEnrolled = enrolledIds.has(student._id.toString());
+            
+            // 1. Get attendance records for this student and course
+            const attendanceRecords = await Attendance.find({
+                studentId: student._id,
+                courseId: course._id
+            }).sort({ date: -1 }).limit(10);
+            
+            // Count consecutive absences
+            let consecutiveAbsences = 0;
+            for (const r of attendanceRecords) {
+                if (r.status === 'Absent') {
+                    consecutiveAbsences++;
+                } else if (r.status === 'Present' || r.status === 'Late') {
+                    break;
+                }
+            }
+            
+            studentObj.attendance = {
+                history: attendanceRecords.map(r => ({
+                    date: r.date,
+                    status: r.status
+                })),
+                totalPresent: attendanceRecords.filter(r => r.status === 'Present' || r.status === 'Late').length,
+                totalAbsent: attendanceRecords.filter(r => r.status === 'Absent').length,
+                consecutiveAbsences,
+                isChronicallyAbsent: consecutiveAbsences >= 3
+            };
+
+            // 2. Deterministic mock payments based on user ID hash
+            const hash = student._id.toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const isDue = hash % 3 === 0;
+            studentObj.payment = {
+                status: isDue ? 'Due' : 'Paid',
+                amountDue: isDue ? 6000 : 0,
+                dueDate: '2026-08-05',
+                history: [
+                    { month: 'July 2026', amount: 6000, status: 'Settled', date: '2026-07-02' },
+                    { month: 'June 2026', amount: 6000, status: 'Settled', date: '2026-06-03' }
+                ]
+            };
+
+            return studentObj;
         }));
 
-        res.status(200).json(studentsWithStatus);
+        res.status(200).json(studentsWithDetails);
     } catch (err) {
+        console.error("Fetch Grade Students Error:", err);
         res.status(500).json({ error: 'Failed to load grade students' });
     }
 });
@@ -203,10 +321,11 @@ router.post('/:id/enroll-students/:gradeNumber', protect, isAdmin, async (req, r
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
+        const gradeQuery = [String(gradeNumber), `Grade ${gradeNumber}`];
         const students = await User.find({
             _id: { $in: studentIds },
             role: 'student',
-            grade: gradeNumber
+            grade: { $in: gradeQuery }
         }).select('_id');
 
         const validStudentIds = students.map(student => student._id.toString());
@@ -266,12 +385,13 @@ router.post('/:id/toggle-grade', protect, isAdmin, async (req, res) => {
         const existingIndex = course.enrolledGrades.findIndex(g => g.gradeNumber === gradeNumber);
 
         if (existingIndex !== -1) {
+            const gradeTitle = course.enrolledGrades[existingIndex].title || `Grade ${gradeNumber}`;
             // තිබේ නම් අයින් කරන්න
             course.enrolledGrades.splice(existingIndex, 1);
             await course.save();
             // Sync with Lesson model
             await Lesson.findOneAndDelete({ course: course._id, grade: gradeNumber });
-            return res.status(200).json({ message: `Grade ${gradeNumber} removed` });
+            return res.status(200).json({ message: `"${gradeTitle}" Successfully Removed!` });
         } else {
             // නැත්නම් ඇඩ් කරන්න
             course.enrolledGrades.push({ gradeNumber, messages: [] });
@@ -296,8 +416,8 @@ router.post('/:id/enroll-grade/:gradeNumber', protect, isAdmin, async (req, res)
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
-        const gradeNumber = req.params.gradeNumber;
-        if (!gradeNumber || !gradeNumber.trim()) {
+        const gradeNumber = Number(req.params.gradeNumber);
+        if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
             return res.status(400).json({ error: 'Invalid grade selection.' });
         }
 
@@ -344,52 +464,6 @@ router.post('/:id/send-message', protect, async (req, res) => {
         res.status(200).json({ message: "Message sent successfully" });
     } catch (err) {
         res.status(500).json({ error: "Failed to send message" });
-    }
-});
-
-// @route   POST /api/courses/:id/enroll
-// @desc    Admin enrolls a student in the course
-router.post('/:id/enroll', protect, isAdmin, async (req, res) => {
-    const { studentId } = req.body;
-    if (!studentId) return res.status(400).json({ error: "Student ID is required." });
-
-    try {
-        const course = await Course.findById(req.params.id);
-        if (!course) return res.status(404).json({ error: "Course not found" });
-
-        const student = await User.findById(studentId);
-        if (!student || student.role !== 'student') {
-            return res.status(400).json({ error: "Invalid student." });
-        }
-
-        if (course.enrolledStudents.includes(studentId)) {
-            return res.status(400).json({ error: "Student is already enrolled in this course." });
-        }
-
-        course.enrolledStudents.push(studentId);
-        await course.save();
-
-        res.status(200).json({ message: "Student enrolled successfully." });
-    } catch (err) {
-        console.error("Enroll Student Error:", err);
-        res.status(500).json({ error: "Failed to enroll student" });
-    }
-});
-
-// @route   POST /api/courses/:id/unenroll
-// @desc    Admin removes a student from the course (legacy flat enrollment, unused but kept for compatibility or reference)
-router.post('/:id/unenroll', protect, isAdmin, async (req, res) => {
-    const { studentId } = req.body;
-    if (!studentId) return res.status(400).json({ error: "Student ID is required." });
-
-    try {
-        const course = await Course.findById(req.params.id);
-        if (!course) return res.status(404).json({ error: "Course not found" });
-
-        // Left unimplemented for flat schema since we migrated to classes
-        res.status(200).json({ message: "Legacy endpoint called. Please use class-based enrollment." });
-    } catch (err) {
-        res.status(500).json({ error: "Failed to remove student from course" });
     }
 });
 

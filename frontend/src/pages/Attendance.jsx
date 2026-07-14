@@ -140,7 +140,7 @@ const Attendance = () => {
   const activeSchedule = schedules.find(s => s._id === selectedScheduleId);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 font-sans">
       
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-xl shadow-lg p-6 text-white relative overflow-hidden">
@@ -192,7 +192,7 @@ const Attendance = () => {
                 >
                   <div>
                     <p className="font-semibold text-gray-800 text-sm">{student.name}</p>
-                    <p className="text-4xs text-gray-500 uppercase font-bold">{student.registrationNumber || 'No Reg No'}</p>
+                    <p className="text-xs text-gray-500 uppercase font-bold">{student.registrationNumber || 'No Reg No'}</p>
                   </div>
                   <span className="bg-purple-100 text-purple-800 text-xs font-extrabold px-2.5 py-0.5 rounded-full uppercase">
                     {student.grade || 'No Grade'}
@@ -214,7 +214,7 @@ const Attendance = () => {
               {/* Close/Deselect button */}
               <button 
                 onClick={() => setSelectedStudent(null)}
-                className="absolute right-4 top-4 text-gray-400 hover:text-red-500 text-sm transition-colors cursor-pointer font-bold"
+                className="absolute right-4 top-4 text-gray-400 hover:text-red-500 text-sm transition-colors cursor-pointer font-bold border-none bg-transparent"
               >
                 ✕ Close
               </button>
@@ -232,23 +232,25 @@ const Attendance = () => {
 
               <div className="w-full space-y-3.5 text-left text-sm text-gray-600">
                 <div className="flex items-center gap-3">
-                  <FaGraduationCap className="text-purple-500" />
+                  <FaGraduationCap className="text-purple-500 shrink-0" />
                   <div>
-                    <p className="text-4xs uppercase font-extrabold text-gray-400 tracking-wider">Assigned Grade</p>
+                    <p className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider">Assigned Grade</p>
                     <p className="font-semibold text-gray-800">{selectedStudent.grade || 'Not Assigned'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <FaPhone className="text-purple-500" />
-                  <div>
-                    <p className="text-4xs uppercase font-extrabold text-gray-400 tracking-wider">Parent's Phone</p>
-                    <p className="font-semibold text-gray-800">{selectedStudent.parentsPhoneNumber || 'Not Provided'}</p>
+                {selectedStudent.parentsPhoneNumber && (
+                  <div className="flex items-center gap-3">
+                    <FaPhone className="text-purple-500 shrink-0" />
+                    <div>
+                      <p className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider">Parent's Phone</p>
+                      <p className="font-semibold text-gray-800">{selectedStudent.parentsPhoneNumber}</p>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="flex items-center gap-3">
-                  <FaEnvelope className="text-purple-500" />
+                  <FaEnvelope className="text-purple-500 shrink-0" />
                   <div>
-                    <p className="text-4xs uppercase font-extrabold text-gray-400 tracking-wider">Student Email</p>
+                    <p className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider">Student Email</p>
                     <p className="font-semibold text-gray-800 truncate max-w-[200px]">{selectedStudent.email}</p>
                   </div>
                 </div>
@@ -260,13 +262,13 @@ const Attendance = () => {
               <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">Quick Stats</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-green-50 rounded-lg p-3 text-center border border-green-100">
-                  <p className="text-4xs text-green-700 font-bold uppercase tracking-wider">Attended</p>
+                  <p className="text-[10px] text-green-700 font-bold uppercase tracking-wider">Attended</p>
                   <p className="text-xl font-extrabold text-green-800 mt-1">
                     {attendanceHistory.filter(r => r.status === 'Present' || r.status === 'Late').length}
                   </p>
                 </div>
                 <div className="bg-red-50 rounded-lg p-3 text-center border border-red-100">
-                  <p className="text-4xs text-red-700 font-bold uppercase tracking-wider">Absent</p>
+                  <p className="text-[10px] text-red-700 font-bold uppercase tracking-wider">Absent</p>
                   <p className="text-xl font-extrabold text-red-800 mt-1">
                     {attendanceHistory.filter(r => r.status === 'Absent').length}
                   </p>
@@ -284,7 +286,7 @@ const Attendance = () => {
                 onClick={() => setActiveTab('mark')}
                 className={`flex-1 py-4 text-center font-bold text-xs uppercase tracking-wider border-b-2 flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   activeTab === 'mark' 
-                    ? 'border-purple-600 text-purple-700 bg-white' 
+                    ? 'border-purple-600 text-purple-700 bg-white border-b-2' 
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
                 }`}
               >
@@ -294,7 +296,7 @@ const Attendance = () => {
                 onClick={() => setActiveTab('history')}
                 className={`flex-1 py-4 text-center font-bold text-xs uppercase tracking-wider border-b-2 flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   activeTab === 'history' 
-                    ? 'border-purple-600 text-purple-700 bg-white' 
+                    ? 'border-purple-600 text-purple-700 bg-white border-b-2' 
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
                 }`}
               >
@@ -304,7 +306,7 @@ const Attendance = () => {
                 onClick={() => setActiveTab('payments')}
                 className={`flex-1 py-4 text-center font-bold text-xs uppercase tracking-wider border-b-2 flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   activeTab === 'payments' 
-                    ? 'border-purple-600 text-purple-700 bg-white' 
+                    ? 'border-purple-600 text-purple-700 bg-white border-b-2' 
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
                 }`}
               >
@@ -333,7 +335,7 @@ const Attendance = () => {
                       <select
                         value={selectedScheduleId}
                         onChange={(e) => setSelectedScheduleId(e.target.value)}
-                        className="w-full p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:outline-none"
+                        className="w-full p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:outline-none text-sm"
                       >
                         <option value="">-- Choose Class Schedule --</option>
                         {schedules.map(schedule => {
@@ -350,19 +352,19 @@ const Attendance = () => {
 
                   {/* Schedule Details Box (Dynamic Preview) */}
                   {activeSchedule && (
-                    <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 space-y-2 animate-fadeIn">
+                    <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 space-y-2 animate-fadeIn text-xs text-purple-800">
                       <h4 className="font-bold text-purple-900 text-sm">{activeSchedule.title} Schedule Specs:</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 text-xs text-purple-800">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
                         <div className="flex items-center gap-1.5">
-                          <FaClock className="text-purple-500" />
+                          <FaClock className="text-purple-500 shrink-0" />
                           <span>{activeSchedule.dayOfWeek} at {activeSchedule.startTime} - {activeSchedule.endTime}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <FaMapMarkerAlt className="text-purple-500" />
+                          <FaMapMarkerAlt className="text-purple-500 shrink-0" />
                           <span>Room: {activeSchedule.room}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <FaGraduationCap className="text-purple-500" />
+                          <FaGraduationCap className="text-purple-500 shrink-0" />
                           <span>Grade Target: {activeSchedule.className}</span>
                         </div>
                       </div>
@@ -417,7 +419,7 @@ const Attendance = () => {
                     >
                       {submitting ? <FaSpinner className="animate-spin" /> : 'Log Attendance'}
                     </button>
-                    <p className="text-4xs text-gray-400 mt-2 text-center">
+                    <p className="text-[10px] text-gray-400 mt-2 text-center">
                       * Logging attendance will trigger parent SMS notifications and student email alerts in the next rollout phase.
                     </p>
                   </div>
@@ -438,7 +440,7 @@ const Attendance = () => {
                       <p className="text-sm font-semibold text-gray-500">No attendance logs logged yet for this student.</p>
                       <button 
                         onClick={() => setActiveTab('mark')}
-                        className="text-xs text-purple-600 font-bold mt-2 hover:underline cursor-pointer"
+                        className="text-xs text-purple-600 font-bold mt-2 hover:underline cursor-pointer border-none bg-transparent"
                       >
                         Mark Today's Attendance
                       </button>
@@ -463,7 +465,7 @@ const Attendance = () => {
                               </td>
                               <td className="p-3">
                                 <p className="font-semibold">{record.scheduleId?.title || 'Unknown Class'}</p>
-                                <p className="text-4xs text-gray-400 font-medium">{record.courseId?.title || ''}</p>
+                                <p className="text-[10px] text-gray-400 font-medium">{record.courseId?.title || ''}</p>
                               </td>
                               <td className="p-3">
                                 {record.scheduleId ? (
@@ -474,7 +476,7 @@ const Attendance = () => {
                                 {record.markedBy?.name || 'Admin'}
                               </td>
                               <td className="p-3 text-center whitespace-nowrap">
-                                <span className={`inline-block px-2 py-0.5 rounded-full font-bold uppercase text-3xs ${
+                                <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
                                   record.status === 'Present' ? 'bg-green-100 text-green-800' :
                                   record.status === 'Late' ? 'bg-amber-100 text-amber-800' :
                                   'bg-red-100 text-red-800'
@@ -508,7 +510,7 @@ const Attendance = () => {
                   {/* Mock Payment Specs */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-2">
-                      <span className="bg-green-100 text-green-800 font-extrabold text-4xs uppercase tracking-wider px-2 py-0.5 rounded-full">
+                      <span className="bg-green-100 text-green-800 font-extrabold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full">
                         Status: Settled
                       </span>
                       <h4 className="text-lg font-bold text-gray-800">July 2026 Monthly Fees</h4>
@@ -521,7 +523,7 @@ const Attendance = () => {
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-2 opacity-75">
-                      <span className="bg-gray-100 text-gray-600 font-extrabold text-4xs uppercase tracking-wider px-2 py-0.5 rounded-full">
+                      <span className="bg-gray-100 text-gray-600 font-extrabold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full">
                         Status: Pending
                       </span>
                       <h4 className="text-lg font-bold text-gray-800">August 2026 Monthly Fees</h4>
@@ -538,20 +540,20 @@ const Attendance = () => {
                   <div className="border border-gray-150 rounded-lg overflow-hidden">
                     <div className="bg-gray-50 p-3 border-b border-gray-150 flex justify-between items-center">
                       <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider">Transaction History (Recent)</h4>
-                      <span className="text-4xs text-gray-400 font-bold uppercase">Mock Ledger</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase">Mock Ledger</span>
                     </div>
                     <div className="divide-y divide-gray-150 text-xs">
                       <div className="p-3 flex justify-between items-center hover:bg-gray-50/50">
                         <div>
                           <p className="font-semibold text-gray-800">Rs. 6,000.00 - Course Admission</p>
-                          <p className="text-4xs text-gray-400">June Monthly Fees (Receipt #REC-8842)</p>
+                          <p className="text-[10px] text-gray-400">June Monthly Fees (Receipt #REC-8842)</p>
                         </div>
                         <span className="text-gray-500 font-medium">2026-06-28</span>
                       </div>
                       <div className="p-3 flex justify-between items-center hover:bg-gray-50/50">
                         <div>
                           <p className="font-semibold text-gray-800">Rs. 1,500.00 - Chemistry Practical Kit</p>
-                          <p className="text-4xs text-gray-400">Materials Fee (Receipt #REC-8801)</p>
+                          <p className="text-[10px] text-gray-400">Materials Fee (Receipt #REC-8801)</p>
                         </div>
                         <span className="text-gray-500 font-medium">2026-06-15</span>
                       </div>
