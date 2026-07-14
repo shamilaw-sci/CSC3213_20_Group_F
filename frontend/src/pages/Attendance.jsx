@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { 
-  FaSearch, 
-  FaUser, 
-  FaCalendarDay, 
-  FaHistory, 
-  FaCreditCard, 
-  FaCheckCircle, 
-  FaTimesCircle, 
-  FaClock, 
-  FaMapMarkerAlt, 
-  FaGraduationCap, 
-  FaPhone, 
-  FaEnvelope, 
+import {
+  FaSearch,
+  FaUser,
+  FaCalendarDay,
+  FaHistory,
+  FaCreditCard,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaClock,
+  FaMapMarkerAlt,
+  FaGraduationCap,
+  FaPhone,
+  FaEnvelope,
   FaCalendarAlt,
   FaSpinner
 } from 'react-icons/fa';
@@ -24,14 +24,14 @@ const Attendance = () => {
   const [searching, setSearching] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeTab, setActiveTab] = useState('mark'); // 'mark', 'history', 'payments'
-  
+
   // Forms & Schedules State
   const [schedules, setSchedules] = useState([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState('');
   const [attendanceStatus, setAttendanceStatus] = useState('Present');
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // History & Stats State
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -44,7 +44,7 @@ const Attendance = () => {
   const handleSearchSubmit = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    
+
     setSearching(true);
     try {
       const res = await axios.get(`http://localhost:5000/api/auth/users/search-students?query=${encodeURIComponent(searchQuery)}`, getAuthHeaders());
@@ -66,7 +66,7 @@ const Attendance = () => {
     setSearchResults([]); // clear search list
     setSearchQuery('');
     setSelectedScheduleId('');
-    
+
     // Fetch schedule entries & attendance history
     fetchSchedules(student.grade);
     fetchHistory(student._id);
@@ -82,7 +82,7 @@ const Attendance = () => {
         return 0;
       });
       setSchedules(sortedSchedules);
-      
+
       // Auto-select first schedule matching grade if available
       const matching = sortedSchedules.find(s => s.className === studentGrade);
       if (matching) {
@@ -122,10 +122,10 @@ const Attendance = () => {
         status: attendanceStatus,
         date: attendanceDate
       };
-      
+
       const res = await axios.post('http://localhost:5000/api/attendance', payload, getAuthHeaders());
       toast.success(res.data.message || "Attendance marked successfully!");
-      
+
       // Refresh history & clean up
       fetchHistory(selectedStudent._id);
     } catch (err) {
@@ -141,13 +141,13 @@ const Attendance = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      
+
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-xl shadow-lg p-6 text-white relative overflow-hidden">
         <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full blur-3xl transform translate-x-20 -translate-y-20"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Physical Attendance Workspace</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight">Attendance Marking Workspace</h1>
             <p className="text-purple-200 text-sm mt-1">Mark and monitor real-time classroom attendance for arriving students.</p>
           </div>
           <div className="bg-white/10 border border-white/20 px-4 py-2 rounded-lg flex items-center gap-3 self-start md:self-center">
@@ -185,7 +185,7 @@ const Attendance = () => {
           {searchResults.length > 0 && (
             <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto divide-y divide-gray-150 animate-fadeIn">
               {searchResults.map(student => (
-                <div 
+                <div
                   key={student._id}
                   onClick={() => handleSelectStudent(student)}
                   className="p-3 hover:bg-purple-50 cursor-pointer flex items-center justify-between transition-colors"
@@ -207,22 +207,22 @@ const Attendance = () => {
       {/* Selected Student Details and Operations Workspace */}
       {selectedStudent ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+
           {/* Left Column: Student Details Card */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 flex flex-col items-center text-center relative">
               {/* Close/Deselect button */}
-              <button 
+              <button
                 onClick={() => setSelectedStudent(null)}
                 className="absolute right-4 top-4 text-gray-400 hover:text-red-500 text-sm transition-colors cursor-pointer font-bold"
               >
                 ✕ Close
               </button>
-              
+
               <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 text-3xl font-bold shadow-inner mb-4 mt-2">
                 {selectedStudent.name.charAt(0)}
               </div>
-              
+
               <h2 className="text-xl font-bold text-gray-800 leading-tight">{selectedStudent.name}</h2>
               <p className="bg-purple-100 text-purple-800 font-extrabold text-xs tracking-wider px-3 py-1 rounded-full mt-2 uppercase">
                 {selectedStudent.registrationNumber || 'UNASSIGNED'}
@@ -254,7 +254,7 @@ const Attendance = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Quick Stats Helper Card */}
             <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
               <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">Quick Stats</h3>
@@ -277,36 +277,33 @@ const Attendance = () => {
 
           {/* Right Column: Tabbed Area */}
           <div className="lg:col-span-2 bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden flex flex-col">
-            
+
             {/* Tab Headers */}
             <div className="flex border-b border-gray-150 bg-gray-50/50">
-              <button 
+              <button
                 onClick={() => setActiveTab('mark')}
-                className={`flex-1 py-4 text-center font-bold text-xs uppercase tracking-wider border-b-2 flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeTab === 'mark' 
-                    ? 'border-purple-600 text-purple-700 bg-white' 
+                className={`flex-1 py-4 text-center font-bold text-xs uppercase tracking-wider border-b-2 flex items-center justify-center gap-2 transition-all cursor-pointer ${activeTab === 'mark'
+                    ? 'border-purple-600 text-purple-700 bg-white'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
-                }`}
+                  }`}
               >
                 <FaCalendarDay /> Mark Attendance
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('history')}
-                className={`flex-1 py-4 text-center font-bold text-xs uppercase tracking-wider border-b-2 flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeTab === 'history' 
-                    ? 'border-purple-600 text-purple-700 bg-white' 
+                className={`flex-1 py-4 text-center font-bold text-xs uppercase tracking-wider border-b-2 flex items-center justify-center gap-2 transition-all cursor-pointer ${activeTab === 'history'
+                    ? 'border-purple-600 text-purple-700 bg-white'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
-                }`}
+                  }`}
               >
                 <FaHistory /> Attendance History
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('payments')}
-                className={`flex-1 py-4 text-center font-bold text-xs uppercase tracking-wider border-b-2 flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeTab === 'payments' 
-                    ? 'border-purple-600 text-purple-700 bg-white' 
+                className={`flex-1 py-4 text-center font-bold text-xs uppercase tracking-wider border-b-2 flex items-center justify-center gap-2 transition-all cursor-pointer ${activeTab === 'payments'
+                    ? 'border-purple-600 text-purple-700 bg-white'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
-                }`}
+                  }`}
               >
                 <FaCreditCard /> Payment Records
               </button>
@@ -314,14 +311,14 @@ const Attendance = () => {
 
             {/* Tab Body */}
             <div className="p-6 flex-1 min-h-[400px]">
-              
+
               {/* Tab 1: MARK ATTENDANCE */}
               {activeTab === 'mark' && (
                 <form onSubmit={handleMarkAttendance} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Select Date</label>
-                      <input 
+                      <input
                         type="date"
                         value={attendanceDate}
                         onChange={(e) => setAttendanceDate(e.target.value)}
@@ -376,33 +373,20 @@ const Attendance = () => {
                       <button
                         type="button"
                         onClick={() => setAttendanceStatus('Present')}
-                        className={`py-3 rounded-lg border font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                          attendanceStatus === 'Present'
+                        className={`py-3 rounded-lg border font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${attendanceStatus === 'Present'
                             ? 'bg-green-600 border-green-600 text-white shadow-md'
                             : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         <FaCheckCircle /> Present
                       </button>
                       <button
                         type="button"
-                        onClick={() => setAttendanceStatus('Late')}
-                        className={`py-3 rounded-lg border font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                          attendanceStatus === 'Late'
-                            ? 'bg-amber-500 border-amber-500 text-white shadow-md'
-                            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        <FaClock /> Late
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => setAttendanceStatus('Absent')}
-                        className={`py-3 rounded-lg border font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                          attendanceStatus === 'Absent'
+                        className={`py-3 rounded-lg border font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${attendanceStatus === 'Absent'
                             ? 'bg-red-600 border-red-600 text-white shadow-md'
                             : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         <FaTimesCircle /> Absent
                       </button>
@@ -436,7 +420,7 @@ const Attendance = () => {
                     <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                       <FaHistory className="mx-auto text-gray-300 text-3xl mb-3" />
                       <p className="text-sm font-semibold text-gray-500">No attendance logs logged yet for this student.</p>
-                      <button 
+                      <button
                         onClick={() => setActiveTab('mark')}
                         className="text-xs text-purple-600 font-bold mt-2 hover:underline cursor-pointer"
                       >
@@ -474,11 +458,10 @@ const Attendance = () => {
                                 {record.markedBy?.name || 'Admin'}
                               </td>
                               <td className="p-3 text-center whitespace-nowrap">
-                                <span className={`inline-block px-2 py-0.5 rounded-full font-bold uppercase text-3xs ${
-                                  record.status === 'Present' ? 'bg-green-100 text-green-800' :
-                                  record.status === 'Late' ? 'bg-amber-100 text-amber-800' :
-                                  'bg-red-100 text-red-800'
-                                }`}>
+                                <span className={`inline-block px-2 py-0.5 rounded-full font-bold uppercase text-3xs ${record.status === 'Present' ? 'bg-green-100 text-green-800' :
+                                    record.status === 'Late' ? 'bg-amber-100 text-amber-800' :
+                                      'bg-red-100 text-red-800'
+                                  }`}>
                                   {record.status}
                                 </span>
                               </td>
@@ -559,10 +542,10 @@ const Attendance = () => {
                   </div>
                 </div>
               )}
-              
+
             </div>
           </div>
-          
+
         </div>
       ) : (
         /* Empty State: Prompt Search */
