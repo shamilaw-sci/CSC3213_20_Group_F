@@ -231,10 +231,10 @@ const ManageUsers = () => {
   if (loading) return <div className="text-center p-10 text-gray-500 font-bold">Loading users...</div>;
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 font-sans">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
+          <h2 className="text-2xl font-bold text-gray-800 font-sans">User Management</h2>
           <p className="text-gray-500 text-sm mt-1">Total Users: {users.length}</p>
         </div>
       </div>
@@ -472,7 +472,7 @@ const ManageUsers = () => {
                       <select
                         value={u.grade || ''}
                         onChange={(e) => handleGradeChange(u._id, e.target.value)}
-                        className="text-sm border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-750 outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                        className="text-sm border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-75 select-none outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                       >
                         <option value="">No Grade</option>
                         {gradeOptions.map(g => (
@@ -537,20 +537,20 @@ const ManageUsers = () => {
       {/* Batch Promotion Custom Modal */}
       {showBatchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-150 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
-            <div className="text-center">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-155 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
+            <div className="text-center font-sans">
               <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-amber-200">
                 ⚠️
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">Confirm Batch Update</h3>
-              <p className="text-gray-500 text-sm mb-6">
+              <p className="text-gray-505 text-sm mb-6 leading-relaxed">
                 Are you sure you want to promote/change all students currently in <strong className="text-purple-800 font-semibold">{batchSource}</strong> to <strong className="text-purple-800 font-semibold">{batchTarget}</strong>? This action will apply to all students matching this grade.
               </p>
               <div className="flex gap-3 justify-center">
                 <button
                   type="button"
                   onClick={() => setShowBatchModal(false)}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-205 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -574,14 +574,14 @@ const ManageUsers = () => {
       {/* Delete Confirmation Custom Modal */}
       {showDeleteModal && userToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-150 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
-            <div className="text-center">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-155 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
+            <div className="text-center font-sans">
               <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-red-200">
                 <FaTrash className="text-xl text-red-500" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">Delete User</h3>
-              <p className="text-gray-500 text-sm mb-6">
-                Are you sure you want to permanently delete <strong className="text-red-600 font-semibold">{userToDelete.name}</strong>? This action is irreversible and will delete all user data associated with this account.
+              <p className="text-gray-505 text-sm mb-6 leading-relaxed">
+                Are you sure you want to permanently delete <strong className="text-red-650 font-semibold">{userToDelete.name}</strong>? This action is irreversible and will delete all user data associated with this account.
               </p>
               <div className="flex gap-3 justify-center">
                 <button
@@ -590,14 +590,14 @@ const ManageUsers = () => {
                     setShowDeleteModal(false);
                     setUserToDelete(null);
                   }}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-205 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={executeDelete}
-                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-750 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 cursor-pointer"
                 >
                   Yes, Delete User
                 </button>

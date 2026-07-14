@@ -182,18 +182,11 @@ router.put('/update-profile', protect, async (req, res) => {
 //          ADMIN ONLY ROUTES
 // ==========================================
 
-// 0. SEARCH STUDENTS (ADMIN ONLY)
+// 1. SEARCH STUDENTS
 router.get('/users/search-students', protect, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: "Access Denied: Admins only." });
-  }
-
-  const { query } = req.query;
-  if (!query) {
-    return res.status(400).json({ message: "Search query is required." });
-  }
-
   try {
+    const { query } = req.query;
+    if (!query) return res.json([]);
     const searchRegex = new RegExp(query, 'i');
     const students = await User.find({
       role: 'student',
@@ -202,7 +195,6 @@ router.get('/users/search-students', protect, async (req, res) => {
         { registrationNumber: searchRegex }
       ]
     }).select('-password').sort({ name: 1 }).limit(20);
-
     res.json(students);
   } catch (err) {
     console.error("Search Students Error:", err);
@@ -210,7 +202,7 @@ router.get('/users/search-students', protect, async (req, res) => {
   }
 });
 
-// 1. GET ALL USERS
+// 2. GET ALL USERS
 router.get('/users', protect, async (req, res) => {
   // Check if the person making the request is actually an admin
   if (req.user.role !== 'admin') {
@@ -226,16 +218,14 @@ router.get('/users', protect, async (req, res) => {
   }
 });
 
-// 2. CREATE USER
+// 3. CREATE USER
 router.post('/users', protect, isAdmin, async (req, res) => {
   const { name, email, registrationNumber, parentsPhoneNumber, temporaryPassword, role = 'student', grade } = req.body;
-  
   const normalizedName = name?.trim();
   const normalizedEmail = email?.trim().toLowerCase();
   const normalizedRegistrationNumber = registrationNumber?.trim();
-  const normalizedGrade = grade !== undefined ? String(grade).trim() : undefined;
-  
   const allowedRoles = ['student', 'teacher', 'admin'];
+  const normalizedGrade = grade !== undefined ? String(grade).trim() : undefined;
 
   if (!allowedRoles.includes(role)) {
     return res.status(400).json({ message: "Invalid user role." });
@@ -249,11 +239,9 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     if (!normalizedRegistrationNumber) {
       return res.status(400).json({ message: "Registration number is required for students." });
     }
-    // Validation for Parent Phone
     if (!parentsPhoneNumber || !parentsPhoneNumber.trim()) {
       return res.status(400).json({ message: "Parents phone number is required for students." });
     }
-    // Validation for Grade (Strict String check)
     if (!normalizedGrade) {
       return res.status(400).json({ message: "A valid student grade is required." });
     }
@@ -392,115 +380,14 @@ router.get('/admin-stats', protect, async (req, res) => {
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
     const totalCourses = await Course.countDocuments();    
 
-    // Fetch the 5 most recent student registrations
-    const recentRegistrations = await User.find({ role: 'student' })
-      .select('name email grade registrationNumber createdAt')
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    // Group user accounts by month to draw a dynamic chart
-    const userGrowth = await User.aggregate([
-      { $match: { role: 'student' } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    // Pad user growth with pretty mock visual elements if empty, to ensure the UI charts always render beautifully
-    let growthData = userGrowth.map(item => ({
-      month: item._id,
-      count: item.count
-    }));
-
-    if (growthData.length < 2) {
-      growthData = [
-        { month: "Jan", count: 45 },
-        { month: "Feb", count: 72 },
-        { month: "Mar", count: 115 },
-        { month: "Apr", count: 142 },
-        { month: "May", count: 184 },
-        { month: "Jun", count: totalStudents > 184 ? totalStudents : 210 }
-      ];
-    }
-
     res.json({
       students: totalStudents,
       teachers: totalTeachers,
-      courses: totalCourses,
-      recentRegistrations,
-      growthData
+      courses: totalCourses
     });
   } catch (err) {
-    console.error("Admin Stats Error:", err);
     res.status(500).json({ message: "Error fetching stats" });
   }
 });
-
-// --- GET TEACHER DASHBOARD STATS ---
-router.get('/teacher-stats', protect, async (req, res) => {
-  if (req.user.role !== 'teacher') return res.status(403).json({ message: "Forbidden" });
-
-  try {
-    const teacherId = req.user.id || req.user._id;
-
-    // Fetch courses taught by this instructor
-    const courses = await Course.find({ instructor: teacherId });
-    const courseIds = courses.map(c => c._id);
-
-    // Calculate total unique students in those courses
-    const uniqueStudentsResult = await Course.aggregate([
-      { $match: { _id: { $in: courseIds } } },
-      { $unwind: "$enrolledStudents" },
-      { $group: { _id: null, uniqueStudents: { $addToSet: "$enrolledStudents" } } }
-    ]);
-    
-    const totalStudents = uniqueStudentsResult.length > 0 ? uniqueStudentsResult[0].uniqueStudents.length : 0;
-
-    res.json({
-      coursesCount: courses.length,
-      studentsCount: totalStudents,
-      rating: 4.8,
-      coursesList: courses.map(c => ({
-        id: c._id,
-        title: c.title,
-        studentsCount: c.enrolledStudents.length
-      }))
-    });
-  } catch (err) {
-    console.error("Teacher Stats Error:", err);
-    res.status(500).json({ message: "Error fetching teacher stats" });
-  }
-});
-
-// --- GET STUDENT DASHBOARD STATS ---
-router.get('/student-stats', protect, async (req, res) => {
-  if (req.user.role !== 'student') return res.status(403).json({ message: "Forbidden" });
-
-  try {
-    const studentId = req.user.id || req.user._id;
-
-    // Fetch courses where student is enrolled
-    const enrolledCourses = await Course.find({ enrolledStudents: studentId })
-      .populate('instructor', 'name email');
-
-    res.json({
-      coursesCount: enrolledCourses.length,
-      grade: req.user.grade || 'Grade 10',
-      enrolledCoursesList: enrolledCourses.map(c => ({
-        id: c._id,
-        title: c.title,
-        instructorName: c.instructor ? c.instructor.name : 'Unknown Instructor'
-      }))
-    });
-  } catch (err) {
-    console.error("Student Stats Error:", err);
-    res.status(500).json({ message: "Error fetching student stats" });
-  }
-});
-
 
 module.exports = router;

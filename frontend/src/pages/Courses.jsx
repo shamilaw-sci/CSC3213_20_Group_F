@@ -69,14 +69,6 @@ const Courses = () => {
             <h2 className="text-3xl font-extrabold text-gray-800">Available Courses</h2>
             <p className="text-gray-500 mt-1">Manage and view all your educational content</p>
           </div>
-          {user?.role === 'admin' && (
-            <button
-              onClick={() => navigate('/add-course')}
-              className="bg-lumina-purple hover:bg-purple-800 text-white font-bold px-6 py-3 rounded-xl transition duration-200 shadow-sm cursor-pointer"
-            >
-              + Create Course
-            </button>
-          )}
         </div>
 
         {/* Search Bar */}
@@ -138,10 +130,20 @@ const Courses = () => {
                         📖
                       </div>
                     )}
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-center w-full">
                       <span className="bg-green-100 text-green-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
                         Active
                       </span>
+                      {user?.role === 'student' && (course.enrolledStudents?.some(student => 
+                        student?._id?.toString() === user?.id?.toString() || student?.toString() === user?.id?.toString()
+                      )) ? (
+                        <span className="bg-purple-100 text-[#2d1b64] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 border border-purple-200 shadow-sm animate-pulse">
+                          <svg className="w-3 h-3 text-[#2d1b64]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Enrolled
+                        </span>
+                      ) : null}
                     </div>
                   </div>
 

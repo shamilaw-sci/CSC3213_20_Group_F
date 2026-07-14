@@ -110,7 +110,7 @@ const Enrollments = () => {
 
   const executeUnenroll = async () => {
     if (!enrollmentToDelete) return;
-    const { studentId, courseId, className, studentName, courseTitle } = enrollmentToDelete;
+    const { studentId, courseId, className } = enrollmentToDelete;
 
     try {
       await axios.post(
@@ -165,7 +165,7 @@ const Enrollments = () => {
   if (loading) return <div className="text-center p-10 text-gray-500 font-bold">Loading enrollments data...</div>;
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 animate-fade-in">
+    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 animate-fade-in font-sans">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Enrollment Management</h2>
@@ -297,7 +297,7 @@ const Enrollments = () => {
               <th className="p-4 font-semibold text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-150">
             {filteredEnrollments.length > 0 ? (
               filteredEnrollments.map((e) => (
                 <tr key={`${e.studentId}-${e.courseId}-${e.className}`} className="hover:bg-gray-50 transition-colors">
@@ -314,7 +314,7 @@ const Enrollments = () => {
                   <td className="p-4 text-right">
                     <button
                       onClick={() => handleUnenroll(e.studentId, e.courseId, e.className, e.studentName, e.courseTitle)}
-                      className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 cursor-pointer transition-colors"
+                      className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 cursor-pointer transition-colors border-none bg-transparent"
                       title="Unenroll student"
                     >
                       <FaTrash />
@@ -352,14 +352,14 @@ const Enrollments = () => {
                     setShowDeleteModal(false);
                     setEnrollmentToDelete(null);
                   }}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer border-none"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={executeUnenroll}
-                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 border-none"
                 >
                   Yes, Remove
                 </button>

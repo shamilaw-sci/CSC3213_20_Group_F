@@ -68,33 +68,6 @@ router.post('/', protect, async (req, res) => {
       .populate('courseId', 'title')
       .populate('markedBy', 'name');
 
-    // =========================================================================
-    // FUTURE PHASE NOTIFICATION TRIGGER HOOKS
-    // =========================================================================
-    /*
-      TODO: Send SMS to Parent & Email to Student.
-      
-      const parentPhone = student.parentsPhoneNumber;
-      const studentEmail = student.email;
-      const smsMessage = `Dear Parent, your child ${student.name} (${student.registrationNumber}) has arrived and marked ${status} for ${schedule.title} on ${normalizedDate.toDateString()}.`;
-      const emailSubject = `LuminaLearn - Attendance Confirmation`;
-      const emailBody = `Hello ${student.name},\n\nYour physical attendance for class "${schedule.title}" has been marked as ${status} on ${normalizedDate.toLocaleDateString()}.\n\nBest regards,\nLuminaLearn Administration`;
-
-      try {
-        // Trigger notification services
-        await smsService.send(parentPhone, smsMessage);
-        await emailService.send(studentEmail, emailSubject, emailBody);
-        
-        // Update flags
-        newAttendance.notificationSentParent = true;
-        newAttendance.notificationSentStudent = true;
-        await newAttendance.save();
-      } catch (notifErr) {
-        console.error("Delayed notifications failure:", notifErr);
-      }
-    */
-    // =========================================================================
-
     res.status(201).json({
       message: "Attendance marked successfully!",
       attendance: populatedAttendance
@@ -102,14 +75,11 @@ router.post('/', protect, async (req, res) => {
 
   } catch (err) {
     console.error("Mark Attendance Error:", err);
-    
-    // Check for MongoDB Duplicate Key error (code 11000)
     if (err.code === 11000) {
       return res.status(400).json({ 
         message: "Attendance has already been marked for this student for this class on this date." 
       });
     }
-    
     res.status(500).json({ message: "Server error marking attendance." });
   }
 });
@@ -121,7 +91,6 @@ router.get('/student/:studentId', protect, async (req, res) => {
   const { studentId } = req.params;
   const userId = req.user.id || req.user._id;
 
-  // Authorization check: Admins and Teachers can view. Students can only view their own.
   if (req.user.role === 'student' && userId.toString() !== studentId) {
     return res.status(403).json({ message: "Access Denied: You can only view your own records." });
   }
@@ -175,7 +144,6 @@ router.get('/teacher', protect, async (req, res) => {
   const userId = req.user.id || req.user._id;
 
   try {
-    // 1. Find all schedules taught by this teacher or courses instructured by this teacher
     const teacherCourses = await Course.find({ instructor: userId }).select('_id');
     const courseIds = teacherCourses.map(c => c._id);
 
@@ -188,7 +156,6 @@ router.get('/teacher', protect, async (req, res) => {
 
     const scheduleIds = teacherSchedules.map(s => s._id);
 
-    // 2. Fetch attendance matching these schedules
     const logs = await Attendance.find({
       $or: [
         { scheduleId: { $in: scheduleIds } },
@@ -218,14 +185,12 @@ router.get('/stats/summary', protect, async (req, res) => {
   try {
     const today = normalizeDate(new Date());
 
-    // Stats for today
     const todayRecords = await Attendance.find({ date: today });
     const totalToday = todayRecords.length;
     const presentToday = todayRecords.filter(r => r.status === 'Present').length;
     const lateToday = todayRecords.filter(r => r.status === 'Late').length;
     const absentToday = todayRecords.filter(r => r.status === 'Absent').length;
 
-    // Overall metrics
     const totalRecordsCount = await Attendance.countDocuments();
     
     res.json({
