@@ -27,6 +27,9 @@ const CourseDetails = () => {
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [isLoadingGradeStudents, setIsLoadingGradeStudents] = useState(false);
   const [isUpdatingGradeStudents, setIsUpdatingGradeStudents] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [deleteSuccessMsg, setDeleteSuccessMsg] = useState("");
 
   const allGrades = [6, 7, 8, 9, 10, 11];
 
@@ -118,17 +121,18 @@ const CourseDetails = () => {
   };
 
   const handleDeleteCourse = async () => {
-    if (!window.confirm('Delete this course and all related lessons?')) return;
     try {
       setIsDeleting(true);
       const token = localStorage.getItem('token');
       const res = await axios.delete(`http://localhost:5000/api/courses/${courseId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success(res.data.message || 'Course deleted successfully.');
-      window.location.href = '/courses';
+      setShowDeleteConfirm(false);
+      setDeleteSuccessMsg(res.data.message || 'Course deleted successfully.');
+      setShowDeleteSuccess(true);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete course.');
+      setShowDeleteConfirm(false);
     } finally {
       setIsDeleting(false);
     }
@@ -307,7 +311,7 @@ const CourseDetails = () => {
                     {showAddGrade ? 'Cancel New Grade' : '+ Add Grade'}
                   </button>
                   <button
-                    onClick={handleDeleteCourse}
+                    onClick={() => setShowDeleteConfirm(true)}
                     className="rounded-full bg-red-500 px-5 py-2 text-white font-semibold hover:bg-red-600 transition"
                     disabled={isDeleting}
                   >
@@ -619,6 +623,62 @@ const CourseDetails = () => {
                 {isUpdatingGradeStudents ? 'Updating...' : 'Remove Selected'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all border border-gray-100">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Course</h3>
+            <p className="text-gray-500 text-sm mb-6 animate-pulse-subtle">
+              Are you sure you want to delete the course <strong className="text-gray-800">"{course?.title}"</strong>? This will permanently delete the course and all related lessons and file assets.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="rounded-xl border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteCourse}
+                disabled={isDeleting}
+                className="rounded-xl bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Success Modal */}
+      {showDeleteSuccess && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl text-center border border-gray-100">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600 mb-4 animate-bounce-subtle">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Course Deleted</h3>
+            <p className="text-gray-500 text-sm mb-6">
+              {deleteSuccessMsg || "The course has been successfully deleted."}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowDeleteSuccess(false);
+                window.location.href = '/courses';
+              }}
+              className="w-full rounded-xl bg-purple-600 py-2.5 text-sm font-semibold text-white hover:bg-purple-700 transition"
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

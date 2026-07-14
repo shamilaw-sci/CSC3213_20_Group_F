@@ -69,14 +69,6 @@ const Courses = () => {
             <h2 className="text-3xl font-extrabold text-gray-800">Available Courses</h2>
             <p className="text-gray-500 mt-1">Manage and view all your educational content</p>
           </div>
-          {user?.role === 'admin' && (
-            <button
-              onClick={() => navigate('/add-course')}
-              className="bg-lumina-purple hover:bg-purple-800 text-white font-bold px-6 py-3 rounded-xl transition duration-200 shadow-sm cursor-pointer"
-            >
-              + Create Course
-            </button>
-          )}
         </div>
 
         {/* Search Bar */}

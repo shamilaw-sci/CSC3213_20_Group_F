@@ -1,11 +1,58 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 const User = require('../models/User');
 const Course = require('../models/Course');
 const Lesson = require('../models/Lesson');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
+
+// Extract the raw filename if a full path is stored, and build a dynamic URL based on the request host
+const getFullUrl = (req, filenameOrUrl) => {
+    if (!filenameOrUrl) return "";
+    // If it is a Base64 string, return it directly
+    if (filenameOrUrl.startsWith('data:')) {
+        return filenameOrUrl;
+    }
+    let filename = filenameOrUrl;
+    if (filenameOrUrl.includes('/uploads/')) {
+        filename = filenameOrUrl.split('/uploads/').pop();
+    }
+    return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+};
+
+// Extract filename to locate the file in the filesystem
+const getFilename = (filenameOrUrl) => {
+    if (!filenameOrUrl) return null;
+    // Base64 strings are stored in database, no local file to delete
+    if (filenameOrUrl.startsWith('data:')) {
+        return null;
+    }
+    if (filenameOrUrl.includes('/uploads/')) {
+        return filenameOrUrl.split('/uploads/').pop();
+    }
+    return filenameOrUrl;
+};
+
+// Helper function to read an uploaded file from disk, convert it to Base64, and delete the file immediately
+const fileToBase64 = (fileObject) => {
+    if (!fileObject) return "";
+    try {
+        const buffer = fs.readFileSync(fileObject.path);
+        const mimeType = fileObject.mimetype;
+        const base64Data = buffer.toString('base64');
+        
+        // Delete the file from the disk immediately after converting
+        fs.unlinkSync(fileObject.path);
+        
+        return `data:${mimeType};base64,${base64Data}`;
+    } catch (err) {
+        console.error("Failed to convert file to Base64:", err.message);
+        return "";
+    }
+};
 
 // @route   GET /api/courses
 router.get('/', protect, async (req, res) => {
@@ -13,7 +60,24 @@ router.get('/', protect, async (req, res) => {
         const courses = await Course.find({})
             .populate('instructor', 'name')
             .populate('enrolledStudents', '_id');
+<<<<<<< Updated upstream
         res.json(courses);
+=======
+            
+        // Map to include full URLs dynamically based on request host
+        const coursesWithUrls = courses.map(course => {
+            const courseObj = course.toObject();
+            if (courseObj.banner) {
+                courseObj.banner = getFullUrl(req, courseObj.banner);
+            }
+            if (courseObj.cardImage) {
+                courseObj.cardImage = getFullUrl(req, courseObj.cardImage);
+            }
+            return courseObj;
+        });
+
+        res.json(coursesWithUrls);
+>>>>>>> Stashed changes
     } catch (err) {
         res.status(500).json({ error: "Failed to fetch courses" });
     }
@@ -26,7 +90,15 @@ router.get('/:id', protect, async (req, res) => {
             .populate('instructor', 'name')
             .populate('enrolledStudents', 'name grade registrationNumber');
         if (!course) return res.status(404).json({ error: "Course not found" });
-        res.json(course);
+
+        const courseObj = course.toObject();
+        if (courseObj.banner) {
+            courseObj.banner = getFullUrl(req, courseObj.banner);
+        }
+        if (courseObj.cardImage) {
+            courseObj.cardImage = getFullUrl(req, courseObj.cardImage);
+        }
+        res.json(courseObj);
     } catch (err) {
         res.status(500).json({ error: "Server error" });
     }
@@ -71,10 +143,28 @@ router.delete('/:id', protect, isAdmin, async (req, res) => {
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: "Course not found" });
 
+        // Delete physical files from filesystem
+        const bannerFile = getFilename(course.banner);
+        const cardImageFile = getFilename(course.cardImage);
+
+        if (bannerFile) {
+            const bannerFilePath = path.join(__dirname, '..', 'uploads', bannerFile);
+            if (fs.existsSync(bannerFilePath)) {
+                fs.unlinkSync(bannerFilePath);
+            }
+        }
+        if (cardImageFile) {
+            const cardImageFilePath = path.join(__dirname, '..', 'uploads', cardImageFile);
+            if (fs.existsSync(cardImageFilePath)) {
+                fs.unlinkSync(cardImageFilePath);
+            }
+        }
+
         await Lesson.deleteMany({ course: course._id });
+        const courseTitle = course.title;
         await course.deleteOne();
 
-        res.json({ message: "Course deleted successfully" });
+        res.json({ message: `Course "${courseTitle}" Successfully Deleted!` });
     } catch (err) {
         res.status(500).json({ error: "Failed to delete course" });
     }
@@ -121,20 +211,19 @@ router.post(
                 instructorId = newTeacher._id;
             }
 
-            // Build image URL paths from uploaded files
-            const bannerPath = req.files?.banner?.[0]
-                ? `http://localhost:5000/uploads/${req.files.banner[0].filename}`
+            const bannerDataUri = req.files?.banner?.[0]
+                ? fileToBase64(req.files.banner[0])
                 : "";
-            const cardImagePath = req.files?.cardImage?.[0]
-                ? `http://localhost:5000/uploads/${req.files.cardImage[0].filename}`
+            const cardImageDataUri = req.files?.cardImage?.[0]
+                ? fileToBase64(req.files.cardImage[0])
                 : "";
 
             const newCourse = await Course.create({
                 title,
                 description,
                 instructor: instructorId,
-                banner: bannerPath,
-                cardImage: cardImagePath
+                banner: bannerDataUri,
+                cardImage: cardImageDataUri
             });
 
             res.status(201).json({ message: "Course created successfully!", courseId: newCourse._id });
@@ -253,12 +342,13 @@ router.post('/:id/toggle-grade', protect, isAdmin, async (req, res) => {
         const existingIndex = course.enrolledGrades.findIndex(g => g.gradeNumber === gradeNumber);
 
         if (existingIndex !== -1) {
+            const gradeTitle = course.enrolledGrades[existingIndex].title || `Grade ${gradeNumber}`;
             // තිබේ නම් අයින් කරන්න
             course.enrolledGrades.splice(existingIndex, 1);
             await course.save();
             // Sync with Lesson model
             await Lesson.findOneAndDelete({ course: course._id, grade: gradeNumber });
-            return res.status(200).json({ message: `Grade ${gradeNumber} removed` });
+            return res.status(200).json({ message: `"${gradeTitle}" Successfully Removed!` });
         } else {
             // නැත්නම් ඇඩ් කරන්න
             course.enrolledGrades.push({ gradeNumber, messages: [] });
