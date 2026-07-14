@@ -84,7 +84,7 @@ const Courses = () => {
 
         {recommendedCourses.length > 0 && (
           <div className="mb-8 rounded-[30px] bg-white p-8 border border-gray-200 shadow-sm">
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">Recommended for Grade {user.grade}</h3>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Recommended for {user.grade}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommendedCourses.slice(0, 4).map((course) => (
                 <div

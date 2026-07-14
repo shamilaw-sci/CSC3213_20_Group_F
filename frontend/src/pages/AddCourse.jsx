@@ -376,7 +376,7 @@ const AddCourse = () => {
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full text-white p-3 rounded-lg font-bold transition ${isLoading ? 'bg-gray-400' : 'bg-lumina-purple hover:bg-purple-800'}`}
+          className={`w-full text-white p-3 rounded-lg font-bold transition ${isLoading ? 'bg-gray-400' : 'bg-lumina-purple hover:bg-purple-800 cursor-pointer'}`}
         >
           {isLoading ? 'Uploading & Creating...' : 'Create Course & Assign Teacher'}
         </button>
