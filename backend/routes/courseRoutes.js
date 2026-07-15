@@ -49,8 +49,7 @@ const saveUploadedFile = (fileObject) => {
 router.get('/', protect, async (req, res) => {
     try {
         const courses = await Course.find({})
-            .populate('instructor', 'name')
-            .populate('enrolledStudents', '_id');
+            .populate('instructor', 'name');
         // Map to include full URLs dynamically based on request host
         const coursesWithUrls = courses.map(course => {
             const courseObj = course.toObject();
@@ -243,8 +242,21 @@ router.post(
 // Admin fetches all students belonging to a specific grade with current enrollment status, attendance, and payments
 router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
     try {
-        const gradeNumber = Number(req.params.gradeNumber);
-        const gradeQuery = [String(gradeNumber), `Grade ${gradeNumber}`];
+        const gradeParam = req.params.gradeNumber;
+        if (!gradeParam) return res.status(400).json({ error: 'Grade selection is required.' });
+
+        const gradeQuery = [gradeParam];
+        if (gradeParam.startsWith('Grade ')) {
+            gradeQuery.push(gradeParam.replace('Grade ', ''));
+        } else {
+            gradeQuery.push(`Grade ${gradeParam}`);
+        }
+        const numericMatch = gradeParam.match(/\d+/);
+        if (numericMatch) {
+            const numStr = numericMatch[0];
+            if (!gradeQuery.includes(numStr)) gradeQuery.push(numStr);
+            if (!gradeQuery.includes(`Grade ${numStr}`)) gradeQuery.push(`Grade ${numStr}`);
+        }
 
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
@@ -258,16 +270,31 @@ router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
 
         const enrolledIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
         
+        // Fetch all attendance records for these students and this course in a single query (solves N+1 problem)
+        const studentIds = students.map(s => s._id);
+        const allAttendance = await Attendance.find({
+            studentId: { $in: studentIds },
+            courseId: course._id
+        }).sort({ date: -1 });
+
+        // Group attendance records by studentId (keep top 10 recent records per student)
+        const attendanceMap = {};
+        for (const record of allAttendance) {
+            const sId = record.studentId.toString();
+            if (!attendanceMap[sId]) {
+                attendanceMap[sId] = [];
+            }
+            if (attendanceMap[sId].length < 10) {
+                attendanceMap[sId].push(record);
+            }
+        }
+
         // Fetch detailed attendance and payments for each student
-        const studentsWithDetails = await Promise.all(students.map(async (student) => {
+        const studentsWithDetails = students.map((student) => {
             const studentObj = student.toObject();
             studentObj.isEnrolled = enrolledIds.has(student._id.toString());
             
-            // 1. Get attendance records for this student and course
-            const attendanceRecords = await Attendance.find({
-                studentId: student._id,
-                courseId: course._id
-            }).sort({ date: -1 }).limit(10);
+            const attendanceRecords = attendanceMap[student._id.toString()] || [];
             
             // Count consecutive absences
             let consecutiveAbsences = 0;
@@ -304,7 +331,7 @@ router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
             };
 
             return studentObj;
-        }));
+        });
 
         res.status(200).json(studentsWithDetails);
     } catch (err) {
@@ -316,10 +343,10 @@ router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
 // @route   POST /api/courses/:id/enroll-students/:gradeNumber
 router.post('/:id/enroll-students/:gradeNumber', protect, isAdmin, async (req, res) => {
     try {
-        const gradeNumber = Number(req.params.gradeNumber);
+        const gradeParam = req.params.gradeNumber;
         const { studentIds = [] } = req.body;
 
-        if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
+        if (!gradeParam || !String(gradeParam).trim()) {
             return res.status(400).json({ error: 'Invalid grade selection.' });
         }
 
@@ -330,7 +357,19 @@ router.post('/:id/enroll-students/:gradeNumber', protect, isAdmin, async (req, r
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
-        const gradeQuery = [String(gradeNumber), `Grade ${gradeNumber}`];
+        const gradeQuery = [gradeParam];
+        if (gradeParam.startsWith('Grade ')) {
+            gradeQuery.push(gradeParam.replace('Grade ', ''));
+        } else {
+            gradeQuery.push(`Grade ${gradeParam}`);
+        }
+        const numericMatch = gradeParam.match(/\d+/);
+        if (numericMatch) {
+            const numStr = numericMatch[0];
+            if (!gradeQuery.includes(numStr)) gradeQuery.push(numStr);
+            if (!gradeQuery.includes(`Grade ${numStr}`)) gradeQuery.push(`Grade ${numStr}`);
+        }
+
         const students = await User.find({
             _id: { $in: studentIds },
             role: 'student',
@@ -384,10 +423,10 @@ router.post('/:id/enroll-students/:gradeNumber', protect, isAdmin, async (req, r
 // @route   POST /api/courses/:id/remove-students/:gradeNumber
 router.post('/:id/remove-students/:gradeNumber', protect, isAdmin, async (req, res) => {
     try {
-        const gradeNumber = Number(req.params.gradeNumber);
+        const gradeParam = req.params.gradeNumber;
         const { studentIds = [] } = req.body;
 
-        if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
+        if (!gradeParam || !String(gradeParam).trim()) {
             return res.status(400).json({ error: 'Invalid grade selection.' });
         }
 
@@ -465,12 +504,12 @@ router.post('/:id/enroll-grade/:gradeNumber', protect, isAdmin, async (req, res)
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
-        const gradeNumber = Number(req.params.gradeNumber);
-        if (!gradeNumber || gradeNumber < 6 || gradeNumber > 11) {
+        const gradeParam = req.params.gradeNumber;
+        if (!gradeParam || !String(gradeParam).trim()) {
             return res.status(400).json({ error: 'Invalid grade selection.' });
         }
 
-        const gradeAllowed = course.enrolledGrades.some(g => g.gradeNumber === gradeNumber);
+        const gradeAllowed = course.enrolledGrades.some(g => g.gradeNumber === gradeParam);
         if (!gradeAllowed) {
             return res.status(400).json({ error: 'This grade is not assigned to this course.' });
         }
@@ -478,14 +517,14 @@ router.post('/:id/enroll-grade/:gradeNumber', protect, isAdmin, async (req, res)
         const gradeQuery = [String(gradeNumber), `Grade ${gradeNumber}`];
         const students = await User.find({ role: 'student', grade: { $in: gradeQuery } }).select('_id');
         if (!students.length) {
-            return res.status(404).json({ error: `No students found for Grade ${gradeNumber}.` });
+            return res.status(404).json({ error: `No students found for ${gradeParam}.` });
         }
 
         const existingIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
         const newStudents = students.filter(student => !existingIds.has(student._id.toString()));
 
         if (!newStudents.length) {
-            return res.status(200).json({ message: `All students in Grade ${gradeNumber} are already enrolled.` });
+            return res.status(200).json({ message: `All students in ${gradeParam.startsWith('Grade') ? gradeParam : `Grade ${gradeParam}`} are already enrolled.` });
         }
 
         const className = `Grade ${gradeNumber}`;
@@ -519,7 +558,7 @@ router.post('/:id/enroll-grade/:gradeNumber', protect, isAdmin, async (req, res)
 
         await course.save();
 
-        res.status(200).json({ message: `Enrolled ${newStudents.length} students from Grade ${gradeNumber}.` });
+        res.status(200).json({ message: `Enrolled ${newStudents.length} students from ${gradeParam.startsWith('Grade') ? gradeParam : `Grade ${gradeParam}`}.` });
     } catch (err) {
         res.status(500).json({ error: 'Failed to enroll grade students' });
     }

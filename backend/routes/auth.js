@@ -210,8 +210,12 @@ router.get('/users', protect, async (req, res) => {
   }
 
   try {
-    // Fetch all users but DO NOT send passwords back to the frontend!
-    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    const filter = {};
+    if (req.query.role) {
+      filter.role = req.query.role;
+    }
+    // Fetch users but DO NOT send passwords back to the frontend!
+    const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: "Server error fetching users" });
