@@ -7,8 +7,10 @@ const User = require('../models/User');
 const Course = require('../models/Course');
 const Lesson = require('../models/Lesson');
 const Attendance = require('../models/Attendance');
+const Enrollment = require('../models/Enrollment');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
+const { getClassNameFromGrade } = require('../utils/migration');
 
 // Extract the raw filename if a full path is stored, and build a dynamic URL based on the request host
 const getFullUrl = (req, filenameOrUrl) => {
@@ -37,22 +39,10 @@ const getFilename = (filenameOrUrl) => {
     return filenameOrUrl;
 };
 
-// Helper function to read an uploaded file from disk, convert it to Base64, and delete the file immediately
-const fileToBase64 = (fileObject) => {
+// Keep the uploaded file on disk and return its filename
+const saveUploadedFile = (fileObject) => {
     if (!fileObject) return "";
-    try {
-        const buffer = fs.readFileSync(fileObject.path);
-        const mimeType = fileObject.mimetype;
-        const base64Data = buffer.toString('base64');
-        
-        // Delete the file from the disk immediately after converting
-        fs.unlinkSync(fileObject.path);
-        
-        return `data:${mimeType};base64,${base64Data}`;
-    } catch (err) {
-        console.error("Failed to convert file to Base64:", err.message);
-        return "";
-    }
+    return fileObject.filename;
 };
 
 // @route   GET /api/courses
@@ -118,12 +108,31 @@ router.post('/:id/enroll', protect, async (req, res) => {
             return res.status(403).json({ error: "Your grade is not allowed to enroll in this course." });
         }
 
-        const alreadyEnrolled = course.enrolledStudents.some(studentId => studentId.toString() === req.user._id.toString());
-        if (alreadyEnrolled) {
-            return res.status(400).json({ error: "Student already enrolled in this course." });
+        const studentId = req.user._id;
+        const className = getClassNameFromGrade(req.user.grade);
+
+        // 1. Create/upsert Enrollment document
+        await Enrollment.findOneAndUpdate(
+            { studentId, courseId: course._id, className },
+            { status: 'Active' },
+            { upsert: true, new: true }
+        );
+
+        // 2. Keep course embedded arrays in sync
+        if (!course.enrolledStudents.includes(studentId)) {
+            course.enrolledStudents.push(studentId);
         }
 
-        course.enrolledStudents.push(req.user._id);
+        let cls = course.classes.find(c => c.className === className);
+        if (!cls) {
+            course.classes.push({
+                className,
+                enrolledStudents: [studentId]
+            });
+        } else if (!cls.enrolledStudents.includes(studentId)) {
+            cls.enrolledStudents.push(studentId);
+        }
+
         await course.save();
 
         res.json({ message: "Enrollment successful." });
@@ -206,19 +215,19 @@ router.post(
                 instructorId = newTeacher._id;
             }
 
-            const bannerDataUri = req.files?.banner?.[0]
-                ? fileToBase64(req.files.banner[0])
+            const bannerFilename = req.files?.banner?.[0]
+                ? saveUploadedFile(req.files.banner[0])
                 : "";
-            const cardImageDataUri = req.files?.cardImage?.[0]
-                ? fileToBase64(req.files.cardImage[0])
+            const cardImageFilename = req.files?.cardImage?.[0]
+                ? saveUploadedFile(req.files.cardImage[0])
                 : "";
 
             const newCourse = await Course.create({
                 title,
                 description,
                 instructor: instructorId,
-                banner: bannerDataUri,
-                cardImage: cardImageDataUri
+                banner: bannerFilename,
+                cardImage: cardImageFilename
             });
 
             res.status(201).json({ message: "Course created successfully!", courseId: newCourse._id });
@@ -375,7 +384,34 @@ router.post('/:id/enroll-students/:gradeNumber', protect, isAdmin, async (req, r
             return res.status(200).json({ message: 'Selected students are already enrolled.' });
         }
 
+        const className = `Grade ${gradeNumber}`;
+
+        // 1. Create/upsert Enrollment documents
+        for (const studentId of newIds) {
+            await Enrollment.findOneAndUpdate(
+                { studentId, courseId: course._id, className },
+                { status: 'Active' },
+                { upsert: true, new: true }
+            );
+        }
+
+        // 2. Keep course embedded arrays in sync
         course.enrolledStudents.push(...newIds.map(studentId => studentId));
+
+        let cls = course.classes.find(c => c.className === className);
+        if (!cls) {
+            course.classes.push({
+                className,
+                enrolledStudents: [...newIds]
+            });
+        } else {
+            newIds.forEach(id => {
+                if (!cls.enrolledStudents.includes(id)) {
+                    cls.enrolledStudents.push(id);
+                }
+            });
+        }
+
         await course.save();
 
         res.status(200).json({ message: `Enrolled ${newIds.length} student(s).` });
@@ -403,7 +439,20 @@ router.post('/:id/remove-students/:gradeNumber', protect, isAdmin, async (req, r
 
         const validIds = new Set(studentIds.map(id => id.toString()));
         const beforeCount = course.enrolledStudents.length;
+
+        // 1. Delete from Enrollment collection
+        await Enrollment.deleteMany({
+            studentId: { $in: studentIds },
+            courseId: course._id
+        });
+
+        // 2. Keep course embedded arrays in sync
         course.enrolledStudents = course.enrolledStudents.filter(studentId => !validIds.has(studentId.toString()));
+
+        course.classes.forEach(cls => {
+            cls.enrolledStudents = cls.enrolledStudents.filter(id => !validIds.has(id.toString()));
+        });
+
         await course.save();
 
         res.status(200).json({ message: `Removed ${beforeCount - course.enrolledStudents.length} student(s).` });
@@ -465,20 +514,8 @@ router.post('/:id/enroll-grade/:gradeNumber', protect, isAdmin, async (req, res)
             return res.status(400).json({ error: 'This grade is not assigned to this course.' });
         }
 
-        const gradeQuery = [gradeParam];
-        if (gradeParam.startsWith('Grade ')) {
-            gradeQuery.push(gradeParam.replace('Grade ', ''));
-        } else {
-            gradeQuery.push(`Grade ${gradeParam}`);
-        }
-        const numericMatch = gradeParam.match(/\d+/);
-        if (numericMatch) {
-            const numStr = numericMatch[0];
-            if (!gradeQuery.includes(numStr)) gradeQuery.push(numStr);
-            if (!gradeQuery.includes(`Grade ${numStr}`)) gradeQuery.push(`Grade ${numStr}`);
-        }
-
-        const students = await User.find({ role: 'student', grade: { $in: gradeQuery } });
+        const gradeQuery = [String(gradeNumber), `Grade ${gradeNumber}`];
+        const students = await User.find({ role: 'student', grade: { $in: gradeQuery } }).select('_id');
         if (!students.length) {
             return res.status(404).json({ error: `No students found for ${gradeParam}.` });
         }
@@ -490,7 +527,35 @@ router.post('/:id/enroll-grade/:gradeNumber', protect, isAdmin, async (req, res)
             return res.status(200).json({ message: `All students in ${gradeParam.startsWith('Grade') ? gradeParam : `Grade ${gradeParam}`} are already enrolled.` });
         }
 
+        const className = `Grade ${gradeNumber}`;
+        const newIds = newStudents.map(student => student._id.toString());
+
+        // 1. Create/upsert Enrollment documents
+        for (const studentId of newIds) {
+            await Enrollment.findOneAndUpdate(
+                { studentId, courseId: course._id, className },
+                { status: 'Active' },
+                { upsert: true, new: true }
+            );
+        }
+
+        // 2. Keep course embedded arrays in sync
         course.enrolledStudents.push(...newStudents.map(student => student._id));
+
+        let cls = course.classes.find(c => c.className === className);
+        if (!cls) {
+            course.classes.push({
+                className,
+                enrolledStudents: [...newIds]
+            });
+        } else {
+            newIds.forEach(id => {
+                if (!cls.enrolledStudents.includes(id)) {
+                    cls.enrolledStudents.push(id);
+                }
+            });
+        }
+
         await course.save();
 
         res.status(200).json({ message: `Enrolled ${newStudents.length} students from ${gradeParam.startsWith('Grade') ? gradeParam : `Grade ${gradeParam}`}.` });
@@ -523,33 +588,24 @@ router.post('/:id/send-message', protect, async (req, res) => {
 // @desc    Admin retrieves all active class enrollments
 router.get('/enrollments/all', protect, isAdmin, async (req, res) => {
     try {
-        const courses = await Course.find({})
-            .populate('classes.enrolledStudents', 'name email registrationNumber grade parentsPhoneNumber');
+        const activeEnrollments = await Enrollment.find({ status: 'Active' })
+            .populate('studentId', 'name email registrationNumber grade parentsPhoneNumber')
+            .populate('courseId', 'title');
         
-        let enrollments = [];
-        courses.forEach(course => {
-            if (course.classes && course.classes.length > 0) {
-                course.classes.forEach(cls => {
-                    if (cls.enrolledStudents && cls.enrolledStudents.length > 0) {
-                        cls.enrolledStudents.forEach(student => {
-                            if (student) {
-                                enrollments.push({
-                                    courseId: course._id,
-                                    courseTitle: course.title,
-                                    className: cls.className,
-                                    studentId: student._id,
-                                    studentName: student.name,
-                                    studentEmail: student.email,
-                                    studentRegNo: student.registrationNumber,
-                                    studentGrade: student.grade,
-                                    studentPhone: student.parentsPhoneNumber
-                                });
-                            }
-                        });
-                    }
-                });
-            }
-        });
+        const enrollments = activeEnrollments
+            .filter(e => e.studentId && e.courseId) // Filter out orphaned records
+            .map(e => ({
+                courseId: e.courseId._id,
+                courseTitle: e.courseId.title,
+                className: e.className,
+                studentId: e.studentId._id,
+                studentName: e.studentId.name,
+                studentEmail: e.studentId.email,
+                studentRegNo: e.studentId.registrationNumber,
+                studentGrade: e.studentId.grade,
+                studentPhone: e.studentId.parentsPhoneNumber
+            }));
+
         res.json(enrollments);
     } catch (err) {
         console.error("Fetch all enrollments error:", err);
@@ -561,7 +617,8 @@ router.get('/enrollments/all', protect, isAdmin, async (req, res) => {
 // @desc    Admin enrolls a student in a specific course and class
 router.post('/enroll', protect, isAdmin, async (req, res) => {
     const { studentId, courseId, className } = req.body;
-    if (!studentId || !courseId || !className) {
+    const trimmedClassName = className ? className.trim() : "";
+    if (!studentId || !courseId || !trimmedClassName) {
         return res.status(400).json({ error: "Student ID, Course ID, and Class Name are required." });
     }
 
@@ -574,17 +631,26 @@ router.post('/enroll', protect, isAdmin, async (req, res) => {
             return res.status(400).json({ error: "Invalid student." });
         }
 
-        let cls = course.classes.find(c => c.className === className.trim());
+        // 1. Save to Enrollment collection
+        await Enrollment.findOneAndUpdate(
+            { studentId, courseId, className: trimmedClassName },
+            { status: 'Active' },
+            { upsert: true, new: true }
+        );
+
+        // 2. Keep course embedded arrays in sync
+        let cls = course.classes.find(c => c.className === trimmedClassName);
         if (!cls) {
             course.classes.push({
-                className: className.trim(),
+                className: trimmedClassName,
                 enrolledStudents: [studentId]
             });
-        } else {
-            if (cls.enrolledStudents.includes(studentId)) {
-                return res.status(400).json({ error: "Student is already enrolled in this class for this course." });
-            }
+        } else if (!cls.enrolledStudents.includes(studentId)) {
             cls.enrolledStudents.push(studentId);
+        }
+
+        if (!course.enrolledStudents.includes(studentId)) {
+            course.enrolledStudents.push(studentId);
         }
 
         await course.save();
@@ -599,7 +665,8 @@ router.post('/enroll', protect, isAdmin, async (req, res) => {
 // @desc    Admin removes a student from a specific course and class
 router.post('/unenroll', protect, isAdmin, async (req, res) => {
     const { studentId, courseId, className } = req.body;
-    if (!studentId || !courseId || !className) {
+    const trimmedClassName = className ? className.trim() : "";
+    if (!studentId || !courseId || !trimmedClassName) {
         return res.status(400).json({ error: "Student ID, Course ID, and Class Name are required." });
     }
 
@@ -607,17 +674,21 @@ router.post('/unenroll', protect, isAdmin, async (req, res) => {
         const course = await Course.findById(courseId);
         if (!course) return res.status(404).json({ error: "Course not found." });
 
-        let cls = course.classes.find(c => c.className === className.trim());
-        if (!cls) {
-            return res.status(400).json({ error: "Class not found in this course." });
+        // 1. Delete from Enrollment collection
+        await Enrollment.deleteOne({ studentId, courseId, className: trimmedClassName });
+
+        // 2. Keep course embedded arrays in sync
+        let cls = course.classes.find(c => c.className === trimmedClassName);
+        if (cls) {
+            cls.enrolledStudents = cls.enrolledStudents.filter(id => id.toString() !== studentId.toString());
         }
 
-        const index = cls.enrolledStudents.indexOf(studentId);
-        if (index === -1) {
-            return res.status(400).json({ error: "Student is not enrolled in this class." });
+        // Check if student exists in any other class of the course
+        const existsInOtherClass = course.classes.some(c => c.enrolledStudents.includes(studentId));
+        if (!existsInOtherClass) {
+            course.enrolledStudents = course.enrolledStudents.filter(id => id.toString() !== studentId.toString());
         }
 
-        cls.enrolledStudents.splice(index, 1);
         await course.save();
         res.status(200).json({ message: "Student removed from class successfully." });
     } catch (err) {
