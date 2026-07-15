@@ -529,7 +529,7 @@ const CourseDetails = () => {
 
           {canEnroll && (
             <div className="bg-white p-6 rounded-2xl border border-green-200 shadow-sm">
-              <p className="text-green-700 font-semibold">This course is recommended for Grade {studentGrade}.</p>
+              <p className="text-green-700 font-semibold">This course is recommended for {studentGrade && (studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`)}.</p>
               <button
                 onClick={handleEnroll}
                 disabled={isEnrolling}
@@ -611,7 +611,7 @@ const CourseDetails = () => {
             {/* Modal Header */}
             <div className="mb-4 flex items-center justify-between border-b pb-4">
               <div>
-                <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">Grade {selectedEnrollGrade} Student Management</h3>
+                <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">{selectedEnrollGrade && (selectedEnrollGrade.toLowerCase().startsWith('grade') ? selectedEnrollGrade : `Grade ${selectedEnrollGrade}`)} Student Management</h3>
                 <p className="text-sm text-gray-500">Manage enrollment, view real-time class attendance, and monitor fee payments.</p>
               </div>
               <button
