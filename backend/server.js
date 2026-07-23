@@ -47,6 +47,11 @@ if (!dbURI) {
 }
 
 const startServer = async () => {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`Server is up and running on port ${PORT}`);
+    });
+
     try {
         await mongoose.connect(dbURI, {
             serverSelectionTimeoutMS: 15000,
@@ -55,6 +60,14 @@ const startServer = async () => {
             retryWrites: true
         });
         console.log("MongoDB Connected! 🚀");
+
+        // Run data migration (Base64 images to disk & Enrollments collection)
+        try {
+            const { migrateData } = require('./utils/migration');
+            await migrateData();
+        } catch (migrationErr) {
+            console.error("Failed to run startup migration:", migrationErr);
+        }
     } catch (err) {
         console.error("Database connection error:", err.message);
         console.error("Atlas connection details:", {
@@ -65,11 +78,6 @@ const startServer = async () => {
         });
         console.warn("MongoDB Atlas connection failed. Please allow this IP in Atlas Network Access or use a different network.");
     }
-
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-        console.log(`Server is up and running on port ${PORT}`);
-    });
 };
 
 startServer();

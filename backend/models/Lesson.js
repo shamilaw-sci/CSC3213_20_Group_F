@@ -22,6 +22,13 @@ const lessonSchema = new mongoose.Schema({
   videoLessons: [{
     title: String,
     url: String
+  }],
+  pdfMaterials: [{
+    title: { type: String, required: true },
+    filename: { type: String, required: true },
+    fileUrl: { type: String, required: true },
+    fileSize: { type: Number },
+    uploadedAt: { type: Date, default: Date.now }
   }]
 }, { 
   timestamps: true 

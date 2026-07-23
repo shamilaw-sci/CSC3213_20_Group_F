@@ -1,8 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const Lesson = require('../models/Lesson');
 const Course = require('../models/Course');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
+const uploadPdfMiddleware = require('../middleware/pdfUpload');
+
+// Middleware to authorize teachers and admins
+const isTeacherOrAdmin = (req, res, next) => {
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'teacher')) {
+        next();
+    } else {
+        return res.status(403).json({ error: "Access denied. Teachers and Admins only." });
+    }
+};
 
 // @route   POST /api/lessons/add-grade
 // @desc    Admin විසින් Course එකක් තුළට Grade එකක් ඇතුළත් කිරීම
@@ -101,6 +113,74 @@ router.put('/:lessonId', protect, async (req, res) => {
         res.json({ message: "Lesson details updated successfully!", lesson });
     } catch (err) {
         res.status(500).json({ error: "Failed to update lesson details: " + err.message });
+    }
+});
+
+// @route   POST /api/lessons/:lessonId/pdf
+// @desc    Upload a PDF material (Admin/Teacher only)
+router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, async (req, res) => {
+    try {
+        const lesson = await Lesson.findById(req.params.lessonId);
+        if (!lesson) {
+            return res.status(404).json({ error: "Class not found." });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ error: "Please upload a PDF file." });
+        }
+
+        const title = req.body.title || req.file.originalname;
+        const filename = req.file.filename;
+        const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+        const fileSize = req.file.size;
+
+        if (!lesson.pdfMaterials) {
+            lesson.pdfMaterials = [];
+        }
+
+        lesson.pdfMaterials.push({
+            title,
+            filename,
+            fileUrl,
+            fileSize
+        });
+
+        await lesson.save();
+        res.status(201).json({ message: "PDF uploaded successfully!", lesson });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to upload PDF: " + err.message });
+    }
+});
+
+// @route   DELETE /api/lessons/:lessonId/pdf/:pdfId
+// @desc    Delete a PDF material (Admin/Teacher only)
+router.delete('/:lessonId/pdf/:pdfId', protect, isTeacherOrAdmin, async (req, res) => {
+    try {
+        const lesson = await Lesson.findById(req.params.lessonId);
+        if (!lesson) {
+            return res.status(404).json({ error: "Class not found." });
+        }
+
+        const pdfIndex = lesson.pdfMaterials.findIndex(pdf => pdf._id.toString() === req.params.pdfId);
+        if (pdfIndex === -1) {
+            return res.status(404).json({ error: "PDF not found." });
+        }
+
+        const pdf = lesson.pdfMaterials[pdfIndex];
+        const pdfFilePath = path.join(__dirname, '..', 'uploads', pdf.filename);
+
+        // Delete from filesystem
+        if (fs.existsSync(pdfFilePath)) {
+            fs.unlinkSync(pdfFilePath);
+        }
+
+        // Remove from database array
+        lesson.pdfMaterials.splice(pdfIndex, 1);
+        await lesson.save();
+
+        res.json({ message: "PDF removed successfully!", lesson });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to delete PDF: " + err.message });
     }
 });
 

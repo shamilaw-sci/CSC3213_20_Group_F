@@ -10,6 +10,7 @@ const Attendance = require('../models/Attendance');
 const Enrollment = require('../models/Enrollment');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
+const { getClassNameFromGrade } = require('../utils/migration');
 
 // Extract the raw filename if a full path is stored, and build a dynamic URL based on the request host
 const getFullUrl = (req, filenameOrUrl) => {

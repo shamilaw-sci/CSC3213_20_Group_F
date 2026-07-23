@@ -37,6 +37,10 @@ const CourseDetails = () => {
   const [selectedStudentDetail, setSelectedStudentDetail] = useState(null);
   const [studentDetailTab, setStudentDetailTab] = useState("attendance"); // 'attendance' | 'payments'
 
+  // PDF Materials state
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfTitle, setPdfTitle] = useState("");
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
 
   const allGrades = [
     "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11",
@@ -345,6 +349,64 @@ const CourseDetails = () => {
     }
   };
 
+  const handleUploadPdf = async (e) => {
+    e.preventDefault();
+    if (!pdfFile) {
+      toast.error("Please select a PDF file first.");
+      return;
+    }
+
+    // Client-side validation: Max 5MB
+    if (pdfFile.size > 5 * 1024 * 1024) {
+      toast.error("Cannot upload file. The maximum allowed size is 5MB.");
+      return;
+    }
+
+    const currentLesson = lessons.find(l => l.grade === selectedGrade);
+    if (!currentLesson) return;
+
+    setIsUploadingPdf(true);
+    const formData = new FormData();
+    formData.append('pdf', pdfFile);
+    formData.append('title', pdfTitle.trim() || pdfFile.name);
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`http://localhost:5000/api/lessons/${currentLesson._id}/pdf`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      toast.success("PDF uploaded successfully!");
+      setPdfFile(null);
+      setPdfTitle("");
+      await fetchCourseDetails();
+    } catch (err) {
+      const errMsg = err.response?.data?.error || "Failed to upload PDF.";
+      toast.error(errMsg);
+    } finally {
+      setIsUploadingPdf(false);
+    }
+  };
+
+  const handleDeletePdf = async (pdfId) => {
+    const currentLesson = lessons.find(l => l.grade === selectedGrade);
+    if (!currentLesson) return;
+    if (!window.confirm("Are you sure you want to delete this PDF?")) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:5000/api/lessons/${currentLesson._id}/pdf/${pdfId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("PDF material removed!");
+      await fetchCourseDetails();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to delete PDF.");
+    }
+  };
+
   if (loading) return <div className="p-10 text-center">Loading...</div>;
 
   const currentLesson = lessons.find(l => l.grade === selectedGrade);
@@ -648,6 +710,83 @@ const CourseDetails = () => {
                 ))
               ) : (
                 <p className="text-gray-400 italic">No lesson Data for this Class</p>
+              )}
+            </div>
+          </div>
+
+          {/* PDF Materials Section */}
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <h4 className="font-bold text-lg text-gray-800 mb-4">Study Materials (PDF)</h4>
+
+            {/* PDF upload form (Teacher/Admin only) */}
+            {user?.role !== 'student' && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-xl space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Upload PDF Lesson Material</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Document Title (Optional)"
+                    value={pdfTitle}
+                    onChange={(e) => setPdfTitle(e.target.value)}
+                    className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
+                  />
+                  <div>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      key={pdfFile ? 'loaded' : 'empty'}
+                      onChange={(e) => setPdfFile(e.target.files[0])}
+                      className="w-full p-2 bg-white border border-gray-200 rounded-lg outline-none text-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={handleUploadPdf}
+                    disabled={isUploadingPdf}
+                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer transition-colors text-sm"
+                  >
+                    {isUploadingPdf ? 'Uploading...' : '+ Upload PDF'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">Maximum size: 5MB. Only PDF files are allowed.</p>
+              </div>
+            )}
+
+            {/* PDFs List */}
+            <div className="space-y-3">
+              {currentLesson?.pdfMaterials?.length > 0 ? (
+                currentLesson.pdfMaterials.map((pdf) => (
+                  <div key={pdf._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="text-red-600 text-2xl font-bold">📕</div>
+                      <div>
+                        <p className="font-bold text-gray-800">{pdf.title}</p>
+                        <p className="text-xs text-gray-500">
+                          Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown'} | Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={pdf.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                      >
+                        Download
+                      </a>
+                      {user?.role !== 'student' && (
+                        <button
+                          onClick={() => handleDeletePdf(pdf._id)}
+                          className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-400 italic">No PDF study materials available for this Class.</p>
               )}
             </div>
           </div>
