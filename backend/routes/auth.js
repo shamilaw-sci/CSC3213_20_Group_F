@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const Course = require('../models/Course');
+const Enrollment = require('../models/Enrollment');
 const { OAuth2Client } = require('google-auth-library');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -314,7 +315,18 @@ router.delete('/users/:id', protect, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: "Access Denied" });
 
   try {
-    await User.findByIdAndDelete(req.params.id);
+    const userId = req.params.id;
+    await Enrollment.deleteMany({ student: userId });
+    await Course.updateMany(
+      {},
+      { 
+        $pull: { 
+          enrolledStudents: userId,
+          "classes.$[].enrolledStudents": userId
+        } 
+      }
+    );
+    await User.findByIdAndDelete(userId);
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete user" });
