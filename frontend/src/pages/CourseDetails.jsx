@@ -180,7 +180,7 @@ const CourseDetails = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/courses/${courseId}/students/${gradeNumber}`, {
+      const res = await axios.get(`http://localhost:5000/api/courses/${courseId}/students/${encodeURIComponent(gradeNumber)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setGradeStudents(res.data);
@@ -195,52 +195,100 @@ const CourseDetails = () => {
     }
   };
 
-  const handleUpdateGradeStudents = async (mode) => {
+  const refreshGradeStudentsList = async (gradeNumber) => {
+    try {
+      const token = localStorage.getItem('token');
+      const updatedRes = await axios.get(`http://localhost:5000/api/courses/${courseId}/students/${encodeURIComponent(gradeNumber)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setGradeStudents(updatedRes.data);
+      if (selectedStudentDetail) {
+        const freshStudent = updatedRes.data.find(s => s._id === selectedStudentDetail._id);
+        if (freshStudent) setSelectedStudentDetail(freshStudent);
+      }
+      setSelectedStudentIds(updatedRes.data.filter((student) => student.isEnrolled).map((student) => student._id));
+      await fetchCourseDetails();
+    } catch (err) {
+      console.error("Failed refreshing grade students", err);
+    }
+  };
+
+  const handleBatchEnroll = async () => {
     if (!selectedEnrollGrade) return;
+    const unenrolledSelected = selectedStudentIds.filter(id => {
+      const st = gradeStudents.find(s => s._id === id);
+      return st && !st.isEnrolled;
+    });
+
+    const targetIds = unenrolledSelected.length > 0 ? unenrolledSelected : selectedStudentIds;
+
+    if (targetIds.length === 0) {
+      toast.error('Please select at least one student to enroll.');
+      return;
+    }
 
     try {
       setIsUpdatingGradeStudents(true);
       const token = localStorage.getItem('token');
-      const endpoint = mode === 'enroll'
-        ? `http://localhost:5000/api/courses/${courseId}/enroll-students/${selectedEnrollGrade}`
-        : `http://localhost:5000/api/courses/${courseId}/remove-students/${selectedEnrollGrade}`;
-
-      const res = await axios.post(endpoint, { studentIds: selectedStudentIds }, {
+      const res = await axios.post(`http://localhost:5000/api/courses/${courseId}/enroll-students/${encodeURIComponent(selectedEnrollGrade)}`, {
+        studentIds: targetIds
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success(res.data.message || 'Student enrollment updated.');
-      await fetchCourseDetails();
-      setShowStudentPicker(false);
+      toast.success(res.data.message || 'Batch enrollment successful.');
+      await refreshGradeStudentsList(selectedEnrollGrade);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to update student enrollment.');
+      toast.error(err.response?.data?.error || 'Failed batch enrollment.');
+    } finally {
+      setIsUpdatingGradeStudents(false);
+    }
+  };
+
+  const handleBatchRemove = async () => {
+    if (!selectedEnrollGrade) return;
+    const enrolledSelected = selectedStudentIds.filter(id => {
+      const st = gradeStudents.find(s => s._id === id);
+      return st && st.isEnrolled;
+    });
+
+    const targetIds = enrolledSelected.length > 0 ? enrolledSelected : selectedStudentIds;
+
+    if (targetIds.length === 0) {
+      toast.error('Please select at least one enrolled student to remove.');
+      return;
+    }
+
+    try {
+      setIsUpdatingGradeStudents(true);
+      const token = localStorage.getItem('token');
+      const res = await axios.post(`http://localhost:5000/api/courses/${courseId}/remove-students/${encodeURIComponent(selectedEnrollGrade)}`, {
+        studentIds: targetIds
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(res.data.message || 'Batch removal successful.');
+      await refreshGradeStudentsList(selectedEnrollGrade);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed batch removal.');
     } finally {
       setIsUpdatingGradeStudents(false);
     }
   };
 
   const handleSingleStudentEnrollRemove = async (mode, studentId) => {
+    if (!selectedEnrollGrade) return;
     try {
       setIsUpdatingGradeStudents(true);
       const token = localStorage.getItem('token');
       const endpoint = mode === 'enroll'
-        ? `http://localhost:5000/api/courses/${courseId}/enroll-students/${selectedEnrollGrade}`
-        : `http://localhost:5000/api/courses/${courseId}/remove-students/${selectedEnrollGrade}`;
+        ? `http://localhost:5000/api/courses/${courseId}/enroll-students/${encodeURIComponent(selectedEnrollGrade)}`
+        : `http://localhost:5000/api/courses/${courseId}/remove-students/${encodeURIComponent(selectedEnrollGrade)}`;
 
       const res = await axios.post(endpoint, { studentIds: [studentId] }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success(res.data.message || 'Student enrollment updated.');
-      
-      const updatedRes = await axios.get(`http://localhost:5000/api/courses/${courseId}/students/${selectedEnrollGrade}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setGradeStudents(updatedRes.data);
-      const freshStudent = updatedRes.data.find(s => s._id === studentId);
-      if (freshStudent) {
-        setSelectedStudentDetail(freshStudent);
-      }
-      setSelectedStudentIds(updatedRes.data.filter((student) => student.isEnrolled).map((student) => student._id));
-      await fetchCourseDetails();
+      await refreshGradeStudentsList(selectedEnrollGrade);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to update student enrollment.');
     } finally {
@@ -393,7 +441,9 @@ const CourseDetails = () => {
           {course?.banner && (
             <img 
               src={course.banner} 
-              alt={course.title} 
+              alt={course.title}
+              loading="lazy"
+              decoding="async"
               className="w-full h-72 md:h-96 object-cover object-center rounded-3xl mb-6 shadow-sm"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
@@ -956,7 +1006,7 @@ const CourseDetails = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => handleUpdateGradeStudents('enroll')}
+                      onClick={handleBatchEnroll}
                       disabled={isUpdatingGradeStudents || selectedStudentIds.length === 0}
                       className="rounded-xl bg-green-600 py-2.5 text-xs font-bold text-white hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
                     >
@@ -964,7 +1014,7 @@ const CourseDetails = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleUpdateGradeStudents('remove')}
+                      onClick={handleBatchRemove}
                       disabled={isUpdatingGradeStudents || selectedStudentIds.length === 0}
                       className="rounded-xl bg-red-600 py-2.5 text-xs font-bold text-white hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
                     >

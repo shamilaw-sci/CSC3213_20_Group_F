@@ -39,10 +39,69 @@ const getFilename = (filenameOrUrl) => {
     return filenameOrUrl;
 };
 
-// Keep the uploaded file on disk and return its filename
-const saveUploadedFile = (fileObject) => {
-    if (!fileObject) return "";
-    return fileObject.filename;
+// Helper function to convert base64 data URIs to static files in /uploads to prevent database bloating and ensure super-fast image loading
+const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
+    if (!base64OrPath) return "";
+    if (!base64OrPath.startsWith('data:')) {
+        return base64OrPath;
+    }
+    try {
+        const matches = base64OrPath.match(/^data:(.+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) return base64OrPath;
+
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const ext = mimeType.split('/')[1] || 'jpeg';
+        const filename = `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
+        const uploadsDir = path.join(__dirname, '..', 'uploads');
+        
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+
+        return `/uploads/${filename}`;
+    } catch (err) {
+        console.error("Failed to convert Base64 to static file:", err.message);
+        return base64OrPath;
+    }
+};
+
+// Helper function to process course object, auto-migrating any Base64 strings to disk files
+const processCourseImages = async (req, courseDoc) => {
+    if (!courseDoc) return null;
+    let updated = false;
+    let banner = courseDoc.banner || "";
+    let cardImage = courseDoc.cardImage || "";
+
+    if (banner.startsWith('data:')) {
+        banner = convertBase64ToStaticFile(banner, 'banner');
+        courseDoc.banner = banner;
+        updated = true;
+    }
+    if (cardImage.startsWith('data:')) {
+        cardImage = convertBase64ToStaticFile(cardImage, 'cardImage');
+        courseDoc.cardImage = cardImage;
+        updated = true;
+    }
+
+    if (updated && courseDoc._id) {
+        try {
+            await Course.updateOne(
+                { _id: courseDoc._id },
+                { $set: { banner: courseDoc.banner, cardImage: courseDoc.cardImage } }
+            );
+        } catch (e) {
+            console.error("Failed to update course image paths in DB:", e.message);
+        }
+    }
+
+    const courseObj = typeof courseDoc.toObject === 'function' ? courseDoc.toObject() : { ...courseDoc };
+    courseObj.banner = getFullUrl(req, banner);
+    courseObj.cardImage = getFullUrl(req, cardImage);
+    return courseObj;
 };
 
 // @route   GET /api/courses
@@ -50,17 +109,10 @@ router.get('/', protect, async (req, res) => {
     try {
         const courses = await Course.find({})
             .populate('instructor', 'name');
-        // Map to include full URLs dynamically based on request host
-        const coursesWithUrls = courses.map(course => {
-            const courseObj = course.toObject();
-            if (courseObj.banner) {
-                courseObj.banner = getFullUrl(req, courseObj.banner);
-            }
-            if (courseObj.cardImage) {
-                courseObj.cardImage = getFullUrl(req, courseObj.cardImage);
-            }
-            return courseObj;
-        });
+        
+        const coursesWithUrls = await Promise.all(
+            courses.map(course => processCourseImages(req, course))
+        );
 
         res.json(coursesWithUrls);
     } catch (err) {
@@ -68,109 +120,176 @@ router.get('/', protect, async (req, res) => {
     }
 });
 
-// @route   GET /api/courses/:id
-router.get('/:id', protect, async (req, res) => {
+// @route   GET /api/courses/enrollments/all
+// @desc    Admin retrieves all active class enrollments
+router.get('/enrollments/all', protect, isAdmin, async (req, res) => {
     try {
-        const course = await Course.findById(req.params.id)
-            .populate('instructor', 'name')
-            .populate('enrolledStudents', 'name grade registrationNumber');
-        if (!course) return res.status(404).json({ error: "Course not found" });
+        // 1. Backfill legacy course enrollments into Enrollment collection
+        const courses = await Course.find({})
+            .populate('classes.enrolledStudents', 'name email registrationNumber grade parentsPhoneNumber')
+            .populate('enrolledStudents', 'name email registrationNumber grade parentsPhoneNumber');
 
-        const courseObj = course.toObject();
-        if (courseObj.banner) {
-            courseObj.banner = getFullUrl(req, courseObj.banner);
+        for (const course of courses) {
+            if (course.classes && course.classes.length > 0) {
+                for (const cls of course.classes) {
+                    if (cls.enrolledStudents && cls.enrolledStudents.length > 0) {
+                        for (const student of cls.enrolledStudents) {
+                            if (student && student._id) {
+                                const className = cls.className || (student.grade ? (student.grade.startsWith('Grade') ? student.grade : `Grade ${student.grade}`) : 'General');
+                                try {
+                                    await Enrollment.findOneAndUpdate(
+                                        { student: student._id, course: course._id },
+                                        { student: student._id, course: course._id, className },
+                                        { upsert: true, new: true, setDefaultsOnInsert: true }
+                                    );
+                                } catch (e) {
+                                    console.warn("Backfill enrollment skip:", e.message);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (course.enrolledStudents && course.enrolledStudents.length > 0) {
+                for (const student of course.enrolledStudents) {
+                    if (student && student._id) {
+                        const className = student.grade ? (student.grade.startsWith('Grade') ? student.grade : `Grade ${student.grade}`) : 'General';
+                        try {
+                            await Enrollment.findOneAndUpdate(
+                                { student: student._id, course: course._id },
+                                { student: student._id, course: course._id, className },
+                                { upsert: true, new: true, setDefaultsOnInsert: true }
+                            );
+                        } catch (e) {
+                            console.warn("Backfill enrollment skip:", e.message);
+                        }
+                    }
+                }
+            }
         }
-        if (courseObj.cardImage) {
-            courseObj.cardImage = getFullUrl(req, courseObj.cardImage);
-        }
-        res.json(courseObj);
+
+        // 2. Retrieve all active enrollments from Enrollment table
+        const dbEnrollments = await Enrollment.find({})
+            .populate('student', 'name email registrationNumber grade parentsPhoneNumber')
+            .populate('course', 'title');
+
+        const enrollments = dbEnrollments
+            .filter(e => e.student && e.course)
+            .map(e => ({
+                _id: e._id,
+                courseId: e.course._id,
+                courseTitle: e.course.title,
+                className: e.className,
+                studentId: e.student._id,
+                studentName: e.student.name,
+                studentEmail: e.student.email,
+                studentRegNo: e.student.registrationNumber,
+                studentGrade: e.student.grade,
+                studentPhone: e.student.parentsPhoneNumber
+            }));
+
+        res.json(enrollments);
     } catch (err) {
-        res.status(500).json({ error: "Server error" });
+        console.error("Fetch all enrollments error:", err);
+        res.status(500).json({ error: "Failed to fetch enrollments: " + err.message });
     }
 });
 
-// @route   POST /api/courses/:id/enroll
-router.post('/:id/enroll', protect, async (req, res) => {
+// @route   POST /api/courses/enroll
+// @desc    Admin enrolls a student in a specific course and class
+router.post('/enroll', protect, isAdmin, async (req, res) => {
+    const { studentId, courseId, className } = req.body;
+    if (!studentId || !courseId || !className) {
+        return res.status(400).json({ error: "Student ID, Course ID, and Class Name are required." });
+    }
+
     try {
-        if (req.user.role !== 'student') {
-            return res.status(403).json({ error: "Only students can enroll in courses." });
+        const course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ error: "Course not found." });
+
+        const student = await User.findById(studentId);
+        if (!student || student.role !== 'student') {
+            return res.status(400).json({ error: "Invalid student." });
         }
 
-        const course = await Course.findById(req.params.id);
-        if (!course) return res.status(404).json({ error: "Course not found" });
+        const trimmedClass = className.trim();
 
-        if (!req.user.grade) {
-            return res.status(400).json({ error: "Student grade must be set before enrolling." });
-        }
-
-        const isAllowed = course.enrolledGrades.some(g => g.gradeNumber === req.user.grade);
-        if (!isAllowed) {
-            return res.status(403).json({ error: "Your grade is not allowed to enroll in this course." });
-        }
-
-        const studentId = req.user._id;
-        const className = getClassNameFromGrade(req.user.grade);
-
-        // 1. Create/upsert Enrollment document
-        await Enrollment.findOneAndUpdate(
-            { studentId, courseId: course._id, className },
-            { status: 'Active' },
-            { upsert: true, new: true }
+        // 1. Always Upsert to Enrollment MongoDB table matching { student, course }
+        const enrollmentDoc = await Enrollment.findOneAndUpdate(
+            { student: studentId, course: courseId },
+            { student: studentId, course: courseId, className: trimmedClass },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
-        // 2. Keep course embedded arrays in sync
-        if (!course.enrolledStudents.includes(studentId)) {
-            course.enrolledStudents.push(studentId);
-        }
-
-        let cls = course.classes.find(c => c.className === className);
+        // 2. Synchronize with course.classes
+        let cls = course.classes.find(c => c.className === trimmedClass);
         if (!cls) {
             course.classes.push({
-                className,
+                className: trimmedClass,
                 enrolledStudents: [studentId]
             });
-        } else if (!cls.enrolledStudents.includes(studentId)) {
-            cls.enrolledStudents.push(studentId);
+        } else {
+            if (!cls.enrolledStudents.map(id => id.toString()).includes(studentId.toString())) {
+                cls.enrolledStudents.push(studentId);
+            }
+        }
+
+        // 3. Synchronize with course.enrolledStudents
+        if (!course.enrolledStudents.map(id => id.toString()).includes(studentId.toString())) {
+            course.enrolledStudents.push(studentId);
         }
 
         await course.save();
 
-        res.json({ message: "Enrollment successful." });
+        res.status(200).json({ message: "Student enrolled in class successfully.", enrollment: enrollmentDoc });
     } catch (err) {
-        res.status(500).json({ error: "Failed to enroll in course" });
+        console.error("Enroll student error:", err);
+        res.status(500).json({ error: "Failed to enroll student: " + err.message });
     }
 });
 
-// @route   DELETE /api/courses/:id
-router.delete('/:id', protect, isAdmin, async (req, res) => {
+// @route   POST /api/courses/unenroll
+// @desc    Admin removes a student from a specific course and class
+router.post('/unenroll', protect, isAdmin, async (req, res) => {
+    const { studentId, courseId, className } = req.body;
+    if (!studentId || !courseId || !className) {
+        return res.status(400).json({ error: "Student ID, Course ID, and Class Name are required." });
+    }
+
     try {
-        const course = await Course.findById(req.params.id);
-        if (!course) return res.status(404).json({ error: "Course not found" });
+        const course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ error: "Course not found." });
 
-        // Delete physical files from filesystem
-        const bannerFile = getFilename(course.banner);
-        const cardImageFile = getFilename(course.cardImage);
-
-        if (bannerFile) {
-            const bannerFilePath = path.join(__dirname, '..', 'uploads', bannerFile);
-            if (fs.existsSync(bannerFilePath)) {
-                fs.unlinkSync(bannerFilePath);
-            }
-        }
-        if (cardImageFile) {
-            const cardImageFilePath = path.join(__dirname, '..', 'uploads', cardImageFile);
-            if (fs.existsSync(cardImageFilePath)) {
-                fs.unlinkSync(cardImageFilePath);
+        let cls = course.classes.find(c => c.className === className.trim());
+        if (cls) {
+            const index = cls.enrolledStudents.findIndex(id => id.toString() === studentId.toString());
+            if (index !== -1) {
+                cls.enrolledStudents.splice(index, 1);
             }
         }
 
-        await Lesson.deleteMany({ course: course._id });
-        const courseTitle = course.title;
-        await course.deleteOne();
+        // Check if student is in any class for this course
+        const isStillInAnyClass = course.classes.some(c => 
+            c.enrolledStudents.some(id => id.toString() === studentId.toString())
+        );
 
-        res.json({ message: `Course "${courseTitle}" Successfully Deleted!` });
+        if (!isStillInAnyClass) {
+            course.enrolledStudents = course.enrolledStudents.filter(id => id.toString() !== studentId.toString());
+        }
+
+        await course.save();
+
+        // Delete from Enrollment model table
+        await Enrollment.deleteMany({
+            student: studentId,
+            course: courseId
+        });
+
+        res.status(200).json({ message: "Student removed from class successfully." });
     } catch (err) {
-        res.status(500).json({ error: "Failed to delete course" });
+        console.error("Unenroll student error:", err);
+        res.status(500).json({ error: "Failed to unenroll student." });
     }
 });
 
@@ -215,19 +334,26 @@ router.post(
                 instructorId = newTeacher._id;
             }
 
-            const bannerFilename = req.files?.banner?.[0]
-                ? saveUploadedFile(req.files.banner[0])
-                : "";
-            const cardImageFilename = req.files?.cardImage?.[0]
-                ? saveUploadedFile(req.files.cardImage[0])
-                : "";
+            let bannerPath = "";
+            if (req.files?.banner?.[0]) {
+                bannerPath = `/uploads/${req.files.banner[0].filename}`;
+            } else if (req.body.banner) {
+                bannerPath = convertBase64ToStaticFile(req.body.banner, 'banner');
+            }
+
+            let cardImagePath = "";
+            if (req.files?.cardImage?.[0]) {
+                cardImagePath = `/uploads/${req.files.cardImage[0].filename}`;
+            } else if (req.body.cardImage) {
+                cardImagePath = convertBase64ToStaticFile(req.body.cardImage, 'cardImage');
+            }
 
             const newCourse = await Course.create({
                 title,
                 description,
                 instructor: instructorId,
-                banner: bannerFilename,
-                cardImage: cardImageFilename
+                banner: bannerPath,
+                cardImage: cardImagePath
             });
 
             res.status(201).json({ message: "Course created successfully!", courseId: newCourse._id });
@@ -238,6 +364,135 @@ router.post(
     }
 );
 
+// @route   GET /api/courses/:id
+router.get('/:id', protect, async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id)
+            .populate('instructor', 'name')
+            .populate('enrolledStudents', 'name grade registrationNumber');
+        if (!course) return res.status(404).json({ error: "Course not found" });
+
+        const courseObj = await processCourseImages(req, course);
+        res.json(courseObj);
+    } catch (err) {
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
+// @route   POST /api/courses/:id/enroll
+router.post('/:id/enroll', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'student') {
+            return res.status(403).json({ error: "Only students can enroll in courses." });
+        }
+
+        const course = await Course.findById(req.params.id);
+        if (!course) return res.status(404).json({ error: "Course not found" });
+
+        if (!req.user.grade) {
+            return res.status(400).json({ error: "Student grade must be set before enrolling." });
+        }
+
+        const studentGrade = req.user.grade.trim();
+        const className = studentGrade.startsWith('Grade') ? studentGrade : `Grade ${studentGrade}`;
+        const gradeRegexes = buildGradeRegexes(studentGrade);
+
+        const isAllowed = course.enrolledGrades.some(g =>
+            gradeRegexes.some(regex => regex.test(g.gradeNumber))
+        );
+
+        if (!isAllowed) {
+            return res.status(403).json({ error: "Your grade is not allowed to enroll in this course." });
+        }
+
+        // 1. Always Upsert into Enrollment MongoDB table
+        await Enrollment.findOneAndUpdate(
+            { student: req.user._id, course: course._id },
+            { student: req.user._id, course: course._id, className },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        // 2. Synchronize with course.enrolledStudents
+        const alreadyEnrolled = course.enrolledStudents.some(studentId => studentId.toString() === req.user._id.toString());
+        if (!alreadyEnrolled) {
+            course.enrolledStudents.push(req.user._id);
+        }
+
+        // 3. Synchronize with course.classes
+        let cls = course.classes.find(c => c.className === className || c.className === studentGrade);
+        if (!cls) {
+            course.classes.push({ className, enrolledStudents: [req.user._id] });
+        } else {
+            if (!cls.enrolledStudents.map(id => id.toString()).includes(req.user._id.toString())) {
+                cls.enrolledStudents.push(req.user._id);
+            }
+        }
+
+        await course.save();
+
+        res.json({ message: "Enrollment successful." });
+    } catch (err) {
+        console.error("Student self-enroll error:", err);
+        res.status(500).json({ error: "Failed to enroll in course: " + err.message });
+    }
+});
+
+// @route   DELETE /api/courses/:id
+router.delete('/:id', protect, isAdmin, async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id);
+        if (!course) return res.status(404).json({ error: "Course not found" });
+
+        // Delete physical files from filesystem
+        const bannerFile = getFilename(course.banner);
+        const cardImageFile = getFilename(course.cardImage);
+
+        if (bannerFile) {
+            const bannerFilePath = path.join(__dirname, '..', 'uploads', bannerFile);
+            if (fs.existsSync(bannerFilePath)) {
+                fs.unlinkSync(bannerFilePath);
+            }
+        }
+        if (cardImageFile) {
+            const cardImageFilePath = path.join(__dirname, '..', 'uploads', cardImageFile);
+            if (fs.existsSync(cardImageFilePath)) {
+                fs.unlinkSync(cardImageFilePath);
+            }
+        }
+
+        await Lesson.deleteMany({ course: course._id });
+        await Enrollment.deleteMany({ course: course._id });
+        const courseTitle = course.title;
+        await course.deleteOne();
+
+        res.json({ message: `Course "${courseTitle}" Successfully Deleted!` });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to delete course" });
+    }
+});
+
+// Helper function to build flexible regexes for matching grade strings (e.g. "Grade 11", "grade 11", "11")
+const buildGradeRegexes = (gradeParam) => {
+    if (!gradeParam) return [];
+    const trimmed = String(gradeParam).trim();
+    const rawNum = trimmed.replace(/\D/g, ''); // extract numbers if any
+    
+    const terms = new Set([
+        trimmed,
+        trimmed.toLowerCase(),
+        trimmed.replace(/grade/i, '').trim(),
+        `Grade ${trimmed.replace(/grade/i, '').trim()}`
+    ]);
+    if (rawNum) {
+        terms.add(rawNum);
+        terms.add(`Grade ${rawNum}`);
+    }
+
+    return Array.from(terms).filter(Boolean).map(t => 
+        new RegExp(`^\\s*${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i')
+    );
+};
+
 // @route   GET /api/courses/:id/students/:gradeNumber
 // Admin fetches all students belonging to a specific grade with current enrollment status, attendance, and payments
 router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
@@ -245,25 +500,13 @@ router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
         const gradeParam = req.params.gradeNumber;
         if (!gradeParam) return res.status(400).json({ error: 'Grade selection is required.' });
 
-        const gradeQuery = [gradeParam];
-        if (gradeParam.startsWith('Grade ')) {
-            gradeQuery.push(gradeParam.replace('Grade ', ''));
-        } else {
-            gradeQuery.push(`Grade ${gradeParam}`);
-        }
-        const numericMatch = gradeParam.match(/\d+/);
-        if (numericMatch) {
-            const numStr = numericMatch[0];
-            if (!gradeQuery.includes(numStr)) gradeQuery.push(numStr);
-            if (!gradeQuery.includes(`Grade ${numStr}`)) gradeQuery.push(`Grade ${numStr}`);
-        }
-
+        const gradeRegexes = buildGradeRegexes(gradeParam);
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
         const students = await User.find({ 
             role: 'student', 
-            grade: { $in: gradeQuery } 
+            grade: { $in: gradeRegexes } 
         })
         .select('_id name email registrationNumber grade parentsPhoneNumber')
         .sort({ name: 1 });
@@ -346,10 +589,6 @@ router.post('/:id/enroll-students/:gradeNumber', protect, isAdmin, async (req, r
         const gradeParam = req.params.gradeNumber;
         const { studentIds = [] } = req.body;
 
-        if (!gradeParam || !String(gradeParam).trim()) {
-            return res.status(400).json({ error: 'Invalid grade selection.' });
-        }
-
         if (!Array.isArray(studentIds) || studentIds.length === 0) {
             return res.status(400).json({ error: 'Please select at least one student.' });
         }
@@ -357,56 +596,40 @@ router.post('/:id/enroll-students/:gradeNumber', protect, isAdmin, async (req, r
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
-        const gradeQuery = [gradeParam];
-        if (gradeParam.startsWith('Grade ')) {
-            gradeQuery.push(gradeParam.replace('Grade ', ''));
-        } else {
-            gradeQuery.push(`Grade ${gradeParam}`);
-        }
-        const numericMatch = gradeParam.match(/\d+/);
-        if (numericMatch) {
-            const numStr = numericMatch[0];
-            if (!gradeQuery.includes(numStr)) gradeQuery.push(numStr);
-            if (!gradeQuery.includes(`Grade ${numStr}`)) gradeQuery.push(`Grade ${numStr}`);
-        }
-
         const students = await User.find({
             _id: { $in: studentIds },
-            role: 'student',
-            grade: { $in: gradeQuery }
+            role: 'student'
         }).select('_id');
 
         const validStudentIds = students.map(student => student._id.toString());
-        const existingIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
-        const newIds = validStudentIds.filter(studentId => !existingIds.has(studentId));
+        const className = (gradeParam && gradeParam !== 'undefined')
+            ? (gradeParam.startsWith('Grade') ? gradeParam : `Grade ${gradeParam}`)
+            : 'General';
 
-        if (!newIds.length) {
-            return res.status(200).json({ message: 'Selected students are already enrolled.' });
-        }
-
-        const className = `Grade ${gradeNumber}`;
-
-        // 1. Create/upsert Enrollment documents
-        for (const studentId of newIds) {
+        // 1. Always Upsert into Enrollment collection matching { student, course }
+        for (const studentId of validStudentIds) {
             await Enrollment.findOneAndUpdate(
-                { studentId, courseId: course._id, className },
-                { status: 'Active' },
-                { upsert: true, new: true }
+                { student: studentId, course: course._id },
+                { student: studentId, course: course._id, className },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
             );
         }
 
-        // 2. Keep course embedded arrays in sync
-        course.enrolledStudents.push(...newIds.map(studentId => studentId));
+        // 2. Synchronize with course.enrolledStudents
+        const existingIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
+        const newIds = validStudentIds.filter(studentId => !existingIds.has(studentId));
+        if (newIds.length > 0) {
+            course.enrolledStudents.push(...newIds.map(studentId => studentId));
+        }
 
-        let cls = course.classes.find(c => c.className === className);
+        // 3. Synchronize with course.classes for this grade
+        let cls = course.classes.find(c => c.className === className || c.className === gradeParam);
         if (!cls) {
-            course.classes.push({
-                className,
-                enrolledStudents: [...newIds]
-            });
+            course.classes.push({ className, enrolledStudents: validStudentIds });
         } else {
-            newIds.forEach(id => {
-                if (!cls.enrolledStudents.includes(id)) {
+            const existingClsIds = new Set(cls.enrolledStudents.map(id => id.toString()));
+            validStudentIds.forEach(id => {
+                if (!existingClsIds.has(id)) {
                     cls.enrolledStudents.push(id);
                 }
             });
@@ -414,9 +637,10 @@ router.post('/:id/enroll-students/:gradeNumber', protect, isAdmin, async (req, r
 
         await course.save();
 
-        res.status(200).json({ message: `Enrolled ${newIds.length} student(s).` });
+        res.status(200).json({ message: `Enrolled ${validStudentIds.length} student(s) successfully.` });
     } catch (err) {
-        res.status(500).json({ error: 'Failed to enroll selected students' });
+        console.error("Batch enroll error:", err);
+        res.status(500).json({ error: 'Failed to enroll selected students: ' + err.message });
     }
 });
 
@@ -425,10 +649,6 @@ router.post('/:id/remove-students/:gradeNumber', protect, isAdmin, async (req, r
     try {
         const gradeParam = req.params.gradeNumber;
         const { studentIds = [] } = req.body;
-
-        if (!gradeParam || !String(gradeParam).trim()) {
-            return res.status(400).json({ error: 'Invalid grade selection.' });
-        }
 
         if (!Array.isArray(studentIds) || studentIds.length === 0) {
             return res.status(400).json({ error: 'Please select at least one student.' });
@@ -440,20 +660,23 @@ router.post('/:id/remove-students/:gradeNumber', protect, isAdmin, async (req, r
         const validIds = new Set(studentIds.map(id => id.toString()));
         const beforeCount = course.enrolledStudents.length;
 
-        // 1. Delete from Enrollment collection
-        await Enrollment.deleteMany({
-            studentId: { $in: studentIds },
-            courseId: course._id
-        });
-
-        // 2. Keep course embedded arrays in sync
+        // Remove from course.enrolledStudents
         course.enrolledStudents = course.enrolledStudents.filter(studentId => !validIds.has(studentId.toString()));
 
-        course.classes.forEach(cls => {
-            cls.enrolledStudents = cls.enrolledStudents.filter(id => !validIds.has(id.toString()));
-        });
+        // Also remove from all classes in course.classes
+        if (course.classes && course.classes.length > 0) {
+            course.classes.forEach(cls => {
+                cls.enrolledStudents = cls.enrolledStudents.filter(studentId => !validIds.has(studentId.toString()));
+            });
+        }
 
         await course.save();
+
+        // Delete from Enrollment table
+        await Enrollment.deleteMany({
+            course: course._id,
+            student: { $in: Array.from(validIds) }
+        });
 
         res.status(200).json({ message: `Removed ${beforeCount - course.enrolledStudents.length} student(s).` });
     } catch (err) {
@@ -474,10 +697,33 @@ router.post('/:id/toggle-grade', protect, isAdmin, async (req, res) => {
 
         if (existingIndex !== -1) {
             const gradeTitle = course.enrolledGrades[existingIndex].title || `Grade ${gradeNumber}`;
-            // තිබේ නම් අයින් කරන්න
             course.enrolledGrades.splice(existingIndex, 1);
+
+            const gradeRegexes = buildGradeRegexes(gradeNumber);
+            const gradeStudents = await User.find({ role: 'student', grade: { $in: gradeRegexes } }).select('_id');
+            const studentIds = gradeStudents.map(s => s._id.toString());
+            const className = gradeNumber.startsWith('Grade') ? gradeNumber : `Grade ${gradeNumber}`;
+
+            if (course.classes && course.classes.length > 0) {
+                course.classes = course.classes.filter(c => c.className !== className && c.className !== gradeNumber);
+            }
+
+            const studentIdsSet = new Set(studentIds);
+            if (course.enrolledStudents && course.enrolledStudents.length > 0) {
+                course.enrolledStudents = course.enrolledStudents.filter(id => !studentIdsSet.has(id.toString()));
+            }
+
             await course.save();
-            // Sync with Lesson model
+
+            await Enrollment.deleteMany({
+                course: course._id,
+                $or: [
+                    { className: className },
+                    { className: gradeNumber },
+                    { student: { $in: studentIds } }
+                ]
+            });
+
             await Lesson.findOneAndDelete({ course: course._id, grade: gradeNumber });
             return res.status(200).json({ message: `"${gradeTitle}" Successfully Removed!` });
         } else {
@@ -514,43 +760,39 @@ router.post('/:id/enroll-grade/:gradeNumber', protect, isAdmin, async (req, res)
             return res.status(400).json({ error: 'This grade is not assigned to this course.' });
         }
 
-        const gradeQuery = [String(gradeNumber), `Grade ${gradeNumber}`];
-        const students = await User.find({ role: 'student', grade: { $in: gradeQuery } }).select('_id');
+        const gradeRegexes = buildGradeRegexes(gradeParam);
+        const students = await User.find({ role: 'student', grade: { $in: gradeRegexes } });
         if (!students.length) {
             return res.status(404).json({ error: `No students found for ${gradeParam}.` });
         }
 
-        const existingIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
-        const newStudents = students.filter(student => !existingIds.has(student._id.toString()));
+        const className = gradeParam.startsWith('Grade') ? gradeParam : `Grade ${gradeParam}`;
 
-        if (!newStudents.length) {
-            return res.status(200).json({ message: `All students in ${gradeParam.startsWith('Grade') ? gradeParam : `Grade ${gradeParam}`} are already enrolled.` });
-        }
-
-        const className = `Grade ${gradeNumber}`;
-        const newIds = newStudents.map(student => student._id.toString());
-
-        // 1. Create/upsert Enrollment documents
-        for (const studentId of newIds) {
+        // 1. Always Upsert into Enrollment collection matching { student, course }
+        for (const student of students) {
             await Enrollment.findOneAndUpdate(
-                { studentId, courseId: course._id, className },
-                { status: 'Active' },
-                { upsert: true, new: true }
+                { student: student._id, course: course._id },
+                { student: student._id, course: course._id, className },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
             );
         }
 
-        // 2. Keep course embedded arrays in sync
-        course.enrolledStudents.push(...newStudents.map(student => student._id));
+        // 2. Synchronize with course.enrolledStudents
+        const existingIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
+        const newStudents = students.filter(student => !existingIds.has(student._id.toString()));
+        if (newStudents.length > 0) {
+            course.enrolledStudents.push(...newStudents.map(student => student._id));
+        }
 
-        let cls = course.classes.find(c => c.className === className);
+        // 3. Synchronize with course.classes for this grade
+        let cls = course.classes.find(c => c.className === className || c.className === gradeParam);
+        const allStudentIds = students.map(student => student._id);
         if (!cls) {
-            course.classes.push({
-                className,
-                enrolledStudents: [...newIds]
-            });
+            course.classes.push({ className, enrolledStudents: allStudentIds });
         } else {
-            newIds.forEach(id => {
-                if (!cls.enrolledStudents.includes(id)) {
+            const existingClsIds = new Set(cls.enrolledStudents.map(id => id.toString()));
+            allStudentIds.forEach(id => {
+                if (!existingClsIds.has(id.toString())) {
                     cls.enrolledStudents.push(id);
                 }
             });
@@ -558,9 +800,10 @@ router.post('/:id/enroll-grade/:gradeNumber', protect, isAdmin, async (req, res)
 
         await course.save();
 
-        res.status(200).json({ message: `Enrolled ${newStudents.length} students from ${gradeParam.startsWith('Grade') ? gradeParam : `Grade ${gradeParam}`}.` });
+        res.status(200).json({ message: `Enrolled ${students.length} students from ${className}.` });
     } catch (err) {
-        res.status(500).json({ error: 'Failed to enroll grade students' });
+        console.error("Enroll grade error:", err);
+        res.status(500).json({ error: 'Failed to enroll grade students: ' + err.message });
     }
 });
 
@@ -581,119 +824,6 @@ router.post('/:id/send-message', protect, async (req, res) => {
         res.status(200).json({ message: "Message sent successfully" });
     } catch (err) {
         res.status(500).json({ error: "Failed to send message" });
-    }
-});
-
-// @route   GET /api/courses/enrollments/all
-// @desc    Admin retrieves all active class enrollments
-router.get('/enrollments/all', protect, isAdmin, async (req, res) => {
-    try {
-        const activeEnrollments = await Enrollment.find({ status: 'Active' })
-            .populate('studentId', 'name email registrationNumber grade parentsPhoneNumber')
-            .populate('courseId', 'title');
-        
-        const enrollments = activeEnrollments
-            .filter(e => e.studentId && e.courseId) // Filter out orphaned records
-            .map(e => ({
-                courseId: e.courseId._id,
-                courseTitle: e.courseId.title,
-                className: e.className,
-                studentId: e.studentId._id,
-                studentName: e.studentId.name,
-                studentEmail: e.studentId.email,
-                studentRegNo: e.studentId.registrationNumber,
-                studentGrade: e.studentId.grade,
-                studentPhone: e.studentId.parentsPhoneNumber
-            }));
-
-        res.json(enrollments);
-    } catch (err) {
-        console.error("Fetch all enrollments error:", err);
-        res.status(500).json({ error: "Failed to fetch enrollments" });
-    }
-});
-
-// @route   POST /api/courses/enroll
-// @desc    Admin enrolls a student in a specific course and class
-router.post('/enroll', protect, isAdmin, async (req, res) => {
-    const { studentId, courseId, className } = req.body;
-    const trimmedClassName = className ? className.trim() : "";
-    if (!studentId || !courseId || !trimmedClassName) {
-        return res.status(400).json({ error: "Student ID, Course ID, and Class Name are required." });
-    }
-
-    try {
-        const course = await Course.findById(courseId);
-        if (!course) return res.status(404).json({ error: "Course not found." });
-
-        const student = await User.findById(studentId);
-        if (!student || student.role !== 'student') {
-            return res.status(400).json({ error: "Invalid student." });
-        }
-
-        // 1. Save to Enrollment collection
-        await Enrollment.findOneAndUpdate(
-            { studentId, courseId, className: trimmedClassName },
-            { status: 'Active' },
-            { upsert: true, new: true }
-        );
-
-        // 2. Keep course embedded arrays in sync
-        let cls = course.classes.find(c => c.className === trimmedClassName);
-        if (!cls) {
-            course.classes.push({
-                className: trimmedClassName,
-                enrolledStudents: [studentId]
-            });
-        } else if (!cls.enrolledStudents.includes(studentId)) {
-            cls.enrolledStudents.push(studentId);
-        }
-
-        if (!course.enrolledStudents.includes(studentId)) {
-            course.enrolledStudents.push(studentId);
-        }
-
-        await course.save();
-        res.status(200).json({ message: "Student enrolled in class successfully." });
-    } catch (err) {
-        console.error("Enroll student error:", err);
-        res.status(500).json({ error: "Failed to enroll student." });
-    }
-});
-
-// @route   POST /api/courses/unenroll
-// @desc    Admin removes a student from a specific course and class
-router.post('/unenroll', protect, isAdmin, async (req, res) => {
-    const { studentId, courseId, className } = req.body;
-    const trimmedClassName = className ? className.trim() : "";
-    if (!studentId || !courseId || !trimmedClassName) {
-        return res.status(400).json({ error: "Student ID, Course ID, and Class Name are required." });
-    }
-
-    try {
-        const course = await Course.findById(courseId);
-        if (!course) return res.status(404).json({ error: "Course not found." });
-
-        // 1. Delete from Enrollment collection
-        await Enrollment.deleteOne({ studentId, courseId, className: trimmedClassName });
-
-        // 2. Keep course embedded arrays in sync
-        let cls = course.classes.find(c => c.className === trimmedClassName);
-        if (cls) {
-            cls.enrolledStudents = cls.enrolledStudents.filter(id => id.toString() !== studentId.toString());
-        }
-
-        // Check if student exists in any other class of the course
-        const existsInOtherClass = course.classes.some(c => c.enrolledStudents.includes(studentId));
-        if (!existsInOtherClass) {
-            course.enrolledStudents = course.enrolledStudents.filter(id => id.toString() !== studentId.toString());
-        }
-
-        await course.save();
-        res.status(200).json({ message: "Student removed from class successfully." });
-    } catch (err) {
-        console.error("Unenroll student error:", err);
-        res.status(500).json({ error: "Failed to unenroll student." });
     }
 });
 

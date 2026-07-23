@@ -44,23 +44,19 @@ const Enrollments = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch active enrollments
-      const enrollmentsRes = await axios.get('http://localhost:5000/api/courses/enrollments/all', {
-        headers: getAuthHeaders()
-      });
-      setEnrollments(enrollmentsRes.data);
+      const [enrollmentsRes, usersRes, coursesRes] = await Promise.allSettled([
+        axios.get('http://localhost:5000/api/courses/enrollments/all', { headers: getAuthHeaders() }),
+        axios.get('http://localhost:5000/api/auth/users?role=student', { headers: getAuthHeaders() }),
+        axios.get('http://localhost:5000/api/courses', { headers: getAuthHeaders() })
+      ]);
 
-      // 2. Fetch all students
-      const usersRes = await axios.get('http://localhost:5000/api/auth/users?role=student', {
-        headers: getAuthHeaders()
-      });
-      setStudents(usersRes.data);
+      if (enrollmentsRes.status === 'fulfilled') setEnrollments(enrollmentsRes.value.data);
+      if (usersRes.status === 'fulfilled') setStudents(usersRes.value.data);
+      if (coursesRes.status === 'fulfilled') setCourses(coursesRes.value.data);
 
-      // 3. Fetch all courses
-      const coursesRes = await axios.get('http://localhost:5000/api/courses', {
-        headers: getAuthHeaders()
-      });
-      setCourses(coursesRes.data);
+      if (enrollmentsRes.status === 'rejected' && usersRes.status === 'rejected' && coursesRes.status === 'rejected') {
+        toast.error('Failed to load required data');
+      }
     } catch (err) {
       toast.error('Failed to load required data');
     } finally {
@@ -107,11 +103,8 @@ const Enrollments = () => {
       setStudentSearch('');
       setCourseSearch('');
 
-      // Reload enrollments
-      const enrollmentsRes = await axios.get('http://localhost:5000/api/courses/enrollments/all', {
-        headers: getAuthHeaders()
-      });
-      setEnrollments(enrollmentsRes.data);
+      // Reload all data
+      await fetchData();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to enroll student');
     } finally {
@@ -136,7 +129,7 @@ const Enrollments = () => {
       );
 
       toast.success('Student unenrolled successfully.');
-      setEnrollments(enrollments.filter(e => !(e.studentId === studentId && e.courseId === courseId && e.className === className)));
+      await fetchData();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to unenroll student');
     } finally {

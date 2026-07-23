@@ -92,22 +92,35 @@ const AddCourse = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch all teachers on component load
-  useEffect(() => {
-    const fetchTeachers = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/auth/users', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setTeachers(res.data.filter(u => u.role === 'teacher'));
-      } catch (err) {
-        toast.error("Failed to load existing teachers list.");
-        console.error(err);
-      }
-    };
-    fetchTeachers();
+  const [addAnother, setAddAnother] = useState(false);
+
+  // Fetch all teachers on component load or on demand
+  const fetchTeachers = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:5000/api/auth/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTeachers(res.data.filter(u => u.role === 'teacher'));
+    } catch (err) {
+      toast.error("Failed to load existing teachers list.");
+      console.error(err);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchTeachers();
+  }, [fetchTeachers]);
+
+  const resetForm = () => {
+    setCourseData({ title: '', description: '' });
+    setBannerFile(null);
+    setCardImageFile(null);
+    setBannerPreview(null);
+    setCardPreview(null);
+    setNewTeacherData({ teacherName: '', teacherEmail: '', defaultPassword: '' });
+    setSelectedTeacherId('');
+  };
 
   const createImage = (url) => new Promise((resolve, reject) => {
     const image = new Image();
@@ -117,11 +130,25 @@ const AddCourse = () => {
     image.src = url;
   });
 
-  const getCroppedImg = async (imageSrc, pixelCrop, fileName, fileType) => {
+  const getCroppedImg = async (imageSrc, pixelCrop, fileName, fileType, maxDimension = 1200) => {
     const image = await createImage(imageSrc);
+    
+    let width = pixelCrop.width;
+    let height = pixelCrop.height;
+
+    if (width > maxDimension || height > maxDimension) {
+      if (width > height) {
+        height = Math.round((height * maxDimension) / width);
+        width = maxDimension;
+      } else {
+        width = Math.round((width * maxDimension) / height);
+        height = maxDimension;
+      }
+    }
+
     const canvas = document.createElement('canvas');
-    canvas.width = pixelCrop.width;
-    canvas.height = pixelCrop.height;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext('2d');
 
     ctx.drawImage(
@@ -132,15 +159,15 @@ const AddCourse = () => {
       pixelCrop.height,
       0,
       0,
-      pixelCrop.width,
-      pixelCrop.height
+      width,
+      height
     );
 
     return new Promise((resolve) => {
       canvas.toBlob((blob) => {
         if (!blob) return;
-        resolve(new File([blob], fileName, { type: fileType || 'image/jpeg' }));
-      }, fileType || 'image/jpeg');
+        resolve(new File([blob], fileName, { type: 'image/jpeg' }));
+      }, 'image/jpeg', 0.85);
     });
   };
 
@@ -173,7 +200,8 @@ const AddCourse = () => {
       return;
     }
 
-    const croppedFile = await getCroppedImg(cropFile, croppedAreaPixels, cropSourceFileName, cropSourceFileType);
+    const maxDim = cropSourceType === 'banner' ? 1200 : 600;
+    const croppedFile = await getCroppedImg(cropFile, croppedAreaPixels, cropSourceFileName, cropSourceFileType, maxDim);
 
     if (cropSourceType === 'banner') {
       setBannerFile(croppedFile);
@@ -245,7 +273,13 @@ const AddCourse = () => {
         }
       });
       toast.success("Course and Teacher set up successfully!");
-      navigate('/courses');
+      await fetchTeachers();
+
+      if (addAnother) {
+        resetForm();
+      } else {
+        navigate('/courses');
+      }
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to create course");
     } finally {
@@ -373,13 +407,24 @@ const AddCourse = () => {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`w-full text-white p-3 rounded-lg font-bold transition ${isLoading ? 'bg-gray-400' : 'bg-lumina-purple hover:bg-purple-800 cursor-pointer'}`}
-        >
-          {isLoading ? 'Uploading & Creating...' : 'Create Course & Assign Teacher'}
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <button
+            type="submit"
+            onClick={() => setAddAnother(false)}
+            disabled={isLoading}
+            className={`flex-1 text-white p-3 rounded-lg font-bold transition ${isLoading ? 'bg-gray-400' : 'bg-lumina-purple hover:bg-purple-800 cursor-pointer'}`}
+          >
+            {isLoading && !addAnother ? 'Creating...' : 'Create Course'}
+          </button>
+          <button
+            type="submit"
+            onClick={() => setAddAnother(true)}
+            disabled={isLoading}
+            className={`flex-1 border-2 border-purple-600 text-purple-700 hover:bg-purple-50 p-3 rounded-lg font-bold transition ${isLoading ? 'opacity-50' : 'cursor-pointer'}`}
+          >
+            {isLoading && addAnother ? 'Creating...' : '+ Create & Add Another'}
+          </button>
+        </div>
       </form>
 
       {isCropping && (

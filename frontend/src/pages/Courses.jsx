@@ -121,6 +121,8 @@ const Courses = () => {
                         <img
                           src={course.cardImage}
                           alt={course.title}
+                          loading="lazy"
+                          decoding="async"
                           className="absolute inset-0 h-full w-full object-cover"
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
