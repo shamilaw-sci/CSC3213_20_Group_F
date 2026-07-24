@@ -157,13 +157,32 @@ const DashboardLayout = () => {
                   }}
                   className="flex items-center gap-2 p-1 text-gray-500 hover:text-lumina-purple rounded-full transition-all outline-none cursor-pointer"
                 >
-                  <FaUserCircle className="text-3xl" />
+                  {user?.profilePicture ? (
+                    <img 
+                      src={user.profilePicture} 
+                      alt="Profile" 
+                      referrerPolicy="no-referrer"
+                      className="w-9 h-9 rounded-full object-cover border border-purple-200 shadow-sm"
+                    />
+                  ) : (
+                    <FaUserCircle className="text-3xl" />
+                  )}
                 </button>
 
                 {showProfileMenu && (
                   <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all">
-                    <div className="p-4 border-b border-gray-100 bg-gray-50 text-center">
-                      <p className="font-bold text-gray-800 truncate">{userName}</p>
+                    <div className="p-4 border-b border-gray-100 bg-gray-50 text-center flex flex-col items-center">
+                      {user?.profilePicture ? (
+                        <img 
+                          src={user.profilePicture} 
+                          alt="Profile" 
+                          referrerPolicy="no-referrer"
+                          className="w-16 h-16 rounded-full object-cover border-2 border-purple-200 mb-2 shadow-inner"
+                        />
+                      ) : (
+                        <FaUserCircle className="text-4xl text-gray-400 mb-2" />
+                      )}
+                      <p className="font-bold text-gray-800 truncate w-full">{userName}</p>
                       <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mt-1">
                         {role}
                       </p>

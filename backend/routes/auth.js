@@ -39,10 +39,12 @@ router.post('/login', async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
+        email: user.email,
         role: user.role,
         grade: user.grade,
         registrationNumber: user.registrationNumber,
-        mustChangePassword: user.mustChangePassword
+        mustChangePassword: user.mustChangePassword,
+        profilePicture: user.profilePicture || ''
       }
     });
 
@@ -90,6 +92,13 @@ router.post('/google', async (req, res) => {
       });
     }
 
+    // Sync Google picture to database if no profile picture is set or if it is currently a Google picture
+    const isGooglePic = user.profilePicture && user.profilePicture.includes('googleusercontent.com');
+    if ((!user.profilePicture || isGooglePic) && payload.picture && user.profilePicture !== payload.picture) {
+      user.profilePicture = payload.picture;
+      await user.save();
+    }
+
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -101,10 +110,12 @@ router.post('/google', async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
+        email: user.email,
         role: user.role,
         grade: user.grade,
         registrationNumber: user.registrationNumber,
-        mustChangePassword: user.mustChangePassword
+        mustChangePassword: user.mustChangePassword,
+        profilePicture: user.profilePicture || ''
       }
     });
   } catch (err) {
@@ -145,10 +156,10 @@ router.post('/change-password', protect, async (req, res) => {
 
 // --- UPDATE PROFILE ROUTE (Name and/or Password) ---
 router.put('/update-profile', protect, async (req, res) => {
-  const { name, newPassword } = req.body;
+  const { name, newPassword, profilePicture } = req.body;
 
   try {
-    const user = await User.findById(req.user.id || req.user._id);;
+    const user = await User.findById(req.user.id || req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // 1. Update the name if provided
@@ -160,16 +171,34 @@ router.put('/update-profile', protect, async (req, res) => {
       user.password = await bcrypt.hash(newPassword, salt);
     }
 
+    // 3. Update profile picture if provided
+    if (profilePicture !== undefined) {
+      if (profilePicture && profilePicture.startsWith('data:image/')) {
+        // Validate size of base64
+        const base64Length = profilePicture.length - (profilePicture.indexOf(',') + 1);
+        const padding = (profilePicture.charAt(profilePicture.length - 2) === '=') ? 2 : ((profilePicture.charAt(profilePicture.length - 1) === '=') ? 1 : 0);
+        const sizeInBytes = (base64Length * 3 / 4) - padding;
+        if (sizeInBytes > 1024 * 1024) {
+          return res.status(400).json({ message: "Profile photo exceeds 1MB size limit" });
+        }
+      }
+      user.profilePicture = profilePicture;
+    }
+
     await user.save();
 
-    // 3. Send back the updated user info (excluding password)
+    // 4. Send back the updated user info (excluding password)
     res.json({
       message: "Profile updated successfully!",
       user: {
         id: user._id,
         name: user.name,
+        email: user.email,
         role: user.role,
-        mustChangePassword: user.mustChangePassword
+        grade: user.grade,
+        registrationNumber: user.registrationNumber,
+        mustChangePassword: user.mustChangePassword,
+        profilePicture: user.profilePicture || ''
       }
     });
 

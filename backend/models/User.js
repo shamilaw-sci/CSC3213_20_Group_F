@@ -30,6 +30,10 @@ const UserSchema = new mongoose.Schema({
   mustChangePassword: { 
     type: Boolean, 
     default: false
+  },
+  profilePicture: {
+    type: String,
+    default: ''
   }
 }, { timestamps: true }); 
 
