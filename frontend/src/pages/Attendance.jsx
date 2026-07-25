@@ -219,9 +219,18 @@ const Attendance = () => {
                 ✕ Close
               </button>
 
-              <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 text-3xl font-bold shadow-inner mb-4 mt-2">
-                {selectedStudent.name.charAt(0)}
-              </div>
+              {selectedStudent.profilePicture ? (
+                <img 
+                  src={selectedStudent.profilePicture} 
+                  alt={selectedStudent.name} 
+                  referrerPolicy="no-referrer"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-purple-200 shadow-sm mb-4 mt-2"
+                />
+              ) : (
+                <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 text-3xl font-bold shadow-inner mb-4 mt-2">
+                  {selectedStudent.name.charAt(0).toUpperCase()}
+                </div>
+              )}
 
               <h2 className="text-xl font-bold text-gray-800 leading-tight">{selectedStudent.name}</h2>
               <p className="bg-purple-100 text-purple-800 font-extrabold text-xs tracking-wider px-3 py-1 rounded-full mt-2 uppercase">

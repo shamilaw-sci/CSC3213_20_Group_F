@@ -14,7 +14,8 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const app = express();
 
 // --- MIDDLEWARE ---
-app.use(express.json()); // Parses incoming JSON requests
+app.use(express.json({ limit: '10mb' })); // Parses incoming JSON requests (increased for profile picture upload)
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors());         // Enables Cross-Origin Resource Sharing
 app.use('/uploads', express.static('uploads')); // Serve uploaded images
 

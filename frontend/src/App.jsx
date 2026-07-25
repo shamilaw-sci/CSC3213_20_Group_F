@@ -5,6 +5,7 @@ import Settings from './pages/Settings';
 
 // --- COMPONENTS & LAYOUTS ---
 import Login from './components/Login';
+import Register from './components/Register';
 import DashboardLayout from './components/DashboardLayout';
 import Dashboard from './components/Dashboard';
 
@@ -47,6 +48,7 @@ function App() {
       <Routes>
         {/* === PUBLIC ROUTES === */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/" element={<Navigate to="/login" />} />
 
