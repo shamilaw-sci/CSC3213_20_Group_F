@@ -63,18 +63,18 @@ const Login = () => {
   };
 
   return (
-    <div 
+    <div
       className="flex min-h-screen font-sans text-slate-900 bg-cover bg-center overflow-hidden"
       style={{ backgroundImage: "url('/assets/Login_screen_BG.png')" }}
     >
-      
+
       {/* Left Side - Welcome Text */}
       <div className="relative hidden w-full flex-col justify-start pt-5 px-12 lg:flex lg:w-[55%] xl:px-24">
         <div className="relative z-10 max-w-lg">
           <img
             src="/assets/LuminaLearn_Logo_banner.png"
             alt="LuminaLearn logo"
-            className="mb-2 h-30 w-auto object-contain" 
+            className="mb-2 h-30 w-auto object-contain"
           />
           <h1 className="text-5xl font-bold tracking-tight text-white xl:text-6xl">
             Welcome Back!
@@ -89,7 +89,7 @@ const Login = () => {
       {/* Right Side - White Login Panel */}
       <div className="flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20">
         <div className="w-full max-w-md">
-          
+
           {/* Header */}
           <div className="mb-10">
             <h2 className="text-4xl font-bold text-[#1e1e38]">Login</h2>
@@ -145,7 +145,7 @@ const Login = () => {
               <span className="absolute right-5 transition-transform group-hover:translate-x-1">
                 <FaArrowRight />
               </span>
-            </button> 
+            </button>
           </form>
 
           {/* Google Sign In Divider */}
@@ -171,7 +171,16 @@ const Login = () => {
 
           {/* Footer Text */}
           <div className="mt-10 space-y-3 text-center text-sm text-slate-500">
-            <p>Only accounts already created by the institute can sign in with Google.</p>
+            <p>
+              Are you an online student?{' '}
+              <button
+                className="font-semibold text-[#3a1c8a] hover:underline cursor-pointer"
+                onClick={() => navigate('/register')}
+              >
+                Register as an Online Student here.
+              </button>
+            </p>
+            <p>Only physical students can sign in with Google directly.</p>
             <p>
               Need an account? Please{' '}
               <button

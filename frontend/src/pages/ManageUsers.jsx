@@ -81,7 +81,8 @@ const ManageUsers = () => {
         'http://localhost:5000/api/auth/users',
         {
           ...studentForm,
-          role: 'student'
+          role: 'student',
+          studentType: 'physical'
         },
         { headers: getAuthHeaders() }
       );
@@ -446,6 +447,7 @@ const ManageUsers = () => {
             <tr className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b border-gray-200">
               <th className="p-4 font-semibold">User</th>
               <th className="p-4 font-semibold">Email</th>
+              <th className="p-4 font-semibold">Student Type</th>
               <th className="p-4 font-semibold">Registration No.</th>
               <th className="p-4 font-semibold">Grade</th>
               <th className="p-4 font-semibold">Parent's Phone</th>
@@ -466,6 +468,19 @@ const ManageUsers = () => {
                     <span className="font-medium text-gray-800">{u.name}</span>
                   </td>
                   <td className="p-4 text-gray-600 text-sm">{u.email}</td>
+                  <td className="p-4">
+                    {u.role === 'student' ? (
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full border ${
+                        u.studentType === 'online' 
+                          ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      }`}>
+                        {u.studentType === 'online' ? 'Online' : 'Physical'}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-sm">-</span>
+                    )}
+                  </td>
                   <td className="p-4 text-gray-600 text-sm">{u.registrationNumber || '-'}</td>
                   <td className="p-4">
                     {u.role === 'student' ? (

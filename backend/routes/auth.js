@@ -41,6 +41,7 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        studentType: user.studentType || 'physical',
         grade: user.grade,
         registrationNumber: user.registrationNumber,
         mustChangePassword: user.mustChangePassword,
@@ -56,9 +57,141 @@ router.post('/login', async (req, res) => {
 
 // --- REGISTER ROUTE ---
 router.post('/register', async (req, res) => {
-  res.status(410).json({
-    message: "Self-registration is disabled. Please contact the institute administration."
-  });
+  const { email, password, grade, parentsPhoneNumber } = req.body;
+
+  if (!email || !password || !grade || !parentsPhoneNumber) {
+    return res.status(400).json({ message: "Email, password, grade, and parent's phone number are required." });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  try {
+    // Check if user exists
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(400).json({ message: "An account with this email already exists." });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Derive name from email (e.g. format "john.doe" to "John Doe")
+    const usernamePart = normalizedEmail.split('@')[0];
+    const derivedName = usernamePart
+      .split(/[\._\-]/)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+
+    const newUser = await User.create({
+      name: derivedName,
+      email: normalizedEmail,
+      password: hashedPassword,
+      grade: grade.trim(),
+      parentsPhoneNumber: parentsPhoneNumber.trim(),
+      role: 'student',
+      studentType: 'online',
+      mustChangePassword: false
+    });
+
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.status(201).json({
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        studentType: newUser.studentType,
+        grade: newUser.grade,
+        registrationNumber: newUser.registrationNumber,
+        mustChangePassword: newUser.mustChangePassword,
+        profilePicture: newUser.profilePicture || ''
+      }
+    });
+
+  } catch (err) {
+    console.error("Register Error:", err);
+    res.status(500).json({ message: "Server error during registration." });
+  }
+});
+
+// --- GOOGLE REGISTER ROUTE ---
+router.post('/google-register', async (req, res) => {
+  const { credential, grade, parentsPhoneNumber } = req.body;
+
+  if (!credential || !grade || !parentsPhoneNumber) {
+    return res.status(400).json({ message: "Google credential, grade, and parent's phone number are required." });
+  }
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const email = payload?.email?.trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ message: "Google account email could not be verified." });
+    }
+
+    if (payload?.email_verified === false) {
+      return res.status(400).json({ message: "Google account email is not verified." });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "This email is already registered. Please log in instead." });
+    }
+
+    // Google registration needs a placeholder password
+    const salt = await bcrypt.genSalt(10);
+    const randomPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+    const newUser = await User.create({
+      name: payload.name || email.split('@')[0],
+      email: email,
+      password: hashedPassword,
+      grade: grade.trim(),
+      parentsPhoneNumber: parentsPhoneNumber.trim(),
+      role: 'student',
+      studentType: 'online',
+      profilePicture: payload.picture || '',
+      mustChangePassword: false
+    });
+
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.status(201).json({
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        studentType: newUser.studentType,
+        grade: newUser.grade,
+        registrationNumber: newUser.registrationNumber,
+        mustChangePassword: newUser.mustChangePassword,
+        profilePicture: newUser.profilePicture || ''
+      }
+    });
+
+  } catch (err) {
+    console.error("Google Register Error:", err);
+    res.status(401).json({ message: err?.message || "Google registration failed." });
+  }
 });
 
 // --- GOOGLE LOGIN ROUTE ---
@@ -112,6 +245,7 @@ router.post('/google', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        studentType: user.studentType || 'physical',
         grade: user.grade,
         registrationNumber: user.registrationNumber,
         mustChangePassword: user.mustChangePassword,
@@ -195,6 +329,7 @@ router.put('/update-profile', protect, async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        studentType: user.studentType || 'physical',
         grade: user.grade,
         registrationNumber: user.registrationNumber,
         mustChangePassword: user.mustChangePassword,
@@ -220,6 +355,7 @@ router.get('/users/search-students', protect, async (req, res) => {
     const searchRegex = new RegExp(query, 'i');
     const students = await User.find({
       role: 'student',
+      studentType: 'physical',
       $or: [
         { name: searchRegex },
         { registrationNumber: searchRegex }
@@ -308,6 +444,7 @@ router.post('/users', protect, isAdmin, async (req, res) => {
       grade: role === 'student' ? normalizedGrade : undefined,
       password: hashedPassword,
       role,
+      studentType: role === 'student' ? 'physical' : undefined,
       mustChangePassword: true
     });
 
@@ -421,12 +558,16 @@ router.get('/admin-stats', protect, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
 
   try {
-    const totalStudents = await User.countDocuments({ role: 'student' });
+    const physicalStudents = await User.countDocuments({ role: 'student', studentType: 'physical' });
+    const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
+    const totalStudents = physicalStudents + onlineStudents;
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
     const totalCourses = await Course.countDocuments();    
 
     res.json({
       students: totalStudents,
+      physicalStudents,
+      onlineStudents,
       teachers: totalTeachers,
       courses: totalCourses
     });
