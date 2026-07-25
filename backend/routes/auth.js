@@ -7,6 +7,8 @@ const { protect, isAdmin } = require('../middleware/authMiddleware');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const { OAuth2Client } = require('google-auth-library');
+const crypto = require('crypto');
+const { sendResetPasswordEmail } = require('../utils/emailService');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -285,6 +287,77 @@ router.post('/change-password', protect, async (req, res) => {
   } catch (err) {
     console.error("Change Password Error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// --- FORGOT PASSWORD ROUTE ---
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  try {
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: "User with this email does not exist." });
+    }
+
+    // Generate token
+    const token = crypto.randomBytes(20).toString('hex');
+
+    // Save token & expiration to user document
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
+    await user.save();
+
+    // Send email
+    await sendResetPasswordEmail(user.email, token, user.name);
+
+    res.json({ message: "Password reset link has been sent to your email." });
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ message: "Server error occurred while sending reset link." });
+  }
+});
+
+// --- RESET PASSWORD ROUTE ---
+router.post('/reset-password/:token', async (req, res) => {
+  const { newPassword } = req.body;
+  const { token } = req.params;
+
+  if (!newPassword) {
+    return res.status(400).json({ message: "New password is required" });
+  }
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Password reset token is invalid or has expired." });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    
+    // Clear reset token and expiration fields
+    user.resetPasswordToken = '';
+    user.resetPasswordExpires = undefined;
+    
+    // Clear mustChangePassword if set
+    user.mustChangePassword = false;
+
+    await user.save();
+
+    res.json({ message: "Password has been reset successfully. You can now log in." });
+  } catch (err) {
+    console.error("Reset Password Error:", err);
+    res.status(500).json({ message: "Server error occurred while resetting password." });
   }
 });
 
