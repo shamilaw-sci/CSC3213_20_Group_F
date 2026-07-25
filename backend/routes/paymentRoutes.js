@@ -4,7 +4,7 @@ const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const Course = require('../models/Course');
 const User = require('../models/User');
-const { protect, isAdmin } = require('./auth');
+const { protect, isAdmin } = require('../middleware/authMiddleware');
 
 // @route   POST /api/payments/process-mock
 // @desc    Process mock payment, record payment & enroll student in course
