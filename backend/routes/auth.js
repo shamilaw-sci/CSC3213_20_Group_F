@@ -631,21 +631,120 @@ router.get('/admin-stats', protect, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
 
   try {
-    const physicalStudents = await User.countDocuments({ role: 'student', studentType: 'physical' });
+    const totalStudents = await User.countDocuments({ role: 'student' });
     const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
-    const totalStudents = physicalStudents + onlineStudents;
+    const physicalStudents = totalStudents - onlineStudents;
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
     const totalCourses = await Course.countDocuments();    
+
+    // Calculate monthly registrations trend for the last 6 months
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const now = new Date();
+    const growthData = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextD = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const monthLabel = monthNames[d.getMonth()];
+
+      const count = await User.countDocuments({
+        role: 'student',
+        createdAt: { $gte: d, $lt: nextD }
+      });
+
+      growthData.push({ month: monthLabel, count });
+    }
+
+    // Recent registrations
+    const recentRegistrations = await User.find({ role: 'student' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name email grade studentType createdAt');
 
     res.json({
       students: totalStudents,
       physicalStudents,
       onlineStudents,
       teachers: totalTeachers,
-      courses: totalCourses
+      courses: totalCourses,
+      growthData,
+      recentRegistrations
     });
   } catch (err) {
+    console.error("Error fetching stats:", err);
     res.status(500).json({ message: "Error fetching stats" });
+  }
+});
+
+// --- GET TEACHER DASHBOARD STATS ---
+router.get('/teacher-stats', protect, async (req, res) => {
+  if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Forbidden: Teachers and Admins only." });
+  }
+
+  try {
+    const teacherId = req.user.id || req.user._id;
+
+    // Find all courses taught by this teacher
+    const courses = await Course.find({ instructor: teacherId });
+
+    // Calculate unique students enrolled in these courses
+    const allStudentsSet = new Set();
+    const coursesList = [];
+
+    courses.forEach(course => {
+      if (course.enrolledStudents) {
+        course.enrolledStudents.forEach(studentId => {
+          allStudentsSet.add(studentId.toString());
+        });
+      }
+      coursesList.push({
+        id: course._id,
+        title: course.title,
+        enrolledCount: course.enrolledStudents ? course.enrolledStudents.length : 0
+      });
+    });
+
+    res.json({
+      coursesCount: courses.length,
+      studentsCount: allStudentsSet.size,
+      rating: 4.8, // Mock average rating
+      coursesList
+    });
+  } catch (err) {
+    console.error("Teacher stats fetch error:", err);
+    res.status(500).json({ message: "Error fetching teacher stats" });
+  }
+});
+
+// --- GET STUDENT DASHBOARD STATS ---
+router.get('/student-stats', protect, async (req, res) => {
+  if (req.user.role !== 'student') {
+    return res.status(403).json({ message: "Forbidden: Students only." });
+  }
+
+  try {
+    const studentId = req.user.id || req.user._id;
+
+    // Find all courses where this student is enrolled
+    const enrolledCourses = await Course.find({ enrolledStudents: studentId })
+      .populate('instructor', 'name');
+
+    const enrolledCoursesList = enrolledCourses.map(course => ({
+      id: course._id,
+      title: course.title,
+      description: course.description,
+      instructor: course.instructor ? { name: course.instructor.name } : { name: "TBA" }
+    }));
+
+    res.json({
+      coursesCount: enrolledCourses.length,
+      grade: req.user.grade || "Unassigned",
+      enrolledCoursesList
+    });
+  } catch (err) {
+    console.error("Student stats fetch error:", err);
+    res.status(500).json({ message: "Error fetching student stats" });
   }
 });
 

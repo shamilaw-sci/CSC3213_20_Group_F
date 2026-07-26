@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import {
   FaSearch,
@@ -47,7 +47,7 @@ const Attendance = () => {
 
     setSearching(true);
     try {
-      const res = await axios.get(`http://localhost:5000/api/auth/users/search-students?query=${encodeURIComponent(searchQuery)}`, getAuthHeaders());
+      const res = await api.get(`/auth/users/search-students?query=${encodeURIComponent(searchQuery)}`);
       setSearchResults(res.data);
       if (res.data.length === 0) {
         toast.error("No students found with that name or registration number.");
@@ -74,7 +74,7 @@ const Attendance = () => {
 
   const fetchSchedules = async (studentGrade) => {
     try {
-      const res = await axios.get('http://localhost:5000/api/schedule', getAuthHeaders());
+      const res = await api.get('/schedule');
       // Prioritize schedules matching student's grade
       const sortedSchedules = [...res.data].sort((a, b) => {
         if (a.className === studentGrade && b.className !== studentGrade) return -1;
@@ -98,7 +98,7 @@ const Attendance = () => {
   const fetchHistory = async (studentId) => {
     setLoadingHistory(true);
     try {
-      const res = await axios.get(`http://localhost:5000/api/attendance/student/${studentId}`, getAuthHeaders());
+      const res = await api.get(`/attendance/student/${studentId}`);
       setAttendanceHistory(res.data);
     } catch (err) {
       console.error("Error fetching attendance history", err);
@@ -123,7 +123,7 @@ const Attendance = () => {
         date: attendanceDate
       };
 
-      const res = await axios.post('http://localhost:5000/api/attendance', payload, getAuthHeaders());
+      const res = await api.post('/attendance', payload);
       toast.success(res.data.message || "Attendance marked successfully!");
 
       // Refresh history & clean up
@@ -273,7 +273,7 @@ const Attendance = () => {
                 <div className="bg-green-50 rounded-lg p-3 text-center border border-green-100">
                   <p className="text-[10px] text-green-700 font-bold uppercase tracking-wider">Attended</p>
                   <p className="text-xl font-extrabold text-green-800 mt-1">
-                    {attendanceHistory.filter(r => r.status === 'Present' || r.status === 'Late').length}
+                    {attendanceHistory.filter(r => r.status === 'Present').length}
                   </p>
                 </div>
                 <div className="bg-red-50 rounded-lg p-3 text-center border border-red-100">
@@ -377,10 +377,10 @@ const Attendance = () => {
                     </div>
                   )}
 
-                  {/* Status Picker (Present, Late, Absent) */}
+                  {/* Status Picker (Present, Absent) */}
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2.5">Attendance Status</label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => setAttendanceStatus('Present')}
@@ -471,7 +471,6 @@ const Attendance = () => {
                               <td className="p-3 text-center whitespace-nowrap">
                                 <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
                                   record.status === 'Present' ? 'bg-green-100 text-green-800' :
-                                  record.status === 'Late' ? 'bg-amber-100 text-amber-800' :
                                   'bg-red-100 text-red-800'
                                 }`}>
                                   {record.status}

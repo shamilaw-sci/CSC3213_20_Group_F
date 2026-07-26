@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -14,8 +14,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const res = await axios.post(`${apiUrl}/auth/forgot-password`, { email });
+      const res = await api.post('/auth/forgot-password', { email });
       toast.success(res.data.message || 'Password reset link sent successfully!');
       setEmail('');
     } catch (err) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 
 const CourseDetails = () => {
@@ -54,15 +54,10 @@ const CourseDetails = () => {
 
   const fetchCourseDetails = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/courses/${courseId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get(`/courses/${courseId}`);
       setCourse(res.data);
 
-      const lessonsRes = await axios.get(`http://localhost:5000/api/lessons/course/${courseId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const lessonsRes = await api.get(`/lessons/course/${courseId}`);
       setLessons(lessonsRes.data);
     } catch (err) {
       toast.error("Failed to fetch details.");
@@ -80,10 +75,8 @@ const CourseDetails = () => {
 
   const handleToggleGrade = async (gradeNumber) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(`http://localhost:5000/api/courses/${courseId}/toggle-grade`,
-        { gradeNumber },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.post(`/courses/${courseId}/toggle-grade`,
+        { gradeNumber }
       );
       toast.success(res.data.message || "Class updated!");
       setCourse((prev) => prev ? {
@@ -108,13 +101,10 @@ const CourseDetails = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/lessons/add-grade', {
+      const res = await api.post('/lessons/add-grade', {
         grade: newGradeNumber,
         title: newGradeTitle,
         courseId
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       toast.success(res.data.message || `Grade ${newGradeTitle} added successfully.`);
       const newGradeEntry = res.data.newGradeEntry || {
@@ -138,10 +128,7 @@ const CourseDetails = () => {
   const handleDeleteCourse = async () => {
     try {
       setIsDeleting(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.delete(`http://localhost:5000/api/courses/${courseId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.delete(`/courses/${courseId}`);
       setShowDeleteConfirm(false);
       setDeleteSuccessMsg(res.data.message || 'Course deleted successfully.');
       setShowDeleteSuccess(true);
@@ -156,10 +143,7 @@ const CourseDetails = () => {
   const handleEnroll = async () => {
     try {
       setIsEnrolling(true);
-      const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/courses/${courseId}/enroll`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post(`/courses/${courseId}/enroll`, {});
       toast.success('Enrollment successful!');
       fetchCourseDetails();
     } catch (err) {
@@ -179,10 +163,7 @@ const CourseDetails = () => {
     setSelectedStudentDetail(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/courses/${courseId}/students/${encodeURIComponent(gradeNumber)}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get(`/courses/${courseId}/students/${encodeURIComponent(gradeNumber)}`);
       setGradeStudents(res.data);
       setSelectedStudentIds(res.data.filter((student) => student.isEnrolled).map((student) => student._id));
       if (res.data.length > 0) {
@@ -197,10 +178,7 @@ const CourseDetails = () => {
 
   const refreshGradeStudentsList = async (gradeNumber) => {
     try {
-      const token = localStorage.getItem('token');
-      const updatedRes = await axios.get(`http://localhost:5000/api/courses/${courseId}/students/${encodeURIComponent(gradeNumber)}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const updatedRes = await api.get(`/courses/${courseId}/students/${encodeURIComponent(gradeNumber)}`);
       setGradeStudents(updatedRes.data);
       if (selectedStudentDetail) {
         const freshStudent = updatedRes.data.find(s => s._id === selectedStudentDetail._id);
@@ -229,11 +207,8 @@ const CourseDetails = () => {
 
     try {
       setIsUpdatingGradeStudents(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.post(`http://localhost:5000/api/courses/${courseId}/enroll-students/${encodeURIComponent(selectedEnrollGrade)}`, {
+      const res = await api.post(`/courses/${courseId}/enroll-students/${encodeURIComponent(selectedEnrollGrade)}`, {
         studentIds: targetIds
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       toast.success(res.data.message || 'Batch enrollment successful.');
       await refreshGradeStudentsList(selectedEnrollGrade);
@@ -260,11 +235,8 @@ const CourseDetails = () => {
 
     try {
       setIsUpdatingGradeStudents(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.post(`http://localhost:5000/api/courses/${courseId}/remove-students/${encodeURIComponent(selectedEnrollGrade)}`, {
+      const res = await api.post(`/courses/${courseId}/remove-students/${encodeURIComponent(selectedEnrollGrade)}`, {
         studentIds: targetIds
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       toast.success(res.data.message || 'Batch removal successful.');
       await refreshGradeStudentsList(selectedEnrollGrade);
@@ -279,14 +251,11 @@ const CourseDetails = () => {
     if (!selectedEnrollGrade) return;
     try {
       setIsUpdatingGradeStudents(true);
-      const token = localStorage.getItem('token');
       const endpoint = mode === 'enroll'
-        ? `http://localhost:5000/api/courses/${courseId}/enroll-students/${encodeURIComponent(selectedEnrollGrade)}`
-        : `http://localhost:5000/api/courses/${courseId}/remove-students/${encodeURIComponent(selectedEnrollGrade)}`;
+        ? `/courses/${courseId}/enroll-students/${encodeURIComponent(selectedEnrollGrade)}`
+        : `/courses/${courseId}/remove-students/${encodeURIComponent(selectedEnrollGrade)}`;
 
-      const res = await axios.post(endpoint, { studentIds: [studentId] }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post(endpoint, { studentIds: [studentId] });
       toast.success(res.data.message || 'Student enrollment updated.');
       await refreshGradeStudentsList(selectedEnrollGrade);
     } catch (err) {
@@ -300,10 +269,8 @@ const CourseDetails = () => {
     const currentLesson = lessons.find(l => l.grade === selectedGrade);
     if (!currentLesson) return;
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/lessons/${currentLesson._id}`,
-        { teacherMessage: editingMessage },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.put(`/lessons/${currentLesson._id}`,
+        { teacherMessage: editingMessage }
       );
       toast.success("Announcement updated!");
       fetchCourseDetails();
@@ -318,10 +285,8 @@ const CourseDetails = () => {
     if (!currentLesson) return;
     const updatedVideos = [...(currentLesson.videoLessons || []), { title: videoTitle, url: videoUrl }];
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/lessons/${currentLesson._id}`,
-        { videoLessons: updatedVideos },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.put(`/lessons/${currentLesson._id}`,
+        { videoLessons: updatedVideos }
       );
       toast.success("Video lesson added!");
       setVideoTitle("");
@@ -337,10 +302,8 @@ const CourseDetails = () => {
     if (!currentLesson) return;
     const updatedVideos = currentLesson.videoLessons.filter(v => v._id !== videoId);
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/lessons/${currentLesson._id}`,
-        { videoLessons: updatedVideos },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.put(`/lessons/${currentLesson._id}`,
+        { videoLessons: updatedVideos }
       );
       toast.success("Video lesson removed!");
       fetchCourseDetails();
@@ -371,10 +334,8 @@ const CourseDetails = () => {
     formData.append('title', pdfTitle.trim() || pdfFile.name);
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/lessons/${currentLesson._id}/pdf`, formData, {
+      await api.post(`/lessons/${currentLesson._id}/pdf`, formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });
@@ -396,10 +357,7 @@ const CourseDetails = () => {
     if (!window.confirm("Are you sure you want to delete this PDF?")) return;
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/lessons/${currentLesson._id}/pdf/${pdfId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/lessons/${currentLesson._id}/pdf/${pdfId}`);
       toast.success("PDF material removed!");
       await fetchCourseDetails();
     } catch (err) {
@@ -1161,7 +1119,6 @@ const CourseDetails = () => {
                                       <td className="p-3 text-right whitespace-nowrap">
                                         <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
                                           record.status === 'Present' ? 'bg-green-100 text-green-800' :
-                                          record.status === 'Late' ? 'bg-amber-100 text-amber-800' :
                                           'bg-red-100 text-red-800'
                                         }`}>
                                           {record.status}

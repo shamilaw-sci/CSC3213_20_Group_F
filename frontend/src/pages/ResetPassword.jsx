@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FaLock, FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -25,8 +25,7 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const res = await axios.post(`${apiUrl}/auth/reset-password/${token}`, {
+      const res = await api.post(`/auth/reset-password/${token}`, {
         newPassword: password,
       });
       toast.success(res.data.message || 'Password reset successful!');

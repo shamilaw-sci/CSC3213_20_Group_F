@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { FaUserPlus, FaTrash, FaSearch } from 'react-icons/fa';
 
@@ -45,9 +45,9 @@ const Enrollments = () => {
     setLoading(true);
     try {
       const [enrollmentsRes, usersRes, coursesRes] = await Promise.allSettled([
-        axios.get('http://localhost:5000/api/courses/enrollments/all', { headers: getAuthHeaders() }),
-        axios.get('http://localhost:5000/api/auth/users?role=student', { headers: getAuthHeaders() }),
-        axios.get('http://localhost:5000/api/courses', { headers: getAuthHeaders() })
+        api.get('/courses/enrollments/all'),
+        api.get('/auth/users?role=student'),
+        api.get('/courses')
       ]);
 
       if (enrollmentsRes.status === 'fulfilled') setEnrollments(enrollmentsRes.value.data);
@@ -86,14 +86,13 @@ const Enrollments = () => {
 
     setSubmitting(true);
     try {
-      const res = await axios.post(
-        'http://localhost:5000/api/courses/enroll',
+      const res = await api.post(
+        '/courses/enroll',
         {
           studentId: selectedStudentId,
           courseId: selectedCourseId,
           className: selectedClass
-        },
-        { headers: getAuthHeaders() }
+        }
       );
 
       toast.success(res.data.message || 'Student enrolled successfully.');
@@ -122,10 +121,9 @@ const Enrollments = () => {
     const { studentId, courseId, className } = enrollmentToDelete;
 
     try {
-      await axios.post(
-        'http://localhost:5000/api/courses/unenroll',
-        { studentId, courseId, className },
-        { headers: getAuthHeaders() }
+      await api.post(
+        '/courses/unenroll',
+        { studentId, courseId, className }
       );
 
       toast.success('Student unenrolled successfully.');
