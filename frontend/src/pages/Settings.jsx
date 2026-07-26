@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { 
   FaCamera, 
@@ -68,10 +68,8 @@ const Settings = () => {
 
     setIsSaving(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.put('http://localhost:5000/api/auth/update-profile', 
-        { name, newPassword, profilePicture },
-        { headers: { Authorization: `Bearer ${token}` } } // Must send token to prove who we are
+      const res = await api.put('/auth/update-profile', 
+        { name, newPassword, profilePicture }
       );
 
       // Update local storage with the new user details so the UI updates instantly

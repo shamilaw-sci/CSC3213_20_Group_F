@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import toast from 'react-hot-toast';
 import {
   FaChalkboardTeacher,
@@ -54,9 +54,7 @@ const ManageUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/auth/users', {
-        headers: getAuthHeaders()
-      });
+      const res = await api.get('/auth/users');
       setUsers(res.data);
       setLoading(false);
     } catch (err) {
@@ -77,14 +75,13 @@ const ManageUsers = () => {
     setCreating(true);
 
     try {
-      const res = await axios.post(
-        'http://localhost:5000/api/auth/users',
+      const res = await api.post(
+        '/auth/users',
         {
           ...studentForm,
           role: 'student',
           studentType: 'physical'
-        },
-        { headers: getAuthHeaders() }
+        }
       );
 
       setUsers((currentUsers) => [res.data.user, ...currentUsers]);
@@ -110,13 +107,12 @@ const ManageUsers = () => {
     setCreating(true);
 
     try {
-      const res = await axios.post(
-        'http://localhost:5000/api/auth/users',
+      const res = await api.post(
+        '/auth/users',
         {
           ...adminForm,
           role: 'admin'
-        },
-        { headers: getAuthHeaders() }
+        }
       );
 
       setUsers((currentUsers) => [res.data.user, ...currentUsers]);
@@ -132,10 +128,9 @@ const ManageUsers = () => {
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/auth/users/${userId}/role`,
-        { role: newRole },
-        { headers: getAuthHeaders() }
+      await api.put(
+        `/auth/users/${userId}/role`,
+        { role: newRole }
       );
 
       toast.success('User role updated!');
@@ -147,10 +142,9 @@ const ManageUsers = () => {
 
   const handleGradeChange = async (userId, newGrade) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/auth/users/${userId}/grade`,
-        { grade: newGrade },
-        { headers: getAuthHeaders() }
+      await api.put(
+        `/auth/users/${userId}/grade`,
+        { grade: newGrade }
       );
 
       toast.success("Student's grade updated successfully!");
@@ -176,10 +170,9 @@ const ManageUsers = () => {
   const executeBatchUpdate = async () => {
     setUpdatingBatch(true);
     try {
-      const res = await axios.post(
-        'http://localhost:5000/api/auth/users/batch-update-grade',
-        { sourceGrade: batchSource, targetGrade: batchTarget },
-        { headers: getAuthHeaders() }
+      const res = await api.post(
+        '/auth/users/batch-update-grade',
+        { sourceGrade: batchSource, targetGrade: batchTarget }
       );
 
       toast.success(res.data.message || 'Batch update completed successfully!');
@@ -202,9 +195,7 @@ const ManageUsers = () => {
     if (!userToDelete) return;
     const { id: userId, name: userName } = userToDelete;
     try {
-      await axios.delete(`http://localhost:5000/api/auth/users/${userId}`, {
-        headers: getAuthHeaders()
-      });
+      await api.delete(`/auth/users/${userId}`);
 
       toast.success(`${userName} deleted successfully`);
       setUsers(users.filter((u) => u._id !== userId));
