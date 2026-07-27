@@ -560,20 +560,57 @@ router.get('/admin-stats', protect, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
 
   try {
-    const physicalStudents = await User.countDocuments({ role: 'student', studentType: 'physical' });
+    const totalStudents = await User.countDocuments({ role: 'student' });
     const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
-    const totalStudents = physicalStudents + onlineStudents;
+    const physicalStudents = Math.max(0, totalStudents - onlineStudents);
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
     const totalCourses = await Course.countDocuments();    
+
+    // Recent Registrations (last 5 students)
+    const recentRegistrations = await User.find({ role: 'student' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name email grade studentType createdAt');
+
+    // Monthly Growth Data for Intake Line Chart
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const today = new Date();
+    const monthsList = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      monthsList.push(monthNames[d.getMonth()]);
+    }
+
+    const growthMap = {};
+    monthsList.forEach(m => { growthMap[m] = 0; });
+
+    const allStudents = await User.find({ role: 'student' }).select('createdAt');
+    allStudents.forEach(s => {
+      const d = new Date(s.createdAt);
+      const mName = monthNames[d.getMonth()];
+      if (growthMap[mName] !== undefined) {
+        growthMap[mName] += 1;
+      }
+    });
+
+    const growthData = monthsList.map(m => ({ month: m, count: growthMap[m] }));
+
+    // Fee Collection Metrics
+    const payments = await Payment.find({ status: 'COMPLETED' });
+    const totalCollected = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
 
     res.json({
       students: totalStudents,
       physicalStudents,
       onlineStudents,
       teachers: totalTeachers,
-      courses: totalCourses
+      courses: totalCourses,
+      recentRegistrations,
+      growthData,
+      totalCollected
     });
   } catch (err) {
+    console.error("Error fetching admin stats:", err);
     res.status(500).json({ message: "Error fetching stats" });
   }
 });
