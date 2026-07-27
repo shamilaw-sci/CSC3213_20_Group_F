@@ -43,6 +43,16 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
     return () => clearInterval(timer);
   }, [step, resendTimer]);
 
+  const getCardType = (number) => {
+    const clean = (number || '').replace(/\D/g, '');
+    if (clean.startsWith('4')) return 'visa';
+    if (/^(5[1-5]|2[2-7])/.test(clean)) return 'mastercard';
+    if (/^3[47]/.test(clean)) return 'amex';
+    return 'none';
+  };
+
+  const cardType = getCardType(cardNumber);
+
   if (!isOpen || !course) return null;
 
   const courseFee = course.price || 2500;
@@ -301,15 +311,48 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
         {/* STEP 2: Simulated Online Payment Gateway (Card Details) */}
         {step === 2 && (
           <form onSubmit={handleProceedToOTP} className="p-6 md:p-8 space-y-5">
-            {/* Sampath / Card Acquiring Branding Banner */}
-            <div className="flex justify-between items-center bg-indigo-50 border border-indigo-100 p-3 rounded-xl">
+            {/* Sampath / Card Acquiring Branding Banner with Dynamic Brand Highlighting */}
+            <div className="flex justify-between items-center bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 border border-indigo-100 p-3.5 rounded-2xl shadow-xs">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-indigo-900">Online Payment Gateway</span>
-                <span className="text-[10px] bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full font-semibold">Sampath Bank IPG Partner</span>
+                <span className="text-xs font-extrabold text-indigo-950">Payment Gateway</span>
+                <span className="text-[10px] bg-indigo-200/70 text-indigo-900 px-2.5 py-0.5 rounded-full font-bold">
+                  Sampath Bank IPG Partner
+                </span>
               </div>
-              <div className="flex gap-1.5 text-xs font-bold">
-                <span className="px-2 py-1 bg-blue-600 text-white rounded">VISA</span>
-                <span className="px-2 py-1 bg-red-600 text-white rounded">MC</span>
+
+              {/* Card Brand Badges */}
+              <div className="flex items-center gap-2">
+                {/* Visa Badge */}
+                <div 
+                  className={`px-3 py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1 border ${
+                    cardType === 'visa' 
+                      ? 'bg-blue-600 text-white border-blue-700 shadow-md scale-110 ring-2 ring-blue-400 font-extrabold' 
+                      : cardType === 'none'
+                      ? 'bg-blue-100/70 text-blue-900 border-blue-200 font-bold'
+                      : 'bg-gray-100 text-gray-400 border-gray-200 opacity-30 grayscale'
+                  }`}
+                >
+                  <span className="font-black italic tracking-wider text-xs">VISA</span>
+                  {cardType === 'visa' && <span className="text-[10px] font-bold">✓</span>}
+                </div>
+
+                {/* Mastercard Badge */}
+                <div 
+                  className={`px-3 py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 border ${
+                    cardType === 'mastercard' 
+                      ? 'bg-gradient-to-r from-red-600 via-amber-500 to-red-600 text-white border-red-700 shadow-md scale-110 ring-2 ring-red-400 font-extrabold' 
+                      : cardType === 'none'
+                      ? 'bg-amber-100/70 text-amber-950 border-amber-200 font-bold'
+                      : 'bg-gray-100 text-gray-400 border-gray-200 opacity-30 grayscale'
+                  }`}
+                >
+                  <div className="flex -space-x-1.5 items-center">
+                    <span className="w-2.5 h-2.5 bg-red-500 rounded-full inline-block"></span>
+                    <span className="w-2.5 h-2.5 bg-amber-400 rounded-full inline-block opacity-90"></span>
+                  </div>
+                  <span className="font-bold tracking-tight text-xs">Mastercard</span>
+                  {cardType === 'mastercard' && <span className="text-[10px] font-bold">✓</span>}
+                </div>
               </div>
             </div>
 
@@ -334,18 +377,48 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                Card Number (16 Digits)
-              </label>
-              <input
-                type="text"
-                placeholder="4000 0000 0000 0000"
-                value={cardNumber}
-                onChange={handleCardNumberChange}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 font-mono font-bold tracking-widest text-sm"
-                maxLength={19}
-                required
-              />
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Card Number (16 Digits)
+                </label>
+                {cardType === 'visa' && (
+                  <span className="text-xs text-blue-600 font-extrabold flex items-center gap-1 animate-pulse">
+                    💳 Visa Card Detected
+                  </span>
+                )}
+                {cardType === 'mastercard' && (
+                  <span className="text-xs text-red-600 font-extrabold flex items-center gap-1 animate-pulse">
+                    💳 Mastercard Detected
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="4000 0000 0000 0000"
+                  value={cardNumber}
+                  onChange={handleCardNumberChange}
+                  className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 outline-none text-gray-800 font-mono font-bold tracking-widest text-sm transition-all ${
+                    cardType === 'visa'
+                      ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50/20'
+                      : cardType === 'mastercard'
+                      ? 'border-red-500 ring-2 ring-red-100 bg-red-50/20'
+                      : 'border-gray-200 focus:ring-purple-500'
+                  }`}
+                  maxLength={19}
+                  required
+                />
+                {cardType === 'visa' && (
+                  <span className="absolute right-3 top-2.5 px-2 py-0.5 bg-blue-600 text-white font-black italic rounded text-[10px] shadow">
+                    VISA
+                  </span>
+                )}
+                {cardType === 'mastercard' && (
+                  <span className="absolute right-3 top-2.5 px-2 py-0.5 bg-gradient-to-r from-red-600 to-amber-500 text-white font-bold rounded text-[10px] shadow">
+                    MC
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
