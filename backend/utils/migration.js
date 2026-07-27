@@ -15,9 +15,13 @@ const getClassNameFromGrade = (grade) => {
 
 const migrateData = async () => {
     try {
-        console.log("--------------------------------------------------");
-        console.log("🚀 Starting LuminaLearn DB & Asset Migration...");
-        console.log("--------------------------------------------------");
+        const Payment = require('../models/Payment');
+        try {
+            await Payment.collection.dropIndex('studentId_1_courseId_1_month_1');
+            console.log("🧹 Dropped legacy payments index [studentId_1_courseId_1_month_1]");
+        } catch (idxErr) {
+            // Index didn't exist or already dropped
+        }
 
         const courses = await Course.find({});
         const uploadsDir = path.join(__dirname, '..', 'uploads');

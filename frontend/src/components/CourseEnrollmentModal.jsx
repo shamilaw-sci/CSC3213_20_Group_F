@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSuccess }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
 
   // Step 1 State: Enrollment details
   const [enrollmentDate, setEnrollmentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -20,6 +21,27 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
   // Step 3 State: OTP Verification
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState('');
+  const [demoOtpCode, setDemoOtpCode] = useState('');
+  const [phoneMasked, setPhoneMasked] = useState('');
+  const [resendTimer, setResendTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+
+  // Countdown timer for Resend OTP button
+  useEffect(() => {
+    let timer;
+    if (step === 3 && resendTimer > 0) {
+      timer = setInterval(() => {
+        setResendTimer((prev) => {
+          if (prev <= 1) {
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [step, resendTimer]);
 
   if (!isOpen || !course) return null;
 
@@ -41,8 +63,37 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
     setExpiry(raw);
   };
 
-  // Validate Card Details in Step 2
-  const handleProceedToOTP = (e) => {
+  // Request Real OTP from Backend
+  const requestOtpDispatch = async () => {
+    setSendingOtp(true);
+    setOtpError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        'http://localhost:5000/api/payments/send-otp',
+        { courseId: course._id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setDemoOtpCode(res.data.otpCode || '');
+      setPhoneMasked(res.data.phoneMasked || student?.parentsPhoneNumber || '');
+      setResendTimer(60);
+      setCanResend(false);
+      setOtpCode('');
+      toast.success(res.data.message || 'OTP code sent to mobile!');
+      return true;
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to dispatch OTP.';
+      setCardError(errorMsg);
+      toast.error(errorMsg);
+      return false;
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  // Validate Card Details in Step 2 & Dispatch OTP
+  const handleProceedToOTP = async (e) => {
     e.preventDefault();
     setCardError('');
 
@@ -67,7 +118,7 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
     const expYY = parseInt('20' + yyStr, 10);
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // 1-indexed
+    const currentMonth = now.getMonth() + 1;
 
     if (isNaN(expMM) || expMM < 1 || expMM > 12) {
       setCardError('Invalid expiry month. Must be between 01 and 12.');
@@ -84,11 +135,14 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
       return;
     }
 
-    // Pass to Step 3 OTP Verification
-    setStep(3);
+    // Call backend to generate & dispatch real OTP
+    const sent = await requestOtpDispatch();
+    if (sent) {
+      setStep(3);
+    }
   };
 
-  // Submit Mock Payment & Enrollment (Step 3)
+  // Submit Payment & Verify Real OTP (Step 3)
   const handleCompletePayment = async (e) => {
     e.preventDefault();
     setOtpError('');
@@ -123,7 +177,7 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
       }
       onClose();
     } catch (err) {
-      const errorMsg = err.response?.data?.error || 'Payment process failed. Please try again.';
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Payment process failed. Please try again.';
       setOtpError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -337,17 +391,25 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
 
               <button
                 type="submit"
-                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition text-sm flex items-center gap-2"
+                disabled={sendingOtp}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition text-sm flex items-center gap-2"
               >
-                Pay LKR {courseFee.toLocaleString()}
+                {sendingOtp ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Sending OTP...
+                  </>
+                ) : (
+                  `Pay LKR ${courseFee.toLocaleString()}`
+                )}
               </button>
             </div>
           </form>
         )}
 
-        {/* STEP 3: Simulated OTP Verification */}
+        {/* STEP 3: Real OTP Verification */}
         {step === 3 && (
-          <form onSubmit={handleCompletePayment} className="p-6 md:p-8 space-y-6 text-center">
+          <form onSubmit={handleCompletePayment} className="p-6 md:p-8 space-y-5 text-center">
             <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-2xl mx-auto font-bold shadow-inner">
               🔐
             </div>
@@ -355,14 +417,23 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
             <div>
               <h4 className="text-lg font-bold text-gray-800">Two-Factor Payment Authentication</h4>
               <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
-                Enter the 6-digit OTP sent to your registered mobile number <span className="font-semibold text-gray-700">{student?.parentsPhoneNumber || '+94 7X XXX XXXX'}</span>.
+                Enter the 6-digit OTP code sent to your registered mobile number{' '}
+                <span className="font-bold text-gray-800">{phoneMasked || student?.parentsPhoneNumber || 'your mobile'}</span>.
               </p>
             </div>
 
-            {/* Demo helper */}
-            <div className="bg-purple-50 border border-purple-200 rounded-2xl p-3 text-xs text-purple-900 font-medium">
-              💡 <strong>Demo Helper:</strong> Use OTP code <span className="bg-purple-200 px-2 py-0.5 rounded font-mono font-bold">123456</span> to complete payment verification.
-            </div>
+            {/* Demo Helper Banner */}
+            {demoOtpCode && (
+              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-3 text-xs text-purple-900 font-medium">
+                📱 <strong>Real Generated OTP Code:</strong>{' '}
+                <span className="bg-purple-200 text-purple-950 px-2.5 py-1 rounded-md font-mono font-bold text-sm tracking-widest">
+                  {demoOtpCode}
+                </span>
+                <span className="block text-[10px] text-purple-700 mt-1">
+                  (Valid for 5 minutes • Saved in MongoDB OTP collection)
+                </span>
+              </div>
+            )}
 
             {otpError && (
               <div className="bg-red-50 text-red-600 text-xs p-3 rounded-xl border border-red-200 font-medium">
@@ -373,13 +444,30 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
             <div>
               <input
                 type="text"
-                placeholder="123456"
+                placeholder="000000"
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-48 mx-auto px-4 py-3 bg-gray-50 border-2 border-purple-400 rounded-2xl text-center text-2xl font-mono font-bold tracking-[0.5em] focus:ring-4 focus:ring-purple-200 outline-none text-purple-900"
+                className="w-52 mx-auto px-4 py-3 bg-gray-50 border-2 border-purple-500 rounded-2xl text-center text-2xl font-mono font-bold tracking-[0.5em] focus:ring-4 focus:ring-purple-200 outline-none text-purple-950 shadow-inner"
                 maxLength={6}
                 required
               />
+            </div>
+
+            <div className="flex justify-center items-center text-xs">
+              {canResend ? (
+                <button
+                  type="button"
+                  onClick={requestOtpDispatch}
+                  disabled={sendingOtp}
+                  className="text-indigo-600 font-bold hover:underline cursor-pointer"
+                >
+                  {sendingOtp ? 'Sending new code...' : 'Didn\'t receive code? Resend OTP 🔄'}
+                </button>
+              ) : (
+                <span className="text-gray-400">
+                  Resend code in <strong className="text-gray-700 font-mono">{resendTimer}s</strong>
+                </span>
+              )}
             </div>
 
             <div className="flex justify-between items-center pt-2">

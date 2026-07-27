@@ -6,10 +6,21 @@ const paymentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  studentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   course: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
     required: true
+  },
+  courseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Course'
+  },
+  month: {
+    type: String
   },
   amount: {
     type: Number,
@@ -49,4 +60,11 @@ const paymentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('Payment', paymentSchema);
+const Payment = mongoose.model('Payment', paymentSchema);
+
+// Drop legacy MongoDB index if it exists to prevent E11000 duplicate key errors
+Payment.collection.dropIndex('studentId_1_courseId_1_month_1').catch(() => {
+  // Ignore error if index doesn't exist
+});
+
+module.exports = Payment;
