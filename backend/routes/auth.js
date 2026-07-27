@@ -581,6 +581,86 @@ router.get('/admin-stats', protect, async (req, res) => {
 // --- GET ADMIN & TEACHER ANALYTICS SUMMARY ---
 router.get('/analytics-summary', protect, async (req, res) => {
   try {
+    // 0. Student Role Handling (Personal Learning Analytics)
+    if (req.user.role?.toLowerCase() === 'student') {
+      const studentId = req.user.id || req.user._id;
+
+      const enrollments = await Enrollment.find({ student: studentId }).populate({
+        path: 'course',
+        populate: { path: 'instructor', select: 'name email' }
+      }).lean();
+
+      const directCourses = await Course.find({ enrolledStudents: studentId })
+        .populate('instructor', 'name email')
+        .lean();
+
+      const allCoursesMap = {};
+
+      directCourses.forEach(c => {
+        allCoursesMap[c._id.toString()] = {
+          _id: c._id,
+          title: c.title,
+          description: c.description,
+          instructorName: c.instructor?.name || 'TBA',
+          price: c.price || 2500,
+          cardImage: c.cardImage || '',
+          banner: c.banner || ''
+        };
+      });
+
+      enrollments.forEach(e => {
+        if (e.course) {
+          allCoursesMap[e.course._id.toString()] = {
+            _id: e.course._id,
+            title: e.course.title,
+            description: e.course.description,
+            instructorName: e.course.instructor?.name || 'TBA',
+            price: e.course.price || 2500,
+            cardImage: e.course.cardImage || '',
+            banner: e.course.banner || ''
+          };
+        }
+      });
+
+      const enrolledCoursesList = Object.values(allCoursesMap);
+
+      // Student Personal Attendance
+      const totalAttendance = await Attendance.countDocuments({ studentId });
+      const presentRecords = await Attendance.countDocuments({ studentId, status: 'Present' });
+      const absentRecords = await Attendance.countDocuments({ studentId, status: 'Absent' });
+      const lateRecords = await Attendance.countDocuments({ studentId, status: 'Late' });
+
+      const attendanceRate = totalAttendance > 0 ? Math.round((presentRecords / totalAttendance) * 100) : 100;
+
+      // Student Personal Payments
+      const studentPayments = await Payment.find({ student: studentId, status: 'COMPLETED' })
+        .populate('course', 'title price')
+        .lean();
+
+      const totalPaidAmount = studentPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+
+      return res.json({
+        success: true,
+        isStudentView: true,
+        studentMetrics: {
+          enrolledCoursesCount: enrolledCoursesList.length,
+          attendanceRate,
+          totalPaymentsCount: studentPayments.length,
+          totalPaidAmount,
+          userGrade: req.user.grade || 'Unassigned',
+          userType: req.user.studentType || 'online'
+        },
+        attendanceBreakdown: {
+          total: totalAttendance,
+          present: presentRecords,
+          absent: absentRecords,
+          late: lateRecords
+        },
+        enrolledCoursesList,
+        studentPayments
+      });
+    }
+
     const { studentType } = req.query; // 'all', 'online', 'physical'
     const filterType = (studentType && studentType !== 'all') ? studentType.toLowerCase() : null;
 
