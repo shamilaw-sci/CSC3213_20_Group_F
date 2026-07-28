@@ -41,9 +41,17 @@ app.use('/api/schedule', scheduleRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/payments', paymentRoutes);
 
+// --- GLOBAL ERROR HANDLER ---
+app.use((err, req, res, next) => {
+    console.error("Unhandled Server Error:", err.stack);
+    res.status(err.status || 500).json({
+        error: err.message || "An internal server error occurred."
+    });
+});
+
 // --- DATABASE CONNECTION ---
 const fallbackDbURI = 'mongodb://developer:dev1234@ac-zqvmyqq-shard-00-00.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-01.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-02.br5bcum.mongodb.net:27017/?ssl=true&replicaSet=atlas-l6y6kk-shard-0&authSource=admin&appName=LuminaLearnCluster';
-const dbURI = fallbackDbURI;
+const dbURI = process.env.MONGO_URI || fallbackDbURI;
 
 if (!dbURI) {
     console.error("FATAL ERROR: MONGO_URI is not defined in .env file.");

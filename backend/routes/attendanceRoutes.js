@@ -188,7 +188,6 @@ router.get('/stats/summary', protect, async (req, res) => {
     const todayRecords = await Attendance.find({ date: today });
     const totalToday = todayRecords.length;
     const presentToday = todayRecords.filter(r => r.status === 'Present').length;
-    const lateToday = todayRecords.filter(r => r.status === 'Late').length;
     const absentToday = todayRecords.filter(r => r.status === 'Absent').length;
 
     const totalRecordsCount = await Attendance.countDocuments();
@@ -197,7 +196,6 @@ router.get('/stats/summary', protect, async (req, res) => {
       today: {
         total: totalToday,
         present: presentToday,
-        late: lateToday,
         absent: absentToday
       },
       overall: {

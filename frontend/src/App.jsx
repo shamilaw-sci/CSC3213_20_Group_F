@@ -12,6 +12,8 @@ import Dashboard from './components/Dashboard';
 // --- PAGES ---
 import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Courses from './pages/Courses'; 
 import CourseDetails from './pages/CourseDetails';
 import ManageUsers from './pages/ManageUsers';
@@ -52,6 +54,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/" element={<Navigate to="/login" />} />
 
         {/* === DASHBOARD & PROTECTED ROUTES === */}

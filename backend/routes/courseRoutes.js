@@ -539,12 +539,12 @@ router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
             
             const attendanceRecords = attendanceMap[student._id.toString()] || [];
             
-            // Count consecutive absences
+             // Count consecutive absences
             let consecutiveAbsences = 0;
             for (const r of attendanceRecords) {
                 if (r.status === 'Absent') {
                     consecutiveAbsences++;
-                } else if (r.status === 'Present' || r.status === 'Late') {
+                } else if (r.status === 'Present') {
                     break;
                 }
             }
@@ -554,7 +554,7 @@ router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
                     date: r.date,
                     status: r.status
                 })),
-                totalPresent: attendanceRecords.filter(r => r.status === 'Present' || r.status === 'Late').length,
+                totalPresent: attendanceRecords.filter(r => r.status === 'Present').length,
                 totalAbsent: attendanceRecords.filter(r => r.status === 'Absent').length,
                 consecutiveAbsences,
                 isChronicallyAbsent: consecutiveAbsences >= 3

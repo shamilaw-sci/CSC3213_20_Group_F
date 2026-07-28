@@ -9,6 +9,8 @@ const Enrollment = require('../models/Enrollment');
 const Payment = require('../models/Payment');
 const Attendance = require('../models/Attendance');
 const { OAuth2Client } = require('google-auth-library');
+const crypto = require('crypto');
+const { sendResetPasswordEmail } = require('../utils/emailService');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -287,6 +289,77 @@ router.post('/change-password', protect, async (req, res) => {
   } catch (err) {
     console.error("Change Password Error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// --- FORGOT PASSWORD ROUTE ---
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  try {
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: "User with this email does not exist." });
+    }
+
+    // Generate token
+    const token = crypto.randomBytes(20).toString('hex');
+
+    // Save token & expiration to user document
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
+    await user.save();
+
+    // Send email
+    await sendResetPasswordEmail(user.email, token, user.name);
+
+    res.json({ message: "Password reset link has been sent to your email." });
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ message: "Server error occurred while sending reset link." });
+  }
+});
+
+// --- RESET PASSWORD ROUTE ---
+router.post('/reset-password/:token', async (req, res) => {
+  const { newPassword } = req.body;
+  const { token } = req.params;
+
+  if (!newPassword) {
+    return res.status(400).json({ message: "New password is required" });
+  }
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Password reset token is invalid or has expired." });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    
+    // Clear reset token and expiration fields
+    user.resetPasswordToken = '';
+    user.resetPasswordExpires = undefined;
+    
+    // Clear mustChangePassword if set
+    user.mustChangePassword = false;
+
+    await user.save();
+
+    res.json({ message: "Password has been reset successfully. You can now log in." });
+  } catch (err) {
+    console.error("Reset Password Error:", err);
+    res.status(500).json({ message: "Server error occurred while resetting password." });
   }
 });
 
@@ -598,6 +671,33 @@ router.get('/admin-stats', protect, async (req, res) => {
     // Fee Collection Metrics
     const payments = await Payment.find({ status: 'COMPLETED' });
     const totalCollected = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
+    const physicalStudents = totalStudents - onlineStudents;
+    const totalTeachers = await User.countDocuments({ role: 'teacher' });
+    const totalCourses = await Course.countDocuments();    
+
+    // Calculate monthly registrations trend for the last 6 months
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const now = new Date();
+    const growthData = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextD = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const monthLabel = monthNames[d.getMonth()];
+
+      const count = await User.countDocuments({
+        role: 'student',
+        createdAt: { $gte: d, $lt: nextD }
+      });
+
+      growthData.push({ month: monthLabel, count });
+    }
+
+    // Recent registrations
+    const recentRegistrations = await User.find({ role: 'student' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name email grade studentType createdAt');
 
     res.json({
       students: totalStudents,

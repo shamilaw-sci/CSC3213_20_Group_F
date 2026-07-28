@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
-import axios from 'axios';
+import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -97,10 +97,7 @@ const AddCourse = () => {
   // Fetch all teachers on component load or on demand
   const fetchTeachers = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/auth/users', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/auth/users');
       setTeachers(res.data.filter(u => u.role === 'teacher'));
     } catch (err) {
       toast.error("Failed to load existing teachers list.");
@@ -265,10 +262,8 @@ const AddCourse = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/courses/add-with-teacher', formData, {
+      await api.post('/courses/add-with-teacher', formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });

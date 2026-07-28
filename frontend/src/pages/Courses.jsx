@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,10 +14,7 @@ const Courses = () => {
     const fetchCourses = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/courses', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get('/courses');
         setCourses(res.data);
       } catch (err) {
         console.error("Error fetching courses", err);

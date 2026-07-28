@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaArrowRight, FaPhone, FaGraduationCap } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -33,7 +33,7 @@ const Register = () => {
     }
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', { 
+      const res = await api.post('/auth/register', { 
         email, 
         password,
         grade,
@@ -67,7 +67,7 @@ const Register = () => {
         throw new Error('Google credential is missing from the response.');
       }
 
-      const res = await axios.post('http://localhost:5000/api/auth/google-register', {
+      const res = await api.post('/auth/google-register', {
         credential,
         grade,
         parentsPhoneNumber

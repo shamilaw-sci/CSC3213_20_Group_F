@@ -62,7 +62,7 @@ router.post('/add-grade', protect, isAdmin, async (req, res) => {
 
 // @route   PATCH /api/lessons/update-message/:lessonId
 // @desc    Teacher posting a message to a class
-router.patch('/update-message/:lessonId', protect, async (req, res) => {
+router.patch('/update-message/:lessonId', protect, isTeacherOrAdmin, async (req, res) => {
     const { teacherMessage } = req.body;
 
     try {
@@ -93,7 +93,7 @@ router.get('/course/:courseId', protect, async (req, res) => {
 
 // @route   PUT /api/lessons/:lessonId
 // @desc    Update lesson message and/or video lessons
-router.put('/:lessonId', protect, async (req, res) => {
+router.put('/:lessonId', protect, isTeacherOrAdmin, async (req, res) => {
     const { teacherMessage, videoLessons } = req.body;
 
     try {

@@ -122,8 +122,8 @@ const migrateData = async () => {
                 for (let className of classesForStudent) {
                     try {
                         await Enrollment.findOneAndUpdate(
-                            { studentId: studentIdStr, courseId: course._id, className: className },
-                            { status: 'Active' },
+                            { student: studentIdStr, course: course._id, className: className },
+                            { student: studentIdStr, course: course._id, className: className },
                             { upsert: true, new: true }
                         );
                     } catch (e) {
@@ -133,10 +133,10 @@ const migrateData = async () => {
             }
 
             // Re-sync Course embedded arrays from the source of truth (Enrollment collection)
-            const activeEnrollments = await Enrollment.find({ courseId: course._id, status: 'Active' });
+            const activeEnrollments = await Enrollment.find({ course: course._id });
             
             // Build the clean arrays
-            const newEnrolledStudents = [...new Set(activeEnrollments.map(e => e.studentId.toString()))];
+            const newEnrolledStudents = [...new Set(activeEnrollments.map(e => e.student.toString()))];
             
             // Rebuild class arrays
             const classMap = new Map(); // className -> Set of student IDs
@@ -144,7 +144,7 @@ const migrateData = async () => {
                 if (!classMap.has(e.className)) {
                     classMap.set(e.className, new Set());
                 }
-                classMap.get(e.className).add(e.studentId.toString());
+                classMap.get(e.className).add(e.student.toString());
             });
 
             const newClasses = [];

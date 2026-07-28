@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaArrowRight } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -15,7 +15,7 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const res = await api.post('/auth/login', { email, password });
 
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
@@ -39,7 +39,7 @@ const Login = () => {
         throw new Error('Google credential is missing from the response.');
       }
 
-      const res = await axios.post('http://localhost:5000/api/auth/google', {
+      const res = await api.post('/auth/google', {
         credential,
       });
 
@@ -131,7 +131,11 @@ const Login = () => {
                 <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-[#3a1c8a] accent-[#3a1c8a] cursor-pointer" />
                 Remember me
               </label>
-              <button type="button" className="font-medium text-[#3a1c8a] hover:text-purple-800 transition-colors">
+              <button 
+                type="button" 
+                onClick={() => navigate('/forgot-password')}
+                className="font-medium text-[#3a1c8a] hover:text-purple-800 transition-colors cursor-pointer"
+              >
                 Forgot password?
               </button>
             </div>
