@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -425,17 +426,37 @@ router.put('/update-profile', protect, async (req, res) => {
 // 1. SEARCH STUDENTS
 router.get('/users/search-students', protect, async (req, res) => {
   try {
-    const { query } = req.query;
-    if (!query) return res.json([]);
-    const searchRegex = new RegExp(query, 'i');
-    const students = await User.find({
+    const { query, studentType } = req.query;
+    if (!query || !query.trim()) return res.json([]);
+
+    const trimmedQuery = query.trim();
+    const safeRegex = new RegExp(trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+    const searchConditions = [
+      { name: safeRegex },
+      { registrationNumber: safeRegex },
+      { email: safeRegex },
+      { parentsPhoneNumber: safeRegex }
+    ];
+
+    if (mongoose.Types.ObjectId.isValid(trimmedQuery)) {
+      searchConditions.push({ _id: trimmedQuery });
+    }
+
+    const filter = {
       role: 'student',
-      studentType: 'physical',
-      $or: [
-        { name: searchRegex },
-        { registrationNumber: searchRegex }
-      ]
-    }).select('-password').sort({ name: 1 }).limit(20);
+      $or: searchConditions
+    };
+
+    if (studentType && studentType !== 'all') {
+      filter.studentType = studentType;
+    }
+
+    const students = await User.find(filter)
+      .select('-password')
+      .sort({ name: 1 })
+      .limit(20);
+
     res.json(students);
   } catch (err) {
     console.error("Search Students Error:", err);
@@ -671,33 +692,6 @@ router.get('/admin-stats', protect, async (req, res) => {
     // Fee Collection Metrics
     const payments = await Payment.find({ status: 'COMPLETED' });
     const totalCollected = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
-    const physicalStudents = totalStudents - onlineStudents;
-    const totalTeachers = await User.countDocuments({ role: 'teacher' });
-    const totalCourses = await Course.countDocuments();    
-
-    // Calculate monthly registrations trend for the last 6 months
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const now = new Date();
-    const growthData = [];
-
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const nextD = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-      const monthLabel = monthNames[d.getMonth()];
-
-      const count = await User.countDocuments({
-        role: 'student',
-        createdAt: { $gte: d, $lt: nextD }
-      });
-
-      growthData.push({ month: monthLabel, count });
-    }
-
-    // Recent registrations
-    const recentRegistrations = await User.find({ role: 'student' })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('name email grade studentType createdAt');
 
     res.json({
       students: totalStudents,
