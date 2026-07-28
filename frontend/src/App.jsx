@@ -19,6 +19,8 @@ import CourseDetails from './pages/CourseDetails';
 import ManageUsers from './pages/ManageUsers';
 import Attendance from './pages/Attendance';
 import Enrollments from './pages/Enrollments';
+import Payments from './pages/Payments';
+import Analytics from './pages/Analytics';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -64,6 +66,8 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<Courses />} /> 
           <Route path="/course/:courseId" element={<CourseDetails />} />
+          <Route path="/payments" element={<Payments />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
 
           {/* Level 2: Restricted Access (Admin Only) */}

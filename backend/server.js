@@ -4,17 +4,19 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 
-// Import Routes
+// Import Routes 
 const authRoutes = require('./routes/auth');
 const courseRoutes = require('./routes/courseRoutes');
 const lessonRoutes = require('./routes/lessonRoutes'); // New change
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 
+
 // --- MIDDLEWARE ---
-app.use(express.json({ limit: '10mb' })); // Parses incoming JSON requests (increased for profile picture upload)
+app.use(express.json({ limit: '10mb' })); // Parses incoming JSON requests
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors());         // Enables Cross-Origin Resource Sharing
 app.use('/uploads', express.static('uploads')); // Serve uploaded images
@@ -37,6 +39,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/lessons', lessonRoutes); // New change
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // --- GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {
