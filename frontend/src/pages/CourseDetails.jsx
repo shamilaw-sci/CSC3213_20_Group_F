@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
+import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 
 const CourseDetails = () => {
   const { courseId } = useParams();
@@ -21,6 +22,7 @@ const CourseDetails = () => {
   const [gradeMessage, setGradeMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [showStudentPicker, setShowStudentPicker] = useState(false);
   const [selectedEnrollGrade, setSelectedEnrollGrade] = useState(null);
   const [gradeStudents, setGradeStudents] = useState([]);
@@ -601,11 +603,10 @@ const CourseDetails = () => {
             <div className="bg-white p-6 rounded-2xl border border-green-200 shadow-sm">
               <p className="text-green-700 font-semibold">This course is recommended for {studentGrade && (studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`)}.</p>
               <button
-                onClick={handleEnroll}
-                disabled={isEnrolling}
-                className="mt-4 inline-flex items-center justify-center rounded-xl bg-green-600 px-5 py-3 text-white font-semibold hover:bg-green-700 transition"
+                onClick={() => setShowEnrollModal(true)}
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-3 text-white font-bold hover:from-green-700 hover:to-emerald-700 shadow-md transition"
               >
-                {isEnrolling ? 'Enrolling...' : 'Enroll in this Course'}
+                Enroll in this Course 🎓
               </button>
             </div>
           )}
@@ -1251,6 +1252,15 @@ const CourseDetails = () => {
           </div>
         </div>
       )}
+
+      {/* Course Enrollment & Payment Modal */}
+      <CourseEnrollmentModal
+        isOpen={showEnrollModal}
+        onClose={() => setShowEnrollModal(false)}
+        course={course}
+        student={user}
+        onEnrollSuccess={fetchCourseDetails}
+      />
     </div>
   );
 };

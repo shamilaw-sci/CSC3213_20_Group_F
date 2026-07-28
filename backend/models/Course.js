@@ -40,6 +40,10 @@ const courseSchema = new mongoose.Schema({
     type: String,
     default: ""
   },
+  price: {
+    type: Number,
+    default: 2500
+  },
   enrolledGrades: [gradeSchema],
   classes: [classSchema],
   enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]

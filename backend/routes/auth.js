@@ -6,6 +6,8 @@ const User = require('../models/User');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
+const Payment = require('../models/Payment');
+const Attendance = require('../models/Attendance');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendResetPasswordEmail } = require('../utils/emailService');
@@ -633,6 +635,42 @@ router.get('/admin-stats', protect, async (req, res) => {
   try {
     const totalStudents = await User.countDocuments({ role: 'student' });
     const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
+    const physicalStudents = Math.max(0, totalStudents - onlineStudents);
+    const totalTeachers = await User.countDocuments({ role: 'teacher' });
+    const totalCourses = await Course.countDocuments();    
+
+    // Recent Registrations (last 5 students)
+    const recentRegistrations = await User.find({ role: 'student' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name email grade studentType createdAt');
+
+    // Monthly Growth Data for Intake Line Chart
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const today = new Date();
+    const monthsList = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      monthsList.push(monthNames[d.getMonth()]);
+    }
+
+    const growthMap = {};
+    monthsList.forEach(m => { growthMap[m] = 0; });
+
+    const allStudents = await User.find({ role: 'student' }).select('createdAt');
+    allStudents.forEach(s => {
+      const d = new Date(s.createdAt);
+      const mName = monthNames[d.getMonth()];
+      if (growthMap[mName] !== undefined) {
+        growthMap[mName] += 1;
+      }
+    });
+
+    const growthData = monthsList.map(m => ({ month: m, count: growthMap[m] }));
+
+    // Fee Collection Metrics
+    const payments = await Payment.find({ status: 'COMPLETED' });
+    const totalCollected = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
     const physicalStudents = totalStudents - onlineStudents;
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
     const totalCourses = await Course.countDocuments();    
@@ -667,84 +705,282 @@ router.get('/admin-stats', protect, async (req, res) => {
       onlineStudents,
       teachers: totalTeachers,
       courses: totalCourses,
+      recentRegistrations,
       growthData,
-      recentRegistrations
+      totalCollected
     });
   } catch (err) {
-    console.error("Error fetching stats:", err);
+    console.error("Error fetching admin stats:", err);
     res.status(500).json({ message: "Error fetching stats" });
   }
 });
 
-// --- GET TEACHER DASHBOARD STATS ---
-router.get('/teacher-stats', protect, async (req, res) => {
-  if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
-    return res.status(403).json({ message: "Forbidden: Teachers and Admins only." });
-  }
-
+// --- GET ADMIN & TEACHER ANALYTICS SUMMARY ---
+router.get('/analytics-summary', protect, async (req, res) => {
   try {
-    const teacherId = req.user.id || req.user._id;
+    // 0. Student Role Handling (Personal Learning Analytics)
+    if (req.user.role?.toLowerCase() === 'student') {
+      const studentId = req.user.id || req.user._id;
 
-    // Find all courses taught by this teacher
-    const courses = await Course.find({ instructor: teacherId });
+      const enrollments = await Enrollment.find({ student: studentId }).populate({
+        path: 'course',
+        populate: { path: 'instructor', select: 'name email' }
+      }).lean();
 
-    // Calculate unique students enrolled in these courses
-    const allStudentsSet = new Set();
-    const coursesList = [];
+      const directCourses = await Course.find({ enrolledStudents: studentId })
+        .populate('instructor', 'name email')
+        .lean();
 
-    courses.forEach(course => {
-      if (course.enrolledStudents) {
-        course.enrolledStudents.forEach(studentId => {
-          allStudentsSet.add(studentId.toString());
-        });
-      }
-      coursesList.push({
-        id: course._id,
-        title: course.title,
-        enrolledCount: course.enrolledStudents ? course.enrolledStudents.length : 0
+      const allCoursesMap = {};
+
+      directCourses.forEach(c => {
+        allCoursesMap[c._id.toString()] = {
+          _id: c._id,
+          title: c.title,
+          description: c.description,
+          instructorName: c.instructor?.name || 'TBA',
+          price: c.price || 2500,
+          cardImage: c.cardImage || '',
+          banner: c.banner || ''
+        };
       });
+
+      enrollments.forEach(e => {
+        if (e.course) {
+          allCoursesMap[e.course._id.toString()] = {
+            _id: e.course._id,
+            title: e.course.title,
+            description: e.course.description,
+            instructorName: e.course.instructor?.name || 'TBA',
+            price: e.course.price || 2500,
+            cardImage: e.course.cardImage || '',
+            banner: e.course.banner || ''
+          };
+        }
+      });
+
+      const enrolledCoursesList = Object.values(allCoursesMap);
+
+      // Student Personal Attendance
+      const totalAttendance = await Attendance.countDocuments({ studentId });
+      const presentRecords = await Attendance.countDocuments({ studentId, status: 'Present' });
+      const absentRecords = await Attendance.countDocuments({ studentId, status: 'Absent' });
+      const lateRecords = await Attendance.countDocuments({ studentId, status: 'Late' });
+
+      const attendanceRate = totalAttendance > 0 ? Math.round((presentRecords / totalAttendance) * 100) : 100;
+
+      // Student Personal Payments
+      const studentPayments = await Payment.find({ student: studentId, status: 'COMPLETED' })
+        .populate('course', 'title price')
+        .lean();
+
+      const totalPaidAmount = studentPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+
+      return res.json({
+        success: true,
+        isStudentView: true,
+        studentMetrics: {
+          enrolledCoursesCount: enrolledCoursesList.length,
+          attendanceRate,
+          totalPaymentsCount: studentPayments.length,
+          totalPaidAmount,
+          userGrade: req.user.grade || 'Unassigned',
+          userType: req.user.studentType || 'online'
+        },
+        attendanceBreakdown: {
+          total: totalAttendance,
+          present: presentRecords,
+          absent: absentRecords,
+          late: lateRecords
+        },
+        enrolledCoursesList,
+        studentPayments
+      });
+    }
+
+    const { studentType } = req.query; // 'all', 'online', 'physical'
+    const filterType = (studentType && studentType !== 'all') ? studentType.toLowerCase() : null;
+
+    // Build user filter query
+    const studentFilter = { role: 'student' };
+    if (filterType) {
+      studentFilter.studentType = filterType;
+    }
+
+    // 1. User Demographic Stats
+    const totalAllStudents = await User.countDocuments({ role: 'student' });
+    const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
+    const physicalStudents = Math.max(0, totalAllStudents - onlineStudents);
+    
+    const totalStudents = filterType === 'online' ? onlineStudents : filterType === 'physical' ? physicalStudents : totalAllStudents;
+    const totalTeachers = await User.countDocuments({ role: 'teacher' });
+    const totalAdmins = await User.countDocuments({ role: 'admin' });
+
+    // Fetch filtered student IDs for course & payment scoping
+    const filteredStudents = await User.find(studentFilter).select('_id grade studentType createdAt');
+    const filteredStudentIds = filteredStudents.map(s => s._id);
+
+    // 2. Grade Distribution (scoped to filterType)
+    const gradeCounts = {};
+    const gradeTypeBreakdown = {};
+
+    filteredStudents.forEach(s => {
+      let g = s.grade || 'Unassigned';
+      if (g.toLowerCase().startsWith('grade')) {
+        g = g.trim();
+      } else if (!isNaN(g)) {
+        g = `Grade ${g.trim()}`;
+      }
+      
+      gradeCounts[g] = (gradeCounts[g] || 0) + 1;
+      
+      if (!gradeTypeBreakdown[g]) {
+        gradeTypeBreakdown[g] = { online: 0, physical: 0 };
+      }
+      if (s.studentType === 'online') {
+        gradeTypeBreakdown[g].online += 1;
+      } else {
+        gradeTypeBreakdown[g].physical += 1;
+      }
     });
 
-    res.json({
-      coursesCount: courses.length,
-      studentsCount: allStudentsSet.size,
-      rating: 4.8, // Mock average rating
-      coursesList
-    });
-  } catch (err) {
-    console.error("Teacher stats fetch error:", err);
-    res.status(500).json({ message: "Error fetching teacher stats" });
-  }
-});
+    const gradeDistribution = Object.keys(gradeCounts).map(gradeName => ({
+      grade: gradeName,
+      count: gradeCounts[gradeName],
+      online: gradeTypeBreakdown[gradeName]?.online || 0,
+      physical: gradeTypeBreakdown[gradeName]?.physical || 0
+    })).sort((a, b) => b.count - a.count);
 
-// --- GET STUDENT DASHBOARD STATS ---
-router.get('/student-stats', protect, async (req, res) => {
-  if (req.user.role !== 'student') {
-    return res.status(403).json({ message: "Forbidden: Students only." });
-  }
+    // 3. Course Popularity Analytics (Most Taken Courses - scoped to filterType)
+    const courses = await Course.find({})
+      .populate('instructor', 'name email')
+      .lean();
 
-  try {
-    const studentId = req.user.id || req.user._id;
+    const topCourses = await Promise.all(courses.map(async (c) => {
+      const enrollmentQuery = filterType 
+        ? { course: c._id, student: { $in: filteredStudentIds } }
+        : { course: c._id };
 
-    // Find all courses where this student is enrolled
-    const enrolledCourses = await Course.find({ enrolledStudents: studentId })
-      .populate('instructor', 'name');
+      const enrollmentDocsCount = await Enrollment.countDocuments(enrollmentQuery);
+      
+      let embeddedArrayCount = 0;
+      if (Array.isArray(c.enrolledStudents)) {
+        if (filterType) {
+          embeddedArrayCount = c.enrolledStudents.filter(id => 
+            filteredStudentIds.some(fid => fid.toString() === id.toString())
+          ).length;
+        } else {
+          embeddedArrayCount = c.enrolledStudents.length;
+        }
+      }
+      
+      const enrolledCount = Math.max(enrollmentDocsCount, embeddedArrayCount);
 
-    const enrolledCoursesList = enrolledCourses.map(course => ({
-      id: course._id,
-      title: course.title,
-      description: course.description,
-      instructor: course.instructor ? { name: course.instructor.name } : { name: "TBA" }
+      return {
+        _id: c._id,
+        title: c.title,
+        description: c.description,
+        instructorName: c.instructor?.name || 'Unassigned',
+        price: c.price || 2500,
+        enrolledCount,
+        cardImage: c.cardImage || '',
+        banner: c.banner || ''
+      };
     }));
 
-    res.json({
-      coursesCount: enrolledCourses.length,
-      grade: req.user.grade || "Unassigned",
-      enrolledCoursesList
+    topCourses.sort((a, b) => b.enrolledCount - a.enrolledCount);
+
+    // 4. Financial & Payment Analytics (scoped to filterType)
+    const paymentQuery = { status: 'COMPLETED' };
+    if (filterType) {
+      paymentQuery.student = { $in: filteredStudentIds };
+    }
+
+    const payments = await Payment.find(paymentQuery)
+      .populate('course', 'title price')
+      .lean();
+
+    const totalRevenue = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
+
+    // Revenue per course
+    const courseRevenueMap = {};
+    payments.forEach(p => {
+      const courseTitle = p.course?.title || 'General Course';
+      courseRevenueMap[courseTitle] = (courseRevenueMap[courseTitle] || 0) + (p.amount || 0);
     });
+
+    const courseRevenueList = Object.keys(courseRevenueMap).map(title => ({
+      title,
+      revenue: courseRevenueMap[title]
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    // 5. Weekly Student Registration Trend Data (Grouping by Weeks instead of Months)
+    const allStudentsList = await User.find({ role: 'student' }).select('studentType createdAt').lean();
+    
+    const getWeekLabel = (d) => {
+      const date = new Date(d);
+      const day = date.getDate();
+      const month = date.toLocaleString('en-US', { month: 'short' });
+      const weekNum = Math.ceil(day / 7);
+      return `Wk ${weekNum} (${month})`;
+    };
+
+    const weeklyStudentMap = {};
+    allStudentsList.forEach(s => {
+      const weekLabel = getWeekLabel(s.createdAt);
+      if (!weeklyStudentMap[weekLabel]) {
+        weeklyStudentMap[weekLabel] = { week: weekLabel, online: 0, physical: 0, total: 0 };
+      }
+      if (s.studentType === 'online') {
+        weeklyStudentMap[weekLabel].online += 1;
+      } else {
+        weeklyStudentMap[weekLabel].physical += 1;
+      }
+      weeklyStudentMap[weekLabel].total += 1;
+    });
+
+    const weeklyStudentTrend = Object.values(weeklyStudentMap);
+
+    // 6. Platform Attendance Analytics (scoped to filterType)
+    const attendanceQuery = filterType ? { studentId: { $in: filteredStudentIds } } : {};
+    const totalAttendanceRecords = await Attendance.countDocuments(attendanceQuery);
+    const presentRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Present' });
+    const absentRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Absent' });
+    const lateRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Late' });
+
+    const attendanceRate = totalAttendanceRecords > 0 
+      ? Math.round((presentRecords / totalAttendanceRecords) * 100) 
+      : 100;
+
+    res.json({
+      success: true,
+      studentTypeFilter: filterType || 'all',
+      metrics: {
+        totalStudents,
+        onlineStudents,
+        physicalStudents,
+        totalTeachers,
+        totalAdmins,
+        totalCourses: courses.length,
+        totalRevenue,
+        totalPaymentsCount: payments.length,
+        attendanceRate,
+        attendanceBreakdown: {
+          total: totalAttendanceRecords,
+          present: presentRecords,
+          absent: absentRecords,
+          late: lateRecords
+        }
+      },
+      gradeDistribution,
+      topCourses,
+      courseRevenueList,
+      weeklyStudentTrend
+    });
+
   } catch (err) {
-    console.error("Student stats fetch error:", err);
-    res.status(500).json({ message: "Error fetching student stats" });
+    console.error("Fetch Analytics Error:", err);
+    res.status(500).json({ message: "Failed to fetch analytics data: " + err.message });
   }
 });
 

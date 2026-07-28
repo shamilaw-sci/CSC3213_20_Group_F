@@ -107,9 +107,10 @@ const SvgLineChart = ({ data }) => {
 };
 
 // --- PAYMENT METRICS DONUT CHART COMPONENT ---
-const PaymentDonut = () => {
-  const percentage = 83; // 83% collected
-  const strokeDashoffset = 251.2 * (1 - percentage / 100);
+const PaymentDonut = ({ totalCollected = 0 }) => {
+  const displayAmount = totalCollected > 0 ? totalCollected : 7500;
+  const percentage = 100;
+  const strokeDashoffset = 0;
 
   return (
     <div className="flex flex-col items-center justify-center p-4 h-full">
@@ -120,7 +121,7 @@ const PaymentDonut = () => {
             strokeDasharray="251.2" strokeDashoffset={strokeDashoffset} strokeLinecap="round" />
         </svg>
         <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-3xl font-extrabold text-gray-800">83%</span>
+          <span className="text-3xl font-extrabold text-gray-800">100%</span>
           <span className="text-3xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">Complete</span>
         </div>
       </div>
@@ -128,11 +129,11 @@ const PaymentDonut = () => {
       <div className="mt-5 grid grid-cols-2 gap-4 w-full text-xs font-semibold">
         <div className="bg-emerald-50/50 p-2 rounded-lg border border-emerald-100 flex flex-col items-center">
           <span className="text-gray-400 font-bold text-3xs uppercase">Paid Invoices</span>
-          <span className="text-sm font-bold text-emerald-600 mt-0.5">Rs.10000</span>
+          <span className="text-sm font-bold text-emerald-600 mt-0.5">LKR {displayAmount.toLocaleString()}</span>
         </div>
         <div className="bg-amber-50/50 p-2 rounded-lg border border-amber-100 flex flex-col items-center">
           <span className="text-gray-400 font-bold text-3xs uppercase">Pending Dues</span>
-          <span className="text-sm font-bold text-amber-600 mt-0.5">Rs.200</span>
+          <span className="text-sm font-bold text-amber-600 mt-0.5">LKR 0</span>
         </div>
       </div>
     </div>
@@ -330,7 +331,7 @@ const AdminDashboard = ({ user }) => {
             <p className="text-xs text-gray-400">Total target vs actual payment logs</p>
           </div>
           <div className="flex-1">
-            <PaymentDonut />
+            <PaymentDonut totalCollected={stats.totalCollected} />
           </div>
         </div>
       </div>
