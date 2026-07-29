@@ -66,7 +66,9 @@ const Analytics = () => {
     const lateCount = attendanceBreakdown?.late || 0;
     const totalAtt = attendanceBreakdown?.total || (presentCount + absentCount + lateCount);
 
-    const attPercentage = totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 100;
+    const attPercentage = studentMetrics?.attendanceRate !== undefined 
+      ? studentMetrics.attendanceRate 
+      : (totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 0);
 
     return (
       <div className="min-h-screen bg-[#f1f5f9] p-4 md:p-10 font-sans text-gray-800 space-y-10">
@@ -123,8 +125,8 @@ const Analytics = () => {
             <div className="bg-blue-50/90 p-6 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs text-blue-700 font-bold uppercase tracking-wider">My Attendance Rate</p>
-                  <h3 className="text-3xl font-extrabold text-blue-900 mt-1">{studentMetrics?.attendanceRate || 100}%</h3>
+                  <p className="text-xs text-blue-700 font-bold uppercase tracking-wider">Weekly Attendance Rate</p>
+                  <h3 className="text-3xl font-extrabold text-blue-900 mt-1">{studentMetrics?.attendanceRate ?? 0}%</h3>
                 </div>
                 <div className="w-12 h-12 bg-blue-200/60 text-blue-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
                   <FaCheckCircle />
@@ -132,8 +134,8 @@ const Analytics = () => {
               </div>
               
               <div className="mt-4 pt-4 border-t border-blue-100 flex items-center justify-between text-xs font-bold text-blue-900">
-                <span>{presentCount} Present / {absentCount} Absent</span>
-                <span className="text-blue-700 font-bold">{totalAtt} Sessions Logged</span>
+                <span>{studentMetrics?.weeklyAttendedCount || 0} / {studentMetrics?.totalAvailableWeeks || 4} Weeks Attended</span>
+                <span className="text-blue-700 font-bold">{studentMetrics?.attendanceRate ?? 0}% Compliance</span>
               </div>
             </div>
 
@@ -290,6 +292,42 @@ const Analytics = () => {
               </div>
             </div>
 
+          </div>
+
+          {/* Section 1.5: 4-Week Attendance Progress Tracker */}
+          <div className="bg-[#f0f9ff] p-8 rounded-[30px] border border-sky-100 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <h3 className="text-xl font-bold text-sky-950 flex items-center gap-2">
+                  📅 4-Week Attendance Progress Tracker
+                </h3>
+                <p className="text-xs text-sky-700/80 mt-0.5">
+                  Cumulative weekly attendance formula: ({studentMetrics?.weeklyAttendedCount || 0} / {studentMetrics?.totalAvailableWeeks || 4} total available weeks across active courses = {studentMetrics?.attendanceRate ?? 0}%)
+                </p>
+              </div>
+              <span className="text-xs font-extrabold bg-sky-200 text-sky-900 px-3.5 py-1 rounded-full border border-sky-300">
+                Cumulative Rate: {studentMetrics?.attendanceRate ?? 0}%
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+              {[1, 2, 3, 4].map((wNum) => {
+                const isWeekAttended = (studentMetrics?.weeklyAttendedCount || 0) >= wNum;
+                return (
+                  <div key={wNum} className={`p-4 rounded-2xl border ${isWeekAttended ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-white border-sky-100 text-gray-400'}`}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-black uppercase">Week {wNum}</span>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isWeekAttended ? 'bg-emerald-200 text-emerald-900' : 'bg-gray-100 text-gray-500'}`}>
+                        {isWeekAttended ? 'Logged ✓' : 'Pending'}
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold mt-1">
+                      {isWeekAttended ? 'Weekly Class Attended ✓' : 'Study Material Pending'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Section 2: Recent Payment History Table */}
