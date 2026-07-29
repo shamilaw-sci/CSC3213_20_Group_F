@@ -293,15 +293,20 @@ router.post('/submit-weekly', protect, async (req, res) => {
 // ==========================================
 router.get('/weekly-status/:courseId', protect, async (req, res) => {
   const { courseId } = req.params;
+  const { month } = req.query;
   const studentId = req.user.id || req.user._id;
 
   try {
-    const records = await Attendance.find({
+    const filter = {
       studentId,
       courseId,
       mode: 'ONLINE_WEEKLY'
-    }).select('weekNumber month status date');
+    };
+    if (month) {
+      filter.month = month;
+    }
 
+    const records = await Attendance.find(filter).select('weekNumber month status date');
     const attendedWeeks = records.map(r => r.weekNumber);
 
     res.json({

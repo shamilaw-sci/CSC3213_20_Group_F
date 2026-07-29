@@ -45,14 +45,36 @@ const CourseDetails = () => {
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
 
   // Weekly Attendance & Class Navigation State
+  const [selectedMonth, setSelectedMonth] = useState('July 2026');
   const [activeWeek, setActiveWeek] = useState(1);
   const [attendedWeeks, setAttendedWeeks] = useState([]);
   const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
 
+  // Material Completion Tracking (stored in localStorage per student/course/month/week)
+  const [completedMaterials, setCompletedMaterials] = useState(() => {
+    const saved = localStorage.getItem(`completed_materials_${user?.id || user?._id}`);
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const availableMonths = ["July 2026", "August 2026", "September 2026", "October 2026"];
+
+  const markMaterialCompleted = (type) => {
+    const key = `${user?.id || user?._id}_${courseId}_${selectedMonth}_w${activeWeek}_${type}`;
+    const newCompleted = { ...completedMaterials, [key]: true };
+    setCompletedMaterials(newCompleted);
+    localStorage.setItem(`completed_materials_${user?.id || user?._id}`, JSON.stringify(newCompleted));
+    toast.success(`${type === 'video' ? '🎬 Lecture Video' : '📄 PDF Notes'} marked as completed for Week ${activeWeek}!`);
+  };
+
+  const isVideoWatched = !!completedMaterials[`${user?.id || user?._id}_${courseId}_${selectedMonth}_w${activeWeek}_video`];
+  const isPdfDownloaded = !!completedMaterials[`${user?.id || user?._id}_${courseId}_${selectedMonth}_w${activeWeek}_pdf`];
+  const allMaterialsCovered = isVideoWatched && isPdfDownloaded;
+  const coveredCount = (isVideoWatched ? 1 : 0) + (isPdfDownloaded ? 1 : 0);
+
   const fetchWeeklyAttendanceStatus = async () => {
     if (user?.role !== 'student' || !courseId) return;
     try {
-      const res = await api.get(`/attendance/weekly-status/${courseId}`);
+      const res = await api.get(`/attendance/weekly-status/${courseId}?month=${encodeURIComponent(selectedMonth)}`);
       setAttendedWeeks(res.data.attendedWeeks || []);
     } catch (err) {
       console.error("Error fetching weekly attendance status:", err);
@@ -61,16 +83,22 @@ const CourseDetails = () => {
 
   useEffect(() => {
     fetchWeeklyAttendanceStatus();
-  }, [courseId, user]);
+  }, [courseId, user, selectedMonth]);
 
   const handleSubmitWeeklyAttendance = async (weekNum) => {
+    if (!allMaterialsCovered) {
+      toast.error(`Please complete all study materials for Week ${weekNum} before submitting attendance.`);
+      return;
+    }
+
     setIsSubmittingAttendance(true);
     try {
       const res = await api.post('/attendance/submit-weekly', {
         courseId,
-        weekNumber: weekNum
+        weekNumber: weekNum,
+        month: selectedMonth
       });
-      toast.success(res.data.message || `Attendance for Week ${weekNum} submitted!`);
+      toast.success(res.data.message || `Attendance for Week ${weekNum} (${selectedMonth}) submitted!`);
       setAttendedWeeks(prev => Array.from(new Set([...prev, weekNum])));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit weekly attendance.');
@@ -635,17 +663,44 @@ const CourseDetails = () => {
       {selectedGrade !== null && (
         <div className="space-y-6">
 
+          {/* Month Selector Bar */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
+                <span>🗓️</span> Academic Month Selector
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">Select an academic month to view weekly study materials and attendance logs.</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {availableMonths.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setSelectedMonth(m)}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
+                    selectedMonth === m
+                      ? 'bg-purple-700 text-white shadow-md scale-105'
+                      : 'bg-gray-100 text-gray-700 hover:bg-purple-100 hover:text-purple-900'
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* 4-Week Class Workspace Navigation Tabs */}
           <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
               <div>
                 <h4 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
-                  <span>📅</span> Weekly Study Workspace
+                  <span>📅</span> Weekly Workspace — {selectedMonth}
                 </h4>
-                <p className="text-xs text-gray-500 mt-0.5">Select a week to view lecture videos, study materials, and confirm attendance.</p>
+                <p className="text-xs text-gray-500 mt-0.5">Select a week to access study materials and verify attendance.</p>
               </div>
               <span className="bg-purple-100 text-purple-900 text-xs font-extrabold px-3 py-1 rounded-lg self-start sm:self-auto border border-purple-200">
-                4 Weeks / Month Mode
+                Month: {selectedMonth}
               </span>
             </div>
 
@@ -688,25 +743,44 @@ const CourseDetails = () => {
             </div>
           </div>
 
-          {/* Student Weekly Attendance Action Banner */}
-          {user?.role === 'student' && alreadyEnrolled && (
+          {/* Physical Student Notice Banner */}
+          {user?.role === 'student' && alreadyEnrolled && user?.studentType === 'physical' && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 p-5 rounded-2xl flex items-start gap-3 shadow-xs">
+              <span className="text-2xl shrink-0">🏫</span>
+              <div>
+                <h4 className="font-extrabold text-amber-950 text-sm">Physical Classroom Student Mode</h4>
+                <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                  You are registered as a <strong>Physical Classroom Student</strong>. Your class attendance is recorded in-person at the institute counter by the Admin/Cashier when attending physical lectures. Online weekly self-attendance submission is disabled for physical students.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Online Student Weekly Gated Attendance Action Banner */}
+          {user?.role === 'student' && alreadyEnrolled && user?.studentType !== 'physical' && (
             <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="bg-white/20 text-white font-extrabold text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-full">
-                    Week {activeWeek} Class Attendance
+                    {selectedMonth} — Week {activeWeek} Attendance
                   </span>
-                  {attendedWeeks.includes(activeWeek) && (
+                  {attendedWeeks.includes(activeWeek) ? (
                     <span className="bg-emerald-400/30 text-emerald-200 border border-emerald-400/40 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
                       ✓ Status: Settled
                     </span>
+                  ) : (
+                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${allMaterialsCovered ? 'bg-emerald-400/30 text-emerald-200 border border-emerald-400/40' : 'bg-amber-400/30 text-amber-200 border border-amber-400/40'}`}>
+                      {allMaterialsCovered ? '🔓 Unlocked & Ready' : `🔒 Locked (${coveredCount}/2 Materials Covered)`}
+                    </span>
                   )}
                 </div>
-                <h4 className="text-xl font-extrabold tracking-tight">Week {activeWeek} Attendance Confirmation</h4>
+                <h4 className="text-xl font-extrabold tracking-tight">Week {activeWeek} Attendance Confirmation ({selectedMonth})</h4>
                 <p className="text-purple-200 text-xs mt-1 max-w-xl leading-relaxed">
                   {attendedWeeks.includes(activeWeek)
-                    ? `Great job! Your attendance for Week ${activeWeek} is logged into system database analytics.`
-                    : `Please review the study materials for Week ${activeWeek} and click the button to submit your attendance.`}
+                    ? `Great job! Your attendance for Week ${activeWeek} (${selectedMonth}) is logged into system database analytics.`
+                    : allMaterialsCovered
+                      ? `🎉 All study materials for Week ${activeWeek} are covered! Click below to confirm your attendance.`
+                      : `Complete all study materials for Week ${activeWeek} below to unlock attendance submission.`}
                 </p>
               </div>
 
@@ -717,7 +791,7 @@ const CourseDetails = () => {
                   </svg>
                   Attendance Submitted (Week {activeWeek})
                 </div>
-              ) : (
+              ) : allMaterialsCovered ? (
                 <button
                   type="button"
                   disabled={isSubmittingAttendance}
@@ -725,6 +799,14 @@ const CourseDetails = () => {
                   className="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-sm px-7 py-3.5 rounded-xl transition shadow-lg shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
                   {isSubmittingAttendance ? 'Submitting...' : `Submit Attendance (Week ${activeWeek}) ✓`}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="bg-gray-600 text-gray-300 font-bold text-xs px-6 py-3.5 rounded-xl shrink-0 cursor-not-allowed opacity-75 border border-gray-500"
+                >
+                  🔒 Cover Study Materials ({coveredCount}/2 Covered)
                 </button>
               )}
             </div>
@@ -769,18 +851,26 @@ const CourseDetails = () => {
           )}
 
           {/* Video Lessons Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <h4 className="font-bold text-lg text-gray-800 mb-4">Video Lessons</h4>
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <div>
+                <h4 className="font-bold text-lg text-gray-800">Video Lessons (Week {activeWeek} — {selectedMonth})</h4>
+                <p className="text-xs text-gray-500">Watch the lecture video below to complete video study requirement.</p>
+              </div>
+              <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${isVideoWatched ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
+                {isVideoWatched ? '✓ Video Completed' : 'Pending View'}
+              </span>
+            </div>
 
             {/* Video addition form (Teacher/Admin only) */}
             {user?.role !== 'student' && (
-              <form onSubmit={handleAddVideo} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
+              <form onSubmit={handleAddVideo} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 p-4 bg-gray-50 rounded-xl">
                 <input
                   type="text"
                   placeholder="Video Title"
                   value={videoTitle}
                   onChange={(e) => setVideoTitle(e.target.value)}
-                  className="p-3 bg-white border border-gray-200 rounded-lg outline-none"
+                  className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
                   required
                 />
                 <input
@@ -788,55 +878,89 @@ const CourseDetails = () => {
                   placeholder="Video Link (e.g. YouTube URL)"
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
-                  className="p-3 bg-white border border-gray-200 rounded-lg outline-none"
+                  className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
                   required
                 />
                 <button
                   type="submit"
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer"
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer text-sm"
                 >
                   + Add Video
                 </button>
               </form>
             )}
 
-            {/* Videos List */}
+            {/* Demo / Real Videos List */}
             <div className="space-y-3">
-              {currentLesson?.videoLessons?.length > 0 ? (
-                currentLesson.videoLessons.map((vid) => (
-                  <div key={vid._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className="text-red-500 text-xl">🎬</div>
-                      <div>
-                        <p className="font-bold text-gray-800">{vid.title}</p>
-                        <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline">
-                          {vid.url}
-                        </a>
-                      </div>
-                    </div>
-                    {user?.role !== 'student' && (
-                      <button
-                        onClick={() => handleDeleteVideo(vid._id)}
-                        className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    )}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/40 hover:bg-purple-50 transition-all gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-red-500 text-2xl">🎬</div>
+                  <div>
+                    <p className="font-extrabold text-gray-900 text-sm">
+                      Week {activeWeek} Master Lecture Video: Theory & Concepts ({selectedMonth})
+                    </p>
+                    <p className="text-xs text-purple-700 font-semibold mt-0.5">
+                      Required Video Material — 45 mins HD Recording
+                    </p>
                   </div>
-                ))
-              ) : (
-                <p className="text-gray-400 italic">No lesson Data for this Class</p>
-              )}
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  {isVideoWatched ? (
+                    <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-4 py-2 rounded-xl border border-emerald-200">
+                      ✓ Watched & Completed
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => markMaterialCompleted('video')}
+                      className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>▶</span> Watch Lecture Video
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {currentLesson?.videoLessons?.map((vid) => (
+                <div key={vid._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="text-red-500 text-xl">🎬</div>
+                    <div>
+                      <p className="font-bold text-gray-800">{vid.title}</p>
+                      <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline">
+                        {vid.url}
+                      </a>
+                    </div>
+                  </div>
+                  {user?.role !== 'student' && (
+                    <button
+                      onClick={() => handleDeleteVideo(vid._id)}
+                      className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
           {/* PDF Materials Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <h4 className="font-bold text-lg text-gray-800 mb-4">Study Materials (PDF)</h4>
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <div>
+                <h4 className="font-bold text-lg text-gray-800">Study Materials — PDF Notes (Week {activeWeek} — {selectedMonth})</h4>
+                <p className="text-xs text-gray-500">Download and review the lecture PDF notes to complete document requirement.</p>
+              </div>
+              <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${isPdfDownloaded ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
+                {isPdfDownloaded ? '✓ PDF Completed' : 'Pending View'}
+              </span>
+            </div>
 
             {/* PDF upload form (Teacher/Admin only) */}
             {user?.role !== 'student' && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-xl space-y-3">
+              <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
                 <p className="text-sm font-semibold text-gray-700">Upload PDF Lesson Material</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <input
@@ -867,43 +991,69 @@ const CourseDetails = () => {
               </div>
             )}
 
-            {/* PDFs List */}
+            {/* Demo / Real PDFs List */}
             <div className="space-y-3">
-              {currentLesson?.pdfMaterials?.length > 0 ? (
-                currentLesson.pdfMaterials.map((pdf) => (
-                  <div key={pdf._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className="text-red-600 text-2xl font-bold">📕</div>
-                      <div>
-                        <p className="font-bold text-gray-800">{pdf.title}</p>
-                        <p className="text-xs text-gray-500">
-                          Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown'} | Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={pdf.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
-                      >
-                        Download
-                      </a>
-                      {user?.role !== 'student' && (
-                        <button
-                          onClick={() => handleDeletePdf(pdf._id)}
-                          className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
-                        >
-                          Remove
-                        </button>
-                      )}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-blue-100 rounded-xl bg-blue-50/40 hover:bg-blue-50 transition-all gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-red-600 text-2xl font-bold">📕</div>
+                  <div>
+                    <p className="font-extrabold text-gray-900 text-sm">
+                      Week {activeWeek} Lecture Notes & Tutorial Problems ({selectedMonth}).pdf
+                    </p>
+                    <p className="text-xs text-blue-700 font-semibold mt-0.5">
+                      Required Study Notes — PDF Document (2.4 MB)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  {isPdfDownloaded ? (
+                    <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-4 py-2 rounded-xl border border-emerald-200">
+                      ✓ Downloaded & Covered
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => markMaterialCompleted('pdf')}
+                      className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>📄</span> View / Download PDF Notes
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {currentLesson?.pdfMaterials?.map((pdf) => (
+                <div key={pdf._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="text-red-600 text-2xl font-bold">📕</div>
+                    <div>
+                      <p className="font-bold text-gray-800">{pdf.title}</p>
+                      <p className="text-xs text-gray-500">
+                        Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown'} | Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
-                ))
-              ) : (
-                <p className="text-gray-400 italic">No PDF study materials available for this Class.</p>
-              )}
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={pdf.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                    >
+                      Download
+                    </a>
+                    {user?.role !== 'student' && (
+                      <button
+                        onClick={() => handleDeletePdf(pdf._id)}
+                        className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
