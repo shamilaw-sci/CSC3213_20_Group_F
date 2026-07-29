@@ -765,8 +765,11 @@ router.get('/analytics-summary', protect, async (req, res) => {
       const weeklyRecords = await Attendance.find({ studentId, mode: 'ONLINE_WEEKLY' }).lean();
       const weeklyAttendedCount = weeklyRecords.length;
 
-      // Cumulative Multi-Week Calculation: 4 weeks per enrolled course (e.g. 1 course = 4 weeks, 2 courses = 8 weeks)
-      const totalAvailableWeeks = enrolledCoursesList.length > 0 ? enrolledCoursesList.length * 4 : 0;
+      // Dynamic Active Months Count (e.g. July 2026, August 2026, September 2026, October 2026 = 4 months)
+      // 4 weeks per month = 16 weeks per course. Adding a new month automatically increases the dividing factor by +4 weeks.
+      const activeMonthsList = ["July 2026", "August 2026", "September 2026", "October 2026"];
+      const weeksPerCourse = activeMonthsList.length * 4; // 16 weeks per course
+      const totalAvailableWeeks = Math.max(16, (enrolledCoursesList.length || 1) * weeksPerCourse);
 
       let attendanceRate = 0;
       if (totalAvailableWeeks > 0) {

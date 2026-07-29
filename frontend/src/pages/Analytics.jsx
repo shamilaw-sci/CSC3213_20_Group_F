@@ -134,7 +134,7 @@ const Analytics = () => {
               </div>
               
               <div className="mt-4 pt-4 border-t border-blue-100 flex items-center justify-between text-xs font-bold text-blue-900">
-                <span>{studentMetrics?.weeklyAttendedCount || 0} / {studentMetrics?.totalAvailableWeeks || 4} Weeks Attended</span>
+                <span>{studentMetrics?.weeklyAttendedCount || 0} / {studentMetrics?.totalAvailableWeeks || 16} Weeks Attended</span>
                 <span className="text-blue-700 font-bold">{studentMetrics?.attendanceRate ?? 0}% Compliance</span>
               </div>
             </div>
@@ -302,7 +302,7 @@ const Analytics = () => {
                   📅 4-Week Attendance Progress Tracker
                 </h3>
                 <p className="text-xs text-sky-700/80 mt-0.5">
-                  Cumulative weekly attendance formula: ({studentMetrics?.weeklyAttendedCount || 0} / {studentMetrics?.totalAvailableWeeks || 4} total available weeks across active courses = {studentMetrics?.attendanceRate ?? 0}%)
+                  Cumulative weekly attendance formula: ({studentMetrics?.weeklyAttendedCount || 0} / {studentMetrics?.totalAvailableWeeks || 16} total available weeks across active courses = {studentMetrics?.attendanceRate ?? 0}%)
                 </p>
               </div>
               <span className="text-xs font-extrabold bg-sky-200 text-sky-900 px-3.5 py-1 rounded-full border border-sky-300">

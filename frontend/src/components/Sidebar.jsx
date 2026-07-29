@@ -37,7 +37,9 @@ const Sidebar = () => {
       <nav className="flex-1 min-h-0 px-4 pb-6 space-y-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Link to="/dashboard" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/dashboard')}`}><FaHome /> Dashboard</Link>
         <Link to="/courses" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/courses')}`}><FaBook /> Courses</Link>
-        <Link to="/attendance" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/attendance')}`}><FaCalendarCheck /> Attendance</Link>
+        {role !== 'student' && (
+          <Link to="/attendance" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/attendance')}`}><FaCalendarCheck /> Attendance</Link>
+        )}
         <Link to="/payments" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/payments')}`}><FaCreditCard /> Payments</Link>
         <Link to="/analytics" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/analytics')}`}><FaChartBar /> Analytics</Link>
 
