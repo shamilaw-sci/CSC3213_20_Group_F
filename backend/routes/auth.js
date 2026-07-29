@@ -11,7 +11,8 @@ const Payment = require('../models/Payment');
 const Attendance = require('../models/Attendance');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
-const { sendResetPasswordEmail } = require('../utils/emailService');
+const Notification = require('../models/Notification');
+const { sendResetPasswordEmail, sendRegistrationWelcomeEmail } = require('../utils/emailService');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -98,6 +99,24 @@ router.post('/register', async (req, res) => {
       studentType: 'online',
       mustChangePassword: false
     });
+
+    // --- TRIGGER NOTIFICATIONS ---
+    try {
+      // 1. In-App Notification for Admins
+      await Notification.create({
+        recipientRole: 'admin',
+        type: 'REGISTRATION',
+        title: 'New Student Registration',
+        message: `${newUser.name} (${newUser.email}, ${newUser.grade}) has registered as a new student.`,
+        link: '/manage-users',
+        metadata: { studentId: newUser._id }
+      });
+
+      // 2. Welcome Email to Student
+      sendRegistrationWelcomeEmail(newUser.email, newUser.name, newUser.registrationNumber);
+    } catch (notifErr) {
+      console.error('Registration notification trigger error:', notifErr.message);
+    }
 
     const token = jwt.sign(
       { id: newUser._id, role: newUser.role },

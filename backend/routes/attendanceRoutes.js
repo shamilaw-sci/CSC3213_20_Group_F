@@ -3,7 +3,9 @@ const router = express.Router();
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Schedule = require('../models/Schedule');
+const Notification = require('../models/Notification');
 const { protect } = require('../middleware/authMiddleware');
+const { sendAttendanceSMS } = require('../services/smsService');
 
 // --- HELPER: Normalize date to Midnight UTC/Local (YYYY-MM-DD) ---
 const normalizeDate = (dateVal) => {
@@ -67,6 +69,40 @@ router.post('/', protect, async (req, res) => {
       .populate('scheduleId', 'title startTime endTime room className')
       .populate('courseId', 'title')
       .populate('markedBy', 'name');
+
+    // --- 6. TRIGGER NOTIFICATIONS (In-App & Parent SMS) ---
+    try {
+      const classTitle = populatedAttendance.scheduleId?.title || populatedAttendance.scheduleId?.className || populatedAttendance.courseId?.title || 'Class';
+      const formattedDate = new Date(populatedAttendance.date).toLocaleDateString('en-GB');
+
+      // 6a. In-App Notification for Student
+      await Notification.create({
+        recipient: student._id,
+        type: 'ATTENDANCE',
+        title: `Attendance Marked: ${status}`,
+        message: `You were marked '${status}' for ${classTitle} on ${formattedDate}.`,
+        link: '/attendance',
+        metadata: { attendanceId: newAttendance._id, status, date: populatedAttendance.date }
+      });
+      newAttendance.notificationSentStudent = true;
+
+      // 6b. SMS to Parent
+      if (student.parentsPhoneNumber) {
+        sendAttendanceSMS({
+          parentPhone: student.parentsPhoneNumber,
+          studentName: student.name,
+          className: classTitle,
+          date: populatedAttendance.date,
+          time: populatedAttendance.scheduleId?.startTime || '',
+          status
+        });
+        newAttendance.notificationSentParent = true;
+      }
+
+      await newAttendance.save();
+    } catch (notifErr) {
+      console.error('Attendance notification error:', notifErr.message);
+    }
 
     res.status(201).json({
       message: "Attendance marked successfully!",
