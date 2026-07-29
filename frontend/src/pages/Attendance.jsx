@@ -36,6 +36,10 @@ const Attendance = () => {
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  // Student Payments State
+  const [studentPayments, setStudentPayments] = useState([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+
   const getAuthHeaders = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
   });
@@ -60,16 +64,30 @@ const Attendance = () => {
     }
   };
 
-  // Fetch student's attendance history and schedules
+  // Fetch student's attendance history, schedules, and real payment records
   const handleSelectStudent = async (student) => {
     setSelectedStudent(student);
     setSearchResults([]); // clear search list
     setSearchQuery('');
     setSelectedScheduleId('');
 
-    // Fetch schedule entries & attendance history
+    // Fetch schedule entries, attendance history, and payments
     fetchSchedules(student.grade);
     fetchHistory(student._id);
+    fetchStudentPayments(student._id);
+  };
+
+  const fetchStudentPayments = async (studentId) => {
+    setLoadingPayments(true);
+    try {
+      const res = await api.get(`/payments/student/${studentId}`);
+      setStudentPayments(res.data || []);
+    } catch (err) {
+      console.error("Error fetching student payments", err);
+      setStudentPayments([]);
+    } finally {
+      setLoadingPayments(false);
+    }
   };
 
   const fetchSchedules = async (studentGrade) => {
@@ -485,72 +503,91 @@ const Attendance = () => {
                 </div>
               )}
 
-              {/* Tab 3: PAYMENT RECORDS (PLACEHOLDER) */}
+              {/* Tab 3: REAL PAYMENT RECORDS VIEW */}
               {activeTab === 'payments' && (
                 <div className="space-y-6">
-                  {/* Warning banner indicating teammates role */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-800 text-xs">
-                    <FaCreditCard className="text-amber-600 text-lg shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold">Team Integration Notice</p>
-                      <p className="mt-0.5 leading-relaxed">
-                        This view acts as a placeholder workspace. Once the Payments module (currently in development by our teammate) is complete, this container will bind directly to the live payments database collections and render transactional metrics.
+                  {loadingPayments ? (
+                    <div className="p-8 text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
+                      <p className="text-xs text-gray-500 mt-2 font-semibold">Loading student payment records...</p>
+                    </div>
+                  ) : studentPayments.length === 0 ? (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center space-y-2">
+                      <FaCreditCard className="text-gray-400 text-2xl mx-auto" />
+                      <p className="text-sm font-bold text-gray-700">No Payment Records Found</p>
+                      <p className="text-xs text-gray-500">
+                        {selectedStudent?.name} has not completed any course fee payments yet.
                       </p>
                     </div>
-                  </div>
-
-                  {/* Mock Payment Specs */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-2">
-                      <span className="bg-green-100 text-green-800 font-extrabold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full">
-                        Status: Settled
-                      </span>
-                      <h4 className="text-lg font-bold text-gray-800">July 2026 Monthly Fees</h4>
-                      <div className="text-xs text-gray-500 space-y-1">
-                        <p>Invoice ID: <span className="font-mono text-gray-700">INV-2026-0789</span></p>
-                        <p>Amount Paid: <span className="font-semibold text-gray-700">Rs. 6,000.00</span></p>
-                        <p>Payment Date: <span className="font-medium text-gray-700">2026-07-02</span></p>
-                        <p>Method: <span className="font-medium text-gray-700">Credit/Debit Card</span></p>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Real Payment Transaction Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {studentPayments.slice(0, 2).map((payment) => {
+                          const isCounter = payment.paymentMethod === 'CASH_COUNTER' || payment.paymentMethod === 'POS_CARD' || payment.paymentMethod === 'BANK_TRANSFER' || payment.transactionId?.startsWith('REC-PHYS');
+                          return (
+                            <div key={payment._id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="bg-emerald-100 text-emerald-800 font-extrabold text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                  STATUS: SETTLED ✓
+                                </span>
+                                <span className="text-[10px] font-bold text-purple-900 bg-purple-50 px-2 py-0.5 rounded-md">
+                                  {isCounter ? '🏫 Counter Cashier' : '💳 Online Card'}
+                                </span>
+                              </div>
+                              <h4 className="text-base font-extrabold text-gray-800 line-clamp-1">
+                                {payment.course?.title || 'Course Fee'}
+                              </h4>
+                              <div className="text-xs text-gray-600 space-y-1.5 pt-1">
+                                <p className="flex justify-between">
+                                  <span className="text-gray-400 font-semibold">Receipt / Tx ID:</span>
+                                  <span className="font-mono text-purple-900 font-bold">{payment.transactionId}</span>
+                                </p>
+                                <p className="flex justify-between">
+                                  <span className="text-gray-400 font-semibold">Amount Paid:</span>
+                                  <span className="font-extrabold text-emerald-700">LKR {(payment.amount || 2500).toLocaleString()}.00</span>
+                                </p>
+                                <p className="flex justify-between">
+                                  <span className="text-gray-400 font-semibold">Payment Date:</span>
+                                  <span className="font-medium text-gray-800">{new Date(payment.paymentDate || payment.createdAt).toLocaleDateString()}</span>
+                                </p>
+                                <p className="flex justify-between">
+                                  <span className="text-gray-400 font-semibold">Method:</span>
+                                  <span className="font-semibold text-gray-800">{payment.paymentMethod || 'Card'}</span>
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
 
-                    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-2 opacity-75">
-                      <span className="bg-gray-100 text-gray-600 font-extrabold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full">
-                        Status: Pending
-                      </span>
-                      <h4 className="text-lg font-bold text-gray-800">August 2026 Monthly Fees</h4>
-                      <div className="text-xs text-gray-500 space-y-1">
-                        <p>Invoice ID: <span className="font-mono text-gray-700">INV-2026-0812</span></p>
-                        <p>Amount Due: <span className="font-semibold text-gray-700">Rs. 6,000.00</span></p>
-                        <p>Due Date: <span className="font-medium text-gray-700">2026-08-05</span></p>
-                        <p>Status: <span className="font-bold text-red-500">Unpaid</span></p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Payment Logs */}
-                  <div className="border border-gray-150 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 p-3 border-b border-gray-150 flex justify-between items-center">
-                      <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider">Transaction History (Recent)</h4>
-                      <span className="text-[10px] text-gray-400 font-bold uppercase">Mock Ledger</span>
-                    </div>
-                    <div className="divide-y divide-gray-150 text-xs">
-                      <div className="p-3 flex justify-between items-center hover:bg-gray-50/50">
-                        <div>
-                          <p className="font-semibold text-gray-800">Rs. 6,000.00 - Course Admission</p>
-                          <p className="text-[10px] text-gray-400">June Monthly Fees (Receipt #REC-8842)</p>
+                      {/* Transaction History Table */}
+                      <div className="border border-gray-150 rounded-xl overflow-hidden shadow-xs">
+                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-150 flex justify-between items-center">
+                          <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Verified Transaction History Log</h4>
+                          <span className="text-[10px] text-purple-700 font-extrabold uppercase">Live Database Receipts</span>
                         </div>
-                        <span className="text-gray-500 font-medium">2026-06-28</span>
-                      </div>
-                      <div className="p-3 flex justify-between items-center hover:bg-gray-50/50">
-                        <div>
-                          <p className="font-semibold text-gray-800">Rs. 1,500.00 - Chemistry Practical Kit</p>
-                          <p className="text-[10px] text-gray-400">Materials Fee (Receipt #REC-8801)</p>
+                        <div className="divide-y divide-gray-150 text-xs">
+                          {studentPayments.map((payment) => (
+                            <div key={payment._id} className="p-3.5 flex justify-between items-center hover:bg-gray-50/50 transition">
+                              <div>
+                                <p className="font-bold text-gray-900">
+                                  LKR {(payment.amount || 2500).toLocaleString()}.00 — {payment.course?.title || 'Course Fee'}
+                                </p>
+                                <p className="text-[10px] text-purple-700 font-mono mt-0.5">
+                                  Receipt #{payment.transactionId} ({payment.paymentMethod || 'Card'})
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-gray-600 font-semibold">{new Date(payment.paymentDate || payment.createdAt).toLocaleDateString()}</span>
+                                <span className="block text-[10px] text-emerald-600 font-extrabold uppercase">Completed ✓</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <span className="text-gray-500 font-medium">2026-06-15</span>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
