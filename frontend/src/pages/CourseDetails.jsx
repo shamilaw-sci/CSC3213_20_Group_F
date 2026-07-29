@@ -1144,11 +1144,9 @@ const CourseDetails = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               <div>
-                                <p className="font-bold text-red-800">Fees Overdue Alert</p>
+                                <p className="font-bold text-red-800">Fees Pending Alert</p>
                                 <p className="mt-0.5 font-semibold text-red-700">
-                                  August 2026 Monthly Fees of Rs. {selectedStudentDetail.payment.amountDue.toLocaleString()}.00 are UNPAID.
-                                  <br />
-                                  <span className="font-medium text-xs text-red-500">Payment Due Date: {selectedStudentDetail.payment.dueDate}</span>
+                                  Course Tuition Fees of LKR {selectedStudentDetail.payment.amountDue.toLocaleString()}.00 are UNPAID for this course.
                                 </p>
                               </div>
                             </div>
@@ -1159,7 +1157,7 @@ const CourseDetails = () => {
                               </svg>
                               <div>
                                 <p className="font-bold">Account Good Standing</p>
-                                <p className="mt-0.5 font-medium">All course payments for this student are fully settled up to date.</p>
+                                <p className="mt-0.5 font-medium">Course payment for this student is fully settled and active.</p>
                               </div>
                             </div>
                           )}
@@ -1168,20 +1166,26 @@ const CourseDetails = () => {
                           <div className="rounded-xl border border-gray-150 overflow-hidden">
                             <div className="bg-gray-50 px-4 py-3 border-b border-gray-150 flex justify-between items-center">
                               <h5 className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Transaction History Log</h5>
-                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Office Ledger</span>
+                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Live Office Ledger</span>
                             </div>
                             <div className="divide-y divide-gray-150 text-xs">
-                              {selectedStudentDetail.payment?.history?.map((invoice, index) => (
-                                <div key={index} className="p-3 flex justify-between items-center hover:bg-gray-50/50">
-                                  <div>
-                                    <p className="font-bold text-gray-800">Rs. {invoice.amount.toLocaleString()}.00 - Monthly Tuition Fees</p>
-                                    <p className="text-[10px] text-gray-400 mt-0.5">Billing Period: {invoice.month} ({invoice.status})</p>
+                              {!selectedStudentDetail.payment?.history || selectedStudentDetail.payment.history.length === 0 ? (
+                                <div className="p-6 text-center text-gray-400 italic">No payment receipts logged for this student yet.</div>
+                              ) : (
+                                selectedStudentDetail.payment.history.map((invoice, index) => (
+                                  <div key={index} className="p-3 flex justify-between items-center hover:bg-gray-50/50">
+                                    <div>
+                                      <p className="font-bold text-gray-800">LKR {invoice.amount.toLocaleString()}.00 - {invoice.courseTitle}</p>
+                                      <p className="text-[10px] text-purple-700 font-mono mt-0.5">
+                                        Receipt: {invoice.transactionId} • Method: {invoice.paymentMethod} ({invoice.status})
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-gray-500 font-semibold">{invoice.date}</span>
+                                    </div>
                                   </div>
-                                  <div className="text-right">
-                                    <span className="text-gray-500 font-semibold">{invoice.date}</span>
-                                  </div>
-                                </div>
-                              ))}
+                                ))
+                              )}
                             </div>
                           </div>
                         </div>

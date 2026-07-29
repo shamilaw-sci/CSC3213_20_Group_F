@@ -532,6 +532,21 @@ router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
             }
         }
 
+        // Fetch real payment records for all students in this grade batch
+        const Payment = require('../models/Payment');
+        const allPayments = await Payment.find({
+            student: { $in: studentIds }
+        }).populate('course', 'title price').sort({ createdAt: -1 });
+
+        const paymentsMap = {};
+        for (const p of allPayments) {
+            const sId = p.student.toString();
+            if (!paymentsMap[sId]) {
+                paymentsMap[sId] = [];
+            }
+            paymentsMap[sId].push(p);
+        }
+
         // Fetch detailed attendance and payments for each student
         const studentsWithDetails = students.map((student) => {
             const studentObj = student.toObject();
@@ -560,17 +575,30 @@ router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
                 isChronicallyAbsent: consecutiveAbsences >= 3
             };
 
-            // 2. Deterministic mock payments based on user ID hash
-            const hash = student._id.toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const isDue = hash % 3 === 0;
+            // Real payments from database for this student & THIS SPECIFIC COURSE ONLY
+            const allStudentPaymentRecords = paymentsMap[student._id.toString()] || [];
+            const courseSpecificPayments = allStudentPaymentRecords.filter(p => {
+                const cId = p.course?._id?.toString() || p.course?.toString() || p.courseId?.toString();
+                return cId === course._id.toString();
+            });
+
+            const isPaid = courseSpecificPayments.length > 0;
+
+            studentObj.paymentStatus = isPaid ? 'PAID' : 'DUE';
             studentObj.payment = {
-                status: isDue ? 'Due' : 'Paid',
-                amountDue: isDue ? 6000 : 0,
-                dueDate: '2026-08-05',
-                history: [
-                    { month: 'July 2026', amount: 6000, status: 'Settled', date: '2026-07-02' },
-                    { month: 'June 2026', amount: 6000, status: 'Settled', date: '2026-06-03' }
-                ]
+                status: isPaid ? 'Paid' : 'Due',
+                amountDue: isPaid ? 0 : (course.price || 2500),
+                dueDate: 'End of Month',
+                history: courseSpecificPayments.map(p => ({
+                    _id: p._id,
+                    transactionId: p.transactionId,
+                    courseTitle: p.course?.title || course.title || 'Course Fee',
+                    amount: p.amount || course.price || 2500,
+                    paymentMethod: p.paymentMethod || 'Card',
+                    status: p.status || 'COMPLETED',
+                    date: p.paymentDate || p.createdAt ? new Date(p.paymentDate || p.createdAt).toLocaleDateString('en-GB') : 'N/A',
+                    month: p.month || new Date(p.createdAt).toLocaleString('default', { month: 'long' })
+                }))
             };
 
             return studentObj;
