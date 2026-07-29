@@ -44,6 +44,41 @@ const CourseDetails = () => {
   const [pdfTitle, setPdfTitle] = useState("");
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
 
+  // Weekly Attendance & Class Navigation State
+  const [activeWeek, setActiveWeek] = useState(1);
+  const [attendedWeeks, setAttendedWeeks] = useState([]);
+  const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
+
+  const fetchWeeklyAttendanceStatus = async () => {
+    if (user?.role !== 'student' || !courseId) return;
+    try {
+      const res = await api.get(`/attendance/weekly-status/${courseId}`);
+      setAttendedWeeks(res.data.attendedWeeks || []);
+    } catch (err) {
+      console.error("Error fetching weekly attendance status:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchWeeklyAttendanceStatus();
+  }, [courseId, user]);
+
+  const handleSubmitWeeklyAttendance = async (weekNum) => {
+    setIsSubmittingAttendance(true);
+    try {
+      const res = await api.post('/attendance/submit-weekly', {
+        courseId,
+        weekNumber: weekNum
+      });
+      toast.success(res.data.message || `Attendance for Week ${weekNum} submitted!`);
+      setAttendedWeeks(prev => Array.from(new Set([...prev, weekNum])));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit weekly attendance.');
+    } finally {
+      setIsSubmittingAttendance(false);
+    }
+  };
+
   const allGrades = [
     "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11",
     "Grade 12 Science", "Grade 12 Commerce", "Grade 12 Arts", "Grade 12 Tech",
@@ -369,12 +404,13 @@ const CourseDetails = () => {
 
   if (loading) return <div className="p-10 text-center">Loading...</div>;
 
+  const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
   const currentLesson = lessons.find(l => l.grade === selectedGrade);
   const studentGrade = user?.grade;
   const alreadyEnrolled = course?.enrolledStudents?.some(
     (s) => s?._id?.toString() === user?.id?.toString()
   );
-  const canEnroll = user?.role === 'student' && studentGrade && course?.enrolledGrades?.some(g => g.gradeNumber === studentGrade) && !alreadyEnrolled;
+  const canEnroll = user?.role === 'student' && studentGrade && course?.enrolledGrades?.some(g => normalizeGrade(g.gradeNumber) === normalizeGrade(studentGrade)) && !alreadyEnrolled;
 
   const filteredPickerStudents = gradeStudents.filter((student) => {
     if (pickerSearchQuery.trim() !== "") {
@@ -539,30 +575,56 @@ const CourseDetails = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {course?.enrolledGrades?.map((eg) => (
-                  <div
-                    key={eg.gradeNumber}
-                    onClick={() => setSelectedGrade(eg.gradeNumber)}
-                    className="bg-white p-8 rounded-[30px] shadow-sm border border-transparent hover:border-[#2d1b64]/20 hover:shadow-xl transition-all duration-300 group flex flex-col justify-between cursor-pointer"
-                  >
-                    <div>
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="w-12 h-12 bg-[#f3f4f6] rounded-2xl flex items-center justify-center text-2xl group-hover:bg-[#2d1b64] group-hover:text-white transition-colors">
-                          🎓
+                {course?.enrolledGrades?.map((eg) => {
+                  const isGradeMatch = user?.role !== 'student' || (user?.grade && normalizeGrade(user.grade) === normalizeGrade(eg.gradeNumber));
+
+                  return (
+                    <div
+                      key={eg.gradeNumber}
+                      onClick={() => {
+                        if (!isGradeMatch) {
+                          toast.error(`Access Restricted: You are registered in Grade ${user?.grade ? normalizeGrade(user.grade) : ''}. You can only access classes matching your registered grade.`);
+                          return;
+                        }
+                        setSelectedGrade(eg.gradeNumber);
+                      }}
+                      className={`bg-white p-8 rounded-[30px] shadow-sm border transition-all duration-300 flex flex-col justify-between ${
+                        isGradeMatch 
+                          ? 'border-transparent hover:border-[#2d1b64]/20 hover:shadow-xl cursor-pointer group' 
+                          : 'border-gray-200 opacity-60 bg-gray-50/80 cursor-not-allowed'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex justify-between items-start mb-6">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-colors ${
+                            isGradeMatch ? 'bg-[#f3f4f6] group-hover:bg-[#2d1b64] group-hover:text-white' : 'bg-gray-200 text-gray-500'
+                          }`}>
+                            {isGradeMatch ? '🎓' : '🔒'}
+                          </div>
+                          {isGradeMatch ? (
+                            <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
+                              Active Class
+                            </span>
+                          ) : (
+                            <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200">
+                              🔒 Restricted (Other Grade)
+                            </span>
+                          )}
                         </div>
-                        <span className="bg-purple-100 text-purple-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
-                          Active
-                        </span>
+                        <h3 className={`text-2xl font-bold mb-2 transition-colors ${
+                          isGradeMatch ? 'text-gray-800 group-hover:text-[#2d1b64]' : 'text-gray-400'
+                        }`}>
+                          {eg.title || eg.gradeNumber}
+                        </h3>
+                        <p className="text-gray-400 text-xs mt-2 font-medium">
+                          {isGradeMatch 
+                            ? 'Click to view announcements and lessons' 
+                            : `Restricted for Grade ${user?.grade ? normalizeGrade(user.grade) : ''} students`}
+                        </p>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-[#2d1b64] transition-colors">
-                        {eg.title || eg.gradeNumber}
-                      </h3>
-                      <p className="text-gray-400 text-xs mt-2">
-                        Click to view announcements and lessons
-                      </p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -573,9 +635,104 @@ const CourseDetails = () => {
       {selectedGrade !== null && (
         <div className="space-y-6">
 
+          {/* 4-Week Class Workspace Navigation Tabs */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+              <div>
+                <h4 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
+                  <span>📅</span> Weekly Study Workspace
+                </h4>
+                <p className="text-xs text-gray-500 mt-0.5">Select a week to view lecture videos, study materials, and confirm attendance.</p>
+              </div>
+              <span className="bg-purple-100 text-purple-900 text-xs font-extrabold px-3 py-1 rounded-lg self-start sm:self-auto border border-purple-200">
+                4 Weeks / Month Mode
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[1, 2, 3, 4].map((wNum) => {
+                const isAttended = attendedWeeks.includes(wNum);
+                const isActive = activeWeek === wNum;
+
+                return (
+                  <button
+                    key={wNum}
+                    type="button"
+                    onClick={() => setActiveWeek(wNum)}
+                    className={`p-4 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer ${
+                      isActive
+                        ? 'border-purple-600 bg-purple-50/90 ring-2 ring-purple-300 shadow-sm'
+                        : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50/50'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className={`text-xs font-black uppercase tracking-wider ${isActive ? 'text-purple-900' : 'text-gray-700'}`}>
+                        Week {wNum}
+                      </span>
+                      {isAttended ? (
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
+                          ✓ Attended
+                        </span>
+                      ) : (
+                        <span className="bg-amber-100 text-amber-800 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] font-medium text-gray-500">
+                      {isAttended ? 'Attendance Logged ✓' : 'Click to Access'}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Student Weekly Attendance Action Banner */}
+          {user?.role === 'student' && alreadyEnrolled && (
+            <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="bg-white/20 text-white font-extrabold text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-full">
+                    Week {activeWeek} Class Attendance
+                  </span>
+                  {attendedWeeks.includes(activeWeek) && (
+                    <span className="bg-emerald-400/30 text-emerald-200 border border-emerald-400/40 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
+                      ✓ Status: Settled
+                    </span>
+                  )}
+                </div>
+                <h4 className="text-xl font-extrabold tracking-tight">Week {activeWeek} Attendance Confirmation</h4>
+                <p className="text-purple-200 text-xs mt-1 max-w-xl leading-relaxed">
+                  {attendedWeeks.includes(activeWeek)
+                    ? `Great job! Your attendance for Week ${activeWeek} is logged into system database analytics.`
+                    : `Please review the study materials for Week ${activeWeek} and click the button to submit your attendance.`}
+                </p>
+              </div>
+
+              {attendedWeeks.includes(activeWeek) ? (
+                <div className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-100 px-6 py-3 rounded-xl text-xs font-extrabold flex items-center gap-2 shrink-0 shadow-inner">
+                  <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Attendance Submitted (Week {activeWeek})
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isSubmittingAttendance}
+                  onClick={() => handleSubmitWeeklyAttendance(activeWeek)}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-sm px-7 py-3.5 rounded-xl transition shadow-lg shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSubmittingAttendance ? 'Submitting...' : `Submit Attendance (Week ${activeWeek}) ✓`}
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Announcement Card */}
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <h4 className="font-bold text-lg text-gray-800 mb-4">Teacher's Announcement</h4>
+            <h4 className="font-bold text-lg text-gray-800 mb-4">Teacher's Announcement (Week {activeWeek})</h4>
             {user?.role === 'student' ? (
               <p className="text-gray-600 bg-gray-50 p-4 rounded-xl leading-relaxed whitespace-pre-line">
                 {currentLesson?.teacherMessage || "No Contents available for this course yet."}

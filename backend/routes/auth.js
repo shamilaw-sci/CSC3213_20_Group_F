@@ -755,13 +755,27 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
       const enrolledCoursesList = Object.values(allCoursesMap);
 
-      // Student Personal Attendance
+      // Student Personal Attendance & Weekly Attendance Tracking
       const totalAttendance = await Attendance.countDocuments({ studentId });
       const presentRecords = await Attendance.countDocuments({ studentId, status: 'Present' });
       const absentRecords = await Attendance.countDocuments({ studentId, status: 'Absent' });
       const lateRecords = await Attendance.countDocuments({ studentId, status: 'Late' });
 
-      const attendanceRate = totalAttendance > 0 ? Math.round((presentRecords / totalAttendance) * 100) : 100;
+      // Weekly Online Attendance Submissions
+      const weeklyRecords = await Attendance.find({ studentId, mode: 'ONLINE_WEEKLY' }).lean();
+      const weeklyAttendedCount = weeklyRecords.length;
+
+      // Cumulative Multi-Week Calculation: 4 weeks per enrolled course (e.g. 1 course = 4 weeks, 2 courses = 8 weeks)
+      const totalAvailableWeeks = enrolledCoursesList.length > 0 ? enrolledCoursesList.length * 4 : 0;
+
+      let attendanceRate = 0;
+      if (totalAvailableWeeks > 0) {
+        attendanceRate = Math.min(100, Math.round((weeklyAttendedCount / totalAvailableWeeks) * 100));
+      } else if (totalAttendance > 0) {
+        attendanceRate = Math.round((presentRecords / totalAttendance) * 100);
+      } else {
+        attendanceRate = 0;
+      }
 
       // Student Personal Payments
       const studentPayments = await Payment.find({ student: studentId, status: 'COMPLETED' })
@@ -776,6 +790,8 @@ router.get('/analytics-summary', protect, async (req, res) => {
         studentMetrics: {
           enrolledCoursesCount: enrolledCoursesList.length,
           attendanceRate,
+          weeklyAttendedCount,
+          totalAvailableWeeks,
           totalPaymentsCount: studentPayments.length,
           totalPaidAmount,
           userGrade: req.user.grade || 'Unassigned',
@@ -785,8 +801,11 @@ router.get('/analytics-summary', protect, async (req, res) => {
           total: totalAttendance,
           present: presentRecords,
           absent: absentRecords,
-          late: lateRecords
+          late: lateRecords,
+          weeklyAttendedCount,
+          totalAvailableWeeks
         },
+        weeklyRecords,
         enrolledCoursesList,
         studentPayments
       });
