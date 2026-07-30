@@ -191,6 +191,24 @@ router.post('/google-register', async (req, res) => {
       mustChangePassword: false
     });
 
+    // --- TRIGGER NOTIFICATIONS ---
+    try {
+      // 1. In-App Notification for Admins
+      await Notification.create({
+        recipientRole: 'admin',
+        type: 'REGISTRATION',
+        title: 'New Google Student Registration',
+        message: `${newUser.name} (${newUser.email}, ${newUser.grade}) has registered via Google.`,
+        link: '/manage-users',
+        metadata: { studentId: newUser._id }
+      });
+
+      // 2. Welcome Email to Student
+      sendRegistrationWelcomeEmail(newUser.email, newUser.name, newUser.registrationNumber);
+    } catch (notifErr) {
+      console.error('Google Registration notification error:', notifErr.message);
+    }
+
     const token = jwt.sign(
       { id: newUser._id, role: newUser.role },
       process.env.JWT_SECRET,
@@ -564,6 +582,26 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     });
 
     const createdUser = await User.findById(user._id).select('-password');
+
+    // --- TRIGGER NOTIFICATIONS ---
+    try {
+      if (role === 'student') {
+        // Welcome Email with temporary login info
+        sendRegistrationWelcomeEmail(user.email, user.name, user.registrationNumber);
+        
+        // In-App notification for the new student
+        await Notification.create({
+          recipient: user._id,
+          type: 'REGISTRATION',
+          title: 'Account Created',
+          message: `Welcome to LuminaLearn, ${user.name}! Your student account has been created by Administration.`,
+          link: '/settings'
+        });
+      }
+    } catch (notifErr) {
+      console.error('Admin create user notification error:', notifErr.message);
+    }
+
     res.status(201).json({
       message: "User created successfully. Share the temporary password securely.",
       user: createdUser

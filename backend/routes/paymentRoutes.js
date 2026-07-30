@@ -384,6 +384,54 @@ router.post('/record-physical-payment', protect, isAdmin, async (req, res) => {
       .populate('student', 'name email registrationNumber grade studentType')
       .populate('course', 'title price');
 
+    // --- TRIGGER NOTIFICATIONS (In-App, SMS, Email) FOR PHYSICAL PAYMENT ---
+    try {
+      // 1. In-App Notification for Student
+      await Notification.create({
+        recipient: studentId,
+        type: 'PAYMENT',
+        title: 'Physical Payment Receipt',
+        message: `In-person payment of LKR ${finalAmount} for '${course.title}' recorded. (Receipt No: ${transactionId})`,
+        link: '/payments',
+        metadata: { paymentId: payment._id, transactionId, amount: finalAmount, mode: 'Counter Cash' }
+      });
+
+      // 2. In-App Notification for Admins
+      await Notification.create({
+        recipientRole: 'admin',
+        type: 'PAYMENT',
+        title: 'Physical Counter Payment Recorded',
+        message: `Admin recorded cash payment of LKR ${finalAmount} for ${student.name} in '${course.title}' (Receipt No: ${transactionId}).`,
+        link: '/payments',
+        metadata: { studentId, courseId, amount: finalAmount, transactionId }
+      });
+
+      // 3. Parent SMS Alert
+      if (student.parentsPhoneNumber) {
+        sendPaymentSMS({
+          parentPhone: student.parentsPhoneNumber,
+          studentName: student.name,
+          courseTitle: course.title,
+          amount: finalAmount,
+          date: payment.paymentDate,
+          transactionId
+        });
+      }
+
+      // 4. Student Receipt Email
+      if (student.email) {
+        sendPaymentReceiptEmail(student.email, student.name, {
+          transactionId,
+          courseTitle: course.title,
+          amount: finalAmount,
+          date: payment.paymentDate,
+          paymentMethod: 'Cash (Counter Payment)'
+        });
+      }
+    } catch (notifErr) {
+      console.error('Physical payment notification error:', notifErr.message);
+    }
+
     res.status(201).json({
       success: true,
       message: `Physical payment of LKR ${finalAmount.toLocaleString()} recorded successfully! Student enrolled in ${course.title}.`,

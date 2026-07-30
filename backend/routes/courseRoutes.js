@@ -243,6 +243,20 @@ router.post('/enroll', protect, isAdmin, async (req, res) => {
 
         await course.save();
 
+        // --- TRIGGER NOTIFICATIONS ---
+        try {
+            await Notification.create({
+                recipient: studentId,
+                type: 'COURSE_ADDED',
+                title: 'Enrolled in Course',
+                message: `You have been enrolled in '${course.title}' (${trimmedClass}) by Administration.`,
+                link: '/courses',
+                metadata: { courseId: course._id, className: trimmedClass }
+            });
+        } catch (notifErr) {
+            console.error('Enroll notification error:', notifErr.message);
+        }
+
         res.status(200).json({ message: "Student enrolled in class successfully.", enrollment: enrollmentDoc });
     } catch (err) {
         console.error("Enroll student error:", err);
@@ -863,6 +877,26 @@ router.post('/:id/send-message', protect, async (req, res) => {
 
         grade.messages.push({ text, sender: req.user._id });
         await course.save();
+
+        // --- TRIGGER NOTIFICATIONS FOR GRADE STUDENTS ---
+        try {
+            const targetGradeName = String(gradeNumber).trim();
+            const students = await User.find({ role: 'student', grade: new RegExp(targetGradeName, 'i') }).select('_id');
+            const notifDocs = students.map(st => ({
+                recipient: st._id,
+                sender: req.user._id,
+                type: 'GENERAL',
+                title: `New Message in ${course.title}`,
+                message: text,
+                link: '/courses',
+                metadata: { courseId: course._id, gradeNumber }
+            }));
+            if (notifDocs.length > 0) {
+                await Notification.insertMany(notifDocs);
+            }
+        } catch (notifErr) {
+            console.error('Course message notification error:', notifErr.message);
+        }
 
         res.status(200).json({ message: "Message sent successfully" });
     } catch (err) {

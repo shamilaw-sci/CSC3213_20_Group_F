@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Schedule = require('../models/Schedule');
 const Course = require('../models/Course');
+const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 
 // --- GET SCHEDULES (ROLE-BASED FILTERING) ---
@@ -74,6 +76,36 @@ router.post('/', protect, async (req, res) => {
     const populatedSchedule = await Schedule.findById(schedule._id)
       .populate('courseId', 'title')
       .populate('teacherId', 'name email');
+
+    // --- TRIGGER NOTIFICATIONS ---
+    try {
+      // 1. Notify Assigned Teacher
+      if (teacherId) {
+        await Notification.create({
+          recipient: teacherId,
+          type: 'GENERAL',
+          title: 'New Class Schedule Assigned',
+          message: `You have been scheduled for '${title}' (${className}) on ${dayOfWeek} from ${startTime} to ${endTime}.`,
+          link: '/dashboard'
+        });
+      }
+
+      // 2. Notify Target Grade Students
+      const targetGradeName = String(className).trim();
+      const students = await User.find({ role: 'student', grade: new RegExp(targetGradeName, 'i') }).select('_id');
+      const notifDocs = students.map(st => ({
+        recipient: st._id,
+        type: 'GENERAL',
+        title: 'New Class Timetable Updated',
+        message: `'${title}' (${className}) has been scheduled for ${dayOfWeek} from ${startTime} to ${endTime} in ${room || 'Main Hall'}.`,
+        link: '/dashboard'
+      }));
+      if (notifDocs.length > 0) {
+        await Notification.insertMany(notifDocs);
+      }
+    } catch (notifErr) {
+      console.error('Schedule notification error:', notifErr.message);
+    }
 
     res.status(201).json({
       message: "Schedule entry created successfully",

@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { FaBullhorn, FaTimes, FaPaperPlane, FaSms, FaEnvelope, FaBell, FaUsers } from 'react-icons/fa';
+import { 
+  FaBullhorn, 
+  FaTimes, 
+  FaPaperPlane, 
+  FaSms, 
+  FaEnvelope, 
+  FaBell, 
+  FaCheckSquare,
+  FaSquare
+} from 'react-icons/fa';
 
 const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
   const [title, setTitle] = useState('');
@@ -10,6 +19,17 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
   const [channels, setChannels] = useState(['in_app', 'sms', 'email']);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
+
+  const availableGrades = [
+    'Grade 6',
+    'Grade 7',
+    'Grade 8',
+    'Grade 9',
+    'Grade 10',
+    'Grade 11',
+    'Grade 12',
+    'Grade 13'
+  ];
 
   useEffect(() => {
     if (defaultGrade) setTargetGrade(defaultGrade);
@@ -84,7 +104,8 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
           </div>
           <button 
             onClick={onClose} 
-            className="p-2 text-purple-200 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            className="p-2 text-purple-200 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            title="Close"
           >
             <FaTimes className="text-lg" />
           </button>
@@ -109,7 +130,7 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-sm font-medium text-gray-800 outline-none transition-all"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-sm font-medium text-gray-800 outline-none transition-all cursor-pointer"
               >
                 <option value="CLASS_POSTPONED">Class Postponed / Rescheduled</option>
                 <option value="NEW_CONTENT">New Content / Material Alert</option>
@@ -120,13 +141,18 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
 
             <div>
               <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Target Grade (Optional)</label>
-              <input
-                type="text"
-                placeholder="e.g. Grade 6 (Leave blank for all)"
+              <select
                 value={targetGrade}
                 onChange={(e) => setTargetGrade(e.target.value)}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-sm font-medium text-gray-800 outline-none transition-all"
-              />
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-sm font-medium text-gray-800 outline-none transition-all cursor-pointer"
+              >
+                <option value="">All Grades (Broadcast to All)</option>
+                {availableGrades.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -156,45 +182,67 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
             />
           </div>
 
-          {/* Channel Selector */}
+          {/* Channel Selector with Checkboxes */}
           <div>
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Dispatch Channels</label>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
+            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
+              Dispatch Channels (Select at least one)
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              
+              {/* In-App Checkbox Button */}
+              <div
                 onClick={() => toggleChannel('in_app')}
-                className={`py-2.5 px-3 rounded-xl border font-semibold text-xs flex items-center justify-center gap-2 transition-all ${
+                className={`p-3 rounded-xl border font-semibold text-xs flex items-center gap-3 transition-all cursor-pointer select-none ${
                   channels.includes('in_app')
-                    ? 'bg-purple-50 border-purple-500 text-purple-700 shadow-sm'
-                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                    ? 'bg-purple-50 border-purple-500 text-purple-800 shadow-sm'
+                    : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
                 }`}
               >
-                <FaBell className="text-sm" /> In-App
-              </button>
+                <div className="text-base text-purple-600">
+                  {channels.includes('in_app') ? <FaCheckSquare className="text-purple-600 text-lg" /> : <FaSquare className="text-gray-300 text-lg" />}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <FaBell className={`text-sm ${channels.includes('in_app') ? 'text-purple-600' : 'text-gray-400'}`} />
+                  <span>In-App Notice</span>
+                </div>
+              </div>
 
-              <button
-                type="button"
+              {/* SMS Checkbox Button */}
+              <div
                 onClick={() => toggleChannel('sms')}
-                className={`py-2.5 px-3 rounded-xl border font-semibold text-xs flex items-center justify-center gap-2 transition-all ${
+                className={`p-3 rounded-xl border font-semibold text-xs flex items-center gap-3 transition-all cursor-pointer select-none ${
                   channels.includes('sms')
-                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm'
-                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                    ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm'
+                    : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
                 }`}
               >
-                <FaSms className="text-sm" /> Parent SMS
-              </button>
+                <div className="text-base text-emerald-600">
+                  {channels.includes('sms') ? <FaCheckSquare className="text-emerald-600 text-lg" /> : <FaSquare className="text-gray-300 text-lg" />}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <FaSms className={`text-sm ${channels.includes('sms') ? 'text-emerald-600' : 'text-gray-400'}`} />
+                  <span>Parent SMS</span>
+                </div>
+              </div>
 
-              <button
-                type="button"
+              {/* Email Checkbox Button */}
+              <div
                 onClick={() => toggleChannel('email')}
-                className={`py-2.5 px-3 rounded-xl border font-semibold text-xs flex items-center justify-center gap-2 transition-all ${
+                className={`p-3 rounded-xl border font-semibold text-xs flex items-center gap-3 transition-all cursor-pointer select-none ${
                   channels.includes('email')
-                    ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm'
-                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                    ? 'bg-blue-50 border-blue-500 text-blue-800 shadow-sm'
+                    : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
                 }`}
               >
-                <FaEnvelope className="text-sm" /> Email
-              </button>
+                <div className="text-base text-blue-600">
+                  {channels.includes('email') ? <FaCheckSquare className="text-blue-600 text-lg" /> : <FaSquare className="text-gray-300 text-lg" />}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <FaEnvelope className={`text-sm ${channels.includes('email') ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <span>Email Notice</span>
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -203,14 +251,14 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-gray-600 hover:bg-gray-100 transition-colors"
+              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <span>Dispatching...</span>
