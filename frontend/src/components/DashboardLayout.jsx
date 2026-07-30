@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import BroadcastModal from './BroadcastModal';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  FaBell, 
-  FaUserCircle, 
-  FaCog, 
-  FaSearch, 
+import {
+  FaBell,
+  FaUserCircle,
+  FaCog,
+  FaSearch,
   FaBullhorn,
   FaCheckDouble,
   FaMoneyBillWave,
@@ -21,12 +21,12 @@ import api from '../utils/api';
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // --- UI STATES ---
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
-  
+
   // --- NOTIFICATION DATA STATES ---
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -34,7 +34,7 @@ const DashboardLayout = () => {
   // --- CLICK OUTSIDE REFS ---
   const notifRef = useRef(null);
   const profileRef = useRef(null);
-  
+
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
 
   // Listen for storage changes (triggered by Settings.jsx)
@@ -151,44 +151,44 @@ const DashboardLayout = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col overflow-y-auto ml-64">
-        
+
         <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm sticky top-0 z-10">
-           
-           <h2 className="text-xl font-bold text-gray-800 flex-shrink-0 truncate max-w-[25%] mr-4">
-             {getPageTitle()}
-           </h2>
 
-           {/* --- SEARCH BAR --- */}
-           <div className="flex-1 max-w-xl mx-4 min-w-[200px]">
-             <div className="relative group">
-               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 group-focus-within:text-lumina-purple transition-colors">
-                 <FaSearch />
-               </span>
-               <input 
-                 type="text" 
-                 placeholder="Search for courses and teachers..." 
-                 className="w-full py-2.5 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all text-sm"
-               />
-             </div>
-           </div>
-           
-           <div className="flex items-center gap-4 w-auto flex-shrink-0 justify-end">
-             
-             {/* --- BROADCAST ANNOUNCEMENT BUTTON (TEACHERS & ADMINS) --- */}
-             {canBroadcast && (
-               <button
-                 onClick={() => setIsBroadcastOpen(true)}
-                 className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all shadow-sm flex items-center gap-2"
-                 title="Broadcast Announcement via SMS, Email & In-App"
-               >
-                 <FaBullhorn className="text-sm" /> Announcement
-               </button>
-             )}
+          <h2 className="text-xl font-bold text-gray-800 flex-shrink-0 truncate max-w-[25%] mr-4">
+            {getPageTitle()}
+          </h2>
 
-             {showAddCourseButton && (
-              <Link 
+          {/* --- SEARCH BAR --- */}
+          <div className="flex-1 max-w-xl mx-4 min-w-[200px]">
+            <div className="relative group">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 group-focus-within:text-lumina-purple transition-colors">
+                <FaSearch />
+              </span>
+              <input
+                type="text"
+                placeholder="Search for courses and teachers..."
+                className="w-full py-2.5 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 w-auto flex-shrink-0 justify-end">
+
+            {/* --- BROADCAST ANNOUNCEMENT BUTTON (TEACHERS & ADMINS) --- */}
+            {canBroadcast && (
+              <button
+                onClick={() => setIsBroadcastOpen(true)}
+                className="bg-amber-500 hover:bg-amber-600 cursor-pointer text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all shadow-sm flex items-center gap-2"
+                title="Broadcast Announcement via SMS, Email & In-App"
+              >
+                <FaBullhorn className="text-sm" /> Announcement
+              </button>
+            )}
+
+            {showAddCourseButton && (
+              <Link
                 to="/add-course"
                 className="bg-lumina-purple hover:bg-purple-800 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md flex items-center gap-2 whitespace-nowrap flex-shrink-0 text-sm"
               >
@@ -196,143 +196,142 @@ const DashboardLayout = () => {
               </Link>
             )}
 
-             {/* --- NOTIFICATION SYSTEM --- */}
-             <div className="relative" ref={notifRef}>
-                <button 
-                  onClick={() => { 
-                    setShowNotifications(!showNotifications); 
-                    setShowProfileMenu(false);
-                  }}
-                  className="p-2.5 text-gray-500 hover:text-lumina-purple hover:bg-purple-50 rounded-full transition-all relative outline-none cursor-pointer"
-                  title="Notifications"
-                >
-                  <FaBell className="text-xl" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white min-w-[18px] text-center leading-none">
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                  )}
-                </button>
+            {/* --- NOTIFICATION SYSTEM --- */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setShowProfileMenu(false);
+                }}
+                className="p-2.5 text-gray-500 hover:text-lumina-purple hover:bg-purple-50 rounded-full transition-all relative outline-none cursor-pointer"
+                title="Notifications"
+              >
+                <FaBell className="text-xl" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white min-w-[18px] text-center leading-none">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
 
-                {showNotifications && (
-                  <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all z-50">
-                    <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-gray-800 text-sm">Notifications</h3>
-                        {unreadCount > 0 && (
-                          <span className="text-[11px] font-bold bg-purple-600 text-white px-2 py-0.5 rounded-full">
-                            {unreadCount} New
-                          </span>
-                        )}
-                      </div>
+              {showNotifications && (
+                <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all z-50">
+                  <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-gray-800 text-sm">Notifications</h3>
                       {unreadCount > 0 && (
-                        <button 
-                          onClick={handleMarkAllRead}
-                          className="text-xs text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                        >
-                          <FaCheckDouble className="text-xs" /> Mark all read
-                        </button>
+                        <span className="text-[11px] font-bold bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                          {unreadCount} New
+                        </span>
                       )}
                     </div>
-                    
-                    <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
-                      {notifications.length > 0 ? (
-                        notifications.map((notif) => (
-                          <div 
-                            key={notif.id || notif._id} 
-                            onClick={() => handleNotificationClick(notif)}
-                            className={`p-4 hover:bg-purple-50/50 transition-colors cursor-pointer flex gap-3 text-sm relative ${
-                              !notif.isRead ? 'bg-purple-50/20 font-semibold' : 'opacity-80'
-                            }`}
-                          >
-                            {!notif.isRead && (
-                              <span className="absolute top-4 right-3 w-2 h-2 bg-purple-600 rounded-full"></span>
-                            )}
-                            <div className="flex-shrink-0 mt-0.5">
-                              {getNotifIcon(notif.type)}
-                            </div>
-                            <div className="flex-1 pr-3">
-                              <p className="text-gray-900 font-bold text-xs mb-0.5">{notif.title}</p>
-                              <p className="text-gray-600 text-xs leading-relaxed line-clamp-2">{notif.message}</p>
-                              <p className="text-gray-400 text-[10px] font-medium mt-1.5">{notif.time}</p>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-8 text-center text-gray-400 text-xs font-medium">
-                          <FaBell className="text-3xl mx-auto mb-2 text-gray-300" />
-                          You're all caught up! No notifications.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-             </div>
-
-             {/* --- USER PROFILE SYSTEM --- */}
-             <div className="relative" ref={profileRef}>
-                <button 
-                  onClick={() => { 
-                    setShowProfileMenu(!showProfileMenu); 
-                    setShowNotifications(false); 
-                  }}
-                  className="flex items-center gap-2 p-1 text-gray-500 hover:text-lumina-purple rounded-full transition-all outline-none cursor-pointer"
-                >
-                  {user?.profilePicture ? (
-                    <img 
-                      src={user.profilePicture} 
-                      alt="Profile" 
-                      referrerPolicy="no-referrer"
-                      className="w-9 h-9 rounded-full object-cover border border-purple-200 shadow-sm"
-                    />
-                  ) : (
-                    <FaUserCircle className="text-3xl" />
-                  )}
-                </button>
-
-                {showProfileMenu && (
-                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all z-50">
-                    <div className="p-4 border-b border-gray-100 bg-gray-50 text-center flex flex-col items-center">
-                      {user?.profilePicture ? (
-                        <img 
-                          src={user.profilePicture} 
-                          alt="Profile" 
-                          referrerPolicy="no-referrer"
-                          className="w-16 h-16 rounded-full object-cover border-2 border-purple-200 mb-2 shadow-inner"
-                        />
-                      ) : (
-                        <FaUserCircle className="text-4xl text-gray-400 mb-2" />
-                      )}
-                      <p className="font-bold text-gray-800 truncate w-full">{userName}</p>
-                      <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mt-1">
-                        {role}
-                      </p>
-                    </div>
-                    
-                    <div className="p-2">
-                      <button 
-                        onClick={() => { navigate('/settings'); setShowProfileMenu(false); }}
-                        className="w-full flex items-center gap-3 p-3 hover:bg-purple-50 text-gray-700 hover:text-lumina-purple rounded-lg transition-colors font-medium text-sm cursor-pointer"
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="text-xs text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                       >
-                        <FaCog className="text-lg" /> Account Settings
+                        <FaCheckDouble className="text-xs" /> Mark all read
                       </button>
-                    </div>
+                    )}
                   </div>
-                )}
-             </div>
 
-           </div>
+                  <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
+                    {notifications.length > 0 ? (
+                      notifications.map((notif) => (
+                        <div
+                          key={notif.id || notif._id}
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`p-4 hover:bg-purple-50/50 transition-colors cursor-pointer flex gap-3 text-sm relative ${!notif.isRead ? 'bg-purple-50/20 font-semibold' : 'opacity-80'
+                            }`}
+                        >
+                          {!notif.isRead && (
+                            <span className="absolute top-4 right-3 w-2 h-2 bg-purple-600 rounded-full"></span>
+                          )}
+                          <div className="flex-shrink-0 mt-0.5">
+                            {getNotifIcon(notif.type)}
+                          </div>
+                          <div className="flex-1 pr-3">
+                            <p className="text-gray-900 font-bold text-xs mb-0.5">{notif.title}</p>
+                            <p className="text-gray-600 text-xs leading-relaxed line-clamp-2">{notif.message}</p>
+                            <p className="text-gray-400 text-[10px] font-medium mt-1.5">{notif.time}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center text-gray-400 text-xs font-medium">
+                        <FaBell className="text-3xl mx-auto mb-2 text-gray-300" />
+                        You're all caught up! No notifications.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* --- USER PROFILE SYSTEM --- */}
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => {
+                  setShowProfileMenu(!showProfileMenu);
+                  setShowNotifications(false);
+                }}
+                className="flex items-center gap-2 p-1 text-gray-500 hover:text-lumina-purple rounded-full transition-all outline-none cursor-pointer"
+              >
+                {user?.profilePicture ? (
+                  <img
+                    src={user.profilePicture}
+                    alt="Profile"
+                    referrerPolicy="no-referrer"
+                    className="w-9 h-9 rounded-full object-cover border border-purple-200 shadow-sm"
+                  />
+                ) : (
+                  <FaUserCircle className="text-3xl" />
+                )}
+              </button>
+
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all z-50">
+                  <div className="p-4 border-b border-gray-100 bg-gray-50 text-center flex flex-col items-center">
+                    {user?.profilePicture ? (
+                      <img
+                        src={user.profilePicture}
+                        alt="Profile"
+                        referrerPolicy="no-referrer"
+                        className="w-16 h-16 rounded-full object-cover border-2 border-purple-200 mb-2 shadow-inner"
+                      />
+                    ) : (
+                      <FaUserCircle className="text-4xl text-gray-400 mb-2" />
+                    )}
+                    <p className="font-bold text-gray-800 truncate w-full">{userName}</p>
+                    <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mt-1">
+                      {role}
+                    </p>
+                  </div>
+
+                  <div className="p-2">
+                    <button
+                      onClick={() => { navigate('/settings'); setShowProfileMenu(false); }}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-purple-50 text-gray-700 hover:text-lumina-purple rounded-lg transition-colors font-medium text-sm cursor-pointer"
+                    >
+                      <FaCog className="text-lg" /> Account Settings
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
         </header>
 
         <main className="flex-grow p-8 bg-gray-50 min-h-[calc(100vh-5rem)]">
-           <Outlet /> 
+          <Outlet />
         </main>
       </div>
 
       {/* --- BROADCAST ANNOUNCEMENT MODAL --- */}
-      <BroadcastModal 
-        isOpen={isBroadcastOpen} 
-        onClose={() => setIsBroadcastOpen(false)} 
+      <BroadcastModal
+        isOpen={isBroadcastOpen}
+        onClose={() => setIsBroadcastOpen(false)}
       />
     </div>
   );

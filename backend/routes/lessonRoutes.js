@@ -73,9 +73,29 @@ router.patch('/update-message/:lessonId', protect, isTeacherOrAdmin, async (req,
 
         if (!lesson) return res.status(404).json({ error: "Class not found." });
 
-        // පණිවිඩය පමණක් යාවත්කාලීන කිරීම[cite: 1]
         lesson.teacherMessage = teacherMessage;
         await lesson.save();
+
+        // --- TRIGGER NOTIFICATIONS FOR CLASS STUDENTS ---
+        try {
+            const course = await Course.findById(lesson.course);
+            const classGrade = String(lesson.grade).trim();
+            const students = await User.find({ role: 'student', grade: new RegExp(classGrade, 'i') }).select('_id');
+            const notifDocs = students.map(st => ({
+                recipient: st._id,
+                sender: req.user._id,
+                type: 'NEW_CONTENT',
+                title: `Teacher Notice: Grade ${lesson.grade}`,
+                message: teacherMessage,
+                link: '/courses',
+                metadata: { courseId: lesson.course, lessonId: lesson._id }
+            }));
+            if (notifDocs.length > 0) {
+                await Notification.insertMany(notifDocs);
+            }
+        } catch (notifErr) {
+            console.error('Lesson message notification error:', notifErr.message);
+        }
 
         res.json({ message: "Message posted successfully!", lesson });
     } catch (err) {
