@@ -5,17 +5,22 @@ import Settings from './pages/Settings';
 
 // --- COMPONENTS & LAYOUTS ---
 import Login from './components/Login';
+import Register from './components/Register';
 import DashboardLayout from './components/DashboardLayout';
 import Dashboard from './components/Dashboard';
 
 // --- PAGES ---
 import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Courses from './pages/Courses'; 
 import CourseDetails from './pages/CourseDetails';
 import ManageUsers from './pages/ManageUsers';
-import Enrollments from './pages/Enrollments';
 import Attendance from './pages/Attendance';
+import Enrollments from './pages/Enrollments';
+import Payments from './pages/Payments';
+import Analytics from './pages/Analytics';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -47,7 +52,10 @@ function App() {
       <Routes>
         {/* === PUBLIC ROUTES === */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/" element={<Navigate to="/login" />} />
 
         {/* === DASHBOARD & PROTECTED ROUTES === */}
@@ -58,11 +66,13 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<Courses />} /> 
           <Route path="/course/:courseId" element={<CourseDetails />} />
+          <Route path="/payments" element={<Payments />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
 
-          {/* Level 2: Restricted Access (Only Teachers and Admins) */}
+          {/* Level 2: Restricted Access (Admin Only) */}
           <Route path="/add-course" element={
-            <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+            <ProtectedRoute allowedRoles={['admin']}>
               <AddCourse />
             </ProtectedRoute>
           } />
@@ -73,7 +83,7 @@ function App() {
               <ManageUsers />
             </ProtectedRoute>
           } />
-          
+
           <Route path="/enrollments" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <Enrollments />

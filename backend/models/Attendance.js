@@ -9,16 +9,31 @@ const AttendanceSchema = new mongoose.Schema({
   scheduleId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Schedule',
-    required: true
+    required: false
   },
   courseId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
     required: true
   },
+  weekNumber: {
+    type: Number,
+    enum: [1, 2, 3, 4],
+    required: false
+  },
+  month: {
+    type: String,
+    required: false
+  },
+  mode: {
+    type: String,
+    enum: ['ONLINE_WEEKLY', 'PHYSICAL_COUNTER', 'CLASS_SCHEDULE'],
+    default: 'CLASS_SCHEDULE'
+  },
   date: {
     type: Date,
-    required: true
+    required: true,
+    default: Date.now
   },
   status: {
     type: String,
@@ -40,7 +55,7 @@ const AttendanceSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Compound unique index: student can have only one attendance record per schedule on any single day
-AttendanceSchema.index({ studentId: 1, scheduleId: 1, date: 1 }, { unique: true });
+// Compound unique index for weekly online attendance
+AttendanceSchema.index({ studentId: 1, courseId: 1, weekNumber: 1, month: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Attendance', AttendanceSchema);

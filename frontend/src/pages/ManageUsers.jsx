@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import toast from 'react-hot-toast';
 import {
   FaChalkboardTeacher,
@@ -18,6 +18,12 @@ const emptyStudentForm = {
   temporaryPassword: ''
 };
 
+const emptyAdminForm = {
+  name: '',
+  email: '',
+  temporaryPassword: ''
+};
+
 const gradeOptions = [
   "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11",
   "Grade 12 Science", "Grade 12 Commerce", "Grade 12 Arts", "Grade 12 Tech",
@@ -30,6 +36,7 @@ const ManageUsers = () => {
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState('All');
   const [studentForm, setStudentForm] = useState(emptyStudentForm);
+  const [adminForm, setAdminForm] = useState(emptyAdminForm);
   const [batchSource, setBatchSource] = useState('');
   const [batchTarget, setBatchTarget] = useState('');
   const [updatingBatch, setUpdatingBatch] = useState(false);
@@ -47,9 +54,7 @@ const ManageUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/auth/users', {
-        headers: getAuthHeaders()
-      });
+      const res = await api.get('/auth/users');
       setUsers(res.data);
       setLoading(false);
     } catch (err) {
@@ -70,13 +75,13 @@ const ManageUsers = () => {
     setCreating(true);
 
     try {
-      const res = await axios.post(
-        'http://localhost:5000/api/auth/users',
+      const res = await api.post(
+        '/auth/users',
         {
           ...studentForm,
-          role: 'student'
-        },
-        { headers: getAuthHeaders() }
+          role: 'student',
+          studentType: 'physical'
+        }
       );
 
       setUsers((currentUsers) => [res.data.user, ...currentUsers]);
@@ -90,12 +95,42 @@ const ManageUsers = () => {
     }
   };
 
+  const handleAdminFieldChange = (field, value) => {
+    setAdminForm((currentForm) => ({
+      ...currentForm,
+      [field]: value
+    }));
+  };
+
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+
+    try {
+      const res = await api.post(
+        '/auth/users',
+        {
+          ...adminForm,
+          role: 'admin'
+        }
+      );
+
+      setUsers((currentUsers) => [res.data.user, ...currentUsers]);
+      setAdminForm(emptyAdminForm);
+      setActiveTab('admin');
+      toast.success('Admin account created successfully. Temporary password change is required on first login.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create admin');
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleRoleChange = async (userId, newRole) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/auth/users/${userId}/role`,
-        { role: newRole },
-        { headers: getAuthHeaders() }
+      await api.put(
+        `/auth/users/${userId}/role`,
+        { role: newRole }
       );
 
       toast.success('User role updated!');
@@ -107,10 +142,9 @@ const ManageUsers = () => {
 
   const handleGradeChange = async (userId, newGrade) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/auth/users/${userId}/grade`,
-        { grade: newGrade },
-        { headers: getAuthHeaders() }
+      await api.put(
+        `/auth/users/${userId}/grade`,
+        { grade: newGrade }
       );
 
       toast.success("Student's grade updated successfully!");
@@ -136,10 +170,9 @@ const ManageUsers = () => {
   const executeBatchUpdate = async () => {
     setUpdatingBatch(true);
     try {
-      const res = await axios.post(
-        'http://localhost:5000/api/auth/users/batch-update-grade',
-        { sourceGrade: batchSource, targetGrade: batchTarget },
-        { headers: getAuthHeaders() }
+      const res = await api.post(
+        '/auth/users/batch-update-grade',
+        { sourceGrade: batchSource, targetGrade: batchTarget }
       );
 
       toast.success(res.data.message || 'Batch update completed successfully!');
@@ -162,9 +195,7 @@ const ManageUsers = () => {
     if (!userToDelete) return;
     const { id: userId, name: userName } = userToDelete;
     try {
-      await axios.delete(`http://localhost:5000/api/auth/users/${userId}`, {
-        headers: getAuthHeaders()
-      });
+      await api.delete(`/auth/users/${userId}`);
 
       toast.success(`${userName} deleted successfully`);
       setUsers(users.filter((u) => u._id !== userId));
@@ -192,143 +223,147 @@ const ManageUsers = () => {
   if (loading) return <div className="text-center p-10 text-gray-500 font-bold">Loading users...</div>;
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 font-sans">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
+          <h2 className="text-2xl font-bold text-gray-800 font-sans">User Management</h2>
           <p className="text-gray-500 text-sm mt-1">Total Users: {users.length}</p>
         </div>
       </div>
 
-      <form onSubmit={handleCreateStudent} className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-10 w-10 rounded-lg bg-green-100 text-green-700 flex items-center justify-center">
-            <FaUserGraduate />
+      {(activeTab === 'All' || activeTab === 'student') && (
+        <form onSubmit={handleCreateStudent} className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-lg bg-green-100 text-green-700 flex items-center justify-center">
+              <FaUserGraduate />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-800">Add Registered Student</h3>
+              <p className="text-sm text-gray-500">Create accounts only after physical institute registration.</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-gray-800">Add Registered Student</h3>
-            <p className="text-sm text-gray-500">Create accounts only after physical institute registration.</p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <input
-            type="text"
-            placeholder="Student Full Name"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-            value={studentForm.name}
-            onChange={(e) => handleStudentFieldChange('name', e.target.value)}
-            required
-          />
-          <input
-            type="email"
-            placeholder="Email Address"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-            value={studentForm.email}
-            onChange={(e) => handleStudentFieldChange('email', e.target.value)}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Registration Number"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-            value={studentForm.registrationNumber}
-            onChange={(e) => handleStudentFieldChange('registrationNumber', e.target.value)}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Parents Phone Number"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-            value={studentForm.parentsPhoneNumber}
-            onChange={(e) => handleStudentFieldChange('parentsPhoneNumber', e.target.value)}
-            required
-          />
-          <select
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none hover:cursor-pointer"
-            value={studentForm.grade}
-            onChange={(e) => handleStudentFieldChange('grade', e.target.value)}
-            required
-          >
-            <option value="">Select Student's Current Grade</option>
-            {gradeOptions.map(g => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </select>
-          <input
-            type="password"
-            placeholder="Temporary Password"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-            value={studentForm.temporaryPassword}
-            onChange={(e) => handleStudentFieldChange('temporaryPassword', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="mt-4 flex justify-end">
-          <button
-            type="submit"
-            disabled={creating}
-            className="inline-flex items-center gap-2 bg-lumina-purple hover:bg-purple-800 cursor-pointer disabled:bg-purple-300 text-white font-bold px-5 py-3 rounded-lg transition"
-          >
-            <FaPlus />
-            {creating ? 'Creating...' : 'Create Student'}
-          </button>
-        </div>
-      </form>
-
-      {/* Batch Grade Update Section */}
-      <form onSubmit={handleBatchUpdateGrade} className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-10 w-10 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-lg">
-            🔄
-          </div>
-          <div>
-            <h3 className="font-bold text-gray-800">Batch Grade Promotion / Update</h3>
-            <p className="text-sm text-gray-500">Apply grade promotions to a batch of students (e.g. promoting all Grade 8 students to Grade 9).</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Source Grade</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <input
+              type="text"
+              placeholder="Student Full Name"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={studentForm.name}
+              onChange={(e) => handleStudentFieldChange('name', e.target.value)}
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email Address"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={studentForm.email}
+              onChange={(e) => handleStudentFieldChange('email', e.target.value)}
+              required
+            />
+            <input
+              type="text"
+              placeholder="Registration Number"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={studentForm.registrationNumber}
+              onChange={(e) => handleStudentFieldChange('registrationNumber', e.target.value)}
+              required
+            />
+            <input
+              type="text"
+              placeholder="Parents Phone Number"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={studentForm.parentsPhoneNumber}
+              onChange={(e) => handleStudentFieldChange('parentsPhoneNumber', e.target.value)}
+              required
+            />
             <select
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none hover:cursor-pointer"
-              value={batchSource}
-              onChange={(e) => setBatchSource(e.target.value)}
+              value={studentForm.grade}
+              onChange={(e) => handleStudentFieldChange('grade', e.target.value)}
               required
             >
-              <option value="">Select Current Grade</option>
+              <option value="">Select Student's Current Grade</option>
               {gradeOptions.map(g => (
                 <option key={g} value={g}>{g}</option>
               ))}
             </select>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Target Grade</label>
-            <select
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none hover:cursor-pointer"
-              value={batchTarget}
-              onChange={(e) => setBatchTarget(e.target.value)}
+            <input
+              type="password"
+              placeholder="Temporary Password"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={studentForm.temporaryPassword}
+              onChange={(e) => handleStudentFieldChange('temporaryPassword', e.target.value)}
               required
-            >
-              <option value="">Select New Grade</option>
-              {gradeOptions.map(g => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
+            />
           </div>
-          <div>
+
+          <div className="mt-4 flex justify-end">
             <button
               type="submit"
-              disabled={updatingBatch}
-              className="w-full inline-flex items-center justify-center gap-2 bg-lumina-purple hover:bg-purple-800 cursor-pointer disabled:bg-purple-300 text-white font-bold px-5 py-3 rounded-lg transition"
+              disabled={creating}
+              className="inline-flex items-center gap-2 bg-lumina-purple hover:bg-purple-800 cursor-pointer disabled:bg-purple-300 text-white font-bold px-5 py-3 rounded-lg transition"
             >
-              {updatingBatch ? 'Updating...' : 'Apply Batch Update'}
+              <FaPlus />
+              {creating ? 'Creating...' : 'Create Student'}
             </button>
           </div>
-        </div>
-      </form>
+        </form>
+      )}
+
+      {/* Batch Grade Update Section */}
+      {(activeTab === 'All' || activeTab === 'student') && (
+        <form onSubmit={handleBatchUpdateGrade} className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-lg">
+              🔄
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-800">Batch Grade Promotion / Update</h3>
+              <p className="text-sm text-gray-500">Apply grade promotions to a batch of students (e.g. promoting all Grade 8 students to Grade 9).</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Source Grade</label>
+              <select
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none hover:cursor-pointer"
+                value={batchSource}
+                onChange={(e) => setBatchSource(e.target.value)}
+                required
+              >
+                <option value="">Select Current Grade</option>
+                {gradeOptions.map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Target Grade</label>
+              <select
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none hover:cursor-pointer"
+                value={batchTarget}
+                onChange={(e) => setBatchTarget(e.target.value)}
+                required
+              >
+                <option value="">Select New Grade</option>
+                {gradeOptions.map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <button
+                type="submit"
+                disabled={updatingBatch}
+                className="w-full inline-flex items-center justify-center gap-2 bg-lumina-purple hover:bg-purple-800 cursor-pointer disabled:bg-purple-300 text-white font-bold px-5 py-3 rounded-lg transition"
+              >
+                {updatingBatch ? 'Updating...' : 'Apply Batch Update'}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
 
       <div className="flex border-b border-gray-200 mb-6 space-x-8">
         {['All', 'admin', 'teacher', 'student'].map((tab) => (
@@ -345,12 +380,65 @@ const ManageUsers = () => {
         ))}
       </div>
 
+      {activeTab === 'admin' && (
+        <form onSubmit={handleCreateAdmin} className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5 animate-fade-in">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-lg bg-red-100 text-red-700 flex items-center justify-center">
+              <FaUserShield />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-800">Add Administrator</h3>
+              <p className="text-sm text-gray-500">Create a new administrator account with system-wide privileges.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <input
+              type="text"
+              placeholder="Admin Full Name"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={adminForm.name}
+              onChange={(e) => handleAdminFieldChange('name', e.target.value)}
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email Address"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={adminForm.email}
+              onChange={(e) => handleAdminFieldChange('email', e.target.value)}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Temporary Password"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={adminForm.temporaryPassword}
+              onChange={(e) => handleAdminFieldChange('temporaryPassword', e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="submit"
+              disabled={creating}
+              className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 cursor-pointer disabled:bg-red-300 text-white font-bold px-5 py-3 rounded-lg transition"
+            >
+              <FaPlus />
+              {creating ? 'Creating...' : 'Create Admin'}
+            </button>
+          </div>
+        </form>
+      )}
+
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b border-gray-200">
               <th className="p-4 font-semibold">User</th>
               <th className="p-4 font-semibold">Email</th>
+              <th className="p-4 font-semibold">Student Type</th>
               <th className="p-4 font-semibold">Registration No.</th>
               <th className="p-4 font-semibold">Grade</th>
               <th className="p-4 font-semibold">Parent's Phone</th>
@@ -371,13 +459,26 @@ const ManageUsers = () => {
                     <span className="font-medium text-gray-800">{u.name}</span>
                   </td>
                   <td className="p-4 text-gray-600 text-sm">{u.email}</td>
+                  <td className="p-4">
+                    {u.role === 'student' ? (
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full border ${
+                        u.studentType === 'online' 
+                          ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      }`}>
+                        {u.studentType === 'online' ? 'Online' : 'Physical'}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-sm">-</span>
+                    )}
+                  </td>
                   <td className="p-4 text-gray-600 text-sm">{u.registrationNumber || '-'}</td>
                   <td className="p-4">
                     {u.role === 'student' ? (
                       <select
                         value={u.grade || ''}
                         onChange={(e) => handleGradeChange(u._id, e.target.value)}
-                        className="text-sm border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-750 outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                        className="text-sm border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-75 select-none outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                       >
                         <option value="">No Grade</option>
                         {gradeOptions.map(g => (
@@ -442,20 +543,20 @@ const ManageUsers = () => {
       {/* Batch Promotion Custom Modal */}
       {showBatchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-150 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
-            <div className="text-center">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-155 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
+            <div className="text-center font-sans">
               <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-amber-200">
                 ⚠️
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">Confirm Batch Update</h3>
-              <p className="text-gray-500 text-sm mb-6">
+              <p className="text-gray-505 text-sm mb-6 leading-relaxed">
                 Are you sure you want to promote/change all students currently in <strong className="text-purple-800 font-semibold">{batchSource}</strong> to <strong className="text-purple-800 font-semibold">{batchTarget}</strong>? This action will apply to all students matching this grade.
               </p>
               <div className="flex gap-3 justify-center">
                 <button
                   type="button"
                   onClick={() => setShowBatchModal(false)}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-205 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -479,14 +580,14 @@ const ManageUsers = () => {
       {/* Delete Confirmation Custom Modal */}
       {showDeleteModal && userToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-150 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
-            <div className="text-center">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-155 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
+            <div className="text-center font-sans">
               <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-red-200">
                 <FaTrash className="text-xl text-red-500" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">Delete User</h3>
-              <p className="text-gray-500 text-sm mb-6">
-                Are you sure you want to permanently delete <strong className="text-red-600 font-semibold">{userToDelete.name}</strong>? This action is irreversible and will delete all user data associated with this account.
+              <p className="text-gray-505 text-sm mb-6 leading-relaxed">
+                Are you sure you want to permanently delete <strong className="text-red-650 font-semibold">{userToDelete.name}</strong>? This action is irreversible and will delete all user data associated with this account.
               </p>
               <div className="flex gap-3 justify-center">
                 <button
@@ -495,14 +596,14 @@ const ManageUsers = () => {
                     setShowDeleteModal(false);
                     setUserToDelete(null);
                   }}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-205 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={executeDelete}
-                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-750 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 cursor-pointer"
                 >
                   Yes, Delete User
                 </button>

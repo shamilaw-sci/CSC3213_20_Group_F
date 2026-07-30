@@ -18,10 +18,18 @@ const lessonSchema = new mongoose.Schema({
     trim: true,
     default: "මෙම ශ්‍රේණිය සඳහා ගුරුවරයාගෙන් පණිවිඩයක් නැත."
   },
-  // පසුව වීඩියෝ පාඩම් එක් කිරීමට ඉඩ තැබීම (දැනට අවශ්‍ය නැත)
   videoLessons: [{
     title: String,
-    url: String
+    url: String,
+    weekNumber: { type: Number, enum: [1, 2, 3, 4], default: 1 }
+  }],
+  pdfMaterials: [{
+    title: { type: String, required: true },
+    filename: { type: String, required: true },
+    fileUrl: { type: String, required: true },
+    fileSize: { type: Number },
+    weekNumber: { type: Number, enum: [1, 2, 3, 4], default: 1 },
+    uploadedAt: { type: Date, default: Date.now }
   }]
 }, { 
   timestamps: true 

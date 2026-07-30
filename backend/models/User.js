@@ -9,7 +9,7 @@ const UserSchema = new mongoose.Schema({
     sparse: true,
     trim: true,
     required: function () {
-      return this.role === 'student';
+      return this.role === 'student' && this.studentType === 'physical';
     }
   },
   parentsPhoneNumber: {
@@ -19,7 +19,6 @@ const UserSchema = new mongoose.Schema({
       return this.role === 'student';
     }
   },
-
   grade: {
     type: String,
     required: function () {
@@ -28,10 +27,26 @@ const UserSchema = new mongoose.Schema({
   },
   password: { type: String, required: true },
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
-  mustChangePassword: {
-    type: Boolean,
+  studentType: {
+    type: String,
+    enum: ['physical', 'online'],
+    default: 'physical'
+  },
+  mustChangePassword: { 
+    type: Boolean, 
     default: false
+  },
+  profilePicture: {
+    type: String,
+    default: ''
+  },
+  resetPasswordToken: {
+    type: String,
+    default: ''
+  },
+  resetPasswordExpires: {
+    type: Date
   }
-}, { timestamps: true });
+}, { timestamps: true }); 
 
 module.exports = mongoose.model('User', UserSchema);

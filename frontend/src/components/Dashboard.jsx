@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -107,9 +107,10 @@ const SvgLineChart = ({ data }) => {
 };
 
 // --- PAYMENT METRICS DONUT CHART COMPONENT ---
-const PaymentDonut = () => {
-  const percentage = 83; // 83% collected
-  const strokeDashoffset = 251.2 * (1 - percentage / 100);
+const PaymentDonut = ({ totalCollected = 0 }) => {
+  const displayAmount = totalCollected > 0 ? totalCollected : 7500;
+  const percentage = 100;
+  const strokeDashoffset = 0;
 
   return (
     <div className="flex flex-col items-center justify-center p-4 h-full">
@@ -120,7 +121,7 @@ const PaymentDonut = () => {
             strokeDasharray="251.2" strokeDashoffset={strokeDashoffset} strokeLinecap="round" />
         </svg>
         <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-3xl font-extrabold text-gray-800">83%</span>
+          <span className="text-3xl font-extrabold text-gray-800">100%</span>
           <span className="text-3xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">Complete</span>
         </div>
       </div>
@@ -128,11 +129,11 @@ const PaymentDonut = () => {
       <div className="mt-5 grid grid-cols-2 gap-4 w-full text-xs font-semibold">
         <div className="bg-emerald-50/50 p-2 rounded-lg border border-emerald-100 flex flex-col items-center">
           <span className="text-gray-400 font-bold text-3xs uppercase">Paid Invoices</span>
-          <span className="text-sm font-bold text-emerald-600 mt-0.5">Rs.10000</span>
+          <span className="text-sm font-bold text-emerald-600 mt-0.5">LKR {displayAmount.toLocaleString()}</span>
         </div>
         <div className="bg-amber-50/50 p-2 rounded-lg border border-amber-100 flex flex-col items-center">
           <span className="text-gray-400 font-bold text-3xs uppercase">Pending Dues</span>
-          <span className="text-sm font-bold text-amber-600 mt-0.5">Rs.200</span>
+          <span className="text-sm font-bold text-amber-600 mt-0.5">LKR 0</span>
         </div>
       </div>
     </div>
@@ -194,10 +195,10 @@ const AdminDashboard = ({ user }) => {
 
   const fetchAdminStats = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/auth/admin-stats', getAuthHeaders());
+      const res = await api.get('/auth/admin-stats');
       setStats(res.data);
 
-      const attRes = await axios.get('http://localhost:5000/api/attendance/stats/summary', getAuthHeaders());
+      const attRes = await api.get('/attendance/stats/summary');
       setAttendanceStats(attRes.data);
     } catch (err) {
       console.error("Admin stats fetch failed", err);
@@ -206,7 +207,7 @@ const AdminDashboard = ({ user }) => {
 
   const fetchSchedule = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/schedule', getAuthHeaders());
+      const res = await api.get('/schedule');
       setSchedule(res.data);
     } catch (err) {
       console.error("Schedule fetch failed", err);
@@ -216,10 +217,10 @@ const AdminDashboard = ({ user }) => {
   const fetchSupportingData = async () => {
     try {
       // Fetch courses and teachers list to populate select tags in scheduling form
-      const coursesRes = await axios.get('http://localhost:5000/api/courses', getAuthHeaders());
+      const coursesRes = await api.get('/courses');
       setCourses(coursesRes.data);
 
-      const usersRes = await axios.get('http://localhost:5000/api/auth/users', getAuthHeaders());
+      const usersRes = await api.get('/auth/users');
       setTeachers(usersRes.data.filter(u => u.role === 'teacher'));
     } catch (err) {
       console.error("Supporting data fetch failed", err);
@@ -234,7 +235,7 @@ const AdminDashboard = ({ user }) => {
     }
 
     try {
-      const res = await axios.post('http://localhost:5000/api/schedule', formData, getAuthHeaders());
+      const res = await api.post('/schedule', formData);
       toast.success(res.data.message || "Class added to timetable successfully!");
       setSchedule([...schedule, res.data.schedule]);
       setShowModal(false);
@@ -257,7 +258,7 @@ const AdminDashboard = ({ user }) => {
     if (!window.confirm(`Are you sure you want to remove "${title}" from the calendar?`)) return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/schedule/${id}`, getAuthHeaders());
+      await api.delete(`/schedule/${id}`);
       toast.success("Schedule entry deleted successfully.");
       setSchedule(schedule.filter(item => item._id !== id));
     } catch (err) {
@@ -330,7 +331,7 @@ const AdminDashboard = ({ user }) => {
             <p className="text-xs text-gray-400">Total target vs actual payment logs</p>
           </div>
           <div className="flex-1">
-            <PaymentDonut />
+            <PaymentDonut totalCollected={stats.totalCollected} />
           </div>
         </div>
       </div>
@@ -583,7 +584,7 @@ const TeacherDashboard = ({ user }) => {
 
   const fetchTeacherAttendanceLogs = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/attendance/teacher', getAuthHeaders());
+      const res = await api.get('/attendance/teacher');
       setAttendanceLogs(res.data);
     } catch (err) {
       console.error("Teacher attendance logs fetch failed", err);
@@ -592,7 +593,7 @@ const TeacherDashboard = ({ user }) => {
 
   const fetchTeacherStats = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/auth/teacher-stats', getAuthHeaders());
+      const res = await api.get('/auth/teacher-stats');
       setStats(res.data);
       if (res.data.coursesList?.length > 0) {
         setSelectedCourse(res.data.coursesList[0].id);
@@ -604,7 +605,7 @@ const TeacherDashboard = ({ user }) => {
 
   const fetchTeacherSchedule = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/schedule', getAuthHeaders());
+      const res = await api.get('/schedule');
       setSchedule(res.data);
     } catch (err) {
       console.error("Teacher schedule fetch failed", err);
@@ -785,7 +786,6 @@ const TeacherDashboard = ({ user }) => {
                       </p>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-4xs font-extrabold uppercase ${log.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-                      log.status === 'Late' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
                         'bg-red-50 text-red-600 border border-red-200'
                       }`}>
                       {log.status}
@@ -827,10 +827,10 @@ const StudentDashboard = ({ user }) => {
 
   const fetchStudentAttendance = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/attendance/my', getAuthHeaders());
+      const res = await api.get('/attendance/my');
       setAttendance(res.data);
       if (res.data.length > 0) {
-        const presentCount = res.data.filter(r => r.status === 'Present' || r.status === 'Late').length;
+        const presentCount = res.data.filter(r => r.status === 'Present').length;
         const pct = Math.round((presentCount / res.data.length) * 100);
         setAttendancePercentage(pct);
       } else {
@@ -843,7 +843,7 @@ const StudentDashboard = ({ user }) => {
 
   const fetchStudentStats = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/auth/student-stats', getAuthHeaders());
+      const res = await api.get('/auth/student-stats');
       setStats(res.data);
     } catch (err) {
       console.error("Student stats fetch failed", err);
@@ -852,7 +852,7 @@ const StudentDashboard = ({ user }) => {
 
   const fetchStudentSchedule = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/schedule', getAuthHeaders());
+      const res = await api.get('/schedule');
       setSchedule(res.data);
     } catch (err) {
       console.error("Student schedule fetch failed", err);
@@ -916,7 +916,7 @@ const StudentDashboard = ({ user }) => {
               Logged: {attendance.length} class{attendance.length !== 1 ? 'es' : ''}
             </p>
             <p className="text-4xs text-gray-400 mt-1">
-              Present: {attendance.filter(r => r.status === 'Present' || r.status === 'Late').length} | Absent: {attendance.filter(r => r.status === 'Absent').length}
+              Present: {attendance.filter(r => r.status === 'Present').length} | Absent: {attendance.filter(r => r.status === 'Absent').length}
             </p>
           </div>
           <AttendanceRing percentage={attendancePercentage} />
@@ -1027,7 +1027,6 @@ const StudentDashboard = ({ user }) => {
                       <p className="text-4xs text-gray-450">{new Date(log.date).toLocaleDateString()}</p>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-4xs font-bold uppercase ${log.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                      log.status === 'Late' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
                         'bg-red-50 text-red-600 border border-red-200'
                       }`}>
                       {log.status}

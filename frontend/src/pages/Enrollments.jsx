@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { FaUserPlus, FaTrash, FaSearch } from 'react-icons/fa';
 
-const gradeOptions = [
-  "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11",
-  "Grade 12 Science", "Grade 12 Commerce", "Grade 12 Arts", "Grade 12 Tech",
-  "Grade 13 Science", "Grade 13 Commerce", "Grade 13 Arts", "Grade 13 Tech"
-];
+const normalizeGradeStr = (g) => {
+  if (!g) return '';
+  return g.toLowerCase().replace(/\s+/g, '').replace('grade', '');
+};
+
+const isMatchingGrade = (studentGrade, classGrade) => {
+  return normalizeGradeStr(studentGrade) === normalizeGradeStr(classGrade);
+};
 
 const Enrollments = () => {
   const [enrollments, setEnrollments] = useState([]);
@@ -41,28 +44,37 @@ const Enrollments = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch active enrollments
-      const enrollmentsRes = await axios.get('http://localhost:5000/api/courses/enrollments/all', {
-        headers: getAuthHeaders()
-      });
-      setEnrollments(enrollmentsRes.data);
+      const [enrollmentsRes, usersRes, coursesRes] = await Promise.allSettled([
+        api.get('/courses/enrollments/all'),
+        api.get('/auth/users?role=student'),
+        api.get('/courses')
+      ]);
 
-      // 2. Fetch all students
-      const usersRes = await axios.get('http://localhost:5000/api/auth/users', {
-        headers: getAuthHeaders()
-      });
-      setStudents(usersRes.data.filter(u => u.role === 'student'));
+      if (enrollmentsRes.status === 'fulfilled') setEnrollments(enrollmentsRes.value.data);
+      if (usersRes.status === 'fulfilled') setStudents(usersRes.value.data);
+      if (coursesRes.status === 'fulfilled') setCourses(coursesRes.value.data);
 
-      // 3. Fetch all courses
-      const coursesRes = await axios.get('http://localhost:5000/api/courses', {
-        headers: getAuthHeaders()
-      });
-      setCourses(coursesRes.data);
+      if (enrollmentsRes.status === 'rejected' && usersRes.status === 'rejected' && coursesRes.status === 'rejected') {
+        toast.error('Failed to load required data');
+      }
     } catch (err) {
       toast.error('Failed to load required data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCourseChange = (courseId) => {
+    setSelectedCourseId(courseId);
+    setSelectedClass('');
+    setSelectedStudentId('');
+    setStudentSearch('');
+  };
+
+  const handleGradeChange = (className) => {
+    setSelectedClass(className);
+    setSelectedStudentId('');
+    setStudentSearch('');
   };
 
   const handleEnroll = async (e) => {
@@ -74,14 +86,13 @@ const Enrollments = () => {
 
     setSubmitting(true);
     try {
-      const res = await axios.post(
-        'http://localhost:5000/api/courses/enroll',
+      const res = await api.post(
+        '/courses/enroll',
         {
           studentId: selectedStudentId,
           courseId: selectedCourseId,
           className: selectedClass
-        },
-        { headers: getAuthHeaders() }
+        }
       );
 
       toast.success(res.data.message || 'Student enrolled successfully.');
@@ -91,11 +102,8 @@ const Enrollments = () => {
       setStudentSearch('');
       setCourseSearch('');
 
-      // Reload enrollments
-      const enrollmentsRes = await axios.get('http://localhost:5000/api/courses/enrollments/all', {
-        headers: getAuthHeaders()
-      });
-      setEnrollments(enrollmentsRes.data);
+      // Reload all data
+      await fetchData();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to enroll student');
     } finally {
@@ -110,17 +118,16 @@ const Enrollments = () => {
 
   const executeUnenroll = async () => {
     if (!enrollmentToDelete) return;
-    const { studentId, courseId, className, studentName, courseTitle } = enrollmentToDelete;
+    const { studentId, courseId, className } = enrollmentToDelete;
 
     try {
-      await axios.post(
-        'http://localhost:5000/api/courses/unenroll',
-        { studentId, courseId, className },
-        { headers: getAuthHeaders() }
+      await api.post(
+        '/courses/unenroll',
+        { studentId, courseId, className }
       );
 
       toast.success('Student unenrolled successfully.');
-      setEnrollments(enrollments.filter(e => !(e.studentId === studentId && e.courseId === courseId && e.className === className)));
+      await fetchData();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to unenroll student');
     } finally {
@@ -129,8 +136,17 @@ const Enrollments = () => {
     }
   };
 
-  // Filter student and course select dropdowns on the fly
+  // Get students who:
+  // 1. Are in the selected grade/class
+  // 2. Are not already enrolled in the selected course
+  // 3. Match the search query
   const filteredStudentsForSelect = students.filter(s => {
+    if (!selectedClass) return false;
+    if (!isMatchingGrade(s.grade, selectedClass)) return false;
+
+    const isAlreadyEnrolled = enrollments.some(e => e.studentId === s._id && e.courseId === selectedCourseId);
+    if (isAlreadyEnrolled) return false;
+
     if (!studentSearch) return true;
     const term = studentSearch.toLowerCase();
     return (
@@ -162,10 +178,13 @@ const Enrollments = () => {
     );
   });
 
+  const selectedCourse = courses.find(c => c._id === selectedCourseId);
+  const assignedGrades = selectedCourse?.enrolledGrades || [];
+
   if (loading) return <div className="text-center p-10 text-gray-500 font-bold">Loading enrollments data...</div>;
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 animate-fade-in">
+    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 animate-fade-in font-sans">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Enrollment Management</h2>
@@ -186,34 +205,9 @@ const Enrollments = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Student Selector */}
+          {/* 1. Course Selector */}
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">1. Select Student</label>
-            <input
-              type="text"
-              placeholder="Search Student (name, email)..."
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-purple-500 mb-2"
-              value={studentSearch}
-              onChange={(e) => setStudentSearch(e.target.value)}
-            />
-            <select
-              value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm cursor-pointer"
-              required
-            >
-              <option value="">-- Choose Student --</option>
-              {filteredStudentsForSelect.map(s => (
-                <option key={s._id} value={s._id}>
-                  {s.name} ({s.registrationNumber || 'No Reg No'}) - {s.grade || 'No Grade'}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Course Selector */}
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">2. Select Course</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">1. Select Course</label>
             <input
               type="text"
               placeholder="Search Course..."
@@ -223,7 +217,7 @@ const Enrollments = () => {
             />
             <select
               value={selectedCourseId}
-              onChange={(e) => setSelectedCourseId(e.target.value)}
+              onChange={(e) => handleCourseChange(e.target.value)}
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm cursor-pointer"
               required
             >
@@ -236,23 +230,78 @@ const Enrollments = () => {
             </select>
           </div>
 
-          {/* Class Selector */}
+          {/* 2. Class Selector */}
           <div className="flex flex-col justify-between">
             <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">3. Select Class (Grade)</label>
-              <div className="h-[38px] mb-2 hidden md:block"></div> {/* Spacer to align dropdowns */}
-              <select
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm cursor-pointer"
-                required
-              >
-                <option value="">-- Choose Class --</option>
-                {gradeOptions.map(g => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">2. Select Class (Grade)</label>
+              {selectedCourseId && assignedGrades.length === 0 ? (
+                <div className="text-sm font-semibold text-red-500 mt-2 bg-red-50 p-3 rounded-lg border border-red-200">
+                  No grades assigned to this course.
+                </div>
+              ) : (
+                <>
+                  <div className="h-[38px] mb-2 hidden md:block"></div> {/* Spacer to align dropdowns */}
+                  <select
+                    value={selectedClass}
+                    onChange={(e) => handleGradeChange(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    disabled={!selectedCourseId}
+                    required
+                  >
+                    {!selectedCourseId ? (
+                      <option value="">-- Choose Course First --</option>
+                    ) : (
+                      <>
+                        <option value="">-- Choose Class --</option>
+                        {assignedGrades.map(g => (
+                          <option key={g.gradeNumber} value={g.gradeNumber}>
+                            {g.title || g.gradeNumber}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                </>
+              )}
             </div>
+          </div>
+
+          {/* 3. Student Selector */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">3. Select Student</label>
+            <input
+              type="text"
+              placeholder="Search Student (name, email)..."
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-purple-500 mb-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              value={studentSearch}
+              onChange={(e) => setStudentSearch(e.target.value)}
+              disabled={!selectedClass}
+            />
+            <select
+              value={selectedStudentId}
+              onChange={(e) => setSelectedStudentId(e.target.value)}
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+              disabled={!selectedClass}
+              required
+            >
+              {!selectedClass ? (
+                <option value="">-- Choose Class First --</option>
+              ) : (
+                <>
+                  <option value="">-- Choose Student --</option>
+                  {filteredStudentsForSelect.map(s => (
+                    <option key={s._id} value={s._id}>
+                      {s.name} ({s.registrationNumber || 'No Reg No'}) - {s.grade || 'No Grade'}
+                    </option>
+                  ))}
+                  {filteredStudentsForSelect.length === 0 && (
+                    <option disabled value="">
+                      No students available to enroll in this grade
+                    </option>
+                  )}
+                </>
+              )}
+            </select>
           </div>
         </div>
 
@@ -297,7 +346,7 @@ const Enrollments = () => {
               <th className="p-4 font-semibold text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-150">
             {filteredEnrollments.length > 0 ? (
               filteredEnrollments.map((e) => (
                 <tr key={`${e.studentId}-${e.courseId}-${e.className}`} className="hover:bg-gray-50 transition-colors">
@@ -314,7 +363,7 @@ const Enrollments = () => {
                   <td className="p-4 text-right">
                     <button
                       onClick={() => handleUnenroll(e.studentId, e.courseId, e.className, e.studentName, e.courseTitle)}
-                      className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 cursor-pointer transition-colors"
+                      className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 cursor-pointer transition-colors border-none bg-transparent"
                       title="Unenroll student"
                     >
                       <FaTrash />
@@ -352,14 +401,14 @@ const Enrollments = () => {
                     setShowDeleteModal(false);
                     setEnrollmentToDelete(null);
                   }}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer border-none"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={executeUnenroll}
-                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 border-none"
                 >
                   Yes, Remove
                 </button>

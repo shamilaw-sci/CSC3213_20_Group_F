@@ -3,7 +3,9 @@ const router = express.Router();
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Schedule = require('../models/Schedule');
+const Notification = require('../models/Notification');
 const { protect } = require('../middleware/authMiddleware');
+const { sendAttendanceSMS } = require('../services/smsService');
 
 // --- HELPER: Normalize date to Midnight UTC/Local (YYYY-MM-DD) ---
 const normalizeDate = (dateVal) => {
@@ -68,32 +70,39 @@ router.post('/', protect, async (req, res) => {
       .populate('courseId', 'title')
       .populate('markedBy', 'name');
 
-    // =========================================================================
-    // FUTURE PHASE NOTIFICATION TRIGGER HOOKS
-    // =========================================================================
-    /*
-      TODO: Send SMS to Parent & Email to Student.
-      
-      const parentPhone = student.parentsPhoneNumber;
-      const studentEmail = student.email;
-      const smsMessage = `Dear Parent, your child ${student.name} (${student.registrationNumber}) has arrived and marked ${status} for ${schedule.title} on ${normalizedDate.toDateString()}.`;
-      const emailSubject = `LuminaLearn - Attendance Confirmation`;
-      const emailBody = `Hello ${student.name},\n\nYour physical attendance for class "${schedule.title}" has been marked as ${status} on ${normalizedDate.toLocaleDateString()}.\n\nBest regards,\nLuminaLearn Administration`;
+    // --- 6. TRIGGER NOTIFICATIONS (In-App & Parent SMS) ---
+    try {
+      const classTitle = populatedAttendance.scheduleId?.title || populatedAttendance.scheduleId?.className || populatedAttendance.courseId?.title || 'Class';
+      const formattedDate = new Date(populatedAttendance.date).toLocaleDateString('en-GB');
 
-      try {
-        // Trigger notification services
-        await smsService.send(parentPhone, smsMessage);
-        await emailService.send(studentEmail, emailSubject, emailBody);
-        
-        // Update flags
+      // 6a. In-App Notification for Student
+      await Notification.create({
+        recipient: student._id,
+        type: 'ATTENDANCE',
+        title: `Attendance Marked: ${status}`,
+        message: `You were marked '${status}' for ${classTitle} on ${formattedDate}.`,
+        link: '/attendance',
+        metadata: { attendanceId: newAttendance._id, status, date: populatedAttendance.date }
+      });
+      newAttendance.notificationSentStudent = true;
+
+      // 6b. SMS to Parent
+      if (student.parentsPhoneNumber) {
+        sendAttendanceSMS({
+          parentPhone: student.parentsPhoneNumber,
+          studentName: student.name,
+          className: classTitle,
+          date: populatedAttendance.date,
+          time: populatedAttendance.scheduleId?.startTime || '',
+          status
+        });
         newAttendance.notificationSentParent = true;
-        newAttendance.notificationSentStudent = true;
-        await newAttendance.save();
-      } catch (notifErr) {
-        console.error("Delayed notifications failure:", notifErr);
       }
-    */
-    // =========================================================================
+
+      await newAttendance.save();
+    } catch (notifErr) {
+      console.error('Attendance notification error:', notifErr.message);
+    }
 
     res.status(201).json({
       message: "Attendance marked successfully!",
@@ -102,14 +111,11 @@ router.post('/', protect, async (req, res) => {
 
   } catch (err) {
     console.error("Mark Attendance Error:", err);
-    
-    // Check for MongoDB Duplicate Key error (code 11000)
     if (err.code === 11000) {
       return res.status(400).json({ 
         message: "Attendance has already been marked for this student for this class on this date." 
       });
     }
-    
     res.status(500).json({ message: "Server error marking attendance." });
   }
 });
@@ -121,7 +127,6 @@ router.get('/student/:studentId', protect, async (req, res) => {
   const { studentId } = req.params;
   const userId = req.user.id || req.user._id;
 
-  // Authorization check: Admins and Teachers can view. Students can only view their own.
   if (req.user.role === 'student' && userId.toString() !== studentId) {
     return res.status(403).json({ message: "Access Denied: You can only view your own records." });
   }
@@ -175,7 +180,6 @@ router.get('/teacher', protect, async (req, res) => {
   const userId = req.user.id || req.user._id;
 
   try {
-    // 1. Find all schedules taught by this teacher or courses instructured by this teacher
     const teacherCourses = await Course.find({ instructor: userId }).select('_id');
     const courseIds = teacherCourses.map(c => c._id);
 
@@ -188,7 +192,6 @@ router.get('/teacher', protect, async (req, res) => {
 
     const scheduleIds = teacherSchedules.map(s => s._id);
 
-    // 2. Fetch attendance matching these schedules
     const logs = await Attendance.find({
       $or: [
         { scheduleId: { $in: scheduleIds } },
@@ -218,21 +221,17 @@ router.get('/stats/summary', protect, async (req, res) => {
   try {
     const today = normalizeDate(new Date());
 
-    // Stats for today
     const todayRecords = await Attendance.find({ date: today });
     const totalToday = todayRecords.length;
     const presentToday = todayRecords.filter(r => r.status === 'Present').length;
-    const lateToday = todayRecords.filter(r => r.status === 'Late').length;
     const absentToday = todayRecords.filter(r => r.status === 'Absent').length;
 
-    // Overall metrics
     const totalRecordsCount = await Attendance.countDocuments();
     
     res.json({
       today: {
         total: totalToday,
         present: presentToday,
-        late: lateToday,
         absent: absentToday
       },
       overall: {
@@ -242,6 +241,117 @@ router.get('/stats/summary', protect, async (req, res) => {
   } catch (err) {
     console.error("Fetch Attendance Stats Error:", err);
     res.status(500).json({ message: "Server error fetching stats." });
+  }
+});
+
+// ==========================================
+//          6. SUBMIT WEEKLY ONLINE ATTENDANCE (STUDENT ONLY)
+// ==========================================
+router.post('/submit-weekly', protect, async (req, res) => {
+  if (req.user.role !== 'student') {
+    return res.status(403).json({ message: "Access Denied: Students only." });
+  }
+
+  const { courseId, weekNumber, month } = req.body;
+  const studentId = req.user.id || req.user._id;
+
+  if (!courseId || !weekNumber) {
+    return res.status(400).json({ message: "Course ID and Week Number (1-4) are required." });
+  }
+
+  if (![1, 2, 3, 4].includes(Number(weekNumber))) {
+    return res.status(400).json({ message: "Week Number must be between 1 and 4." });
+  }
+
+  const currentMonth = month || new Date().toLocaleString('default', { month: 'long' }) + ' ' + new Date().getFullYear();
+
+  try {
+    // Verify enrollment
+    const Course = require('../models/Course');
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: "Course not found." });
+    }
+
+    const isEnrolled = course.enrolledStudents?.some(id => id.toString() === studentId.toString());
+    if (!isEnrolled) {
+      return res.status(403).json({ message: "You must be enrolled in this course to submit attendance." });
+    }
+
+    // Check existing weekly attendance
+    const existing = await Attendance.findOne({
+      studentId,
+      courseId,
+      weekNumber: Number(weekNumber),
+      month: currentMonth
+    });
+
+    if (existing) {
+      return res.status(200).json({
+        message: `Attendance for Week ${weekNumber} has already been submitted!`,
+        alreadySubmitted: true,
+        attendance: existing
+      });
+    }
+
+    // Create new weekly attendance entry
+    const newAttendance = new Attendance({
+      studentId,
+      courseId,
+      weekNumber: Number(weekNumber),
+      month: currentMonth,
+      mode: 'ONLINE_WEEKLY',
+      status: 'Present',
+      date: new Date(),
+      markedBy: studentId
+    });
+
+    await newAttendance.save();
+
+    res.status(201).json({
+      message: `Successfully submitted attendance for Week ${weekNumber}!`,
+      attendance: newAttendance
+    });
+  } catch (err) {
+    console.error("Submit Weekly Attendance Error:", err);
+    if (err.code === 11000) {
+      return res.status(200).json({ 
+        message: `Attendance for Week ${weekNumber} has already been submitted!`,
+        alreadySubmitted: true
+      });
+    }
+    res.status(500).json({ message: "Failed to submit weekly attendance." });
+  }
+});
+
+// ==========================================
+//          7. GET WEEKLY ATTENDANCE STATUS (STUDENT)
+// ==========================================
+router.get('/weekly-status/:courseId', protect, async (req, res) => {
+  const { courseId } = req.params;
+  const { month } = req.query;
+  const studentId = req.user.id || req.user._id;
+
+  try {
+    const filter = {
+      studentId,
+      courseId,
+      mode: 'ONLINE_WEEKLY'
+    };
+    if (month) {
+      filter.month = month;
+    }
+
+    const records = await Attendance.find(filter).select('weekNumber month status date');
+    const attendedWeeks = records.map(r => r.weekNumber);
+
+    res.json({
+      attendedWeeks,
+      records
+    });
+  } catch (err) {
+    console.error("Fetch Weekly Status Error:", err);
+    res.status(500).json({ message: "Failed to fetch weekly attendance status." });
   }
 });
 

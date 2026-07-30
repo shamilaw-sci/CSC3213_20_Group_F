@@ -1,11 +1,18 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const Course = require('../models/Course');
+const Enrollment = require('../models/Enrollment');
+const Payment = require('../models/Payment');
+const Attendance = require('../models/Attendance');
 const { OAuth2Client } = require('google-auth-library');
+const crypto = require('crypto');
+const Notification = require('../models/Notification');
+const { sendResetPasswordEmail, sendRegistrationWelcomeEmail } = require('../utils/emailService');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -38,10 +45,13 @@ router.post('/login', async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
+        email: user.email,
         role: user.role,
+        studentType: user.studentType || 'physical',
         grade: user.grade,
         registrationNumber: user.registrationNumber,
-        mustChangePassword: user.mustChangePassword
+        mustChangePassword: user.mustChangePassword,
+        profilePicture: user.profilePicture || ''
       }
     });
 
@@ -53,9 +63,177 @@ router.post('/login', async (req, res) => {
 
 // --- REGISTER ROUTE ---
 router.post('/register', async (req, res) => {
-  res.status(410).json({
-    message: "Self-registration is disabled. Please contact the institute administration."
-  });
+  const { email, password, grade, parentsPhoneNumber } = req.body;
+
+  if (!email || !password || !grade || !parentsPhoneNumber) {
+    return res.status(400).json({ message: "Email, password, grade, and parent's phone number are required." });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  try {
+    // Check if user exists
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(400).json({ message: "An account with this email already exists." });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Derive name from email (e.g. format "john.doe" to "John Doe")
+    const usernamePart = normalizedEmail.split('@')[0];
+    const derivedName = usernamePart
+      .split(/[\._\-]/)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+
+    const newUser = await User.create({
+      name: derivedName,
+      email: normalizedEmail,
+      password: hashedPassword,
+      grade: grade.trim(),
+      parentsPhoneNumber: parentsPhoneNumber.trim(),
+      role: 'student',
+      studentType: 'online',
+      mustChangePassword: false
+    });
+
+    // --- TRIGGER NOTIFICATIONS ---
+    try {
+      // 1. In-App Notification for Admins
+      await Notification.create({
+        recipientRole: 'admin',
+        type: 'REGISTRATION',
+        title: 'New Student Registration',
+        message: `${newUser.name} (${newUser.email}, ${newUser.grade}) has registered as a new student.`,
+        link: '/manage-users',
+        metadata: { studentId: newUser._id }
+      });
+
+      // 2. Welcome Email to Student
+      sendRegistrationWelcomeEmail(newUser.email, newUser.name, newUser.registrationNumber);
+    } catch (notifErr) {
+      console.error('Registration notification trigger error:', notifErr.message);
+    }
+
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.status(201).json({
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        studentType: newUser.studentType,
+        grade: newUser.grade,
+        registrationNumber: newUser.registrationNumber,
+        mustChangePassword: newUser.mustChangePassword,
+        profilePicture: newUser.profilePicture || ''
+      }
+    });
+
+  } catch (err) {
+    console.error("Register Error:", err);
+    res.status(500).json({ message: "Server error during registration." });
+  }
+});
+
+// --- GOOGLE REGISTER ROUTE ---
+router.post('/google-register', async (req, res) => {
+  const { credential, grade, parentsPhoneNumber } = req.body;
+
+  if (!credential || !grade || !parentsPhoneNumber) {
+    return res.status(400).json({ message: "Google credential, grade, and parent's phone number are required." });
+  }
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const email = payload?.email?.trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ message: "Google account email could not be verified." });
+    }
+
+    if (payload?.email_verified === false) {
+      return res.status(400).json({ message: "Google account email is not verified." });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "This email is already registered. Please log in instead." });
+    }
+
+    // Google registration needs a placeholder password
+    const salt = await bcrypt.genSalt(10);
+    const randomPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+    const newUser = await User.create({
+      name: payload.name || email.split('@')[0],
+      email: email,
+      password: hashedPassword,
+      grade: grade.trim(),
+      parentsPhoneNumber: parentsPhoneNumber.trim(),
+      role: 'student',
+      studentType: 'online',
+      profilePicture: payload.picture || '',
+      mustChangePassword: false
+    });
+
+    // --- TRIGGER NOTIFICATIONS ---
+    try {
+      // 1. In-App Notification for Admins
+      await Notification.create({
+        recipientRole: 'admin',
+        type: 'REGISTRATION',
+        title: 'New Google Student Registration',
+        message: `${newUser.name} (${newUser.email}, ${newUser.grade}) has registered via Google.`,
+        link: '/manage-users',
+        metadata: { studentId: newUser._id }
+      });
+
+      // 2. Welcome Email to Student
+      sendRegistrationWelcomeEmail(newUser.email, newUser.name, newUser.registrationNumber);
+    } catch (notifErr) {
+      console.error('Google Registration notification error:', notifErr.message);
+    }
+
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.status(201).json({
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        studentType: newUser.studentType,
+        grade: newUser.grade,
+        registrationNumber: newUser.registrationNumber,
+        mustChangePassword: newUser.mustChangePassword,
+        profilePicture: newUser.profilePicture || ''
+      }
+    });
+
+  } catch (err) {
+    console.error("Google Register Error:", err);
+    res.status(401).json({ message: err?.message || "Google registration failed." });
+  }
 });
 
 // --- GOOGLE LOGIN ROUTE ---
@@ -89,6 +267,13 @@ router.post('/google', async (req, res) => {
       });
     }
 
+    // Sync Google picture to database if no profile picture is set or if it is currently a Google picture
+    const isGooglePic = user.profilePicture && user.profilePicture.includes('googleusercontent.com');
+    if ((!user.profilePicture || isGooglePic) && payload.picture && user.profilePicture !== payload.picture) {
+      user.profilePicture = payload.picture;
+      await user.save();
+    }
+
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -100,10 +285,13 @@ router.post('/google', async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
+        email: user.email,
         role: user.role,
+        studentType: user.studentType || 'physical',
         grade: user.grade,
         registrationNumber: user.registrationNumber,
-        mustChangePassword: user.mustChangePassword
+        mustChangePassword: user.mustChangePassword,
+        profilePicture: user.profilePicture || ''
       }
     });
   } catch (err) {
@@ -142,12 +330,83 @@ router.post('/change-password', protect, async (req, res) => {
   }
 });
 
-// --- UPDATE PROFILE ROUTE (Name and/or Password) ---
-router.put('/update-profile', protect, async (req, res) => {
-  const { name, newPassword } = req.body;
+// --- FORGOT PASSWORD ROUTE ---
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
 
   try {
-    const user = await User.findById(req.user.id || req.user._id);;
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: "User with this email does not exist." });
+    }
+
+    // Generate token
+    const token = crypto.randomBytes(20).toString('hex');
+
+    // Save token & expiration to user document
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
+    await user.save();
+
+    // Send email
+    await sendResetPasswordEmail(user.email, token, user.name);
+
+    res.json({ message: "Password reset link has been sent to your email." });
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ message: "Server error occurred while sending reset link." });
+  }
+});
+
+// --- RESET PASSWORD ROUTE ---
+router.post('/reset-password/:token', async (req, res) => {
+  const { newPassword } = req.body;
+  const { token } = req.params;
+
+  if (!newPassword) {
+    return res.status(400).json({ message: "New password is required" });
+  }
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Password reset token is invalid or has expired." });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    
+    // Clear reset token and expiration fields
+    user.resetPasswordToken = '';
+    user.resetPasswordExpires = undefined;
+    
+    // Clear mustChangePassword if set
+    user.mustChangePassword = false;
+
+    await user.save();
+
+    res.json({ message: "Password has been reset successfully. You can now log in." });
+  } catch (err) {
+    console.error("Reset Password Error:", err);
+    res.status(500).json({ message: "Server error occurred while resetting password." });
+  }
+});
+
+// --- UPDATE PROFILE ROUTE (Name and/or Password) ---
+router.put('/update-profile', protect, async (req, res) => {
+  const { name, newPassword, profilePicture } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id || req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // 1. Update the name if provided
@@ -159,16 +418,35 @@ router.put('/update-profile', protect, async (req, res) => {
       user.password = await bcrypt.hash(newPassword, salt);
     }
 
+    // 3. Update profile picture if provided
+    if (profilePicture !== undefined) {
+      if (profilePicture && profilePicture.startsWith('data:image/')) {
+        // Validate size of base64
+        const base64Length = profilePicture.length - (profilePicture.indexOf(',') + 1);
+        const padding = (profilePicture.charAt(profilePicture.length - 2) === '=') ? 2 : ((profilePicture.charAt(profilePicture.length - 1) === '=') ? 1 : 0);
+        const sizeInBytes = (base64Length * 3 / 4) - padding;
+        if (sizeInBytes > 1024 * 1024) {
+          return res.status(400).json({ message: "Profile photo exceeds 1MB size limit" });
+        }
+      }
+      user.profilePicture = profilePicture;
+    }
+
     await user.save();
 
-    // 3. Send back the updated user info (excluding password)
+    // 4. Send back the updated user info (excluding password)
     res.json({
       message: "Profile updated successfully!",
       user: {
         id: user._id,
         name: user.name,
+        email: user.email,
         role: user.role,
-        mustChangePassword: user.mustChangePassword
+        studentType: user.studentType || 'physical',
+        grade: user.grade,
+        registrationNumber: user.registrationNumber,
+        mustChangePassword: user.mustChangePassword,
+        profilePicture: user.profilePicture || ''
       }
     });
 
@@ -182,26 +460,39 @@ router.put('/update-profile', protect, async (req, res) => {
 //          ADMIN ONLY ROUTES
 // ==========================================
 
-// 0. SEARCH STUDENTS (ADMIN ONLY)
+// 1. SEARCH STUDENTS
 router.get('/users/search-students', protect, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: "Access Denied: Admins only." });
-  }
-
-  const { query } = req.query;
-  if (!query) {
-    return res.status(400).json({ message: "Search query is required." });
-  }
-
   try {
-    const searchRegex = new RegExp(query, 'i');
-    const students = await User.find({
+    const { query, studentType } = req.query;
+    if (!query || !query.trim()) return res.json([]);
+
+    const trimmedQuery = query.trim();
+    const safeRegex = new RegExp(trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+    const searchConditions = [
+      { name: safeRegex },
+      { registrationNumber: safeRegex },
+      { email: safeRegex },
+      { parentsPhoneNumber: safeRegex }
+    ];
+
+    if (mongoose.Types.ObjectId.isValid(trimmedQuery)) {
+      searchConditions.push({ _id: trimmedQuery });
+    }
+
+    const filter = {
       role: 'student',
-      $or: [
-        { name: searchRegex },
-        { registrationNumber: searchRegex }
-      ]
-    }).select('-password').sort({ name: 1 }).limit(20);
+      $or: searchConditions
+    };
+
+    if (studentType && studentType !== 'all') {
+      filter.studentType = studentType;
+    }
+
+    const students = await User.find(filter)
+      .select('-password')
+      .sort({ name: 1 })
+      .limit(20);
 
     res.json(students);
   } catch (err) {
@@ -210,7 +501,7 @@ router.get('/users/search-students', protect, async (req, res) => {
   }
 });
 
-// 1. GET ALL USERS
+// 2. GET ALL USERS
 router.get('/users', protect, async (req, res) => {
   // Check if the person making the request is actually an admin
   if (req.user.role !== 'admin') {
@@ -218,24 +509,26 @@ router.get('/users', protect, async (req, res) => {
   }
 
   try {
-    // Fetch all users but DO NOT send passwords back to the frontend!
-    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    const filter = {};
+    if (req.query.role) {
+      filter.role = req.query.role;
+    }
+    // Fetch users but DO NOT send passwords back to the frontend!
+    const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: "Server error fetching users" });
   }
 });
 
-// 2. CREATE USER
+// 3. CREATE USER
 router.post('/users', protect, isAdmin, async (req, res) => {
   const { name, email, registrationNumber, parentsPhoneNumber, temporaryPassword, role = 'student', grade } = req.body;
-  
   const normalizedName = name?.trim();
   const normalizedEmail = email?.trim().toLowerCase();
   const normalizedRegistrationNumber = registrationNumber?.trim();
-  const normalizedGrade = grade !== undefined ? String(grade).trim() : undefined;
-  
   const allowedRoles = ['student', 'teacher', 'admin'];
+  const normalizedGrade = grade !== undefined ? String(grade).trim() : undefined;
 
   if (!allowedRoles.includes(role)) {
     return res.status(400).json({ message: "Invalid user role." });
@@ -249,11 +542,9 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     if (!normalizedRegistrationNumber) {
       return res.status(400).json({ message: "Registration number is required for students." });
     }
-    // Validation for Parent Phone
     if (!parentsPhoneNumber || !parentsPhoneNumber.trim()) {
       return res.status(400).json({ message: "Parents phone number is required for students." });
     }
-    // Validation for Grade (Strict String check)
     if (!normalizedGrade) {
       return res.status(400).json({ message: "A valid student grade is required." });
     }
@@ -286,10 +577,31 @@ router.post('/users', protect, isAdmin, async (req, res) => {
       grade: role === 'student' ? normalizedGrade : undefined,
       password: hashedPassword,
       role,
+      studentType: role === 'student' ? 'physical' : undefined,
       mustChangePassword: true
     });
 
     const createdUser = await User.findById(user._id).select('-password');
+
+    // --- TRIGGER NOTIFICATIONS ---
+    try {
+      if (role === 'student') {
+        // Welcome Email with temporary login info
+        sendRegistrationWelcomeEmail(user.email, user.name, user.registrationNumber);
+        
+        // In-App notification for the new student
+        await Notification.create({
+          recipient: user._id,
+          type: 'REGISTRATION',
+          title: 'Account Created',
+          message: `Welcome to LuminaLearn, ${user.name}! Your student account has been created by Administration.`,
+          link: '/settings'
+        });
+      }
+    } catch (notifErr) {
+      console.error('Admin create user notification error:', notifErr.message);
+    }
+
     res.status(201).json({
       message: "User created successfully. Share the temporary password securely.",
       user: createdUser
@@ -322,7 +634,18 @@ router.delete('/users/:id', protect, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: "Access Denied" });
 
   try {
-    await User.findByIdAndDelete(req.params.id);
+    const userId = req.params.id;
+    await Enrollment.deleteMany({ student: userId });
+    await Course.updateMany(
+      {},
+      { 
+        $pull: { 
+          enrolledStudents: userId,
+          "classes.$[].enrolledStudents": userId
+        } 
+      }
+    );
+    await User.findByIdAndDelete(userId);
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete user" });
@@ -389,118 +712,349 @@ router.get('/admin-stats', protect, async (req, res) => {
 
   try {
     const totalStudents = await User.countDocuments({ role: 'student' });
+    const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
+    const physicalStudents = Math.max(0, totalStudents - onlineStudents);
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
     const totalCourses = await Course.countDocuments();    
 
-    // Fetch the 5 most recent student registrations
+    // Recent Registrations (last 5 students)
     const recentRegistrations = await User.find({ role: 'student' })
-      .select('name email grade registrationNumber createdAt')
       .sort({ createdAt: -1 })
-      .limit(5);
+      .limit(5)
+      .select('name email grade studentType createdAt');
 
-    // Group user accounts by month to draw a dynamic chart
-    const userGrowth = await User.aggregate([
-      { $match: { role: 'student' } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    // Pad user growth with pretty mock visual elements if empty, to ensure the UI charts always render beautifully
-    let growthData = userGrowth.map(item => ({
-      month: item._id,
-      count: item.count
-    }));
-
-    if (growthData.length < 2) {
-      growthData = [
-        { month: "Jan", count: 45 },
-        { month: "Feb", count: 72 },
-        { month: "Mar", count: 115 },
-        { month: "Apr", count: 142 },
-        { month: "May", count: 184 },
-        { month: "Jun", count: totalStudents > 184 ? totalStudents : 210 }
-      ];
+    // Monthly Growth Data for Intake Line Chart
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const today = new Date();
+    const monthsList = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      monthsList.push(monthNames[d.getMonth()]);
     }
+
+    const growthMap = {};
+    monthsList.forEach(m => { growthMap[m] = 0; });
+
+    const allStudents = await User.find({ role: 'student' }).select('createdAt');
+    allStudents.forEach(s => {
+      const d = new Date(s.createdAt);
+      const mName = monthNames[d.getMonth()];
+      if (growthMap[mName] !== undefined) {
+        growthMap[mName] += 1;
+      }
+    });
+
+    const growthData = monthsList.map(m => ({ month: m, count: growthMap[m] }));
+
+    // Fee Collection Metrics
+    const payments = await Payment.find({ status: 'COMPLETED' });
+    const totalCollected = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
 
     res.json({
       students: totalStudents,
+      physicalStudents,
+      onlineStudents,
       teachers: totalTeachers,
       courses: totalCourses,
       recentRegistrations,
-      growthData
+      growthData,
+      totalCollected
     });
   } catch (err) {
-    console.error("Admin Stats Error:", err);
+    console.error("Error fetching admin stats:", err);
     res.status(500).json({ message: "Error fetching stats" });
   }
 });
 
-// --- GET TEACHER DASHBOARD STATS ---
-router.get('/teacher-stats', protect, async (req, res) => {
-  if (req.user.role !== 'teacher') return res.status(403).json({ message: "Forbidden" });
-
+// --- GET ADMIN & TEACHER ANALYTICS SUMMARY ---
+router.get('/analytics-summary', protect, async (req, res) => {
   try {
-    const teacherId = req.user.id || req.user._id;
+    // 0. Student Role Handling (Personal Learning Analytics)
+    if (req.user.role?.toLowerCase() === 'student') {
+      const studentId = req.user.id || req.user._id;
 
-    // Fetch courses taught by this instructor
-    const courses = await Course.find({ instructor: teacherId });
-    const courseIds = courses.map(c => c._id);
+      const enrollments = await Enrollment.find({ student: studentId }).populate({
+        path: 'course',
+        populate: { path: 'instructor', select: 'name email' }
+      }).lean();
 
-    // Calculate total unique students in those courses
-    const uniqueStudentsResult = await Course.aggregate([
-      { $match: { _id: { $in: courseIds } } },
-      { $unwind: "$enrolledStudents" },
-      { $group: { _id: null, uniqueStudents: { $addToSet: "$enrolledStudents" } } }
-    ]);
+      const directCourses = await Course.find({ enrolledStudents: studentId })
+        .populate('instructor', 'name email')
+        .lean();
+
+      const allCoursesMap = {};
+
+      directCourses.forEach(c => {
+        allCoursesMap[c._id.toString()] = {
+          _id: c._id,
+          title: c.title,
+          description: c.description,
+          instructorName: c.instructor?.name || 'TBA',
+          price: c.price || 2500,
+          cardImage: c.cardImage || '',
+          banner: c.banner || ''
+        };
+      });
+
+      enrollments.forEach(e => {
+        if (e.course) {
+          allCoursesMap[e.course._id.toString()] = {
+            _id: e.course._id,
+            title: e.course.title,
+            description: e.course.description,
+            instructorName: e.course.instructor?.name || 'TBA',
+            price: e.course.price || 2500,
+            cardImage: e.course.cardImage || '',
+            banner: e.course.banner || ''
+          };
+        }
+      });
+
+      const enrolledCoursesList = Object.values(allCoursesMap);
+
+      // Student Personal Attendance & Weekly Attendance Tracking
+      const totalAttendance = await Attendance.countDocuments({ studentId });
+      const presentRecords = await Attendance.countDocuments({ studentId, status: 'Present' });
+      const absentRecords = await Attendance.countDocuments({ studentId, status: 'Absent' });
+      const lateRecords = await Attendance.countDocuments({ studentId, status: 'Late' });
+
+      // Weekly Online Attendance Submissions
+      const weeklyRecords = await Attendance.find({ studentId, mode: 'ONLINE_WEEKLY' }).lean();
+      const weeklyAttendedCount = weeklyRecords.length;
+
+      // Dynamic Active Months Count (e.g. July 2026, August 2026, September 2026, October 2026 = 4 months)
+      // 4 weeks per month = 16 weeks per course. Adding a new month automatically increases the dividing factor by +4 weeks.
+      const activeMonthsList = ["July 2026", "August 2026", "September 2026", "October 2026"];
+      const weeksPerCourse = activeMonthsList.length * 4; // 16 weeks per course
+      const totalAvailableWeeks = Math.max(16, (enrolledCoursesList.length || 1) * weeksPerCourse);
+
+      let attendanceRate = 0;
+      if (totalAvailableWeeks > 0) {
+        attendanceRate = Math.min(100, Math.round((weeklyAttendedCount / totalAvailableWeeks) * 100));
+      } else if (totalAttendance > 0) {
+        attendanceRate = Math.round((presentRecords / totalAttendance) * 100);
+      } else {
+        attendanceRate = 0;
+      }
+
+      // Student Personal Payments
+      const studentPayments = await Payment.find({ student: studentId, status: 'COMPLETED' })
+        .populate('course', 'title price')
+        .lean();
+
+      const totalPaidAmount = studentPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+
+      return res.json({
+        success: true,
+        isStudentView: true,
+        studentMetrics: {
+          enrolledCoursesCount: enrolledCoursesList.length,
+          attendanceRate,
+          weeklyAttendedCount,
+          totalAvailableWeeks,
+          totalPaymentsCount: studentPayments.length,
+          totalPaidAmount,
+          userGrade: req.user.grade || 'Unassigned',
+          userType: req.user.studentType || 'online'
+        },
+        attendanceBreakdown: {
+          total: totalAttendance,
+          present: presentRecords,
+          absent: absentRecords,
+          late: lateRecords,
+          weeklyAttendedCount,
+          totalAvailableWeeks
+        },
+        weeklyRecords,
+        enrolledCoursesList,
+        studentPayments
+      });
+    }
+
+    const { studentType } = req.query; // 'all', 'online', 'physical'
+    const filterType = (studentType && studentType !== 'all') ? studentType.toLowerCase() : null;
+
+    // Build user filter query
+    const studentFilter = { role: 'student' };
+    if (filterType) {
+      studentFilter.studentType = filterType;
+    }
+
+    // 1. User Demographic Stats
+    const totalAllStudents = await User.countDocuments({ role: 'student' });
+    const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
+    const physicalStudents = Math.max(0, totalAllStudents - onlineStudents);
     
-    const totalStudents = uniqueStudentsResult.length > 0 ? uniqueStudentsResult[0].uniqueStudents.length : 0;
+    const totalStudents = filterType === 'online' ? onlineStudents : filterType === 'physical' ? physicalStudents : totalAllStudents;
+    const totalTeachers = await User.countDocuments({ role: 'teacher' });
+    const totalAdmins = await User.countDocuments({ role: 'admin' });
+
+    // Fetch filtered student IDs for course & payment scoping
+    const filteredStudents = await User.find(studentFilter).select('_id grade studentType createdAt');
+    const filteredStudentIds = filteredStudents.map(s => s._id);
+
+    // 2. Grade Distribution (scoped to filterType)
+    const gradeCounts = {};
+    const gradeTypeBreakdown = {};
+
+    filteredStudents.forEach(s => {
+      let g = s.grade || 'Unassigned';
+      if (g.toLowerCase().startsWith('grade')) {
+        g = g.trim();
+      } else if (!isNaN(g)) {
+        g = `Grade ${g.trim()}`;
+      }
+      
+      gradeCounts[g] = (gradeCounts[g] || 0) + 1;
+      
+      if (!gradeTypeBreakdown[g]) {
+        gradeTypeBreakdown[g] = { online: 0, physical: 0 };
+      }
+      if (s.studentType === 'online') {
+        gradeTypeBreakdown[g].online += 1;
+      } else {
+        gradeTypeBreakdown[g].physical += 1;
+      }
+    });
+
+    const gradeDistribution = Object.keys(gradeCounts).map(gradeName => ({
+      grade: gradeName,
+      count: gradeCounts[gradeName],
+      online: gradeTypeBreakdown[gradeName]?.online || 0,
+      physical: gradeTypeBreakdown[gradeName]?.physical || 0
+    })).sort((a, b) => b.count - a.count);
+
+    // 3. Course Popularity Analytics (Most Taken Courses - scoped to filterType)
+    const courses = await Course.find({})
+      .populate('instructor', 'name email')
+      .lean();
+
+    const topCourses = await Promise.all(courses.map(async (c) => {
+      const enrollmentQuery = filterType 
+        ? { course: c._id, student: { $in: filteredStudentIds } }
+        : { course: c._id };
+
+      const enrollmentDocsCount = await Enrollment.countDocuments(enrollmentQuery);
+      
+      let embeddedArrayCount = 0;
+      if (Array.isArray(c.enrolledStudents)) {
+        if (filterType) {
+          embeddedArrayCount = c.enrolledStudents.filter(id => 
+            filteredStudentIds.some(fid => fid.toString() === id.toString())
+          ).length;
+        } else {
+          embeddedArrayCount = c.enrolledStudents.length;
+        }
+      }
+      
+      const enrolledCount = Math.max(enrollmentDocsCount, embeddedArrayCount);
+
+      return {
+        _id: c._id,
+        title: c.title,
+        description: c.description,
+        instructorName: c.instructor?.name || 'Unassigned',
+        price: c.price || 2500,
+        enrolledCount,
+        cardImage: c.cardImage || '',
+        banner: c.banner || ''
+      };
+    }));
+
+    topCourses.sort((a, b) => b.enrolledCount - a.enrolledCount);
+
+    // 4. Financial & Payment Analytics (scoped to filterType)
+    const paymentQuery = { status: 'COMPLETED' };
+    if (filterType) {
+      paymentQuery.student = { $in: filteredStudentIds };
+    }
+
+    const payments = await Payment.find(paymentQuery)
+      .populate('course', 'title price')
+      .lean();
+
+    const totalRevenue = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
+
+    // Revenue per course
+    const courseRevenueMap = {};
+    payments.forEach(p => {
+      const courseTitle = p.course?.title || 'General Course';
+      courseRevenueMap[courseTitle] = (courseRevenueMap[courseTitle] || 0) + (p.amount || 0);
+    });
+
+    const courseRevenueList = Object.keys(courseRevenueMap).map(title => ({
+      title,
+      revenue: courseRevenueMap[title]
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    // 5. Weekly Student Registration Trend Data (Grouping by Weeks instead of Months)
+    const allStudentsList = await User.find({ role: 'student' }).select('studentType createdAt').lean();
+    
+    const getWeekLabel = (d) => {
+      const date = new Date(d);
+      const day = date.getDate();
+      const month = date.toLocaleString('en-US', { month: 'short' });
+      const weekNum = Math.ceil(day / 7);
+      return `Wk ${weekNum} (${month})`;
+    };
+
+    const weeklyStudentMap = {};
+    allStudentsList.forEach(s => {
+      const weekLabel = getWeekLabel(s.createdAt);
+      if (!weeklyStudentMap[weekLabel]) {
+        weeklyStudentMap[weekLabel] = { week: weekLabel, online: 0, physical: 0, total: 0 };
+      }
+      if (s.studentType === 'online') {
+        weeklyStudentMap[weekLabel].online += 1;
+      } else {
+        weeklyStudentMap[weekLabel].physical += 1;
+      }
+      weeklyStudentMap[weekLabel].total += 1;
+    });
+
+    const weeklyStudentTrend = Object.values(weeklyStudentMap);
+
+    // 6. Platform Attendance Analytics (scoped to filterType)
+    const attendanceQuery = filterType ? { studentId: { $in: filteredStudentIds } } : {};
+    const totalAttendanceRecords = await Attendance.countDocuments(attendanceQuery);
+    const presentRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Present' });
+    const absentRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Absent' });
+    const lateRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Late' });
+
+    const attendanceRate = totalAttendanceRecords > 0 
+      ? Math.round((presentRecords / totalAttendanceRecords) * 100) 
+      : 100;
 
     res.json({
-      coursesCount: courses.length,
-      studentsCount: totalStudents,
-      rating: 4.8,
-      coursesList: courses.map(c => ({
-        id: c._id,
-        title: c.title,
-        studentsCount: c.enrolledStudents.length
-      }))
+      success: true,
+      studentTypeFilter: filterType || 'all',
+      metrics: {
+        totalStudents,
+        onlineStudents,
+        physicalStudents,
+        totalTeachers,
+        totalAdmins,
+        totalCourses: courses.length,
+        totalRevenue,
+        totalPaymentsCount: payments.length,
+        attendanceRate,
+        attendanceBreakdown: {
+          total: totalAttendanceRecords,
+          present: presentRecords,
+          absent: absentRecords,
+          late: lateRecords
+        }
+      },
+      gradeDistribution,
+      topCourses,
+      courseRevenueList,
+      weeklyStudentTrend
     });
+
   } catch (err) {
-    console.error("Teacher Stats Error:", err);
-    res.status(500).json({ message: "Error fetching teacher stats" });
+    console.error("Fetch Analytics Error:", err);
+    res.status(500).json({ message: "Failed to fetch analytics data: " + err.message });
   }
 });
-
-// --- GET STUDENT DASHBOARD STATS ---
-router.get('/student-stats', protect, async (req, res) => {
-  if (req.user.role !== 'student') return res.status(403).json({ message: "Forbidden" });
-
-  try {
-    const studentId = req.user.id || req.user._id;
-
-    // Fetch courses where student is enrolled
-    const enrolledCourses = await Course.find({ enrolledStudents: studentId })
-      .populate('instructor', 'name email');
-
-    res.json({
-      coursesCount: enrolledCourses.length,
-      grade: req.user.grade || 'Grade 10',
-      enrolledCoursesList: enrolledCourses.map(c => ({
-        id: c._id,
-        title: c.title,
-        instructorName: c.instructor ? c.instructor.name : 'Unknown Instructor'
-      }))
-    });
-  } catch (err) {
-    console.error("Student Stats Error:", err);
-    res.status(500).json({ message: "Error fetching student stats" });
-  }
-});
-
 
 module.exports = router;

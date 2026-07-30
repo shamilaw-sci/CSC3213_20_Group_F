@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,10 +14,7 @@ const Courses = () => {
     const fetchCourses = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/courses', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get('/courses');
         setCourses(res.data);
       } catch (err) {
         console.error("Error fetching courses", err);
@@ -29,14 +26,24 @@ const Courses = () => {
     fetchCourses();
   }, []);
 
+  const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
+
   // Filter courses based on search query
   const recommendedCourses = user?.role === 'student' && user?.grade
-    ? courses.filter(course => course.enrolledGrades?.some(g => g.gradeNumber === user.grade))
+    ? courses.filter(course => course.enrolledGrades?.some(g => normalizeGrade(g.gradeNumber) === normalizeGrade(user.grade)))
     : [];
 
   const filteredCourses = (user?.role === 'admin'
     ? courses
-    : courses.filter(course => course.enrolledGrades?.some(g => g.gradeNumber === user?.grade))
+    : user?.role === 'teacher'
+      ? courses.filter(course => course.instructor?._id?.toString() === user?.id?.toString())
+      : courses.filter(course => {
+          const isEnrolledByStudent = course.enrolledStudents?.some(student =>
+            student?._id?.toString() === user?.id?.toString() || student?.toString() === user?.id?.toString()
+          );
+          const isGradeAllowed = course.enrolledGrades?.some(g => normalizeGrade(g.gradeNumber) === normalizeGrade(user?.grade));
+          return isEnrolledByStudent || isGradeAllowed;
+        })
   ).filter(course => 
     course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,14 +68,6 @@ const Courses = () => {
             <h2 className="text-3xl font-extrabold text-gray-800">Available Courses</h2>
             <p className="text-gray-500 mt-1">Manage and view all your educational content</p>
           </div>
-          {user?.role === 'teacher' && (
-            <button
-              onClick={() => navigate('/add-course')}
-              className="bg-lumina-purple hover:bg-purple-800 text-white font-bold px-6 py-3 rounded-xl transition duration-200 shadow-sm cursor-pointer"
-            >
-              + Create Course
-            </button>
-          )}
         </div>
 
         {/* Search Bar */}
@@ -117,21 +116,35 @@ const Courses = () => {
                   {/* Top Meta Details / Card Thumbnail */}
                   <div className="mb-6">
                     {course.cardImage ? (
-                      <img
-                        src={course.cardImage}
-                        alt={course.title}
-                        className="w-full h-32 object-cover rounded-2xl mb-4"
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
+                      <div className="relative h-40 w-full overflow-hidden rounded-2xl mb-4">
+                        <img
+                          src={course.cardImage}
+                          alt={course.title}
+                          loading="lazy"
+                          decoding="async"
+                          className="absolute inset-0 h-full w-full object-cover"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      </div>
                     ) : (
                       <div className="w-12 h-12 bg-[#f3f4f6] rounded-2xl flex items-center justify-center text-2xl group-hover:bg-[#2d1b64] group-hover:text-white transition-colors mb-4">
                         📖
                       </div>
                     )}
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-center w-full">
                       <span className="bg-green-100 text-green-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
                         Active
                       </span>
+                      {user?.role === 'student' && (course.enrolledStudents?.some(student => 
+                        student?._id?.toString() === user?.id?.toString() || student?.toString() === user?.id?.toString()
+                      )) ? (
+                        <span className="bg-purple-100 text-[#2d1b64] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 border border-purple-200 shadow-sm animate-pulse">
+                          <svg className="w-3 h-3 text-[#2d1b64]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Enrolled
+                        </span>
+                      ) : null}
                     </div>
                   </div>
 
