@@ -224,13 +224,126 @@ router.get('/my-payments', protect, async (req, res) => {
 router.get('/all', protect, isAdmin, async (req, res) => {
   try {
     const payments = await Payment.find()
-      .populate('student', 'name email registrationNumber grade')
+      .populate('student', 'name email registrationNumber grade studentType')
       .populate('course', 'title price')
       .sort({ createdAt: -1 });
     res.json(payments);
   } catch (err) {
     console.error('Fetch all payments error:', err);
     res.status(500).json({ error: 'Failed to fetch all payments.', message: 'Failed to fetch all payments.' });
+  }
+});
+
+// @route   GET /api/payments/student/:studentId
+// @desc    Admin retrieves payments history for a specific student
+// @access  Private (Admin)
+router.get('/student/:studentId', protect, isAdmin, async (req, res) => {
+  try {
+    const payments = await Payment.find({ student: req.params.studentId })
+      .populate('student', 'name email registrationNumber grade studentType')
+      .populate('course', 'title price')
+      .sort({ createdAt: -1 });
+    res.json(payments);
+  } catch (err) {
+    console.error('Fetch student payments error:', err);
+    res.status(500).json({ error: 'Failed to fetch student payments.', message: 'Failed to fetch student payments.' });
+  }
+});
+
+// @route   POST /api/payments/record-physical-payment
+// @desc    Admin records physical counter payment for student & enrolls them in course
+// @access  Private (Admin)
+router.post('/record-physical-payment', protect, isAdmin, async (req, res) => {
+  try {
+    const { studentId, courseId, amount, paymentMethod, receiptNumber, remarks, paymentDate } = req.body;
+
+    if (!studentId || !courseId) {
+      return res.status(400).json({ error: 'Student and Course selection are required.', message: 'Student and Course selection are required.' });
+    }
+
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ error: 'Selected student not found.', message: 'Selected student not found.' });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: 'Selected course not found.', message: 'Selected course not found.' });
+    }
+
+    const studentGrade = student.grade || 'Grade 6';
+    const formattedClassName = studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`;
+    const finalAmount = Number(amount) || course.price || 2500;
+    const finalPaymentMethod = paymentMethod || 'CASH_COUNTER';
+
+    // Generate counter receipt transaction ID
+    const transactionId = receiptNumber && receiptNumber.trim() 
+      ? receiptNumber.trim() 
+      : `REC-PHYS-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+
+    // 1. Create Payment record
+    const payment = await Payment.create({
+      student: studentId,
+      studentId: studentId,
+      course: courseId,
+      courseId: courseId,
+      month: currentMonth,
+      amount: finalAmount,
+      currency: 'LKR',
+      enrollmentDate: paymentDate ? new Date(paymentDate) : new Date(),
+      paymentMethod: finalPaymentMethod,
+      transactionId,
+      status: 'COMPLETED',
+      cardLastFour: 'CASH',
+      paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+      remarks: remarks || 'In-Person Counter Payment'
+    });
+
+    // 2. Create or Update Enrollment Record
+    await Enrollment.findOneAndUpdate(
+      { student: studentId, course: courseId },
+      { student: studentId, course: courseId, className: formattedClassName },
+      { upsert: true, new: true }
+    );
+
+    // 3. Synchronize Course enrolledStudents and classes
+    const isAlreadyEnrolled = course.enrolledStudents.some(
+      id => id.toString() === studentId.toString()
+    );
+    if (!isAlreadyEnrolled) {
+      course.enrolledStudents.push(studentId);
+    }
+
+    let targetClass = course.classes.find(c => normalizeGrade(c.className) === normalizeGrade(studentGrade));
+    if (!targetClass) {
+      course.classes.push({ className: formattedClassName, enrolledStudents: [studentId] });
+    } else {
+      const isStudentInClass = targetClass.enrolledStudents.some(
+        id => id.toString() === studentId.toString()
+      );
+      if (!isStudentInClass) {
+        targetClass.enrolledStudents.push(studentId);
+      }
+    }
+
+    await course.save();
+
+    const populatedPayment = await Payment.findById(payment._id)
+      .populate('student', 'name email registrationNumber grade studentType')
+      .populate('course', 'title price');
+
+    res.status(201).json({
+      success: true,
+      message: `Physical payment of LKR ${finalAmount.toLocaleString()} recorded successfully! Student enrolled in ${course.title}.`,
+      transactionId,
+      payment: populatedPayment
+    });
+
+  } catch (err) {
+    console.error('Record physical payment error:', err);
+    res.status(500).json({ error: 'Failed to record physical payment: ' + err.message, message: 'Failed to record physical payment: ' + err.message });
   }
 });
 

@@ -26,9 +26,11 @@ const Courses = () => {
     fetchCourses();
   }, []);
 
+  const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
+
   // Filter courses based on search query
   const recommendedCourses = user?.role === 'student' && user?.grade
-    ? courses.filter(course => course.enrolledGrades?.some(g => g.gradeNumber === user.grade))
+    ? courses.filter(course => course.enrolledGrades?.some(g => normalizeGrade(g.gradeNumber) === normalizeGrade(user.grade)))
     : [];
 
   const filteredCourses = (user?.role === 'admin'
@@ -39,7 +41,7 @@ const Courses = () => {
           const isEnrolledByStudent = course.enrolledStudents?.some(student =>
             student?._id?.toString() === user?.id?.toString() || student?.toString() === user?.id?.toString()
           );
-          const isGradeAllowed = course.enrolledGrades?.some(g => g.gradeNumber === user?.grade);
+          const isGradeAllowed = course.enrolledGrades?.some(g => normalizeGrade(g.gradeNumber) === normalizeGrade(user?.grade));
           return isEnrolledByStudent || isGradeAllowed;
         })
   ).filter(course => 

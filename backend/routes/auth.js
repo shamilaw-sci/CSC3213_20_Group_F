@@ -755,13 +755,30 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
       const enrolledCoursesList = Object.values(allCoursesMap);
 
-      // Student Personal Attendance
+      // Student Personal Attendance & Weekly Attendance Tracking
       const totalAttendance = await Attendance.countDocuments({ studentId });
       const presentRecords = await Attendance.countDocuments({ studentId, status: 'Present' });
       const absentRecords = await Attendance.countDocuments({ studentId, status: 'Absent' });
       const lateRecords = await Attendance.countDocuments({ studentId, status: 'Late' });
 
-      const attendanceRate = totalAttendance > 0 ? Math.round((presentRecords / totalAttendance) * 100) : 100;
+      // Weekly Online Attendance Submissions
+      const weeklyRecords = await Attendance.find({ studentId, mode: 'ONLINE_WEEKLY' }).lean();
+      const weeklyAttendedCount = weeklyRecords.length;
+
+      // Dynamic Active Months Count (e.g. July 2026, August 2026, September 2026, October 2026 = 4 months)
+      // 4 weeks per month = 16 weeks per course. Adding a new month automatically increases the dividing factor by +4 weeks.
+      const activeMonthsList = ["July 2026", "August 2026", "September 2026", "October 2026"];
+      const weeksPerCourse = activeMonthsList.length * 4; // 16 weeks per course
+      const totalAvailableWeeks = Math.max(16, (enrolledCoursesList.length || 1) * weeksPerCourse);
+
+      let attendanceRate = 0;
+      if (totalAvailableWeeks > 0) {
+        attendanceRate = Math.min(100, Math.round((weeklyAttendedCount / totalAvailableWeeks) * 100));
+      } else if (totalAttendance > 0) {
+        attendanceRate = Math.round((presentRecords / totalAttendance) * 100);
+      } else {
+        attendanceRate = 0;
+      }
 
       // Student Personal Payments
       const studentPayments = await Payment.find({ student: studentId, status: 'COMPLETED' })
@@ -776,6 +793,8 @@ router.get('/analytics-summary', protect, async (req, res) => {
         studentMetrics: {
           enrolledCoursesCount: enrolledCoursesList.length,
           attendanceRate,
+          weeklyAttendedCount,
+          totalAvailableWeeks,
           totalPaymentsCount: studentPayments.length,
           totalPaidAmount,
           userGrade: req.user.grade || 'Unassigned',
@@ -785,8 +804,11 @@ router.get('/analytics-summary', protect, async (req, res) => {
           total: totalAttendance,
           present: presentRecords,
           absent: absentRecords,
-          late: lateRecords
+          late: lateRecords,
+          weeklyAttendedCount,
+          totalAvailableWeeks
         },
+        weeklyRecords,
         enrolledCoursesList,
         studentPayments
       });
