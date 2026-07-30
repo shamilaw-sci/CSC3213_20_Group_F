@@ -31,6 +31,11 @@ const maskPhoneNumber = (phone) => {
 const sendSMS = async ({ phone, message, otpCode, studentName = 'Student' }) => {
   const formattedPhone = formatSriLankaPhone(phone);
 
+  if (!formattedPhone) {
+    console.warn('⚠️ [SMS CANCELLED]: Invalid or missing phone number.');
+    return { success: false, reason: 'Invalid phone number' };
+  }
+
   // 1. Notify.lk Sri Lanka Gateway Integration (Using native fetch)
   if (process.env.NOTIFY_USER_ID && process.env.NOTIFY_API_KEY) {
     try {
@@ -71,17 +76,56 @@ const sendSMS = async ({ phone, message, otpCode, studentName = 'Student' }) => 
 
   // 3. Fallback: Development & Demo Simulator Console Output
   console.log('\n====================================================');
-  console.log('📱 [SMS SIMULATOR] Real OTP Code Dispatch');
+  console.log('📱 [SMS SIMULATOR] Dispatching Short Message');
   console.log(`Recipient: ${studentName} (${formattedPhone})`);
   console.log(`Message  : "${message}"`);
-  console.log(`OTP Code : [ ${otpCode} ] (Valid for 5 Minutes)`);
+  if (otpCode) console.log(`OTP Code : [ ${otpCode} ]`);
   console.log('====================================================\n');
 
   return { success: true, mode: 'simulator' };
 };
 
+/**
+ * Send Attendance Notification SMS to Parent
+ */
+const sendAttendanceSMS = async ({ parentPhone, studentName, className, date, time, status = 'Present' }) => {
+  const formattedDate = date ? new Date(date).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
+  const formattedTime = time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const message = `LuminaLearn Alert: Student ${studentName} has been marked '${status}' for class '${className}' on ${formattedDate} at ${formattedTime}.`;
+  return await sendSMS({ phone: parentPhone, message, studentName });
+};
+
+/**
+ * Send Payment Notification SMS to Parent
+ */
+const sendPaymentSMS = async ({ parentPhone, studentName, courseTitle, amount, date, transactionId }) => {
+  const formattedDate = date ? new Date(date).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
+  const formattedTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const message = `LuminaLearn Payment: Student ${studentName} has paid LKR ${amount} for '${courseTitle}' on ${formattedDate} at ${formattedTime}. Ref: ${transactionId}. Thank you!`;
+  return await sendSMS({ phone: parentPhone, message, studentName });
+};
+
+/**
+ * Send Bulk Notification / Class Postponement SMS to multiple recipients
+ */
+const sendBulkSMS = async ({ phoneNumbers = [], message, classTitle = '' }) => {
+  const results = [];
+  const fullMessage = classTitle ? `[LuminaLearn - ${classTitle}] ${message}` : `[LuminaLearn Notice] ${message}`;
+  
+  for (const phone of phoneNumbers) {
+    if (phone) {
+      const res = await sendSMS({ phone, message: fullMessage, studentName: 'Recipient' });
+      results.push(res);
+    }
+  }
+  return results;
+};
+
 module.exports = {
   formatSriLankaPhone,
   maskPhoneNumber,
-  sendSMS
+  sendSMS,
+  sendAttendanceSMS,
+  sendPaymentSMS,
+  sendBulkSMS
 };

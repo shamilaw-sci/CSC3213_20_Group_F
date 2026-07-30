@@ -6,8 +6,10 @@ const Enrollment = require('../models/Enrollment');
 const Course = require('../models/Course');
 const User = require('../models/User');
 const OTP = require('../models/OTP');
+const Notification = require('../models/Notification');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
-const { sendSMS, maskPhoneNumber } = require('../services/smsService');
+const { sendSMS, maskPhoneNumber, sendPaymentSMS } = require('../services/smsService');
+const { sendPaymentReceiptEmail } = require('../utils/emailService');
 
 const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
 
@@ -188,6 +190,54 @@ router.post('/process-mock', protect, async (req, res) => {
     }
 
     await course.save();
+
+    // --- TRIGGER NOTIFICATIONS (In-App, SMS, Email) ---
+    try {
+      // 1. In-App Notification for Student
+      await Notification.create({
+        recipient: studentId,
+        type: 'PAYMENT',
+        title: 'Payment Successful',
+        message: `Your payment of LKR ${paymentAmount} for '${course.title}' was received successfully. (Ref: ${transactionId})`,
+        link: '/payments',
+        metadata: { paymentId: newPayment._id, transactionId, amount: paymentAmount }
+      });
+
+      // 2. In-App Notification for Admins
+      await Notification.create({
+        recipientRole: 'admin',
+        type: 'PAYMENT',
+        title: 'New Payment Received',
+        message: `${student.name} paid LKR ${paymentAmount} for '${course.title}' (Ref: ${transactionId}).`,
+        link: '/payments',
+        metadata: { studentId, courseId, amount: paymentAmount, transactionId }
+      });
+
+      // 3. Parent SMS Alert
+      if (student.parentsPhoneNumber) {
+        sendPaymentSMS({
+          parentPhone: student.parentsPhoneNumber,
+          studentName: student.name,
+          courseTitle: course.title,
+          amount: paymentAmount,
+          date: newPayment.paymentDate,
+          transactionId
+        });
+      }
+
+      // 4. Student Receipt Email
+      if (student.email) {
+        sendPaymentReceiptEmail(student.email, student.name, {
+          transactionId,
+          courseTitle: course.title,
+          amount: paymentAmount,
+          date: newPayment.paymentDate,
+          paymentMethod: newPayment.paymentMethod
+        });
+      }
+    } catch (notifErr) {
+      console.error('Payment notification trigger error:', notifErr.message);
+    }
 
     res.status(201).json({
       success: true,

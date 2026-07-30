@@ -8,6 +8,7 @@ const Course = require('../models/Course');
 const Lesson = require('../models/Lesson');
 const Attendance = require('../models/Attendance');
 const Enrollment = require('../models/Enrollment');
+const Notification = require('../models/Notification');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 const { getClassNameFromGrade } = require('../utils/migration');
@@ -355,6 +356,20 @@ router.post(
                 banner: bannerPath,
                 cardImage: cardImagePath
             });
+
+            // Trigger In-App Notification for all students
+            try {
+                await Notification.create({
+                    recipientRole: 'student',
+                    type: 'COURSE_ADDED',
+                    title: 'New Course Available',
+                    message: `A new course '${newCourse.title}' is now available for enrollment! Check it out.`,
+                    link: '/courses',
+                    metadata: { courseId: newCourse._id }
+                });
+            } catch (notifErr) {
+                console.error('Course notification trigger error:', notifErr.message);
+            }
 
             res.status(201).json({ message: "Course created successfully!", courseId: newCourse._id });
         } catch (err) {

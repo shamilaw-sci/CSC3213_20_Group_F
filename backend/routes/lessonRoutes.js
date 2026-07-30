@@ -4,8 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const Lesson = require('../models/Lesson');
 const Course = require('../models/Course');
+const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const uploadPdfMiddleware = require('../middleware/pdfUpload');
+const { sendCourseUpdateEmail } = require('../utils/emailService');
 
 // Middleware to authorize teachers and admins
 const isTeacherOrAdmin = (req, res, next) => {
@@ -146,6 +149,37 @@ router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, as
         });
 
         await lesson.save();
+
+        // --- TRIGGER NOTIFICATIONS FOR ENROLLED STUDENTS ---
+        try {
+            const course = await Course.findById(lesson.course);
+            if (course && course.enrolledStudents && course.enrolledStudents.length > 0) {
+                const enrolledUsers = await User.find({ _id: { $in: course.enrolledStudents } });
+                
+                const notifDocs = enrolledUsers.map(st => ({
+                    recipient: st._id,
+                    type: 'NEW_CONTENT',
+                    title: `New Material in ${course.title}`,
+                    message: `New PDF note "${title}" has been uploaded for Grade ${lesson.grade}.`,
+                    link: `/courses`,
+                    metadata: { courseId: course._id, lessonId: lesson._id }
+                }));
+
+                if (notifDocs.length > 0) {
+                    await Notification.insertMany(notifDocs);
+                }
+
+                // Email notification to enrolled students
+                enrolledUsers.forEach(st => {
+                    if (st.email) {
+                        sendCourseUpdateEmail(st.email, st.name, course.title, `New PDF Material: ${title}`, `A new study material "${title}" has been published for Grade ${lesson.grade}.`);
+                    }
+                });
+            }
+        } catch (notifErr) {
+            console.error('Lesson PDF notification error:', notifErr.message);
+        }
+
         res.status(201).json({ message: "PDF uploaded successfully!", lesson });
     } catch (err) {
         res.status(500).json({ error: "Failed to upload PDF: " + err.message });
