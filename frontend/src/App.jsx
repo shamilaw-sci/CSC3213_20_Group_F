@@ -10,6 +10,7 @@ import DashboardLayout from './components/DashboardLayout';
 import Dashboard from './components/Dashboard';
 
 // --- PAGES ---
+import Home from './pages/Home';
 import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
 import ForgotPassword from './pages/ForgotPassword';
@@ -51,12 +52,13 @@ function App() {
       <Toaster position="top-center" />
       <Routes>
         {/* === PUBLIC ROUTES === */}
+        <Route path="/" element={<Home />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-        <Route path="/" element={<Navigate to="/login" />} />
 
         {/* === DASHBOARD & PROTECTED ROUTES === */}
         {/* Everything inside here gets the Sidebar and Header automatically */}
