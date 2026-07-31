@@ -44,6 +44,11 @@ const courseSchema = new mongoose.Schema({
     type: Number,
     default: 2500
   },
+  studentType: {
+    type: String,
+    enum: ['all', 'online', 'physical'],
+    default: 'all'
+  },
   enrolledGrades: [gradeSchema],
   classes: [classSchema],
   enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]

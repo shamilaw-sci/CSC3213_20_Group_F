@@ -17,6 +17,9 @@ const CourseDetails = () => {
   const [videoTitle, setVideoTitle] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [showAddGrade, setShowAddGrade] = useState(false);
+  const [gradeMode, setGradeMode] = useState('single');
+  const [combinationGrades, setCombinationGrades] = useState([]);
+  const [customGradeInput, setCustomGradeInput] = useState('');
   const [newGradeNumber, setNewGradeNumber] = useState('');
   const [newGradeTitle, setNewGradeTitle] = useState('');
   const [gradeMessage, setGradeMessage] = useState('');
@@ -156,10 +159,25 @@ const CourseDetails = () => {
 
   const handleAddGrade = async (e) => {
     e.preventDefault();
-    if (!newGradeNumber) {
-      toast.error('Please select a grade to add.');
-      return;
+    let targetGradeNumber = '';
+
+    if (gradeMode === 'single') {
+      if (!newGradeNumber) {
+        toast.error('Please select a grade.');
+        return;
+      }
+      targetGradeNumber = newGradeNumber;
+    } else {
+      if (combinationGrades.length > 0) {
+        targetGradeNumber = combinationGrades.join(' & ');
+      } else if (customGradeInput.trim()) {
+        targetGradeNumber = customGradeInput.trim();
+      } else {
+        toast.error('Please select grades or enter a combination grade name.');
+        return;
+      }
     }
+
     if (!newGradeTitle.trim()) {
       toast.error('Please enter a grade title.');
       return;
@@ -167,13 +185,13 @@ const CourseDetails = () => {
 
     try {
       const res = await api.post('/lessons/add-grade', {
-        grade: newGradeNumber,
+        grade: targetGradeNumber,
         title: newGradeTitle,
         courseId
       });
-      toast.success(res.data.message || `Grade ${newGradeTitle} added successfully.`);
+      toast.success(res.data.message || `Grade "${targetGradeNumber}" added successfully.`);
       const newGradeEntry = res.data.newGradeEntry || {
-        gradeNumber: newGradeNumber,
+        gradeNumber: targetGradeNumber,
         title: newGradeTitle.trim(),
         messages: []
       };
@@ -182,6 +200,8 @@ const CourseDetails = () => {
         enrolledGrades: [...(prev.enrolledGrades || []), newGradeEntry]
       } : prev);
       setNewGradeNumber('');
+      setCombinationGrades([]);
+      setCustomGradeInput('');
       setNewGradeTitle('');
       setShowAddGrade(false);
       await fetchCourseDetails();
@@ -473,7 +493,51 @@ const CourseDetails = () => {
             />
           )}
           <h1 className="text-4xl font-extrabold text-gray-800 mb-2">{course?.title}</h1>
-          <p className="text-gray-500">{course?.description}</p>
+          <p className="text-gray-500 line-clamp-4 leading-relaxed">{course?.description}</p>
+
+          {/* Student Grade Badge & Enroll Action */}
+          {user?.role === 'student' && (
+            <div className="mt-5 flex flex-wrap items-center gap-4">
+              {user?.grade && (
+                <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/80 px-4 py-2.5 rounded-2xl shadow-sm">
+                  <div className="w-9 h-9 rounded-xl bg-[#2d1b64] text-white flex items-center justify-center font-bold text-base shadow-sm">
+                    🎓
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-purple-600/80 uppercase tracking-widest block leading-none">Your Grade</span>
+                    <span className="text-sm font-extrabold text-gray-900">{user.grade}</span>
+                  </div>
+                </div>
+              )}
+
+              {!alreadyEnrolled ? (
+                <button
+                  type="button"
+                  onClick={handleEnroll}
+                  disabled={isEnrolling}
+                  className="rounded-2xl bg-gradient-to-r from-purple-600 to-[#2d1b64] text-white px-7 py-3 text-sm font-extrabold hover:from-purple-700 hover:to-purple-900 transition-all shadow-md hover:shadow-xl disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                >
+                  {isEnrolling ? (
+                    <span>Enrolling...</span>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      <span>Enroll Course</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-sm">
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Enrolled Student
+                </span>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="mb-8">
@@ -492,7 +556,7 @@ const CourseDetails = () => {
       {selectedGrade === null && (
         <div className="space-y-8">
 
-          {/* Admin Management Section */}
+          {/* Class Management Section */}
           {user?.role === 'admin' && (
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -504,12 +568,14 @@ const CourseDetails = () => {
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <button
+                    type="button"
                     onClick={() => setShowAddGrade(!showAddGrade)}
                     className="rounded-full bg-purple-600 px-5 py-2 text-white font-semibold hover:bg-purple-700 transition"
                   >
                     {showAddGrade ? 'Cancel New Grade' : '+ Add Grade'}
                   </button>
                   <button
+                    type="button"
                     onClick={() => setShowDeleteConfirm(true)}
                     className="rounded-full bg-red-500 px-5 py-2 text-white font-semibold hover:bg-red-600 transition"
                     disabled={isDeleting}
@@ -520,37 +586,113 @@ const CourseDetails = () => {
               </div>
 
               {showAddGrade && (
-                <form onSubmit={handleAddGrade} className="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Grade Title</label>
-                    <input
-                      value={newGradeTitle}
-                      onChange={(e) => setNewGradeTitle(e.target.value)}
-                      placeholder="Enter title for this grade"
-                      className="mt-1 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                      required
-                    />
+                <form onSubmit={handleAddGrade} className="space-y-4 bg-purple-50/50 p-6 rounded-3xl border border-purple-100 mb-6">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <label className="text-sm font-bold text-gray-700">Grade Assignment Mode</label>
+                    <div className="flex bg-white p-1 rounded-xl border border-gray-200 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => { setGradeMode('single'); setCombinationGrades([]); setCustomGradeInput(''); }}
+                        className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition ${gradeMode === 'single' ? 'bg-[#2d1b64] text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                      >
+                        Single Grade
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setGradeMode('combination'); setNewGradeNumber(''); }}
+                        className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition ${gradeMode === 'combination' ? 'bg-[#2d1b64] text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                      >
+                        Combination Grade
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Class Number</label>
-                    <select
-                      value={newGradeNumber}
-                      onChange={(e) => setNewGradeNumber(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                      required
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Grade Title</label>
+                      <input
+                        value={newGradeTitle}
+                        onChange={(e) => setNewGradeTitle(e.target.value)}
+                        placeholder="e.g. Theory Class or Combined Batch"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                        required
+                      />
+                    </div>
+
+                    {gradeMode === 'single' ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Select Grade</label>
+                        <select
+                          value={newGradeNumber}
+                          onChange={(e) => setNewGradeNumber(e.target.value)}
+                          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                          required
+                        >
+                          <option value="">Choose grade</option>
+                          {allGrades.map((grade) => (
+                            <option key={grade} value={grade}>{grade}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Custom Combination Name</label>
+                        <input
+                          value={customGradeInput}
+                          onChange={(e) => setCustomGradeInput(e.target.value)}
+                          placeholder="e.g. Grade 10 & 11 or Grade 6-8"
+                          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {gradeMode === 'combination' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Or Select Multiple Grades to Combine</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 bg-white p-4 rounded-2xl border border-gray-200 max-h-44 overflow-y-auto">
+                        {allGrades.map((g) => {
+                          const isChecked = combinationGrades.includes(g);
+                          return (
+                            <label key={g} className={`flex items-center gap-2 p-2 rounded-xl text-xs font-medium cursor-pointer transition ${isChecked ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'hover:bg-gray-50 text-gray-700'}`}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setCombinationGrades([...combinationGrades, g]);
+                                  } else {
+                                    setCombinationGrades(combinationGrades.filter(item => item !== g));
+                                  }
+                                }}
+                                className="rounded text-purple-600 focus:ring-purple-500"
+                              />
+                              <span>{g}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {combinationGrades.length > 0 && (
+                        <p className="mt-2 text-xs text-purple-700 font-semibold">
+                          Combined Result: <span className="underline">{combinationGrades.join(' & ')}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddGrade(false)}
+                      className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
                     >
-                      <option value="">Choose class</option>
-                      {allGrades.map((grade) => (
-                        <option key={grade} value={grade}>{grade}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="md:col-span-3 flex justify-end">
+                      Cancel
+                    </button>
                     <button
                       type="submit"
-                      className="rounded-xl bg-green-600 px-5 py-3 text-white font-semibold hover:bg-green-700 transition"
+                      className="rounded-xl bg-[#2d1b64] px-6 py-2.5 text-sm font-semibold text-white hover:bg-purple-900 transition shadow-sm"
                     >
-                      Save Grade
+                      Save Grade Assignment
                     </button>
                   </div>
                 </form>
@@ -563,7 +705,7 @@ const CourseDetails = () => {
                     className="relative bg-white p-6 rounded-3xl border border-gray-200 shadow-sm"
                   >
                     <div className="absolute right-4 top-4 flex flex-col gap-2">
-                      {user?.role === 'admin' && (
+                      {(user?.role === 'admin' || user?.role === 'teacher') && (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -603,53 +745,82 @@ const CourseDetails = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {course?.enrolledGrades?.map((eg) => {
-                  const isGradeMatch = user?.role !== 'student' || (user?.grade && normalizeGrade(user.grade) === normalizeGrade(eg.gradeNumber));
+                {course?.enrolledGrades
+                  ?.filter((eg) => {
+                    if (user?.role !== 'student') return true;
+                    if (!user?.grade) return false;
+                    const studentGradeNorm = normalizeGrade(user.grade);
+                    const gNum = eg.gradeNumber || '';
+                    const parts = gNum.split(/[\&,/\+\-]|(?:\s+and\s+)/i).map(normalizeGrade);
+                    return parts.includes(studentGradeNorm) || normalizeGrade(gNum) === studentGradeNorm;
+                  })
+                  .map((eg) => {
+                    const isGradeMatch = true;
 
                   return (
                     <div
                       key={eg.gradeNumber}
                       onClick={() => {
-                        if (!isGradeMatch) {
-                          toast.error(`Access Restricted: You are registered in Grade ${user?.grade ? normalizeGrade(user.grade) : ''}. You can only access classes matching your registered grade.`);
+                        if (user?.role === 'student' && !alreadyEnrolled) {
+                          toast.error("Please click the '+ Enroll Course' button above to enroll before accessing the workspace.");
                           return;
                         }
                         setSelectedGrade(eg.gradeNumber);
                       }}
                       className={`bg-white p-8 rounded-[30px] shadow-sm border transition-all duration-300 flex flex-col justify-between ${
-                        isGradeMatch 
-                          ? 'border-transparent hover:border-[#2d1b64]/20 hover:shadow-xl cursor-pointer group' 
-                          : 'border-gray-200 opacity-60 bg-gray-50/80 cursor-not-allowed'
+                        user?.role === 'student' && !alreadyEnrolled
+                          ? 'border-gray-200 bg-gray-50/60 cursor-pointer hover:border-purple-200' 
+                          : 'border-transparent hover:border-[#2d1b64]/20 hover:shadow-xl cursor-pointer group'
                       }`}
                     >
                       <div>
                         <div className="flex justify-between items-start mb-6">
                           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-colors ${
-                            isGradeMatch ? 'bg-[#f3f4f6] group-hover:bg-[#2d1b64] group-hover:text-white' : 'bg-gray-200 text-gray-500'
+                            user?.role === 'student' && !alreadyEnrolled
+                              ? 'bg-gray-200 text-gray-500'
+                              : 'bg-[#f3f4f6] group-hover:bg-[#2d1b64] group-hover:text-white'
                           }`}>
-                            {isGradeMatch ? '🎓' : '🔒'}
+                            {user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
                           </div>
-                          {isGradeMatch ? (
-                            <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
-                              Active Class
+                          {user?.role === 'student' && !alreadyEnrolled ? (
+                            <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200">
+                              🔒 Enroll Required
                             </span>
                           ) : (
-                            <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200">
-                              🔒 Restricted (Other Grade)
+                            <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
+                              Active Class
                             </span>
                           )}
                         </div>
                         <h3 className={`text-2xl font-bold mb-2 transition-colors ${
-                          isGradeMatch ? 'text-gray-800 group-hover:text-[#2d1b64]' : 'text-gray-400'
+                          user?.role === 'student' && !alreadyEnrolled ? 'text-gray-700' : 'text-gray-800 group-hover:text-[#2d1b64]'
                         }`}>
                           {eg.title || eg.gradeNumber}
                         </h3>
                         <p className="text-gray-400 text-xs mt-2 font-medium">
-                          {isGradeMatch 
-                            ? 'Click to view announcements and lessons' 
-                            : `Restricted for Grade ${user?.grade ? normalizeGrade(user.grade) : ''} students`}
+                          {user?.role === 'student' && !alreadyEnrolled
+                            ? 'Enroll required to view announcements & lessons' 
+                            : 'Click to view announcements and lessons'}
                         </p>
                       </div>
+
+                      {(user?.role === 'admin' || user?.role === 'teacher') && (
+                        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openStudentPicker(eg.gradeNumber);
+                            }}
+                            className="rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-xs font-bold text-green-700 hover:bg-green-100 hover:border-green-300 transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                          >
+                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            {user?.role === 'admin' ? 'Manage Students' : 'View Students & Details'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1148,20 +1319,22 @@ const CourseDetails = () => {
                                   : "bg-white border-gray-150 hover:bg-gray-50"
                               }`}
                             >
-                              <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedStudentIds.includes(student._id)}
-                                  onChange={() => {
-                                    setSelectedStudentIds((prev) =>
-                                      prev.includes(student._id)
-                                        ? prev.filter((id) => id !== student._id)
-                                        : [...prev, student._id]
-                                    );
-                                  }}
-                                  className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
-                                />
-                              </div>
+                              {user?.role === 'admin' && (
+                                <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedStudentIds.includes(student._id)}
+                                    onChange={() => {
+                                      setSelectedStudentIds((prev) =>
+                                        prev.includes(student._id)
+                                          ? prev.filter((id) => id !== student._id)
+                                          : [...prev, student._id]
+                                      );
+                                    }}
+                                    className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                  />
+                                </div>
+                              )}
 
                               <div className="flex-1 min-w-0" onClick={() => setSelectedStudentDetail(student)}>
                                 <p className="font-semibold text-gray-905 text-sm truncate">{student.name}</p>
@@ -1206,20 +1379,22 @@ const CourseDetails = () => {
                                   : "bg-white border-gray-150 hover:bg-gray-50"
                               }`}
                             >
-                              <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedStudentIds.includes(student._id)}
-                                  onChange={() => {
-                                    setSelectedStudentIds((prev) =>
-                                      prev.includes(student._id)
-                                        ? prev.filter((id) => id !== student._id)
-                                        : [...prev, student._id]
-                                    );
-                                  }}
-                                  className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
-                                />
-                              </div>
+                              {user?.role === 'admin' && (
+                                <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedStudentIds.includes(student._id)}
+                                    onChange={() => {
+                                      setSelectedStudentIds((prev) =>
+                                        prev.includes(student._id)
+                                          ? prev.filter((id) => id !== student._id)
+                                          : [...prev, student._id]
+                                      );
+                                    }}
+                                    className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                  />
+                                </div>
+                              )}
 
                               <div className="flex-1 min-w-0" onClick={() => setSelectedStudentDetail(student)}>
                                 <p className="font-semibold text-gray-905 text-sm truncate">{student.name}</p>
@@ -1247,47 +1422,49 @@ const CourseDetails = () => {
                   </div>
                 )}
 
-                {/* Batch Action Buttons Panel */}
-                <div className="pt-4 border-t flex flex-col gap-2 mt-auto">
-                  <div className="flex justify-between items-center text-xs text-gray-500 font-semibold px-1">
-                    <span>{selectedStudentIds.length} Selected for Batch Actions</span>
-                    <div className="flex gap-2">
+                {/* Batch Action Buttons Panel (Admin only) */}
+                {user?.role === 'admin' && (
+                  <div className="pt-4 border-t flex flex-col gap-2 mt-auto">
+                    <div className="flex justify-between items-center text-xs text-gray-500 font-semibold px-1">
+                      <span>{selectedStudentIds.length} Selected for Batch Actions</span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStudentIds(gradeStudents.map((s) => s._id))}
+                          className="text-purple-600 hover:underline cursor-pointer"
+                        >
+                          Select All
+                        </button>
+                        <span>|</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStudentIds([])}
+                          className="text-purple-600 hover:underline cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
-                        onClick={() => setSelectedStudentIds(gradeStudents.map((s) => s._id))}
-                        className="text-purple-600 hover:underline cursor-pointer"
+                        onClick={handleBatchEnroll}
+                        disabled={isUpdatingGradeStudents || selectedStudentIds.length === 0}
+                        className="rounded-xl bg-green-600 py-2.5 text-xs font-bold text-white hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
                       >
-                        Select All
+                        {isUpdatingGradeStudents ? 'Enrolling...' : 'Batch Enroll'}
                       </button>
-                      <span>|</span>
                       <button
                         type="button"
-                        onClick={() => setSelectedStudentIds([])}
-                        className="text-purple-600 hover:underline cursor-pointer"
+                        onClick={handleBatchRemove}
+                        disabled={isUpdatingGradeStudents || selectedStudentIds.length === 0}
+                        className="rounded-xl bg-red-600 py-2.5 text-xs font-bold text-white hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
                       >
-                        Clear
+                        {isUpdatingGradeStudents ? 'Removing...' : 'Batch Remove'}
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={handleBatchEnroll}
-                      disabled={isUpdatingGradeStudents || selectedStudentIds.length === 0}
-                      className="rounded-xl bg-green-600 py-2.5 text-xs font-bold text-white hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
-                    >
-                      {isUpdatingGradeStudents ? 'Enrolling...' : 'Batch Enroll'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleBatchRemove}
-                      disabled={isUpdatingGradeStudents || selectedStudentIds.length === 0}
-                      className="rounded-xl bg-red-600 py-2.5 text-xs font-bold text-white hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
-                    >
-                      {isUpdatingGradeStudents ? 'Removing...' : 'Batch Remove'}
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* RIGHT PANE: Selected Student Detailed Overview */}
@@ -1323,28 +1500,30 @@ const CourseDetails = () => {
                         </div>
                       </div>
 
-                      {/* Enrolling Action Button */}
-                      <div>
-                        {selectedStudentDetail.isEnrolled ? (
-                          <button
-                            type="button"
-                            onClick={() => handleSingleStudentEnrollRemove('remove', selectedStudentDetail._id)}
-                            disabled={isUpdatingGradeStudents}
-                            className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer"
-                          >
-                            Remove
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleSingleStudentEnrollRemove('enroll', selectedStudentDetail._id)}
-                            disabled={isUpdatingGradeStudents}
-                            className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer"
-                          >
-                            Enroll
-                          </button>
-                        )}
-                      </div>
+                      {/* Enrolling Action Button (Admin only) */}
+                      {user?.role === 'admin' && (
+                        <div>
+                          {selectedStudentDetail.isEnrolled ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSingleStudentEnrollRemove('remove', selectedStudentDetail._id)}
+                              disabled={isUpdatingGradeStudents}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSingleStudentEnrollRemove('enroll', selectedStudentDetail._id)}
+                              disabled={isUpdatingGradeStudents}
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer"
+                            >
+                              Enroll
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Tab Navigation */}

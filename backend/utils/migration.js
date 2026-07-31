@@ -53,7 +53,7 @@ const migrateData = async () => {
                         
                         fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
                         console.log(`📸 Migrated ${prefix} for course [${course.title}] to disk: ${filename}`);
-                        return filename;
+                        return `/uploads/${filename}`;
                     }
                 }
                 return null;
@@ -124,7 +124,7 @@ const migrateData = async () => {
                         await Enrollment.findOneAndUpdate(
                             { student: studentIdStr, course: course._id, className: className },
                             { student: studentIdStr, course: course._id, className: className },
-                            { upsert: true, new: true }
+                            { upsert: true, returnDocument: 'after' }
                         );
                     } catch (e) {
                         console.error(`Failed to upsert enrollment record:`, e.message);
