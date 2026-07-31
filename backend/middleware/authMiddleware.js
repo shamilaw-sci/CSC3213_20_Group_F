@@ -48,4 +48,13 @@ const isAdmin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, isAdmin };
+// --- ISTEACHERORADMIN MIDDLEWARE ---
+const isTeacherOrAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'teacher')) {
+    next();
+  } else {
+    return res.status(403).json({ message: "Access denied. Teachers and Admins only." });
+  }
+};
+
+module.exports = { protect, isAdmin, isTeacherOrAdmin };

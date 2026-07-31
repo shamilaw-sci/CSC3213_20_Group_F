@@ -9,11 +9,12 @@ const Lesson = require('../models/Lesson');
 const Attendance = require('../models/Attendance');
 const Enrollment = require('../models/Enrollment');
 const Notification = require('../models/Notification');
-const { protect, isAdmin } = require('../middleware/authMiddleware');
+const { protect, isAdmin, isTeacherOrAdmin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 const { getClassNameFromGrade } = require('../utils/migration');
 
 // Extract the raw filename if a full path is stored, and build a dynamic URL based on the request host
+// Also verifies the file actually exists on disk so images work across team members' machines
 const getFullUrl = (req, filenameOrUrl) => {
     if (!filenameOrUrl) return "";
     // If it is a Base64 string, return it directly
@@ -23,6 +24,12 @@ const getFullUrl = (req, filenameOrUrl) => {
     let filename = filenameOrUrl;
     if (filenameOrUrl.includes('/uploads/')) {
         filename = filenameOrUrl.split('/uploads/').pop();
+    }
+    // Check if the file actually exists on this machine's disk
+    const filePath = path.join(__dirname, '..', 'uploads', filename);
+    if (!fs.existsSync(filePath)) {
+        // File doesn't exist locally (e.g. uploaded on another team member's machine)
+        return "";
     }
     return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
 };
@@ -71,6 +78,7 @@ const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
 };
 
 // Helper function to process course object, auto-migrating any Base64 strings to disk files
+// If a Base64 image can't be converted (or file doesn't exist on this machine), serves base64 directly
 const processCourseImages = async (req, courseDoc) => {
     if (!courseDoc) return null;
     let updated = false;
@@ -78,14 +86,22 @@ const processCourseImages = async (req, courseDoc) => {
     let cardImage = courseDoc.cardImage || "";
 
     if (banner.startsWith('data:')) {
-        banner = convertBase64ToStaticFile(banner, 'banner');
-        courseDoc.banner = banner;
-        updated = true;
+        const converted = convertBase64ToStaticFile(banner, 'banner');
+        if (converted !== banner) {
+            // Successfully saved to disk, update DB path
+            banner = converted;
+            courseDoc.banner = banner;
+            updated = true;
+        }
+        // If conversion failed, banner stays as base64 and will be served directly
     }
     if (cardImage.startsWith('data:')) {
-        cardImage = convertBase64ToStaticFile(cardImage, 'cardImage');
-        courseDoc.cardImage = cardImage;
-        updated = true;
+        const converted = convertBase64ToStaticFile(cardImage, 'cardImage');
+        if (converted !== cardImage) {
+            cardImage = converted;
+            courseDoc.cardImage = cardImage;
+            updated = true;
+        }
     }
 
     if (updated && courseDoc._id) {
@@ -125,52 +141,8 @@ router.get('/', protect, async (req, res) => {
 // @desc    Admin retrieves all active class enrollments
 router.get('/enrollments/all', protect, isAdmin, async (req, res) => {
     try {
-        // 1. Backfill legacy course enrollments into Enrollment collection
-        const courses = await Course.find({})
-            .populate('classes.enrolledStudents', 'name email registrationNumber grade parentsPhoneNumber')
-            .populate('enrolledStudents', 'name email registrationNumber grade parentsPhoneNumber');
-
-        for (const course of courses) {
-            if (course.classes && course.classes.length > 0) {
-                for (const cls of course.classes) {
-                    if (cls.enrolledStudents && cls.enrolledStudents.length > 0) {
-                        for (const student of cls.enrolledStudents) {
-                            if (student && student._id) {
-                                const className = cls.className || (student.grade ? (student.grade.startsWith('Grade') ? student.grade : `Grade ${student.grade}`) : 'General');
-                                try {
-                                    await Enrollment.findOneAndUpdate(
-                                        { student: student._id, course: course._id },
-                                        { student: student._id, course: course._id, className },
-                                        { upsert: true, new: true, setDefaultsOnInsert: true }
-                                    );
-                                } catch (e) {
-                                    console.warn("Backfill enrollment skip:", e.message);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (course.enrolledStudents && course.enrolledStudents.length > 0) {
-                for (const student of course.enrolledStudents) {
-                    if (student && student._id) {
-                        const className = student.grade ? (student.grade.startsWith('Grade') ? student.grade : `Grade ${student.grade}`) : 'General';
-                        try {
-                            await Enrollment.findOneAndUpdate(
-                                { student: student._id, course: course._id },
-                                { student: student._id, course: course._id, className },
-                                { upsert: true, new: true, setDefaultsOnInsert: true }
-                            );
-                        } catch (e) {
-                            console.warn("Backfill enrollment skip:", e.message);
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. Retrieve all active enrollments from Enrollment table
+        // Legacy backfill is handled once at server startup by migration.js
+        // Directly query the Enrollment collection for fast response
         const dbEnrollments = await Enrollment.find({})
             .populate('student', 'name email registrationNumber grade parentsPhoneNumber')
             .populate('course', 'title');
@@ -318,7 +290,7 @@ router.post(
         { name: 'cardImage', maxCount: 1 }
     ]),
     async (req, res) => {
-        const { title, description, teacherName, teacherEmail, defaultPassword } = req.body;
+        const { title, description, teacherName, teacherEmail, defaultPassword, studentType = 'all' } = req.body;
 
         if (!title || !teacherEmail || !teacherName) {
             return res.status(400).json({ error: "Please fill in all required fields." });
@@ -363,12 +335,16 @@ router.post(
                 cardImagePath = convertBase64ToStaticFile(req.body.cardImage, 'cardImage');
             }
 
+            const validStudentTypes = ['all', 'online', 'physical'];
+            const finalStudentType = validStudentTypes.includes(studentType) ? studentType : 'all';
+
             const newCourse = await Course.create({
                 title,
                 description,
                 instructor: instructorId,
                 banner: bannerPath,
-                cardImage: cardImagePath
+                cardImage: cardImagePath,
+                studentType: finalStudentType
             });
 
             // Trigger In-App Notification for all students
@@ -400,6 +376,25 @@ router.get('/:id', protect, async (req, res) => {
             .populate('instructor', 'name')
             .populate('enrolledStudents', 'name grade registrationNumber');
         if (!course) return res.status(404).json({ error: "Course not found" });
+
+        // Enforce student grade restriction: students can only see courses for their grade (unless enrolled)
+        if (req.user.role === 'student') {
+            const isEnrolled = course.enrolledStudents.some(s => 
+                (s._id && s._id.toString() === req.user._id.toString()) || s.toString() === req.user._id.toString()
+            );
+            if (!isEnrolled) {
+                if (!req.user.grade) {
+                    return res.status(403).json({ error: "Access denied: Student grade is not set." });
+                }
+                const gradeRegexes = buildGradeRegexes(req.user.grade.trim());
+                const isGradeMatching = course.enrolledGrades.some(g =>
+                    gradeRegexes.some(regex => regex.test(g.gradeNumber))
+                );
+                if (!isGradeMatching) {
+                    return res.status(403).json({ error: "Access denied: This course is not offered for your grade." });
+                }
+            }
+        }
 
         const courseObj = await processCourseImages(req, course);
         res.json(courseObj);
@@ -504,18 +499,27 @@ router.delete('/:id', protect, isAdmin, async (req, res) => {
 const buildGradeRegexes = (gradeParam) => {
     if (!gradeParam) return [];
     const trimmed = String(gradeParam).trim();
-    const rawNum = trimmed.replace(/\D/g, ''); // extract numbers if any
     
+    // Split combination grade by delimiters (&, and, comma, slash, plus, hyphen)
+    const parts = trimmed.split(/[\&,/\+\-]|(?:\s+and\s+)/i).map(p => p.trim()).filter(Boolean);
     const terms = new Set([
         trimmed,
         trimmed.toLowerCase(),
         trimmed.replace(/grade/i, '').trim(),
         `Grade ${trimmed.replace(/grade/i, '').trim()}`
     ]);
-    if (rawNum) {
-        terms.add(rawNum);
-        terms.add(`Grade ${rawNum}`);
-    }
+
+    parts.forEach(part => {
+        const rawNum = part.replace(/\D/g, '');
+        terms.add(part);
+        terms.add(part.toLowerCase());
+        terms.add(part.replace(/grade/i, '').trim());
+        terms.add(`Grade ${part.replace(/grade/i, '').trim()}`);
+        if (rawNum) {
+            terms.add(rawNum);
+            terms.add(`Grade ${rawNum}`);
+        }
+    });
 
     return Array.from(terms).filter(Boolean).map(t => 
         new RegExp(`^\\s*${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i')
@@ -523,8 +527,8 @@ const buildGradeRegexes = (gradeParam) => {
 };
 
 // @route   GET /api/courses/:id/students/:gradeNumber
-// Admin fetches all students belonging to a specific grade with current enrollment status, attendance, and payments
-router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
+// Admin/Teacher fetches all students belonging to a specific grade with current enrollment status, attendance, and payments
+router.get('/:id/students/:gradeNumber', protect, isTeacherOrAdmin, async (req, res) => {
     try {
         const gradeParam = req.params.gradeNumber;
         if (!gradeParam) return res.status(400).json({ error: 'Grade selection is required.' });
@@ -533,11 +537,19 @@ router.get('/:id/students/:gradeNumber', protect, isAdmin, async (req, res) => {
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: 'Course not found' });
 
-        const students = await User.find({ 
+        const studentFilter = { 
             role: 'student', 
             grade: { $in: gradeRegexes } 
-        })
-        .select('_id name email registrationNumber grade parentsPhoneNumber')
+        };
+
+        if (course.studentType === 'online') {
+            studentFilter.studentType = 'online';
+        } else if (course.studentType === 'physical') {
+            studentFilter.studentType = 'physical';
+        }
+
+        const students = await User.find(studentFilter)
+        .select('_id name email registrationNumber grade parentsPhoneNumber studentType')
         .sort({ name: 1 });
 
         const enrolledIds = new Set(course.enrolledStudents.map(studentId => studentId.toString()));
@@ -818,7 +830,14 @@ router.post('/:id/enroll-grade/:gradeNumber', protect, isAdmin, async (req, res)
         }
 
         const gradeRegexes = buildGradeRegexes(gradeParam);
-        const students = await User.find({ role: 'student', grade: { $in: gradeRegexes } });
+        const studentFilter = { role: 'student', grade: { $in: gradeRegexes } };
+        if (course.studentType === 'online') {
+            studentFilter.studentType = 'online';
+        } else if (course.studentType === 'physical') {
+            studentFilter.studentType = 'physical';
+        }
+
+        const students = await User.find(studentFilter);
         if (!students.length) {
             return res.status(404).json({ error: `No students found for ${gradeParam}.` });
         }

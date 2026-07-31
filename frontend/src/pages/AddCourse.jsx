@@ -65,6 +65,7 @@ const ImageUploadZone = ({ label, hint, accept, file, onFileChange }) => {
 // ── Main component ───────────────────────────────────────────────────────────
 const AddCourse = () => {
   const [courseData, setCourseData] = useState({ title: '', description: '' });
+  const [studentType, setStudentType] = useState('all'); // 'all' | 'online' | 'physical'
   const [bannerFile, setBannerFile] = useState(null);
   const [cardImageFile, setCardImageFile] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
@@ -111,6 +112,7 @@ const AddCourse = () => {
 
   const resetForm = () => {
     setCourseData({ title: '', description: '' });
+    setStudentType('all');
     setBannerFile(null);
     setCardImageFile(null);
     setBannerPreview(null);
@@ -236,6 +238,7 @@ const AddCourse = () => {
     const formData = new FormData();
     formData.append('title', courseData.title);
     formData.append('description', courseData.description);
+    formData.append('studentType', studentType);
 
     if (bannerFile)    formData.append('banner',    bannerFile);
     if (cardImageFile) formData.append('cardImage', cardImageFile);
@@ -309,6 +312,34 @@ const AddCourse = () => {
             onChange={(e) => setCourseData({ ...courseData, description: e.target.value })}
             required
           />
+        </div>
+
+        {/* Student Type Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Target Student Type</label>
+          <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+            <button
+              type="button"
+              onClick={() => setStudentType('all')}
+              className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition ${studentType === 'all' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              🌐 All Students
+            </button>
+            <button
+              type="button"
+              onClick={() => setStudentType('online')}
+              className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition ${studentType === 'online' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              💻 Online Students Only
+            </button>
+            <button
+              type="button"
+              onClick={() => setStudentType('physical')}
+              className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition ${studentType === 'physical' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              🏫 Physical Students Only
+            </button>
+          </div>
         </div>
 
         {/* Image uploads side by side */}
