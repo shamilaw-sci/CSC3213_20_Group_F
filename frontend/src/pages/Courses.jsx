@@ -3,11 +3,14 @@ import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { FaGraduationCap, FaCompass, FaBookOpen } from 'react-icons/fa';
+import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 
 const Courses = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+  const [selectedCourseForEnrollment, setSelectedCourseForEnrollment] = useState(null);
   const navigate = useNavigate(); 
   const user = JSON.parse(localStorage.getItem('user'));
 
@@ -230,17 +233,33 @@ const Courses = () => {
       </div>
 
       <div>
-        {/* Instructor Info */}
-        <div className="flex items-center gap-3 pt-6 border-t border-gray-100">
-          <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-[#2d1b64] font-bold border-2 border-white shadow-sm">
-            {course.instructor ? course.instructor.name.charAt(0) : '?'}
+        {/* Instructor Info & Enroll Button */}
+        <div className="flex items-center justify-between gap-3 pt-6 border-t border-gray-100 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-[#2d1b64] font-bold border-2 border-white shadow-sm">
+              {course.instructor ? course.instructor.name.charAt(0) : '?'}
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter leading-none">Instructor</p>
+              <p className="text-[#2d1b64] font-bold text-sm">
+                {course.instructor ? course.instructor.name : 'Unassigned'}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter leading-none">Instructor</p>
-            <p className="text-[#2d1b64] font-bold text-sm">
-              {course.instructor ? course.instructor.name : 'Unassigned'}
-            </p>
-          </div>
+
+          {user?.role === 'student' && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedCourseForEnrollment(course);
+                setEnrollModalOpen(true);
+              }}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-[#2d1b64] hover:from-purple-700 hover:to-purple-900 text-white font-extrabold text-xs rounded-xl shadow-md transition transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
+            >
+              Enroll & Pay Online 💳
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -328,6 +347,23 @@ const Courses = () => {
           </>
         )}
       </div>
+
+      {/* Course Enrollment & Online Payment Gateway Modal */}
+      {selectedCourseForEnrollment && (
+        <CourseEnrollmentModal
+          isOpen={enrollModalOpen}
+          onClose={() => {
+            setEnrollModalOpen(false);
+            setSelectedCourseForEnrollment(null);
+          }}
+          course={selectedCourseForEnrollment}
+          student={user}
+          onEnrollSuccess={async () => {
+            const res = await api.get('/courses');
+            setCourses(res.data);
+          }}
+        />
+      )}
     </div>
   );
 };
