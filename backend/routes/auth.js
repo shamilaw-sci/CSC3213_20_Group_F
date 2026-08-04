@@ -13,9 +13,7 @@ const Schedule = require('../models/Schedule');
 const Notification = require('../models/Notification');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
-const Notification = require('../models/Notification');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail } = require('../utils/emailService');
-
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // --- LOGIN ROUTE ---
@@ -386,11 +384,11 @@ router.post('/reset-password/:token', async (req, res) => {
     // Hash the new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
-    
+
     // Clear reset token and expiration fields
     user.resetPasswordToken = '';
     user.resetPasswordExpires = undefined;
-    
+
     // Clear mustChangePassword if set
     user.mustChangePassword = false;
 
@@ -590,7 +588,7 @@ router.post('/users', protect, isAdmin, async (req, res) => {
       if (role === 'student') {
         // Welcome Email with temporary login info
         sendRegistrationWelcomeEmail(user.email, user.name, user.registrationNumber);
-        
+
         // In-App notification for the new student
         await Notification.create({
           recipient: user._id,
@@ -620,11 +618,11 @@ router.put('/users/:id/role', protect, async (req, res) => {
 
   try {
     const updatedUser = await User.findByIdAndUpdate(
-      req.params.id, 
-      { role: req.body.role }, 
+      req.params.id,
+      { role: req.body.role },
       { new: true }
     ).select('-password');
-    
+
     res.json(updatedUser);
   } catch (err) {
     res.status(500).json({ message: "Failed to update role" });
@@ -640,11 +638,11 @@ router.delete('/users/:id', protect, async (req, res) => {
     await Enrollment.deleteMany({ student: userId });
     await Course.updateMany(
       {},
-      { 
-        $pull: { 
+      {
+        $pull: {
           enrolledStudents: userId,
           "classes.$[].enrolledStudents": userId
-        } 
+        }
       }
     );
     await User.findByIdAndDelete(userId);
@@ -673,7 +671,7 @@ router.put('/users/:id/grade', protect, async (req, res) => {
     if (!updatedUser) {
       return res.status(404).json({ message: "Student not found." });
     }
-    
+
     res.json(updatedUser);
   } catch (err) {
     console.error("Update Grade Error:", err);
@@ -717,7 +715,7 @@ router.get('/admin-stats', protect, async (req, res) => {
     const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
     const physicalStudents = Math.max(0, totalStudents - onlineStudents);
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
-    const totalCourses = await Course.countDocuments();    
+    const totalCourses = await Course.countDocuments();
 
     // Recent Registrations (last 5 students)
     const recentRegistrations = await User.find({ role: 'student' })
@@ -763,7 +761,7 @@ router.get('/admin-stats', protect, async (req, res) => {
 
     // Today's attendance summary
     const startOfToday = new Date();
-    startOfToday.setHours(0,0,0,0);
+    startOfToday.setHours(0, 0, 0, 0);
     const todayArrivalsCount = await Attendance.countDocuments({ date: { $gte: startOfToday }, status: 'Present' });
 
     res.json({
@@ -945,8 +943,8 @@ router.get('/student-stats', protect, async (req, res) => {
     const absentCount = await Attendance.countDocuments({ studentId, status: 'Absent' });
     const lateCount = await Attendance.countDocuments({ studentId, status: 'Late' });
 
-    const attendanceRate = totalAttendance > 0 
-      ? Math.round((presentCount / totalAttendance) * 100) 
+    const attendanceRate = totalAttendance > 0
+      ? Math.round((presentCount / totalAttendance) * 100)
       : 100;
 
     // 4. Student Announcements / Notifications
@@ -1097,7 +1095,7 @@ router.get('/analytics-summary', protect, async (req, res) => {
     const totalAllStudents = await User.countDocuments({ role: 'student' });
     const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
     const physicalStudents = Math.max(0, totalAllStudents - onlineStudents);
-    
+
     const totalStudents = filterType === 'online' ? onlineStudents : filterType === 'physical' ? physicalStudents : totalAllStudents;
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
     const totalAdmins = await User.countDocuments({ role: 'admin' });
@@ -1117,9 +1115,9 @@ router.get('/analytics-summary', protect, async (req, res) => {
       } else if (!isNaN(g)) {
         g = `Grade ${g.trim()}`;
       }
-      
+
       gradeCounts[g] = (gradeCounts[g] || 0) + 1;
-      
+
       if (!gradeTypeBreakdown[g]) {
         gradeTypeBreakdown[g] = { online: 0, physical: 0 };
       }
@@ -1143,23 +1141,23 @@ router.get('/analytics-summary', protect, async (req, res) => {
       .lean();
 
     const topCourses = await Promise.all(courses.map(async (c) => {
-      const enrollmentQuery = filterType 
+      const enrollmentQuery = filterType
         ? { course: c._id, student: { $in: filteredStudentIds } }
         : { course: c._id };
 
       const enrollmentDocsCount = await Enrollment.countDocuments(enrollmentQuery);
-      
+
       let embeddedArrayCount = 0;
       if (Array.isArray(c.enrolledStudents)) {
         if (filterType) {
-          embeddedArrayCount = c.enrolledStudents.filter(id => 
+          embeddedArrayCount = c.enrolledStudents.filter(id =>
             filteredStudentIds.some(fid => fid.toString() === id.toString())
           ).length;
         } else {
           embeddedArrayCount = c.enrolledStudents.length;
         }
       }
-      
+
       const enrolledCount = Math.max(enrollmentDocsCount, embeddedArrayCount);
 
       return {
@@ -1202,7 +1200,7 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
     // 5. Weekly Student Registration Trend Data (Grouping by Weeks instead of Months)
     const allStudentsList = await User.find({ role: 'student' }).select('studentType createdAt').lean();
-    
+
     const getWeekLabel = (d) => {
       const date = new Date(d);
       const day = date.getDate();
@@ -1234,8 +1232,8 @@ router.get('/analytics-summary', protect, async (req, res) => {
     const absentRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Absent' });
     const lateRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Late' });
 
-    const attendanceRate = totalAttendanceRecords > 0 
-      ? Math.round((presentRecords / totalAttendanceRecords) * 100) 
+    const attendanceRate = totalAttendanceRecords > 0
+      ? Math.round((presentRecords / totalAttendanceRecords) * 100)
       : 100;
 
     res.json({
