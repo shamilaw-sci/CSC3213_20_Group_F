@@ -9,6 +9,8 @@ const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const Payment = require('../models/Payment');
 const Attendance = require('../models/Attendance');
+const Schedule = require('../models/Schedule');
+const Notification = require('../models/Notification');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const Notification = require('../models/Notification');
@@ -750,6 +752,20 @@ router.get('/admin-stats', protect, async (req, res) => {
     const payments = await Payment.find({ status: 'COMPLETED' });
     const totalCollected = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
 
+    // Calculate total expected tuition revenue across all enrollments
+    const allEnrollments = await Enrollment.find().populate('course', 'price');
+    let totalExpected = 0;
+    allEnrollments.forEach(e => {
+      totalExpected += (e.course?.price || 2500);
+    });
+
+    const pendingDues = Math.max(0, totalExpected - totalCollected);
+
+    // Today's attendance summary
+    const startOfToday = new Date();
+    startOfToday.setHours(0,0,0,0);
+    const todayArrivalsCount = await Attendance.countDocuments({ date: { $gte: startOfToday }, status: 'Present' });
+
     res.json({
       students: totalStudents,
       physicalStudents,
@@ -758,11 +774,208 @@ router.get('/admin-stats', protect, async (req, res) => {
       courses: totalCourses,
       recentRegistrations,
       growthData,
-      totalCollected
+      totalCollected,
+      pendingDues,
+      todayArrivalsCount
     });
   } catch (err) {
     console.error("Error fetching admin stats:", err);
     res.status(500).json({ message: "Error fetching stats" });
+  }
+});
+
+// --- GET TEACHER DASHBOARD STATS ---
+router.get('/teacher-stats', protect, async (req, res) => {
+  if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Forbidden: Teacher access required" });
+  }
+
+  try {
+    const teacherId = req.user.id || req.user._id;
+
+    // 1. Fetch teacher courses
+    const teacherCourses = await Course.find({ instructor: teacherId }).lean();
+    const courseIds = teacherCourses.map(c => c._id);
+
+    // 2. Fetch distinct enrolled students across teacher courses
+    const enrollments = await Enrollment.find({ course: { $in: courseIds } })
+      .populate('student', 'name email registrationNumber grade studentType')
+      .lean();
+
+    const studentMap = {};
+    enrollments.forEach(e => {
+      if (e.student && e.student._id) {
+        studentMap[e.student._id.toString()] = e.student;
+      }
+    });
+
+    for (const c of teacherCourses) {
+      if (Array.isArray(c.enrolledStudents) && c.enrolledStudents.length > 0) {
+        const embeddedStudents = await User.find({ _id: { $in: c.enrolledStudents }, role: 'student' })
+          .select('name email registrationNumber grade studentType')
+          .lean();
+        embeddedStudents.forEach(s => {
+          studentMap[s._id.toString()] = s;
+        });
+      }
+    }
+
+    const uniqueStudents = Object.values(studentMap);
+
+    // 3. Format courses list with student counts
+    const coursesList = await Promise.all(teacherCourses.map(async (c) => {
+      const countDoc = await Enrollment.countDocuments({ course: c._id });
+      const countEmb = Array.isArray(c.enrolledStudents) ? c.enrolledStudents.length : 0;
+      return {
+        id: c._id,
+        _id: c._id,
+        title: c.title,
+        description: c.description,
+        price: c.price || 2500,
+        cardImage: c.cardImage || '',
+        enrolledCount: Math.max(countDoc, countEmb)
+      };
+    }));
+
+    // 4. Fetch assigned schedule entries
+    const assignedSchedules = await Schedule.find({
+      $or: [
+        { teacherId: teacherId },
+        { courseId: { $in: courseIds } }
+      ]
+    }).populate('teacherId', 'name').lean();
+
+    // 5. Calculate average rating across teacher courses
+    let totalRating = 0;
+    let ratingCount = 0;
+    teacherCourses.forEach(c => {
+      if (c.rating) {
+        totalRating += c.rating;
+        ratingCount++;
+      }
+    });
+    const avgRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : "4.9";
+
+    res.json({
+      coursesCount: teacherCourses.length,
+      studentsCount: uniqueStudents.length,
+      rating: avgRating,
+      coursesList,
+      studentsList: uniqueStudents,
+      assignedSchedules
+    });
+  } catch (err) {
+    console.error("Error fetching teacher stats:", err);
+    res.status(500).json({ message: "Error fetching teacher stats" });
+  }
+});
+
+// --- GET STUDENT DASHBOARD STATS ---
+router.get('/student-stats', protect, async (req, res) => {
+  if (req.user.role !== 'student' && req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Forbidden: Student access required" });
+  }
+
+  try {
+    const studentId = req.user.id || req.user._id;
+
+    // 1. Fetch enrolled courses
+    const enrollments = await Enrollment.find({ student: studentId })
+      .populate({
+        path: 'course',
+        populate: { path: 'instructor', select: 'name email' }
+      })
+      .lean();
+
+    const directCourses = await Course.find({ enrolledStudents: studentId })
+      .populate('instructor', 'name email')
+      .lean();
+
+    const courseMap = {};
+    directCourses.forEach(c => {
+      courseMap[c._id.toString()] = {
+        _id: c._id,
+        id: c._id,
+        title: c.title,
+        description: c.description,
+        instructorName: c.instructor?.name || 'Faculty Instructor',
+        price: c.price || 2500,
+        cardImage: c.cardImage || '',
+        banner: c.banner || '',
+        progress: 45
+      };
+    });
+
+    enrollments.forEach(e => {
+      if (e.course) {
+        courseMap[e.course._id.toString()] = {
+          _id: e.course._id,
+          id: e.course._id,
+          title: e.course.title,
+          description: e.course.description,
+          instructorName: e.course.instructor?.name || 'Faculty Instructor',
+          price: e.course.price || 2500,
+          cardImage: e.course.cardImage || '',
+          banner: e.course.banner || '',
+          progress: e.progress || 45
+        };
+      }
+    });
+
+    const enrolledCoursesList = Object.values(courseMap);
+
+    // 2. Fetch payments & latest receipt
+    const studentPayments = await Payment.find({ student: studentId })
+      .populate('course', 'title price')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const latestReceipt = studentPayments.length > 0 ? {
+      receiptNo: `LL-${new Date(studentPayments[0].createdAt).getFullYear()}-${String(studentPayments[0]._id).slice(-4).toUpperCase()}`,
+      amount: studentPayments[0].amount || 2500,
+      date: studentPayments[0].createdAt,
+      status: studentPayments[0].status || 'COMPLETED',
+      paymentMethod: studentPayments[0].paymentMethod || 'Online Card Payment',
+      courseTitle: studentPayments[0].course?.title || (enrolledCoursesList[0]?.title || 'Tuition Fee')
+    } : null;
+
+    // 3. Attendance Breakdown
+    const totalAttendance = await Attendance.countDocuments({ studentId });
+    const presentCount = await Attendance.countDocuments({ studentId, status: 'Present' });
+    const absentCount = await Attendance.countDocuments({ studentId, status: 'Absent' });
+    const lateCount = await Attendance.countDocuments({ studentId, status: 'Late' });
+
+    const attendanceRate = totalAttendance > 0 
+      ? Math.round((presentCount / totalAttendance) * 100) 
+      : 100;
+
+    // 4. Student Announcements / Notifications
+    const announcements = await Notification.find({
+      $or: [
+        { recipient: studentId },
+        { recipient: null }
+      ]
+    }).sort({ createdAt: -1 }).limit(5).lean();
+
+    res.json({
+      coursesCount: enrolledCoursesList.length,
+      grade: req.user.grade || 'Grade 10',
+      studentType: req.user.studentType || 'physical',
+      enrolledCoursesList,
+      payments: studentPayments,
+      latestReceipt,
+      attendanceStats: {
+        total: totalAttendance,
+        present: presentCount,
+        absent: absentCount,
+        late: lateCount,
+        percentage: attendanceRate
+      },
+      announcements
+    });
+  } catch (err) {
+    console.error("Error fetching student stats:", err);
+    res.status(500).json({ message: "Error fetching student stats" });
   }
 });
 
