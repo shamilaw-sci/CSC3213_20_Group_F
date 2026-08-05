@@ -19,9 +19,20 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // --- LOGIN ROUTE ---
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+  const input = (email || req.body.identifier || req.body.registrationNumber || '').trim();
+
+  if (!input || !password) {
+    return res.status(400).json({ message: "Email or registration number and password are required" });
+  }
 
   try {
-    const user = await User.findOne({ email });
+    const safeRegex = new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    const user = await User.findOne({
+      $or: [
+        { email: input.toLowerCase() },
+        { registrationNumber: safeRegex }
+      ]
+    });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
