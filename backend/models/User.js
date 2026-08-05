@@ -25,8 +25,16 @@ const UserSchema = new mongoose.Schema({
       return this.role === 'student';
     }
   },
+  dateOfBirth: {
+    type: Date
+  },
+  nicNumber: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   password: { type: String, required: true },
-  role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
+  role: { type: String, enum: ['student', 'teacher', 'admin', 'counter_staff'], default: 'student' },
   studentType: {
     type: String,
     enum: ['physical', 'online'],

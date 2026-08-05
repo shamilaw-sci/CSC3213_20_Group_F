@@ -27,7 +27,7 @@ const AttendanceSchema = new mongoose.Schema({
   },
   mode: {
     type: String,
-    enum: ['ONLINE_WEEKLY', 'PHYSICAL_COUNTER', 'CLASS_SCHEDULE'],
+    enum: ['ONLINE_WEEKLY', 'PHYSICAL_COUNTER', 'CLASS_SCHEDULE', 'PHYSICAL_QR'],
     default: 'CLASS_SCHEDULE'
   },
   date: {

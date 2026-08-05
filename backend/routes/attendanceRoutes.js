@@ -4,7 +4,7 @@ const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Schedule = require('../models/Schedule');
 const Notification = require('../models/Notification');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authMiddleware');
 const { sendAttendanceSMS } = require('../services/smsService');
 
 // --- HELPER: Normalize date to Midnight UTC/Local (YYYY-MM-DD) ---
@@ -352,6 +352,173 @@ router.get('/weekly-status/:courseId', protect, async (req, res) => {
   } catch (err) {
     console.error("Fetch Weekly Status Error:", err);
     res.status(500).json({ message: "Failed to fetch weekly attendance status." });
+  }
+});
+
+// ==========================================
+//     8. LIVE QR CODE ATTENDANCE SCANNER (ADMIN)
+// ==========================================
+router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
+  try {
+    const { registrationNumber, studentId, courseId: reqCourseId, scheduleId: reqScheduleId } = req.body;
+    const adminId = req.user._id || req.user.id;
+
+    if (!registrationNumber && !studentId) {
+      return res.status(400).json({ error: "Registration Number or Student ID is required for QR scan." });
+    }
+
+    const filter = registrationNumber 
+      ? { registrationNumber: registrationNumber.trim() } 
+      : { _id: studentId };
+
+    const student = await User.findOne(filter);
+    if (!student) {
+      return res.status(404).json({ error: `Student with Reg No '${registrationNumber}' not found in database.` });
+    }
+
+    let resolvedCourseId = reqCourseId || null;
+    let resolvedScheduleId = reqScheduleId && reqScheduleId !== 'AUTO' ? reqScheduleId : null;
+    let targetCourseTitle = 'General Institute Session';
+    let targetScheduleDetails = null;
+
+    const Payment = require('../models/Payment');
+    const Course = require('../models/Course');
+    const Schedule = require('../models/Schedule');
+
+    // AUTO-DETECT SCHEDULE BY TIME & GRADE IF NOT EXPLICITLY PROVIDED
+    if (!resolvedScheduleId) {
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const currentDay = days[new Date().getDay()];
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      // Find schedules matching today and student's grade
+      const candidateSchedules = await Schedule.find({
+        dayOfWeek: currentDay,
+        className: student.grade
+      }).populate('courseId');
+
+      for (const sch of candidateSchedules) {
+        if (sch.startTime && sch.endTime) {
+          const [sH, sM] = sch.startTime.split(':').map(Number);
+          const [eH, eM] = sch.endTime.split(':').map(Number);
+          const startMin = sH * 60 + sM;
+          const endMin = eH * 60 + eM;
+
+          // Match if current time is within schedule window (or up to 45 mins before class start)
+          if (currentMinutes >= (startMin - 45) && currentMinutes <= (endMin + 30)) {
+            resolvedScheduleId = sch._id;
+            resolvedCourseId = sch.courseId ? sch.courseId._id : sch.courseId;
+            targetCourseTitle = sch.title;
+            targetScheduleDetails = {
+              title: sch.title,
+              room: sch.room,
+              startTime: sch.startTime,
+              endTime: sch.endTime,
+              dayOfWeek: sch.dayOfWeek
+            };
+            break;
+          }
+        }
+      }
+    }
+
+    // Fetch course title if courseId was explicitly passed
+    if (resolvedCourseId && !targetCourseTitle) {
+      const foundCourse = await Course.findById(resolvedCourseId);
+      if (foundCourse) {
+        targetCourseTitle = foundCourse.title;
+      }
+    }
+
+    // CHECK PAYMENT STATUS
+    let paymentStatus = 'UNSETTLED';
+    if (resolvedCourseId) {
+      const existingPayment = await Payment.findOne({
+        student: student._id,
+        course: resolvedCourseId,
+        status: 'COMPLETED'
+      });
+
+      if (existingPayment) {
+        paymentStatus = 'PAID';
+      }
+    } else {
+      const anyPayment = await Payment.findOne({ student: student._id, status: 'COMPLETED' });
+      if (anyPayment) {
+        paymentStatus = 'PAID';
+      }
+    }
+
+    // Create Physical QR Attendance Record
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // Prevent duplicate scans within the same day for the same schedule/course
+    const existingScan = await Attendance.findOne({
+      studentId: student._id,
+      date: { $gte: todayStart, $lte: todayEnd }
+    });
+
+    let newScanRecord;
+    if (!existingScan) {
+      newScanRecord = await Attendance.create({
+        studentId: student._id,
+        courseId: resolvedCourseId || null,
+        scheduleId: resolvedScheduleId || null,
+        mode: 'PHYSICAL_QR',
+        status: 'Present',
+        date: new Date(),
+        markedBy: adminId
+      });
+
+      // Dispatch automated SMS to parent if parentsPhoneNumber exists
+      if (student.parentsPhoneNumber) {
+        try {
+          const { sendSMS } = require('../services/smsService');
+          const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const sessionInfoStr = targetScheduleDetails 
+            ? `${targetScheduleDetails.title} (Room ${targetScheduleDetails.room || '1'}, ${targetScheduleDetails.startTime}-${targetScheduleDetails.endTime})` 
+            : targetCourseTitle;
+
+          sendSMS({
+            phone: student.parentsPhoneNumber,
+            message: `Dear Parent, ${student.name} has safely arrived and checked in for ${sessionInfoStr} at ${timeStr}.`,
+            studentName: student.name
+          });
+        } catch (smsErr) {
+          console.error("QR Scan SMS Error:", smsErr);
+        }
+      }
+    } else {
+      newScanRecord = existingScan;
+    }
+
+    res.status(200).json({
+      success: true,
+      alreadyScannedToday: !!existingScan,
+      message: existingScan ? `Attendance already logged for ${student.name} today!` : `Check-in successful for ${student.name}!`,
+      student: {
+        id: student._id,
+        name: student.name,
+        email: student.email,
+        registrationNumber: student.registrationNumber,
+        grade: student.grade,
+        parentsPhoneNumber: student.parentsPhoneNumber,
+        studentType: student.studentType,
+        profilePicture: student.profilePicture
+      },
+      paymentStatus,
+      scanTime: new Date(),
+      attendance: newScanRecord
+    });
+
+  } catch (err) {
+    console.error("QR Scan Error:", err);
+    res.status(500).json({ error: "Failed to process QR scan: " + err.message });
   }
 });
 

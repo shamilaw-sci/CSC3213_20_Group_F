@@ -6,7 +6,8 @@ import {
   FaPlus,
   FaTrash,
   FaUserGraduate,
-  FaUserShield
+  FaUserShield,
+  FaQrcode
 } from 'react-icons/fa';
 
 const emptyStudentForm = {
@@ -102,7 +103,7 @@ const ManageUsers = () => {
     }));
   };
 
-  const handleCreateAdmin = async (e) => {
+  const handleCreateStaff = async (e, targetRole = 'admin') => {
     e.preventDefault();
     setCreating(true);
 
@@ -111,16 +112,16 @@ const ManageUsers = () => {
         '/auth/users',
         {
           ...adminForm,
-          role: 'admin'
+          role: targetRole
         }
       );
 
       setUsers((currentUsers) => [res.data.user, ...currentUsers]);
       setAdminForm(emptyAdminForm);
-      setActiveTab('admin');
-      toast.success('Admin account created successfully. Temporary password change is required on first login.');
+      setActiveTab(targetRole);
+      toast.success(`${targetRole === 'counter_staff' ? 'Counter Staff' : 'Admin'} account created successfully. Temporary password change is required on first login.`);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create admin');
+      toast.error(err.response?.data?.message || 'Failed to create user account');
     } finally {
       setCreating(false);
     }
@@ -210,6 +211,7 @@ const ManageUsers = () => {
   const getRoleIcon = (role) => {
     if (role === 'admin') return <FaUserShield className="text-red-500" />;
     if (role === 'teacher') return <FaChalkboardTeacher className="text-blue-500" />;
+    if (role === 'counter_staff') return <FaQrcode className="text-purple-500" />;
     return <FaUserGraduate className="text-green-500" />;
   };
 
@@ -366,7 +368,7 @@ const ManageUsers = () => {
       )}
 
       <div className="flex border-b border-gray-200 mb-6 space-x-8">
-        {['All', 'admin', 'teacher', 'student'].map((tab) => (
+        {['All', 'admin', 'teacher', 'student', 'counter_staff'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -375,13 +377,13 @@ const ManageUsers = () => {
               : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
-            {tab === 'All' ? 'All Users' : `${tab}s`}
+            {tab === 'All' ? 'All Users' : tab === 'counter_staff' ? 'Counter Staff' : `${tab}s`}
           </button>
         ))}
       </div>
 
       {activeTab === 'admin' && (
-        <form onSubmit={handleCreateAdmin} className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5 animate-fade-in">
+        <form onSubmit={(e) => handleCreateStaff(e, 'admin')} className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5 animate-fade-in">
           <div className="flex items-center gap-3 mb-4">
             <div className="h-10 w-10 rounded-lg bg-red-100 text-red-700 flex items-center justify-center">
               <FaUserShield />
@@ -427,6 +429,58 @@ const ManageUsers = () => {
             >
               <FaPlus />
               {creating ? 'Creating...' : 'Create Admin'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {activeTab === 'counter_staff' && (
+        <form onSubmit={(e) => handleCreateStaff(e, 'counter_staff')} className="mb-8 rounded-lg border border-purple-200 bg-purple-50/60 p-5 animate-fade-in">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+              <FaQrcode />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-800">Add Attendance Counter Staff Account</h3>
+              <p className="text-sm text-gray-500">Create a dedicated staff profile restricted strictly to QR code attendance scanning and manual Reg No check-ins.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <input
+              type="text"
+              placeholder="Staff Full Name"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={adminForm.name}
+              onChange={(e) => handleAdminFieldChange('name', e.target.value)}
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email Address"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={adminForm.email}
+              onChange={(e) => handleAdminFieldChange('email', e.target.value)}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Temporary Password"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              value={adminForm.temporaryPassword}
+              onChange={(e) => handleAdminFieldChange('temporaryPassword', e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="submit"
+              disabled={creating}
+              className="inline-flex items-center gap-2 bg-purple-700 hover:bg-purple-800 cursor-pointer disabled:bg-purple-300 text-white font-bold px-5 py-3 rounded-lg transition"
+            >
+              <FaPlus />
+              {creating ? 'Creating...' : 'Create Counter Staff'}
             </button>
           </div>
         </form>
@@ -497,10 +551,12 @@ const ManageUsers = () => {
                       className={`text-sm border rounded-lg px-3 py-1.5 font-medium outline-none cursor-pointer focus:ring-2 focus:ring-purple-500
                         ${u.role === 'admin' ? 'bg-red-50 text-red-700 border-red-200'
                           : u.role === 'teacher' ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : 'bg-green-50 text-green-700 border-green-200'}`}
+                            : u.role === 'counter_staff' ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : 'bg-green-50 text-green-700 border-green-200'}`}
                     >
                       <option value="student">Student</option>
                       <option value="teacher">Teacher</option>
+                      <option value="counter_staff">Counter Staff</option>
                       <option value="admin">Admin</option>
                     </select>
                   </td>

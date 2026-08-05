@@ -16,6 +16,28 @@ const { sendResetPasswordEmail, sendRegistrationWelcomeEmail } = require('../uti
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+// Helper to generate Online Student Registration Number (e.g. OL-G06-2012-4829)
+const generateOnlineRegistrationNumber = async (grade, dateOfBirth) => {
+  const digitsMatch = String(grade || '').match(/\d+/);
+  const gradeNum = digitsMatch ? digitsMatch[0].padStart(2, '0') : '00';
+  const birthYear = dateOfBirth ? new Date(dateOfBirth).getFullYear() : new Date().getFullYear();
+
+  let isUnique = false;
+  let regNo = '';
+  let attempts = 0;
+
+  while (!isUnique && attempts < 15) {
+    attempts++;
+    const randomSeq = Math.floor(1000 + Math.random() * 9000);
+    regNo = `OL-G${gradeNum}-${birthYear}-${randomSeq}`;
+    const existing = await User.findOne({ registrationNumber: regNo });
+    if (!existing) {
+      isUnique = true;
+    }
+  }
+  return regNo;
+};
+
 // --- LOGIN ROUTE ---
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -50,6 +72,8 @@ router.post('/login', async (req, res) => {
         studentType: user.studentType || 'physical',
         grade: user.grade,
         registrationNumber: user.registrationNumber,
+        dateOfBirth: user.dateOfBirth,
+        nicNumber: user.nicNumber,
         mustChangePassword: user.mustChangePassword,
         profilePicture: user.profilePicture || ''
       }
@@ -63,10 +87,21 @@ router.post('/login', async (req, res) => {
 
 // --- REGISTER ROUTE ---
 router.post('/register', async (req, res) => {
-  const { email, password, grade, parentsPhoneNumber } = req.body;
+  const { email, password, grade, parentsPhoneNumber, dateOfBirth, nicNumber, name } = req.body;
 
   if (!email || !password || !grade || !parentsPhoneNumber) {
     return res.status(400).json({ message: "Email, password, grade, and parent's phone number are required." });
+  }
+
+  if (!dateOfBirth) {
+    return res.status(400).json({ message: "Date of Birth (Birthday) is required for student registration." });
+  }
+
+  // Check if Grade is 10 or above
+  const digitsMatch = String(grade || '').match(/\d+/);
+  const gradeVal = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
+  if (gradeVal >= 10 && (!nicNumber || !nicNumber.trim())) {
+    return res.status(400).json({ message: "National ID / NIC number is required for students in Grade 10 or above." });
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -82,19 +117,24 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Derive name from email (e.g. format "john.doe" to "John Doe")
+    // Derive name from email if not provided (e.g. format "john.doe" to "John Doe")
     const usernamePart = normalizedEmail.split('@')[0];
     const derivedName = usernamePart
       .split(/[\._\-]/)
       .map(part => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ');
 
+    const registrationNumber = await generateOnlineRegistrationNumber(grade, dateOfBirth);
+
     const newUser = await User.create({
-      name: derivedName,
+      name: name && name.trim() ? name.trim() : derivedName,
       email: normalizedEmail,
       password: hashedPassword,
       grade: grade.trim(),
       parentsPhoneNumber: parentsPhoneNumber.trim(),
+      dateOfBirth: new Date(dateOfBirth),
+      nicNumber: nicNumber ? nicNumber.trim() : '',
+      registrationNumber,
       role: 'student',
       studentType: 'online',
       mustChangePassword: false
@@ -107,7 +147,7 @@ router.post('/register', async (req, res) => {
         recipientRole: 'admin',
         type: 'REGISTRATION',
         title: 'New Student Registration',
-        message: `${newUser.name} (${newUser.email}, ${newUser.grade}) has registered as a new student.`,
+        message: `${newUser.name} (${newUser.registrationNumber}, ${newUser.grade}) has registered as an online student.`,
         link: '/manage-users',
         metadata: { studentId: newUser._id }
       });
@@ -134,6 +174,8 @@ router.post('/register', async (req, res) => {
         studentType: newUser.studentType,
         grade: newUser.grade,
         registrationNumber: newUser.registrationNumber,
+        dateOfBirth: newUser.dateOfBirth,
+        nicNumber: newUser.nicNumber,
         mustChangePassword: newUser.mustChangePassword,
         profilePicture: newUser.profilePicture || ''
       }
@@ -147,10 +189,21 @@ router.post('/register', async (req, res) => {
 
 // --- GOOGLE REGISTER ROUTE ---
 router.post('/google-register', async (req, res) => {
-  const { credential, grade, parentsPhoneNumber } = req.body;
+  const { credential, grade, parentsPhoneNumber, dateOfBirth, nicNumber } = req.body;
 
   if (!credential || !grade || !parentsPhoneNumber) {
     return res.status(400).json({ message: "Google credential, grade, and parent's phone number are required." });
+  }
+
+  if (!dateOfBirth) {
+    return res.status(400).json({ message: "Date of Birth (Birthday) is required for student registration." });
+  }
+
+  // Check if Grade is 10 or above
+  const digitsMatch = String(grade || '').match(/\d+/);
+  const gradeVal = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
+  if (gradeVal >= 10 && (!nicNumber || !nicNumber.trim())) {
+    return res.status(400).json({ message: "National ID / NIC number is required for students in Grade 10 or above." });
   }
 
   try {
@@ -179,12 +232,17 @@ router.post('/google-register', async (req, res) => {
     const randomPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     const hashedPassword = await bcrypt.hash(randomPassword, salt);
 
+    const registrationNumber = await generateOnlineRegistrationNumber(grade, dateOfBirth);
+
     const newUser = await User.create({
       name: payload.name || email.split('@')[0],
       email: email,
       password: hashedPassword,
       grade: grade.trim(),
       parentsPhoneNumber: parentsPhoneNumber.trim(),
+      dateOfBirth: new Date(dateOfBirth),
+      nicNumber: nicNumber ? nicNumber.trim() : '',
+      registrationNumber,
       role: 'student',
       studentType: 'online',
       profilePicture: payload.picture || '',
@@ -527,7 +585,7 @@ router.post('/users', protect, isAdmin, async (req, res) => {
   const normalizedName = name?.trim();
   const normalizedEmail = email?.trim().toLowerCase();
   const normalizedRegistrationNumber = registrationNumber?.trim();
-  const allowedRoles = ['student', 'teacher', 'admin'];
+  const allowedRoles = ['student', 'teacher', 'admin', 'counter_staff'];
   const normalizedGrade = grade !== undefined ? String(grade).trim() : undefined;
 
   if (!allowedRoles.includes(role)) {

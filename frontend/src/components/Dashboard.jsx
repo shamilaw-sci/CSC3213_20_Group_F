@@ -23,6 +23,7 @@ import {
   FaBullhorn,
   FaCalendarCheck
 } from 'react-icons/fa';
+import StudentIdCard from './StudentIdCard';
 
 // Grade options matching registration grade requirements
 const gradeOptions = [
@@ -991,6 +992,9 @@ const StudentDashboard = ({ user }) => {
 
         {/* Announcements + Attendance Side Column */}
         <div className="space-y-6 lg:col-span-1">
+          {/* Digital QR Student ID Card */}
+          <StudentIdCard user={user} />
+
           {/* Announcements widget */}
           <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
             <div>
