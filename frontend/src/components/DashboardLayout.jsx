@@ -154,7 +154,7 @@ const DashboardLayout = () => {
 
       <div className="flex-1 flex flex-col overflow-y-auto ml-64">
 
-        <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm sticky top-0 z-10">
+        <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm sticky top-0 z-40">
 
           <h2 className="text-xl font-bold text-gray-800 flex-shrink-0 truncate max-w-[25%] mr-4">
             {getPageTitle()}

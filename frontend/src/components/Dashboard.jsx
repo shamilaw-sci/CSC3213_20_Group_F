@@ -220,15 +220,15 @@ const AttendanceRing = ({ percentage = 100 }) => {
 // ==========================================
 const AdminDashboard = ({ user }) => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ 
-    students: 0, 
-    teachers: 0, 
-    courses: 0, 
-    recentRegistrations: [], 
+  const [stats, setStats] = useState({
+    students: 0,
+    teachers: 0,
+    courses: 0,
+    recentRegistrations: [],
     growthData: [],
     totalCollected: 0,
     pendingDues: 0,
-    todayArrivalsCount: 0 
+    todayArrivalsCount: 0
   });
   const [schedule, setSchedule] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -776,7 +776,7 @@ const TeacherDashboard = ({ user }) => {
       {/* Hero Banner */}
       <DashboardHero
         user={user}
-        roleBadge="Faculty Teacher"
+        roleBadge="Teacher"
         quickActions={
           <button
             onClick={() => navigate('/courses')}
@@ -962,7 +962,7 @@ const TeacherDashboard = ({ user }) => {
                       </p>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-4xs font-extrabold uppercase ${log.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-                        'bg-red-50 text-red-600 border border-red-200'
+                      'bg-red-50 text-red-600 border border-red-200'
                       }`}>
                       {log.status}
                     </span>
@@ -987,9 +987,9 @@ const TeacherDashboard = ({ user }) => {
 // ==========================================
 const StudentDashboard = ({ user }) => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ 
-    coursesCount: 0, 
-    grade: 'Grade 10', 
+  const [stats, setStats] = useState({
+    coursesCount: 0,
+    grade: 'Grade 10',
     enrolledCoursesList: [],
     payments: [],
     latestReceipt: null,
@@ -1234,7 +1234,7 @@ const StudentDashboard = ({ user }) => {
                       <p className="text-4xs text-slate-400 font-medium">{new Date(log.date).toLocaleDateString()}</p>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-4xs font-bold uppercase ${log.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-                        'bg-red-50 text-red-600 border border-red-200'
+                      'bg-red-50 text-red-600 border border-red-200'
                       }`}>
                       {log.status}
                     </span>

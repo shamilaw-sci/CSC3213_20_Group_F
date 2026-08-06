@@ -99,12 +99,12 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* Email Input */}
+            {/* Email / Registration Number Input */}
             <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
               <FaEnvelope className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
-                type="email"
-                placeholder="Enter your email"
+                type="text"
+                placeholder="Enter your email or registration number"
                 className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

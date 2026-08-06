@@ -23,7 +23,7 @@ const Sidebar = () => {
     : "hover:bg-purple-700 text-purple-100";
 
   return (
-    <div className="w-64 h-screen bg-lumina-purple text-white fixed left-0 top-0 flex flex-col overflow-hidden shadow-2xl">
+    <div className="w-64 h-screen bg-lumina-purple text-white fixed left-0 top-0 flex flex-col overflow-hidden shadow-2xl z-30">
       
       {/* Brand / Logo Area */}
       <div className="p-6 mb-4">
