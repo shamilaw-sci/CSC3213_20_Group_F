@@ -114,7 +114,7 @@ const ChangePassword = () => {
             <button
               className="font-medium text-[#3a1c8a] hover:underline cursor-pointer"
               onClick={() => {
-                const email = "thanukavishal22@gmail.com";
+                const email = "admin.luminalearn@gmail.com";
                 const subject = encodeURIComponent("Request to change password");
                 const body = encodeURIComponent("Hi LuminaLearn \n\nI would like to change my password.");
                 window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;

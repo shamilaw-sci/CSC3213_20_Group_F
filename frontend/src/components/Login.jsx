@@ -131,8 +131,8 @@ const Login = () => {
                 <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-[#3a1c8a] accent-[#3a1c8a] cursor-pointer" />
                 Remember me
               </label>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => navigate('/forgot-password')}
                 className="font-medium text-[#3a1c8a] hover:text-purple-800 transition-colors cursor-pointer"
               >
@@ -190,7 +190,7 @@ const Login = () => {
               <button
                 className="font-medium text-[#3a1c8a] hover:underline cursor-pointer"
                 onClick={() => {
-                  const email = "thanukavishal22@gmail.com";
+                  const email = "admin.luminalearn@gmail.com";
                   const subject = encodeURIComponent("Request to add new course");
                   const body = encodeURIComponent("Hi LuminaLearn \n\nI would like to start a new course.");
                   window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
