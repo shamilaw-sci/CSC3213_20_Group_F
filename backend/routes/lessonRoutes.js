@@ -46,8 +46,16 @@ router.post('/add-grade', protect, isAdmin, async (req, res) => {
             return res.status(400).json({ error: "This class was already added to this course" });
         }
 
-        const gradeTitle = String(req.body.title || gradeVal).trim();
-        course.enrolledGrades.push({ gradeNumber: gradeVal, title: gradeTitle, messages: [] });
+        const isCourseDeactive = course.status === 'deactive' || course.isActive === false;
+        course.enrolledGrades.push({ 
+            gradeNumber: gradeVal, 
+            title: gradeTitle, 
+            messages: [],
+            status: isCourseDeactive ? 'deactive' : 'active',
+            isActive: !isCourseDeactive,
+            deactivatedBy: isCourseDeactive ? 'admin' : null,
+            previousStatus: isCourseDeactive ? 'active' : null
+        });
         await course.save();
 
         const newLesson = await Lesson.create({

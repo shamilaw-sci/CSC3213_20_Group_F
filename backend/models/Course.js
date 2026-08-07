@@ -9,6 +9,10 @@ const messageSchema = new mongoose.Schema({
 const gradeSchema = new mongoose.Schema({
   gradeNumber: { type: String, required: true },
   title: { type: String, trim: true, default: '' },
+  status: { type: String, enum: ['active', 'deactive'], default: 'active' },
+  isActive: { type: Boolean, default: true },
+  deactivatedBy: { type: String, default: null },
+  previousStatus: { type: String, default: null },
   messages: [messageSchema]
 });
 
@@ -49,6 +53,9 @@ const courseSchema = new mongoose.Schema({
     enum: ['all', 'online', 'physical'],
     default: 'all'
   },
+  status: { type: String, enum: ['active', 'deactive'], default: 'active' },
+  isActive: { type: Boolean, default: true },
+  deactivatedBy: { type: String, default: null },
   enrolledGrades: [gradeSchema],
   classes: [classSchema],
   enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]

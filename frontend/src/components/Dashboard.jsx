@@ -1099,7 +1099,7 @@ const StudentDashboard = ({ user }) => {
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Enrolled Courses</p>
             <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.coursesCount}</h3>
-            <span className="text-4xs text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded-full inline-block mt-1">Active Classes</span>
+            <span className="text-4xs text-emerald-700 font-extrabold bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full inline-block mt-1">Active Classes</span>
           </div>
         </div>
 

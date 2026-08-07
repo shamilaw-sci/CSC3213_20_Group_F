@@ -1,10 +1,12 @@
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { protect, isAdmin } = require('../middleware/authMiddleware');
+const { protect, isAdmin, isTeacherOrAdmin } = require('../middleware/authMiddleware');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const Payment = require('../models/Payment');
@@ -15,6 +17,40 @@ const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail } = require('../utils/emailService');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Helper function to convert base64 data URIs to static files in /uploads for super-fast image loading
+const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
+  if (!base64OrPath) return "";
+  if (!base64OrPath.startsWith('data:')) {
+    return base64OrPath;
+  }
+  try {
+    const matches = base64OrPath.match(/^data:(.+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) return base64OrPath;
+
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    let ext = 'png';
+    if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
+    else if (mimeType.includes('webp')) ext = 'webp';
+    else if (mimeType.includes('gif')) ext = 'gif';
+
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const filename = `${prefix}-${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+    const buffer = Buffer.from(base64Data, 'base64');
+    fs.writeFileSync(filePath, buffer);
+
+    return `/uploads/${filename}`;
+  } catch (err) {
+    console.error("Error converting base64 to static file:", err);
+    return base64OrPath;
+  }
+};
 
 // --- LOGIN ROUTE ---
 router.post('/login', async (req, res) => {
@@ -414,7 +450,7 @@ router.post('/reset-password/:token', async (req, res) => {
 
 // --- UPDATE PROFILE ROUTE (Name and/or Password) ---
 router.put('/update-profile', protect, async (req, res) => {
-  const { name, newPassword, profilePicture } = req.body;
+  const { name, newPassword, profilePicture, coverPicture, bio, qualifications, department, phoneNumber } = req.body;
 
   try {
     const user = await User.findById(req.user.id || req.user._id);
@@ -431,21 +467,17 @@ router.put('/update-profile', protect, async (req, res) => {
 
     // 3. Update profile picture if provided
     if (profilePicture !== undefined) {
-      if (profilePicture && profilePicture.startsWith('data:image/')) {
-        // Validate size of base64
-        const base64Length = profilePicture.length - (profilePicture.indexOf(',') + 1);
-        const padding = (profilePicture.charAt(profilePicture.length - 2) === '=') ? 2 : ((profilePicture.charAt(profilePicture.length - 1) === '=') ? 1 : 0);
-        const sizeInBytes = (base64Length * 3 / 4) - padding;
-        if (sizeInBytes > 1024 * 1024) {
-          return res.status(400).json({ message: "Profile photo exceeds 1MB size limit" });
-        }
-      }
       user.profilePicture = profilePicture;
     }
 
+    if (coverPicture !== undefined) user.coverPicture = coverPicture;
+    if (bio !== undefined) user.bio = bio;
+    if (qualifications !== undefined) user.qualifications = qualifications;
+    if (department !== undefined) user.department = department;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+
     await user.save();
 
-    // 4. Send back the updated user info (excluding password)
     res.json({
       message: "Profile updated successfully!",
       user: {
@@ -457,7 +489,12 @@ router.put('/update-profile', protect, async (req, res) => {
         grade: user.grade,
         registrationNumber: user.registrationNumber,
         mustChangePassword: user.mustChangePassword,
-        profilePicture: user.profilePicture || ''
+        profilePicture: user.profilePicture || '',
+        coverPicture: user.coverPicture || '',
+        bio: user.bio || '',
+        qualifications: user.qualifications || '',
+        department: user.department || 'Academic Faculty',
+        phoneNumber: user.phoneNumber || ''
       }
     });
 
@@ -793,6 +830,175 @@ router.get('/admin-stats', protect, async (req, res) => {
   }
 });
 
+// --- GET TEACHER PROFILE PUBLIC/AUTH INFO ---
+router.get('/teacher-profile/:id', protect, async (req, res) => {
+  try {
+    const [teacher, courses] = await Promise.all([
+      User.findById(req.params.id).select('-password').lean(),
+      Course.find({ instructor: req.params.id })
+        .populate('instructor', 'name profilePicture')
+        .lean()
+    ]);
+
+    if (!teacher) {
+      return res.status(404).json({ message: 'Teacher profile not found.' });
+    }
+
+    let totalStudentsCount = 0;
+    const processedCourses = courses.map(c => {
+      if (Array.isArray(c.enrolledStudents)) {
+        totalStudentsCount += c.enrolledStudents.length;
+      }
+      let banner = c.banner || '';
+      let cardImage = c.cardImage || '';
+      if (banner && !banner.startsWith('http') && !banner.startsWith('data:')) {
+        const filename = banner.includes('/uploads/') ? banner.split('/uploads/').pop() : banner.replace(/^\//, '');
+        banner = `/uploads/${filename}`;
+      }
+      if (cardImage && !cardImage.startsWith('http') && !cardImage.startsWith('data:')) {
+        const filename = cardImage.includes('/uploads/') ? cardImage.split('/uploads/').pop() : cardImage.replace(/^\//, '');
+        cardImage = `/uploads/${filename}`;
+      }
+      return {
+        ...c,
+        banner,
+        cardImage
+      };
+    });
+
+    let profilePicture = teacher.profilePicture || '';
+    if (profilePicture && !profilePicture.startsWith('http') && !profilePicture.startsWith('data:')) {
+      const filename = profilePicture.includes('/uploads/') ? profilePicture.split('/uploads/').pop() : profilePicture.replace(/^\//, '');
+      profilePicture = `/uploads/${filename}`;
+    }
+
+    let coverPicture = teacher.coverPicture || '';
+    if (coverPicture && !coverPicture.startsWith('http') && !coverPicture.startsWith('data:')) {
+      const filename = coverPicture.includes('/uploads/') ? coverPicture.split('/uploads/').pop() : coverPicture.replace(/^\//, '');
+      coverPicture = `/uploads/${filename}`;
+    }
+
+    res.json({
+      success: true,
+      teacher: {
+        _id: teacher._id,
+        name: teacher.name,
+        email: teacher.email,
+        profilePicture,
+        coverPicture,
+        bio: teacher.bio || '',
+        qualifications: teacher.qualifications || '',
+        department: teacher.department || 'Academic Faculty',
+        phoneNumber: teacher.phoneNumber || '',
+        teacherTags: teacher.teacherTags || ['🎓 Instructor', '✔ Verified Educator'],
+        role: teacher.role,
+        createdAt: teacher.createdAt
+      },
+      courses: processedCourses,
+      totalStudentsCount,
+      totalCoursesCount: courses.length
+    });
+  } catch (err) {
+    console.error("Error fetching teacher profile:", err);
+    res.status(500).json({ message: "Server error fetching teacher profile." });
+  }
+});
+
+// --- UPDATE TEACHER TAGS (Teacher or Admin) ---
+router.put('/teacher-tags/:id', protect, isTeacherOrAdmin, async (req, res) => {
+  try {
+    const { tags } = req.body;
+    if (!Array.isArray(tags)) {
+      return res.status(400).json({ message: "Tags array is required." });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: { teacherTags: tags } },
+      { new: true, runValidators: false }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Teacher profile not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Teacher tags updated successfully!",
+      teacherTags: updatedUser.teacherTags
+    });
+  } catch (err) {
+    console.error("Error updating teacher tags:", err);
+    res.status(500).json({ message: err.message || "Server error updating teacher tags." });
+  }
+});
+
+// --- UPDATE TEACHER PROFILE (By Teacher or Admin) ---
+router.put('/teacher-profile/:id', protect, async (req, res) => {
+  try {
+    const currentUserId = (req.user.id || req.user._id).toString();
+    const targetId = req.params.id.toString();
+
+    if (currentUserId !== targetId && req.user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only the assigned teacher or Admin can edit this profile." });
+    }
+
+    const teacher = await User.findById(targetId);
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher not found." });
+    }
+
+    const { name, profilePicture, coverPicture, bio, qualifications, department, phoneNumber } = req.body;
+
+    if (name) teacher.name = name;
+    if (profilePicture !== undefined) {
+      teacher.profilePicture = convertBase64ToStaticFile(profilePicture, 'profile');
+    }
+    if (coverPicture !== undefined) {
+      teacher.coverPicture = convertBase64ToStaticFile(coverPicture, 'cover');
+    }
+    if (bio !== undefined) teacher.bio = bio;
+    if (qualifications !== undefined) teacher.qualifications = qualifications;
+    if (department !== undefined) teacher.department = department;
+    if (phoneNumber !== undefined) teacher.phoneNumber = phoneNumber;
+
+    await teacher.save();
+
+    let formattedProfilePic = teacher.profilePicture || '';
+    if (formattedProfilePic && !formattedProfilePic.startsWith('http') && !formattedProfilePic.startsWith('data:')) {
+      const filename = formattedProfilePic.includes('/uploads/') ? formattedProfilePic.split('/uploads/').pop() : formattedProfilePic.replace(/^\//, '');
+      formattedProfilePic = `/uploads/${filename}`;
+    }
+
+    let formattedCoverPic = teacher.coverPicture || '';
+    if (formattedCoverPic && !formattedCoverPic.startsWith('http') && !formattedCoverPic.startsWith('data:')) {
+      const filename = formattedCoverPic.includes('/uploads/') ? formattedCoverPic.split('/uploads/').pop() : formattedCoverPic.replace(/^\//, '');
+      formattedCoverPic = `/uploads/${filename}`;
+    }
+
+    res.json({
+      success: true,
+      message: "Teacher profile updated successfully!",
+      teacher: {
+        _id: teacher._id,
+        name: teacher.name,
+        email: teacher.email,
+        profilePicture: formattedProfilePic,
+        coverPicture: formattedCoverPic,
+        bio: teacher.bio || '',
+        qualifications: teacher.qualifications || '',
+        department: teacher.department || 'Academic Faculty',
+        phoneNumber: teacher.phoneNumber || '',
+        role: teacher.role,
+        createdAt: teacher.createdAt
+      }
+    });
+  } catch (err) {
+    console.error("Error updating teacher profile:", err);
+    res.status(500).json({ message: "Server error updating teacher profile." });
+  }
+});
+
 // --- GET TEACHER DASHBOARD STATS ---
 router.get('/teacher-stats', protect, async (req, res) => {
   if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
@@ -897,7 +1103,7 @@ router.get('/student-stats', protect, async (req, res) => {
       .lean();
 
     const directCourses = await Course.find({ enrolledStudents: studentId })
-      .populate('instructor', 'name email')
+      .populate('instructor', 'name email profilePicture')
       .lean();
 
     const courseMap = {};
@@ -1001,7 +1207,7 @@ router.get('/analytics-summary', protect, async (req, res) => {
       }).lean();
 
       const directCourses = await Course.find({ enrolledStudents: studentId })
-        .populate('instructor', 'name email')
+        .populate('instructor', 'name email profilePicture')
         .lean();
 
       const allCoursesMap = {};
@@ -1148,7 +1354,7 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
     // 3. Course Popularity Analytics (Most Taken Courses - scoped to filterType)
     const courses = await Course.find({})
-      .populate('instructor', 'name email')
+      .populate('instructor', 'name email profilePicture')
       .lean();
 
     const topCourses = await Promise.all(courses.map(async (c) => {

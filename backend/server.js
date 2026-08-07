@@ -20,7 +20,7 @@ const app = express();
 app.use(express.json({ limit: '10mb' })); // Parses incoming JSON requests
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors());         // Enables Cross-Origin Resource Sharing
-app.use('/uploads', express.static('uploads')); // Serve uploaded images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded images
 
 // --- ROOT HEALTH CHECK ---
 app.get('/', (req, res) => {
