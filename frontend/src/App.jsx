@@ -4,16 +4,25 @@ import { Toaster } from 'react-hot-toast';
 import Settings from './pages/Settings';
 
 // --- COMPONENTS & LAYOUTS ---
-import Register from './components/Register';
 import Login from './components/Login';
+import Register from './components/Register';
 import DashboardLayout from './components/DashboardLayout';
 import Dashboard from './components/Dashboard';
+import ChatWidget from './components/ChatWidget';
 
 // --- PAGES ---
+import Home from './pages/Home';
 import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Courses from './pages/Courses'; 
+import CourseDetails from './pages/CourseDetails';
 import ManageUsers from './pages/ManageUsers';
+import Attendance from './pages/Attendance';
+import Enrollments from './pages/Enrollments';
+import Payments from './pages/Payments';
+import Analytics from './pages/Analytics';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -41,14 +50,16 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 function App() {
   return (
     <Router>
-      <Toaster position="top-center" reverseOrder={false} />
-      
+      <Toaster position="top-center" />
       <Routes>
         {/* === PUBLIC ROUTES === */}
-        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/change-password" element={<ChangePassword />} />
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
 
         {/* === DASHBOARD & PROTECTED ROUTES === */}
         {/* Everything inside here gets the Sidebar and Header automatically */}
@@ -57,11 +68,14 @@ function App() {
           {/* Level 1: Accessible to EVERYONE (Student, Teacher, Admin) */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<Courses />} /> 
+          <Route path="/course/:courseId" element={<CourseDetails />} />
+          <Route path="/payments" element={<Payments />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
 
-          {/* Level 2: Restricted Access (Only Teachers and Admins) */}
+          {/* Level 2: Restricted Access (Admin Only) */}
           <Route path="/add-course" element={
-            <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+            <ProtectedRoute allowedRoles={['admin']}>
               <AddCourse />
             </ProtectedRoute>
           } />
@@ -73,11 +87,24 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/enrollments" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Enrollments />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/attendance" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Attendance />
+            </ProtectedRoute>
+          } />
+
         </Route>
         
         {/* Catch-all for random URLs */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
+      <ChatWidget />
     </Router>
   );
 }

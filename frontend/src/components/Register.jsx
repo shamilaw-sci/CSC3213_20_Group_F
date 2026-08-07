@@ -1,122 +1,242 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
+import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
+import { FaEnvelope, FaLock, FaArrowRight, FaPhone, FaGraduationCap } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-// 1. Import the Google component
 import { GoogleLogin } from '@react-oauth/google';
 
+const gradeOptions = [
+  "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11",
+  "Grade 12 Science", "Grade 12 Commerce", "Grade 12 Arts", "Grade 12 Tech",
+  "Grade 13 Science", "Grade 13 Commerce", "Grade 13 Arts", "Grade 13 Tech"
+];
+
 const Register = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'student' });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [grade, setGrade] = useState('');
+  const [parentsPhoneNumber, setParentsPhoneNumber] = useState('');
   const navigate = useNavigate();
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-  // --- TRADITIONAL REGISTRATION ---
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', formData);
-      toast.success(res.data.message);
-      navigate('/login');
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Registration failed!");
-    }
-  };
 
-  // --- GOOGLE REGISTRATION/LOGIN HANDLER ---
-  const handleGoogleSuccess = async (credentialResponse) => {
+    if (!grade) {
+      toast.error('Please select a grade.');
+      return;
+    }
+
+    if (!parentsPhoneNumber) {
+      toast.error("Please enter parent's phone number.");
+      return;
+    }
+
     try {
-      // We use the exact same backend route as Login!
-      const res = await axios.post('http://localhost:5000/api/auth/google', {
-        credential: credentialResponse.credential,
+      const res = await api.post('/auth/register', { 
+        email, 
+        password,
+        grade,
+        parentsPhoneNumber
       });
 
-      // Save the session
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
 
-      toast.success("Account created successfully with Google!");
+      toast.success('Registration successful! Welcome to LuminaLearn.');
       navigate('/dashboard');
     } catch (err) {
-      console.error(err);
-      toast.error("Google registration failed. Please try again.");
+      toast.error(err.response?.data?.message || 'Registration failed!');
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    if (!grade) {
+      toast.error("Please select your Grade first before registering with Google.");
+      return;
+    }
+
+    if (!parentsPhoneNumber) {
+      toast.error("Please enter your Parent's Phone Number first before registering with Google.");
+      return;
+    }
+
+    try {
+      const credential = credentialResponse?.credential;
+      if (!credential) {
+        throw new Error('Google credential is missing from the response.');
+      }
+
+      const res = await api.post('/auth/google-register', {
+        credential,
+        grade,
+        parentsPhoneNumber
+      });
+
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+
+      toast.success('Successfully registered and signed in with Google');
+      navigate('/dashboard');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Google registration failed.');
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast.error('Google registration was cancelled or failed.');
+  };
+
   return (
-    <div className="flex min-h-screen bg-white font-sans">
-      {/* LEFT SIDE: Illustration/Branding */}
-      <div className="hidden lg:flex w-1/2 bg-lumina-purple items-center justify-center p-12 text-white flex-col">
-        <h1 className="text-4xl font-bold mb-4">Join LuminaLearn Today!</h1>
-        <p className="text-purple-200 text-center mb-8">Create your account and start your learning journey with us.</p>
-        <div className="w-64 h-64 bg-purple-500/20 rounded-full flex items-center justify-center text-8xl">🎓</div>
+    <div 
+      className="flex min-h-screen font-sans text-slate-900 bg-cover bg-center overflow-y-auto"
+      style={{ backgroundImage: "url('/assets/Login_screen_BG.png')" }}
+    >
+      
+      {/* Left Side - Welcome Text */}
+      <div className="relative hidden w-full flex-col justify-start pt-5 px-12 lg:flex lg:w-[55%] xl:px-24">
+        <div className="relative z-10 max-w-lg">
+          <img
+            src="/assets/LuminaLearn_Logo_banner.png"
+            alt="LuminaLearn logo"
+            className="mb-2 h-30 w-auto object-contain" 
+          />
+          <h1 className="text-5xl font-bold tracking-tight text-white xl:text-6xl">
+            Join LuminaLearn!
+          </h1>
+          <p className="mt-6 text-lg leading-relaxed text-slate-200">
+            Begin your learning journey with <br />
+            <span className="font-medium text-[#00e5ff]">LuminaLearn</span> Smart Learning Platform.
+          </p>
+        </div>
       </div>
 
-      {/* RIGHT SIDE: Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 md:p-16">
-        <div className="max-w-md w-full mx-auto">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h2>
-          <p className="text-gray-500 mb-8">Fill in the details to get started</p>
+      {/* Right Side - White Register Panel */}
+      <div className="flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto min-h-screen">
+        <div className="w-full max-w-md py-4">
+          
+          {/* Header */}
+          <div className="mb-6">
+            <h2 className="text-4xl font-bold text-[#1e1e38]">Register</h2>
+            <p className="mt-3 text-sm text-slate-500">
+              Create an online student account
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="relative">
-              <FaUser className="absolute left-3 top-4 text-gray-400" />
-              <input 
-                type="text" placeholder="Full Name" 
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition"
-                onChange={(e) => setFormData({...formData, name: e.target.value})} 
+          {/* Warning/Reminder Alert Banner */}
+          <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4 text-amber-800 text-sm flex gap-3 items-start shadow-sm">
+            <span className="text-lg leading-none mt-0.5">⚠️</span>
+            <div>
+              <h4 className="font-semibold text-amber-900">Online Student Account</h4>
+              <p className="mt-1 text-xs leading-relaxed text-amber-700">
+                You are registering as an <strong>Online Student</strong>. If you are attending physical classes, your account must be created by the institute administration.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleRegister} className="space-y-4">
+            {/* Email Input */}
+            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+              <FaEnvelope className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
-            <div className="relative">
-              <FaEnvelope className="absolute left-3 top-4 text-gray-400" />
-              <input 
-                type="email" placeholder="Email Address" 
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition"
-                onChange={(e) => setFormData({...formData, email: e.target.value})} 
+
+            {/* Password Input */}
+            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+              <FaLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="password"
+                placeholder="Set password"
+                className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-            <div className="relative">
-              <FaLock className="absolute left-3 top-4 text-gray-400" />
-              <input 
-                type="password" placeholder="Password" 
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition"
-                onChange={(e) => setFormData({...formData, password: e.target.value})} 
+
+            {/* Parent's Phone Input */}
+            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+              <FaPhone className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="tel"
+                placeholder="Parent's phone number (e.g. 077XXXXXXX)"
+                className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500"
+                value={parentsPhoneNumber}
+                onChange={(e) => setParentsPhoneNumber(e.target.value)}
                 required
               />
             </div>
-            
-            <button type="submit" className="w-full bg-lumina-purple hover:bg-purple-800 text-white font-bold py-3 rounded-xl shadow-lg transition duration-300">
+
+            {/* Grade Selector */}
+            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+              <FaGraduationCap className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <select
+                className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500 cursor-pointer"
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                required
+              >
+                <option value="" disabled>Select your Grade</option>
+                {gradeOptions.map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Register Button */}
+            <button
+              type="submit"
+              className="group relative flex w-full items-center justify-center rounded-xl bg-lumina-purple px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-purple-800 shadow-lg shadow-purple-900/20 cursor-pointer mt-6"
+            >
               Register
-            </button>
+              <span className="absolute right-5 transition-transform group-hover:translate-x-1">
+                <FaArrowRight />
+              </span>
+            </button> 
           </form>
 
-          {/* --- THE "OR" DIVIDER --- */}
-          <div className="flex items-center my-6 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200">
-            <p className="text-center font-semibold mx-4 text-gray-400 text-sm">OR</p>
+          {/* Google Sign In Divider */}
+          {googleClientId && (
+            <div className="mt-6">
+              <div className="relative mb-4">
+                <div className="absolute inset-x-0 top-1/2 h-px bg-slate-200" />
+                <div className="relative mx-auto w-max bg-white px-4 text-sm text-slate-400">
+                  Or register with
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap={false}
+                  shape="pill"
+                  text="signup_with"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Footer Text */}
+          <div className="mt-8 text-center text-sm text-slate-500">
+            <p>
+              Already have an account?{' '}
+              <button
+                className="font-medium text-[#3a1c8a] hover:underline cursor-pointer"
+                onClick={() => navigate('/login')}
+              >
+                Sign in here.
+              </button>
+            </p>
           </div>
 
-          {/* --- THE GOOGLE BUTTON --- */}
-          <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => toast.error('Google Registration Failed')}
-              theme="outline"
-              shape="pill"
-              size="large"
-              width="384"
-              text="signup_with" // Changes the button text to "Sign up with Google"
-            />
-          </div>
-
-          <p className="mt-8 text-center text-gray-600">
-            Already have an account?{" "}
-            <span 
-              onClick={() => navigate('/login')} 
-              className="text-purple-600 font-bold cursor-pointer hover:underline">
-              Login
-            </span>
-          </p>
         </div>
       </div>
     </div>

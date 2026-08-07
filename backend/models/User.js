@@ -2,12 +2,74 @@ const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  registrationNumber: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+    required: function () {
+      return this.role === 'student' && this.studentType === 'physical';
+    }
+  },
+  parentsPhoneNumber: {
+    type: String,
+    trim: true,
+    required: function () {
+      return this.role === 'student';
+    }
+  },
+  grade: {
+    type: String,
+    required: function () {
+      return this.role === 'student';
+    }
+  },
   password: { type: String, required: true },
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
+  studentType: {
+    type: String,
+    enum: ['physical', 'online'],
+    default: 'physical'
+  },
   mustChangePassword: { 
     type: Boolean, 
-    default: false // Existing users don't need this
+    default: false
+  },
+  profilePicture: {
+    type: String,
+    default: ''
+  },
+  coverPicture: {
+    type: String,
+    default: ''
+  },
+  bio: {
+    type: String,
+    default: ''
+  },
+  qualifications: {
+    type: String,
+    default: ''
+  },
+  department: {
+    type: String,
+    default: 'Academic Faculty'
+  },
+  phoneNumber: {
+    type: String,
+    default: ''
+  },
+  teacherTags: {
+    type: [String],
+    default: ['🎓 Instructor', '✔ Verified Educator']
+  },
+  resetPasswordToken: {
+    type: String,
+    default: ''
+  },
+  resetPasswordExpires: {
+    type: Date
   }
 }, { timestamps: true }); 
 
