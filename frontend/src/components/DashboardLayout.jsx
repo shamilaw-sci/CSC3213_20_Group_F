@@ -20,6 +20,21 @@ import {
 } from 'react-icons/fa';
 import api from '../utils/api';
 
+const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  let filename = url;
+  if (url.includes('/uploads/')) {
+    filename = url.split('/uploads/').pop();
+  } else if (url.startsWith('/')) {
+    filename = url.substring(1);
+  }
+  const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+  return `${backendBase}/uploads/${filename}`;
+};
+
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,14 +54,20 @@ const DashboardLayout = () => {
 
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
 
-  // Listen for storage changes (triggered by Settings.jsx)
+  // Listen for storage and userUpdated changes
   useEffect(() => {
     const handleStorageChange = () => {
       const updatedUser = JSON.parse(localStorage.getItem('user'));
       if (updatedUser) setUser(updatedUser);
     };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('userUpdated', handleStorageChange);
+    window.addEventListener('teacherProfileUpdated', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userUpdated', handleStorageChange);
+      window.removeEventListener('teacherProfileUpdated', handleStorageChange);
+    };
   }, []);
 
   // --- FETCH NOTIFICATIONS FROM BACKEND ---
@@ -281,7 +302,7 @@ const DashboardLayout = () => {
               >
                 {user?.profilePicture ? (
                   <img
-                    src={user.profilePicture}
+                    src={getImageUrl(user.profilePicture)}
                     alt="Profile"
                     referrerPolicy="no-referrer"
                     className="w-9 h-9 rounded-full object-cover border border-purple-200 shadow-sm"
@@ -296,7 +317,7 @@ const DashboardLayout = () => {
                   <div className="p-4 border-b border-gray-100 bg-gray-50 text-center flex flex-col items-center">
                     {user?.profilePicture ? (
                       <img
-                        src={user.profilePicture}
+                        src={getImageUrl(user.profilePicture)}
                         alt="Profile"
                         referrerPolicy="no-referrer"
                         className="w-16 h-16 rounded-full object-cover border-2 border-purple-200 mb-2 shadow-inner"

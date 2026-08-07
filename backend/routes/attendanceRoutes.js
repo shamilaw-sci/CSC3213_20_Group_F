@@ -4,6 +4,7 @@ const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Schedule = require('../models/Schedule');
 const Notification = require('../models/Notification');
+const Course = require('../models/Course');
 const { protect } = require('../middleware/authMiddleware');
 const { sendAttendanceSMS } = require('../services/smsService');
 
@@ -335,7 +336,6 @@ router.post('/submit-weekly', protect, async (req, res) => {
 
   try {
     // Verify enrollment
-    const Course = require('../models/Course');
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({ message: "Course not found." });
