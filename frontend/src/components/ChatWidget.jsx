@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import api from '../utils/api';
 import axios from 'axios';
-import { 
-  FaTimes, 
-  FaPaperPlane, 
-  FaUser, 
-  FaTrashAlt, 
+import {
+  FaTimes,
+  FaPaperPlane,
+  FaUser,
+  FaTrashAlt,
   FaRobot,
   FaCalendarAlt,
   FaCheckCircle,
@@ -18,7 +18,7 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
-      text: 'Ayubowan! 👋 I am LuminaChat, your virtual assistant. Ask me anything about class schedules, teachers, hotline, attendance, or payments.\n\n*(සිංහලෙන් හෝ Singlish වලිනුත් අසන්න හැක!)*'
+      text: 'Ayubowan! 👋 I am LuminaChat, your virtual assistant. Ask me anything about class schedules, teachers, hotline, attendance, or payments.\n\n*(සිංහලෙන් හෝ Singlish භාෂා වලින්ද සහය ලබා ගැනීමට හැකියි.!)*'
     }
   ]);
   const [input, setInput] = useState('');
@@ -53,10 +53,11 @@ export default function ChatWidget() {
         // Direct Axios fallback
         const token = localStorage.getItem('token');
         const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const headers = (token && token !== 'null' && token !== 'undefined') ? { Authorization: `Bearer ${token}` } : {};
         res = await axios.post(
           `${baseURL}/chat`,
           { message: query },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers }
         );
       }
 
@@ -66,7 +67,7 @@ export default function ChatWidget() {
       console.error('ChatWidget Error:', err);
       const errMsg = err.response?.data?.message || err.response?.data?.reply || 'Error communicating with LuminaChat server.';
       setMessages(prev => [
-        ...prev, 
+        ...prev,
         { sender: 'bot', text: `⚠️ ${errMsg}` }
       ]);
     } finally {
@@ -132,9 +133,9 @@ export default function ChatWidget() {
           <div className="bg-gradient-to-r from-purple-700 via-purple-600 to-indigo-700 text-white p-4 flex justify-between items-center shadow-md relative">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white overflow-hidden p-0.5 shadow-sm">
-                <img 
-                  src="/assets/LuminaChat_Icon.png" 
-                  alt="LuminaChat Avatar" 
+                <img
+                  src="/assets/LuminaChat_Icon.png"
+                  alt="LuminaChat Avatar"
                   className="w-full h-full rounded-full object-cover"
                 />
               </div>
@@ -206,13 +207,12 @@ export default function ChatWidget() {
                     className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5 shadow-sm border border-purple-200 bg-purple-50"
                   />
                 )}
-                
+
                 <div
-                  className={`max-w-[82%] p-3 rounded-2xl text-xs leading-relaxed ${
-                    msg.sender === 'user'
+                  className={`max-w-[82%] p-3 rounded-2xl text-xs leading-relaxed ${msg.sender === 'user'
                       ? 'bg-purple-600 text-white rounded-tr-none shadow-md'
                       : 'bg-white text-gray-800 border border-gray-200/80 shadow-sm rounded-tl-none'
-                  }`}
+                    }`}
                 >
                   {formatText(msg.text)}
                 </div>

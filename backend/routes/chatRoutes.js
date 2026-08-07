@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const { protect } = require('../middleware/authMiddleware');
+const { optionalProtect } = require('../middleware/authMiddleware');
 
 // Models for dynamic user data fallback
 const Attendance = require('../models/Attendance');
@@ -98,8 +98,8 @@ async function generateGeminiReply(systemInstruction, userMessage) {
     throw new Error("Unable to retrieve valid response from AI assistant.");
 }
 
-// POST /api/chat
-router.post('/', protect, async (req, res) => {
+// POST /api/chat (Supports both logged-in users and guest visitors)
+router.post('/', optionalProtect, async (req, res) => {
     const { message } = req.body;
     if (!message || !message.trim()) {
         return res.status(400).json({ reply: "Message cannot be empty." });
@@ -120,16 +120,20 @@ router.post('/', protect, async (req, res) => {
             lowerMsg.includes('status') ||
             lowerMsg.includes('mage attendance')
         ) {
-            const attendanceRecords = await Attendance.find({ studentId: currentUser._id })
-                .populate('courseId', 'title code grade subject')
-                .sort({ createdAt: -1 })
-                .limit(10);
+            if (currentUser) {
+                const attendanceRecords = await Attendance.find({ studentId: currentUser._id })
+                    .populate('courseId', 'title code grade subject')
+                    .sort({ createdAt: -1 })
+                    .limit(10);
 
-            const recordSummary = attendanceRecords.length > 0
-                ? attendanceRecords.map(a => `- Date: ${new Date(a.date).toLocaleDateString()}, Status: ${a.status}, Course: ${a.courseId?.title || 'General'}, Mode: ${a.mode || 'N/A'}`).join('\n')
-                : "No attendance records recorded yet.";
+                const recordSummary = attendanceRecords.length > 0
+                    ? attendanceRecords.map(a => `- Date: ${new Date(a.date).toLocaleDateString()}, Status: ${a.status}, Course: ${a.courseId?.title || 'General'}, Mode: ${a.mode || 'N/A'}`).join('\n')
+                    : "No attendance records recorded yet.";
 
-            dbContext += `\n[User Attendance Log]:\nLogged in Student: ${currentUser.name} (${currentUser.email}, Grade: ${currentUser.grade || 'N/A'}, Type: ${currentUser.studentType || 'physical'}).\nRecent Attendance Count: ${attendanceRecords.length}\nRecords:\n${recordSummary}\n`;
+                dbContext += `\n[User Attendance Log]:\nLogged in Student: ${currentUser.name} (${currentUser.email}, Grade: ${currentUser.grade || 'N/A'}, Type: ${currentUser.studentType || 'physical'}).\nRecent Attendance Count: ${attendanceRecords.length}\nRecords:\n${recordSummary}\n`;
+            } else {
+                dbContext += `\n[User Attendance Log]:\nUser is currently a Guest / Not logged in. Prompt them to log in to check personal attendance records.\n`;
+            }
         }
 
         if (
@@ -140,18 +144,22 @@ router.post('/', protect, async (req, res) => {
             lowerMsg.includes('salli') ||
             lowerMsg.includes('gewuwa')
         ) {
-            const paymentRecords = await Payment.find({
-                $or: [{ student: currentUser._id }, { studentId: currentUser._id }]
-            })
-                .populate('course', 'title price')
-                .sort({ createdAt: -1 })
-                .limit(10);
+            if (currentUser) {
+                const paymentRecords = await Payment.find({
+                    $or: [{ student: currentUser._id }, { studentId: currentUser._id }]
+                })
+                    .populate('course', 'title price')
+                    .sort({ createdAt: -1 })
+                    .limit(10);
 
-            const paySummary = paymentRecords.length > 0
-                ? paymentRecords.map(p => `- Date: ${new Date(p.paymentDate || p.createdAt).toLocaleDateString()}, Course: ${p.course?.title || 'Course'}, Amount: LKR ${p.amount}, Status: ${p.status}, Month: ${p.month || 'N/A'}`).join('\n')
-                : "No payment transactions found.";
+                const paySummary = paymentRecords.length > 0
+                    ? paymentRecords.map(p => `- Date: ${new Date(p.paymentDate || p.createdAt).toLocaleDateString()}, Course: ${p.course?.title || 'Course'}, Amount: LKR ${p.amount}, Status: ${p.status}, Month: ${p.month || 'N/A'}`).join('\n')
+                    : "No payment transactions found.";
 
-            dbContext += `\n[User Payment & Fees Log]:\nLogged in Student: ${currentUser.name}.\nRecent Payments Count: ${paymentRecords.length}\nRecords:\n${paySummary}\n`;
+                dbContext += `\n[User Payment & Fees Log]:\nLogged in Student: ${currentUser.name}.\nRecent Payments Count: ${paymentRecords.length}\nRecords:\n${paySummary}\n`;
+            } else {
+                dbContext += `\n[User Payment & Fees Log]:\nUser is currently a Guest / Not logged in. Prompt them to log in to check personal payment transactions.\n`;
+            }
         }
 
         if (
@@ -167,9 +175,13 @@ router.post('/', protect, async (req, res) => {
             dbContext += `\n[Available Courses in Academy]:\n${courseList}\n`;
         }
 
+        const userInfoStr = currentUser
+            ? `${currentUser.name} (Role: ${currentUser.role}, Grade: ${currentUser.grade || 'Not set'}, Type: ${currentUser.studentType || 'physical'})`
+            : 'Guest Visitor (Not logged in)';
+
         // Construct System Instruction with RAG & Multilingual Guidelines
         const systemInstruction = `You are LuminaChat, the friendly and intelligent AI virtual assistant for LuminaLearn LMS.
-User Info: ${currentUser.name} (Role: ${currentUser.role}, Grade: ${currentUser.grade || 'Not set'}, Type: ${currentUser.studentType || 'physical'}).
+User Info: ${userInfoStr}.
 
 Official Institution & Knowledge Base Context:
 ---
@@ -178,8 +190,10 @@ ${institutionalKnowledge}
 ${dbContext ? `Database Real-time User Context:\n---${dbContext}---` : ''}
 
 Guidelines for responding:
-1. Answer questions regarding class schedules, teachers, venues, hotline, fees, and institute policies accurately based on the institution knowledge base above.
-2. If user inquires about their personal attendance, payments, or enrolled status, utilize the Database Real-time User Context provided above.
+1. Answer questions regarding class schedules, teachers, venues, hotline, fees, registration, and institute policies accurately based on the institution knowledge base above.
+2. If user inquires about their personal attendance, payments, or enrolled status:
+   - If logged in: utilize the Database Real-time User Context provided above.
+   - If guest (not logged in): politely invite them to log in to access their private student records, while still providing general info (e.g. general fees/schedules).
 3. Multilingual & Singlish Support: The user might ask in English, pure Sinhala (සිංහල), or Singlish (e.g., "mata ada tiyena panthi monawada", "attendance balanne kohomada", "ayubowan"). Understand it seamlessly and reply in the matching tone/language warmly and clearly.
 4. For general academic or educational questions outside the institution context, provide accurate, helpful answers politely.
 5. Format your responses with clean bullet points and bold formatting where appropriate. Keep answers clear and friendly.`;
@@ -199,7 +213,7 @@ Guidelines for responding:
             : "Ayubowan! Operating in **Offline Mode**:\n\n";
 
         if (dbContext && dbContext.trim()) {
-            fallbackNotice += "ℹ️ **Your Account & System Records**:\n" + dbContext.trim();
+            fallbackNotice += "ℹ️ **System Information**:\n" + dbContext.trim();
         } else {
             fallbackNotice += "ℹ️ **Institute Information**:\n" + institutionalKnowledge.trim();
         }
