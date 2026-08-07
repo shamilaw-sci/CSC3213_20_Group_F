@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import BroadcastModal from './BroadcastModal';
+import ChatWidget from './ChatWidget';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+
 import {
   FaBell,
   FaUserCircle,
@@ -333,8 +335,12 @@ const DashboardLayout = () => {
         isOpen={isBroadcastOpen}
         onClose={() => setIsBroadcastOpen(false)}
       />
+
+      {/* --- LUMINA CHAT FLOATING AI ASSISTANT WIDGET --- */}
+      <ChatWidget />
     </div>
   );
 };
 
 export default DashboardLayout;
+
