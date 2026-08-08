@@ -1,9 +1,15 @@
+
+ LuminaLearn by Kirula Education Center
+ LuminaLearn is the Online learning and Institite management platform of Kirula Education Center
+
+
 - Grade 10 Science class is held on Tuesdays from 3:00 PM to 5:00 PM with Mr. Silva in Main Hall A.
 - Grade 11 Mathematics class is held on Thursdays from 4:00 PM to 6:00 PM with Mrs. Perera in Main Hall B.
 - Grade 12 Physics class is held on Saturdays from 8:00 AM to 11:00 AM with Dr. Nalin in Lab 1.
 - Grade 13 Chemistry class is held on Sundays from 1:00 PM to 4:00 PM with Prof. Bandara in Main Hall A.
-- Institute Support Hotline: 011-2345678 / 077-1234567 (Available 8:00 AM - 6:00 PM daily).
-- Location: Main Hall B, LuminaLearn Academy, No 45, Galle Road, Colombo 03.
+- Contact Kirula Education Center:Mr. Chaminda Kumara Herath, 071 7577 688, ckumarah@gmail.com (Available 8:00 AM - 6:00 PM daily).
+- Address: Kirula Education Center,621 road,Menikhinna,Kandy
 - Admission & Fees Policy: Monthly fees are payable on or before the 7th of every month. Online payments are updated instantly.
 - Attendance Policy: Physical attendance is logged via QR code/Barcode counter. Online students mark attendance via weekly lesson access.
 - Student Support Email: admin.luminalearn@gmail.com
+- Copyrights: LuminaLearn by Kirula Education Center @ 2026
