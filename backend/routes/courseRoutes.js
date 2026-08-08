@@ -125,7 +125,7 @@ const processCourseImages = async (req, courseDoc) => {
 router.get('/', protect, async (req, res) => {
     try {
         const courses = await Course.find({})
-            .populate('instructor', 'name');
+            .populate('instructor', 'name profilePicture');
         
         const coursesWithUrls = await Promise.all(
             courses.map(course => processCourseImages(req, course))
@@ -373,7 +373,7 @@ router.post(
 router.get('/:id', protect, async (req, res) => {
     try {
         const course = await Course.findById(req.params.id)
-            .populate('instructor', 'name')
+            .populate('instructor', 'name profilePicture')
             .populate('enrolledStudents', 'name grade registrationNumber');
         if (!course) return res.status(404).json({ error: "Course not found" });
 
@@ -797,7 +797,15 @@ router.post('/:id/toggle-grade', protect, isAdmin, async (req, res) => {
             return res.status(200).json({ message: `"${gradeTitle}" Successfully Removed!` });
         } else {
             // නැත්නම් ඇඩ් කරන්න
-            course.enrolledGrades.push({ gradeNumber, messages: [] });
+            const isCourseDeactive = course.status === 'deactive' || course.isActive === false;
+            course.enrolledGrades.push({ 
+                gradeNumber, 
+                messages: [],
+                status: isCourseDeactive ? 'deactive' : 'active',
+                isActive: !isCourseDeactive,
+                deactivatedBy: isCourseDeactive ? 'admin' : null,
+                previousStatus: isCourseDeactive ? 'active' : null
+            });
             await course.save();
             // Sync with Lesson model
             await Lesson.create({
@@ -920,6 +928,123 @@ router.post('/:id/send-message', protect, async (req, res) => {
         res.status(200).json({ message: "Message sent successfully" });
     } catch (err) {
         res.status(500).json({ error: "Failed to send message" });
+    }
+});
+
+// @route   PUT /api/courses/:courseId/grades/:gradeId/status
+// @desc    Admin / Teacher update grade status (active / deactive)
+router.put('/:courseId/grades/:gradeId/status', protect, async (req, res) => {
+    try {
+        const { courseId, gradeId } = req.params;
+        const { status, deactivatedBy } = req.body;
+
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ error: "Course not found" });
+        }
+
+        if (course.status === 'deactive' || course.isActive === false) {
+            return res.status(400).json({ error: "Cannot modify grade status while the full course is deactivated." });
+        }
+
+        const isDeactive = status === 'deactive';
+        const newStatus = isDeactive ? 'deactive' : 'active';
+        const updatedByRole = req.user.role === 'admin' ? 'admin' : 'teacher';
+
+        // Locate target grade in course.enrolledGrades
+        let gradeItem = course.enrolledGrades.find(g => 
+            String(g._id) === String(gradeId) || 
+            String(g.id) === String(gradeId) || 
+            String(g.gradeNumber).toLowerCase() === String(gradeId).toLowerCase()
+        );
+
+        if (!gradeItem) {
+            gradeItem = course.enrolledGrades.find(g => 
+                String(g.gradeNumber).replace(/\D/g, '') === String(gradeId).replace(/\D/g, '')
+            );
+        }
+
+        if (gradeItem) {
+            gradeItem.status = newStatus;
+            gradeItem.isActive = !isDeactive;
+            gradeItem.deactivatedBy = isDeactive ? (deactivatedBy || updatedByRole) : null;
+        } else {
+            course.enrolledGrades.push({
+                gradeNumber: gradeId,
+                title: `Grade ${gradeId}`,
+                status: newStatus,
+                isActive: !isDeactive,
+                deactivatedBy: isDeactive ? (deactivatedBy || updatedByRole) : null
+            });
+        }
+
+        course.markModified('enrolledGrades');
+        await course.save();
+
+        res.json({ 
+            message: `Grade status updated to ${newStatus} successfully`, 
+            status: newStatus,
+            deactivatedBy: isDeactive ? (deactivatedBy || updatedByRole) : null
+        });
+    } catch (err) {
+        console.error("Failed to update grade status:", err.message);
+        res.status(500).json({ error: "Failed to update grade status: " + err.message });
+    }
+});
+
+// @route   PUT /api/courses/:id/full-status
+// @desc    Admin updates whole course active/deactive status (and deactivates all grades inside if deactivating)
+router.put('/:id/full-status', protect, isAdmin, async (req, res) => {
+    try {
+        const { status } = req.body;
+        const course = await Course.findById(req.params.id);
+        if (!course) {
+            return res.status(404).json({ error: "Course not found" });
+        }
+
+        const isDeactive = status === 'deactive';
+        const newStatus = isDeactive ? 'deactive' : 'active';
+
+        course.status = newStatus;
+        course.isActive = !isDeactive;
+        course.deactivatedBy = isDeactive ? 'admin' : null;
+
+        if (isDeactive) {
+            // Deactivating full course: store previous status of each grade before setting to deactive
+            if (Array.isArray(course.enrolledGrades)) {
+                course.enrolledGrades.forEach(g => {
+                    if (!g.previousStatus) {
+                        g.previousStatus = g.status || (g.isActive === false ? 'deactive' : 'active');
+                    }
+                    g.status = 'deactive';
+                    g.isActive = false;
+                    g.deactivatedBy = 'admin';
+                });
+                course.markModified('enrolledGrades');
+            }
+        } else {
+            // Reactivating full course: restore each grade back to its previous status as before full course deactivation
+            if (Array.isArray(course.enrolledGrades)) {
+                course.enrolledGrades.forEach(g => {
+                    const restoredStatus = g.previousStatus || 'active';
+                    g.status = restoredStatus;
+                    g.isActive = restoredStatus === 'active';
+                    g.deactivatedBy = restoredStatus === 'deactive' ? (g.deactivatedBy || 'admin') : null;
+                    g.previousStatus = null;
+                });
+                course.markModified('enrolledGrades');
+            }
+        }
+
+        await course.save();
+
+        res.json({
+            message: `Course "${course.title}" status updated to ${newStatus} successfully`,
+            course
+        });
+    } catch (err) {
+        console.error("Failed to update full course status:", err.message);
+        res.status(500).json({ error: "Failed to update full course status: " + err.message });
     }
 });
 

@@ -48,6 +48,30 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  coverPicture: {
+    type: String,
+    default: ''
+  },
+  bio: {
+    type: String,
+    default: ''
+  },
+  qualifications: {
+    type: String,
+    default: ''
+  },
+  department: {
+    type: String,
+    default: 'Academic Faculty'
+  },
+  phoneNumber: {
+    type: String,
+    default: ''
+  },
+  teacherTags: {
+    type: [String],
+    default: ['🎓 Instructor', '✔ Verified Educator']
+  },
   resetPasswordToken: {
     type: String,
     default: ''

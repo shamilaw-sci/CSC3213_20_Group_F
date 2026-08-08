@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   FaUsers,
@@ -21,7 +21,11 @@ import {
   FaMapMarkerAlt,
   FaFileInvoiceDollar,
   FaBullhorn,
-  FaCalendarCheck
+  FaCalendarCheck,
+  FaReceipt,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaArrowRight
 } from 'react-icons/fa';
 import StudentIdCard from './StudentIdCard';
 
@@ -32,12 +36,52 @@ const gradeOptions = [
   "Grade 13 Science", "Grade 13 Commerce", "Grade 13 Arts", "Grade 13 Tech"
 ];
 
-// Helper to get auth header config
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    headers: { Authorization: `Bearer ${token}` }
-  };
+// --- HERO WELCOME BANNER ---
+const DashboardHero = ({ user, roleBadge, quickActions }) => {
+  const [timeStr, setTimeStr] = useState('');
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      setTimeStr(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    };
+    update();
+    const interval = setInterval(update, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-6 sm:p-8 text-white shadow-xl mb-6 border border-purple-900/30">
+      {/* Ambient background glow orbs */}
+      <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/15 rounded-full blur-3xl pointer-events-none transform translate-x-20 -translate-y-20" />
+      <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="bg-purple-500/25 border border-purple-400/30 text-purple-200 text-3xs font-extrabold uppercase px-3.5 py-1 rounded-full tracking-widest backdrop-blur-md">
+              {roleBadge}
+            </span>
+            <span className="text-purple-300/80 text-xs font-medium flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+              <FaClock className="text-purple-400 text-xs" /> {timeStr}
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            Welcome back, {user?.name || 'User'}! 👋
+          </h1>
+          <p className="text-purple-200/80 text-xs sm:text-sm mt-1 max-w-xl">
+            Here is your live institute management overview and real-time operations performance.
+          </p>
+        </div>
+
+        {quickActions && (
+          <div className="flex items-center gap-3">
+            {quickActions}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 // --- CUSTOM SVG LINE CHART COMPONENT ---
@@ -48,7 +92,6 @@ const SvgLineChart = ({ data }) => {
   const height = 220;
   const maxVal = Math.max(...data.map(d => d.count)) * 1.25 || 10;
 
-  // Calculate points for path
   const points = data.map((d, index) => {
     const x = padding + (index * (width - padding * 2) / (data.length - 1 || 1));
     const y = height - padding - (d.count * (height - padding * 2) / maxVal);
@@ -66,7 +109,7 @@ const SvgLineChart = ({ data }) => {
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
       <defs>
         <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.45" />
+          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.4" />
           <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.0" />
         </linearGradient>
       </defs>
@@ -77,30 +120,29 @@ const SvgLineChart = ({ data }) => {
         const value = Math.round(maxVal * (1 - r));
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f3f4f6" strokeWidth="1" />
-            <text x={padding - 8} y={y + 4} fill="#9ca3af" fontSize="9" textAnchor="end" className="font-semibold">{value}</text>
+            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" strokeWidth="1" />
+            <text x={padding - 8} y={y + 4} fill="#94a3b8" fontSize="9" textAnchor="end" className="font-semibold">{value}</text>
           </g>
         );
       })}
 
-      {/* Area under the line */}
+      {/* Area under line */}
       <path d={fillD} fill="url(#chartGrad)" />
 
       {/* Main Line */}
       <path d={pathD} fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
-      {/* Dots and Interactions */}
+      {/* Dots and Tooltips */}
       {points.map((p, i) => (
         <g key={i} className="group cursor-pointer">
-          <circle cx={p.x} cy={p.y} r="4.5" fill="#6366f1" stroke="white" strokeWidth="2" />
-          <circle cx={p.x} cy={p.y} r="10" fill="#6366f1" opacity="0" className="hover:opacity-15 transition-opacity" />
+          <circle cx={p.x} cy={p.y} r="4.5" fill="#6366f1" stroke="white" strokeWidth="2.5" />
+          <circle cx={p.x} cy={p.y} r="12" fill="#6366f1" opacity="0" className="hover:opacity-15 transition-opacity" />
 
-          {/* Tooltip */}
           <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <rect x={p.x - 22} y={p.y - 28} width="44" height="18" rx="4" fill="#1e1b4b" />
+            <rect x={p.x - 22} y={p.y - 28} width="44" height="18" rx="4" fill="#0f172a" />
             <text x={p.x} y={p.y - 16} fill="white" fontSize="8" fontWeight="bold" textAnchor="middle">{p.count}</text>
           </g>
-          <text x={p.x} y={height - padding + 15} fill="#6b7280" fontSize="9" fontWeight="medium" textAnchor="middle">{p.month}</text>
+          <text x={p.x} y={height - padding + 15} fill="#64748b" fontSize="9" fontWeight="bold" textAnchor="middle">{p.month}</text>
         </g>
       ))}
     </svg>
@@ -108,10 +150,10 @@ const SvgLineChart = ({ data }) => {
 };
 
 // --- PAYMENT METRICS DONUT CHART COMPONENT ---
-const PaymentDonut = ({ totalCollected = 0 }) => {
-  const displayAmount = totalCollected > 0 ? totalCollected : 7500;
-  const percentage = 100;
-  const strokeDashoffset = 0;
+const PaymentDonut = ({ totalCollected = 0, pendingDues = 0 }) => {
+  const total = totalCollected + pendingDues;
+  const percentage = total > 0 ? Math.round((totalCollected / total) * 100) : 100;
+  const strokeDashoffset = 251.2 * (1 - percentage / 100);
 
   return (
     <div className="flex flex-col items-center justify-center p-4 h-full">
@@ -119,22 +161,22 @@ const PaymentDonut = ({ totalCollected = 0 }) => {
         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="9" fill="transparent" />
           <circle cx="50" cy="50" r="40" stroke="#10b981" strokeWidth="9" fill="transparent"
-            strokeDasharray="251.2" strokeDashoffset={strokeDashoffset} strokeLinecap="round" />
+            strokeDasharray="251.2" strokeDashoffset={strokeDashoffset} strokeLinecap="round" className="transition-all duration-1000" />
         </svg>
         <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-3xl font-extrabold text-gray-800">100%</span>
-          <span className="text-3xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">Complete</span>
+          <span className="text-3xl font-extrabold text-slate-800">{percentage}%</span>
+          <span className="text-4xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Collected</span>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-4 w-full text-xs font-semibold">
-        <div className="bg-emerald-50/50 p-2 rounded-lg border border-emerald-100 flex flex-col items-center">
-          <span className="text-gray-400 font-bold text-3xs uppercase">Paid Invoices</span>
-          <span className="text-sm font-bold text-emerald-600 mt-0.5">LKR {displayAmount.toLocaleString()}</span>
+      <div className="mt-5 grid grid-cols-2 gap-3 w-full text-xs font-semibold">
+        <div className="bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-100 flex flex-col items-center">
+          <span className="text-slate-400 font-bold text-4xs uppercase tracking-wider">Paid Total</span>
+          <span className="text-sm font-bold text-emerald-600 mt-0.5">LKR {totalCollected.toLocaleString()}</span>
         </div>
-        <div className="bg-amber-50/50 p-2 rounded-lg border border-amber-100 flex flex-col items-center">
-          <span className="text-gray-400 font-bold text-3xs uppercase">Pending Dues</span>
-          <span className="text-sm font-bold text-amber-600 mt-0.5">LKR 0</span>
+        <div className="bg-amber-50/80 p-2.5 rounded-xl border border-amber-100 flex flex-col items-center">
+          <span className="text-slate-400 font-bold text-4xs uppercase tracking-wider">Pending Dues</span>
+          <span className="text-sm font-bold text-amber-600 mt-0.5">LKR {pendingDues.toLocaleString()}</span>
         </div>
       </div>
     </div>
@@ -142,24 +184,33 @@ const PaymentDonut = ({ totalCollected = 0 }) => {
 };
 
 // --- ATTENDANCE SUMMARY CIRCULAR BAR ---
-const AttendanceRing = ({ percentage = 94 }) => {
-  const strokeDashoffset = 251.2 * (1 - percentage / 100);
+const AttendanceRing = ({ percentage = 100 }) => {
+  const safePct = Math.min(100, Math.max(0, percentage));
+  const strokeDashoffset = 251.2 * (1 - safePct / 100);
+
+  const getStatusText = (pct) => {
+    if (pct >= 90) return { label: 'Excellent Attendance', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' };
+    if (pct >= 75) return { label: 'Good Standing', color: 'text-blue-700 bg-blue-50 border-blue-200' };
+    return { label: 'Needs Improvement', color: 'text-amber-700 bg-amber-50 border-amber-200' };
+  };
+
+  const statusInfo = getStatusText(safePct);
 
   return (
-    <div className="flex flex-col items-center justify-center p-4">
+    <div className="flex flex-col items-center justify-center p-3">
       <div className="relative w-28 h-28 flex items-center justify-center">
         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="8" fill="transparent" />
-          <circle cx="50" cy="50" r="40" stroke="#4f46e5" strokeWidth="8" fill="transparent"
-            strokeDasharray="251.2" strokeDashoffset={strokeDashoffset} strokeLinecap="round" />
+          <circle cx="50" cy="50" r="40" stroke="#6366f1" strokeWidth="8" fill="transparent"
+            strokeDasharray="251.2" strokeDashoffset={strokeDashoffset} strokeLinecap="round" className="transition-all duration-1000" />
         </svg>
         <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-gray-800">{percentage}%</span>
-          <span className="text-3xs text-gray-400 font-semibold uppercase">Avg Rate</span>
+          <span className="text-2xl font-extrabold text-slate-800">{safePct}%</span>
+          <span className="text-4xs text-slate-400 font-bold uppercase tracking-wider">Avg Rate</span>
         </div>
       </div>
-      <span className="mt-3 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-0.5 rounded-full">
-        Excellent Attendance
+      <span className={`mt-3 text-3xs font-extrabold border px-3 py-1 rounded-full ${statusInfo.color}`}>
+        {statusInfo.label}
       </span>
     </div>
   );
@@ -169,11 +220,22 @@ const AttendanceRing = ({ percentage = 94 }) => {
 //          ADMINISTRATOR DASHBOARD
 // ==========================================
 const AdminDashboard = ({ user }) => {
-  const [stats, setStats] = useState({ students: 0, teachers: 0, courses: 0, recentRegistrations: [], growthData: [] });
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    students: 0,
+    teachers: 0,
+    courses: 0,
+    recentRegistrations: [],
+    growthData: [],
+    totalCollected: 0,
+    pendingDues: 0,
+    todayArrivalsCount: 0
+  });
   const [schedule, setSchedule] = useState([]);
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [attendanceStats, setAttendanceStats] = useState({ today: { present: 0, late: 0, absent: 0, total: 0 } });
+  const [loading, setLoading] = useState(true);
 
   // Modal & Form state
   const [showModal, setShowModal] = useState(false);
@@ -189,42 +251,31 @@ const AdminDashboard = ({ user }) => {
   });
 
   useEffect(() => {
-    fetchAdminStats();
-    fetchSchedule();
-    fetchSupportingData();
+    fetchAdminData();
   }, []);
 
-  const fetchAdminStats = async () => {
+  const fetchAdminData = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/auth/admin-stats');
-      setStats(res.data);
+      const [statsRes, schedRes, coursesRes, usersRes, attRes] = await Promise.allSettled([
+        api.get('/auth/admin-stats'),
+        api.get('/schedule'),
+        api.get('/courses'),
+        api.get('/auth/users'),
+        api.get('/attendance/stats/summary')
+      ]);
 
-      const attRes = await api.get('/attendance/stats/summary');
-      setAttendanceStats(attRes.data);
+      if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+      if (schedRes.status === 'fulfilled') setSchedule(schedRes.value.data);
+      if (coursesRes.status === 'fulfilled') setCourses(coursesRes.value.data);
+      if (usersRes.status === 'fulfilled') {
+        setTeachers(usersRes.value.data.filter(u => u.role === 'teacher'));
+      }
+      if (attRes.status === 'fulfilled') setAttendanceStats(attRes.value.data);
     } catch (err) {
-      console.error("Admin stats fetch failed", err);
-    }
-  };
-
-  const fetchSchedule = async () => {
-    try {
-      const res = await api.get('/schedule');
-      setSchedule(res.data);
-    } catch (err) {
-      console.error("Schedule fetch failed", err);
-    }
-  };
-
-  const fetchSupportingData = async () => {
-    try {
-      // Fetch courses and teachers list to populate select tags in scheduling form
-      const coursesRes = await api.get('/courses');
-      setCourses(coursesRes.data);
-
-      const usersRes = await api.get('/auth/users');
-      setTeachers(usersRes.data.filter(u => u.role === 'teacher'));
-    } catch (err) {
-      console.error("Supporting data fetch failed", err);
+      console.error("Admin dashboard fetch error", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -268,143 +319,181 @@ const AdminDashboard = ({ user }) => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stats KPI ribbon */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-purple-50 text-indigo-600 rounded-lg">
+    <div className="space-y-6 animate-fade-in">
+      {/* Hero Banner */}
+      <DashboardHero
+        user={user}
+        roleBadge="System Administrator"
+        quickActions={
+          <>
+            <button
+              onClick={() => navigate('/add-course')}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg cursor-pointer"
+            >
+              <FaPlusCircle /> Create Course
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 backdrop-blur-md cursor-pointer"
+            >
+              <FaCalendarAlt /> Add Class
+            </button>
+          </>
+        }
+      />
+
+      {/* Stats KPI Ribbon */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
+          <div className="p-4 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform">
             <FaUsers className="text-2xl" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-400">Total Students</p>
-            <h3 className="text-2xl font-bold text-gray-855">{stats.students}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Students</p>
+            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.students || 0}</h3>
+            <span className="text-4xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1">
+              Active Learners
+            </span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-blue-50 text-blue-600 rounded-lg">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
+          <div className="p-4 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
             <FaChalkboardTeacher className="text-2xl" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-400">Total Teachers</p>
-            <h3 className="text-2xl font-bold text-gray-855">{stats.teachers}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Faculty Teachers</p>
+            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.teachers || 0}</h3>
+            <span className="text-4xs text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-1">
+              Teaching Staff
+            </span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-orange-50 text-orange-500 rounded-lg">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
+          <div className="p-4 bg-amber-50 text-amber-600 rounded-xl group-hover:scale-110 transition-transform">
             <FaBookOpen className="text-2xl" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-400">Active Courses</p>
-            <h3 className="text-2xl font-bold text-gray-855">{stats.courses}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Courses</p>
+            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.courses || 0}</h3>
+            <span className="text-4xs text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-full inline-block mt-1">
+              Curriculum Programs
+            </span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-emerald-50 text-emerald-600 rounded-lg">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
+          <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">
             <FaCalendarCheck className="text-2xl" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-400">Arrived Today</p>
-            <h3 className="text-2xl font-bold text-gray-855">
-              {attendanceStats.today?.present || 0} Student{attendanceStats.today?.present !== 1 ? 's' : ''}
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Arrived Today</p>
+            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">
+              {attendanceStats.today?.present || stats.todayArrivalsCount || 0}
             </h3>
+            <span className="text-4xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1">
+              Physical Check-ins
+            </span>
           </div>
         </div>
       </div>
 
       {/* Visual Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm lg:col-span-2 flex flex-col justify-between h-96">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs lg:col-span-2 flex flex-col justify-between h-96">
           <div>
-            <h3 className="font-bold text-gray-800 text-lg">Student Intake Analytics</h3>
-            <p className="text-xs text-gray-400">Monthly student registrations trend</p>
+            <h3 className="font-bold text-slate-800 text-lg">Student Intake Analytics</h3>
+            <p className="text-xs text-slate-400">Monthly student registrations trend</p>
           </div>
           <div className="h-64 flex items-center justify-center">
-            <SvgLineChart data={stats.growthData} />
+            {stats.growthData && stats.growthData.length > 0 ? (
+              <SvgLineChart data={stats.growthData} />
+            ) : (
+              <p className="text-xs text-slate-400 italic">Intake trend will display as student registrations grow.</p>
+            )}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-96">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between h-96">
           <div>
-            <h3 className="font-bold text-gray-800 text-lg">Fee Collections Ratio</h3>
-            <p className="text-xs text-gray-400">Total target vs actual payment logs</p>
+            <h3 className="font-bold text-slate-800 text-lg">Fee Collections Ratio</h3>
+            <p className="text-xs text-slate-400">Total collected vs expected pending dues</p>
           </div>
           <div className="flex-1">
-            <PaymentDonut totalCollected={stats.totalCollected} />
+            <PaymentDonut totalCollected={stats.totalCollected} pendingDues={stats.pendingDues} />
           </div>
         </div>
       </div>
 
-      {/* Middle Operations Grid */}
+      {/* Operations Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent student registrations logs */}
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm lg:col-span-1 flex flex-col justify-between">
+        {/* Recent Registrations Log */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs lg:col-span-1 flex flex-col justify-between">
           <div>
-            <h3 className="font-bold text-gray-800 text-lg mb-4">Recent Registrations</h3>
-            <div className="space-y-4">
+            <h3 className="font-bold text-slate-800 text-lg mb-4">Recent Registrations</h3>
+            <div className="space-y-3.5">
               {stats.recentRegistrations && stats.recentRegistrations.length > 0 ? (
                 stats.recentRegistrations.map((reg) => (
-                  <div key={reg._id} className="flex justify-between items-center border-b border-gray-50 pb-2">
+                  <div key={reg._id} className="flex justify-between items-center border-b border-slate-50 pb-2.5">
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-850">{reg.name}</h4>
-                      <p className="text-2xs text-gray-400 font-medium">{reg.email}</p>
+                      <h4 className="text-xs font-bold text-slate-800">{reg.name}</h4>
+                      <p className="text-4xs text-slate-400 font-medium">{reg.email}</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-3xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
+                      <span className="text-4xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
                         {reg.grade || 'No Grade'}
                       </span>
-                      <p className="text-3xs text-gray-400 font-medium mt-1">
+                      <p className="text-4xs text-slate-400 font-medium mt-1">
                         {new Date(reg.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-400 italic text-center py-6">No recent registrations</p>
+                <p className="text-xs text-slate-400 italic text-center py-6">No recent registrations</p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Timetable / Schedule logs */}
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm lg:col-span-2 flex flex-col">
+        {/* Timetable Schedule Manager */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs lg:col-span-2 flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h3 className="font-bold text-gray-800 text-lg">Institute Timetable</h3>
-              <p className="text-xs text-gray-400">Active recurring schedule for student classes</p>
+              <h3 className="font-bold text-slate-800 text-lg">Institute Timetable</h3>
+              <p className="text-xs text-slate-400">Active recurring schedule for student classes</p>
             </div>
             <button
               onClick={() => setShowModal(true)}
-              className="bg-lumina-purple hover:bg-purple-800 text-white font-bold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
             >
               <FaPlusCircle /> Add Class to Calendar
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto max-h-[300px] space-y-3">
+          <div className="flex-1 overflow-y-auto max-h-[300px] space-y-3 pr-1">
             {schedule && schedule.length > 0 ? (
               schedule.map((sch) => (
-                <div key={sch._id} className="flex justify-between items-center p-3.5 rounded-lg border border-gray-100 hover:border-purple-200 hover:bg-purple-50/20 transition-all">
+                <div key={sch._id} className="flex justify-between items-center p-3.5 rounded-xl border border-slate-100 hover:border-purple-200 hover:bg-purple-50/20 transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="bg-purple-50 text-lumina-purple p-3 rounded-lg flex flex-col items-center min-w-[70px]">
-                      <span className="text-3xs font-extrabold uppercase text-purple-500">{sch.dayOfWeek.slice(0, 3)}</span>
+                    <div className="bg-purple-50 text-purple-700 p-3 rounded-xl flex flex-col items-center min-w-[70px]">
+                      <span className="text-4xs font-extrabold uppercase text-purple-600">{sch.dayOfWeek ? sch.dayOfWeek.slice(0, 3) : 'DAY'}</span>
                       <FaCalendarAlt className="text-sm mt-0.5" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-gray-850">{sch.title}</h4>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-2xs text-gray-500 mt-0.5">
-                        <span className="flex items-center gap-1">🕒 {sch.startTime} - {sch.endTime}</span>
-                        <span className="flex items-center gap-1">🏫 {sch.className}</span>
-                        <span className="flex items-center gap-1">📍 {sch.room}</span>
-                        {sch.teacherId && <span className="flex items-center gap-1">👨‍🏫 {sch.teacherId.name}</span>}
+                      <h4 className="text-sm font-bold text-slate-800">{sch.title}</h4>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-4xs text-slate-500 font-semibold mt-1">
+                        <span>🕒 {sch.startTime} - {sch.endTime}</span>
+                        <span>🏫 {sch.className}</span>
+                        <span>📍 {sch.room}</span>
+                        {sch.teacherId && <span>👨‍🏫 {sch.teacherId.name}</span>}
                       </div>
                     </div>
                   </div>
                   <button
                     onClick={() => handleDeleteSchedule(sch._id, sch.title)}
-                    className="text-red-400 hover:text-red-650 hover:bg-red-50 p-2 rounded-lg transition cursor-pointer"
+                    className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl transition cursor-pointer"
                     title="Delete Class"
                   >
                     <FaTrash />
@@ -412,8 +501,8 @@ const AdminDashboard = ({ user }) => {
                 </div>
               ))
             ) : (
-              <div className="text-center py-12 text-gray-400 italic">
-                No classes scheduled yet. Click the button to schedule classes.
+              <div className="text-center py-12 text-slate-400 italic text-xs">
+                No classes scheduled yet. Click "Add Class to Calendar" to create class sessions.
               </div>
             )}
           </div>
@@ -422,31 +511,31 @@ const AdminDashboard = ({ user }) => {
 
       {/* CREATE SCHEDULE MODAL */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-150 max-w-lg w-full mx-4 transform scale-100 transition-all duration-200">
-            <div className="flex justify-between items-center pb-4 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-gray-800">Add Class to Calendar</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">×</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full mx-4 transform scale-100 transition-all">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800">Add Class to Timetable</h3>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">×</button>
             </div>
 
             <form onSubmit={handleSaveSchedule} className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Class Title *</label>
+                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Class Title *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Grade 10 Science"
-                    className="w-full px-3.5 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Target Grade/Class *</label>
+                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Target Grade *</label>
                   <select
                     required
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
                     value={formData.className}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value })}
                   >
@@ -460,10 +549,10 @@ const AdminDashboard = ({ user }) => {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Day of Week *</label>
+                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Day of Week *</label>
                   <select
                     required
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
                     value={formData.dayOfWeek}
                     onChange={(e) => setFormData({ ...formData, dayOfWeek: e.target.value })}
                   >
@@ -473,23 +562,23 @@ const AdminDashboard = ({ user }) => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Start Time *</label>
+                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Start Time *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. 10:00 AM"
-                    className="w-full px-3.5 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
                     value={formData.startTime}
                     onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">End Time *</label>
+                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">End Time *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. 12:00 PM"
-                    className="w-full px-3.5 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
                     value={formData.endTime}
                     onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                   />
@@ -498,9 +587,9 @@ const AdminDashboard = ({ user }) => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Link Course (Optional)</label>
+                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Link Course</label>
                   <select
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
                     value={formData.courseId}
                     onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
                   >
@@ -511,9 +600,9 @@ const AdminDashboard = ({ user }) => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Assign Teacher (Optional)</label>
+                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Assign Teacher</label>
                   <select
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
                     value={formData.teacherId}
                     onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
                   >
@@ -526,27 +615,27 @@ const AdminDashboard = ({ user }) => {
               </div>
 
               <div>
-                <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Room / Location</label>
+                <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Room / Location</label>
                 <input
                   type="text"
                   placeholder="e.g. Hall A, Lab 2"
-                  className="w-full px-3.5 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
                   value={formData.room}
                   onChange={(e) => setFormData({ ...formData, room: e.target.value })}
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-lumina-purple hover:bg-purple-800 text-white font-bold rounded-lg text-sm transition active:scale-95 cursor-pointer"
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm transition active:scale-95 cursor-pointer shadow-md"
                 >
                   Add Class
                 </button>
@@ -563,146 +652,220 @@ const AdminDashboard = ({ user }) => {
 //            TEACHER DASHBOARD
 // ==========================================
 const TeacherDashboard = ({ user }) => {
-  const [stats, setStats] = useState({ coursesCount: 0, studentsCount: 0, rating: 4.8, coursesList: [] });
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({ coursesCount: 0, studentsCount: 0, rating: "4.9", coursesList: [], studentsList: [] });
   const [schedule, setSchedule] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [attendanceLogs, setAttendanceLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Quick Attendance Mock State
+  // Attendance Roll Call State
   const [selectedCourse, setSelectedCourse] = useState('');
-  const [markedStudents, setMarkedStudents] = useState([
-    { id: 1, name: "Arun Perera", present: true },
-    { id: 2, name: "Saman Silva", present: true },
-    { id: 3, name: "Priya Fernando", present: false },
-    { id: 4, name: "Nimal Jayasinghe", present: true }
-  ]);
+  const [enrolledStudents, setEnrolledStudents] = useState([]);
+  const [rollCallStatus, setRollCallStatus] = useState({}); // { [studentId]: 'Present' | 'Absent' }
+  const [savingAttendance, setSavingAttendance] = useState(false);
 
   useEffect(() => {
-    fetchTeacherStats();
-    fetchTeacherSchedule();
-    fetchTeacherAttendanceLogs();
+    fetchTeacherData();
   }, []);
 
-  const fetchTeacherAttendanceLogs = async () => {
+  const fetchTeacherData = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/attendance/teacher');
-      setAttendanceLogs(res.data);
-    } catch (err) {
-      console.error("Teacher attendance logs fetch failed", err);
-    }
-  };
+      const [statsRes, schedRes, attRes] = await Promise.allSettled([
+        api.get('/auth/teacher-stats'),
+        api.get('/schedule'),
+        api.get('/attendance/teacher')
+      ]);
 
-  const fetchTeacherStats = async () => {
-    try {
-      const res = await api.get('/auth/teacher-stats');
-      setStats(res.data);
-      if (res.data.coursesList?.length > 0) {
-        setSelectedCourse(res.data.coursesList[0].id);
+      if (statsRes.status === 'fulfilled' && statsRes.value.data) {
+        const d = statsRes.value.data;
+        setStats(d);
+        if (d.coursesList && d.coursesList.length > 0) {
+          const firstCourseId = d.coursesList[0]._id || d.coursesList[0].id;
+          setSelectedCourse(firstCourseId);
+          fetchStudentsForCourse(firstCourseId);
+        }
       }
-    } catch (err) {
-      console.error("Teacher stats fetch failed", err);
-    }
-  };
 
-  const fetchTeacherSchedule = async () => {
-    try {
-      const res = await api.get('/schedule');
-      setSchedule(res.data);
+      if (schedRes.status === 'fulfilled') setSchedule(schedRes.value.data);
+      if (attRes.status === 'fulfilled') setAttendanceLogs(attRes.value.data);
     } catch (err) {
-      console.error("Teacher schedule fetch failed", err);
+      console.error("Teacher dashboard data fetch error", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleAttendance = (id) => {
-    setMarkedStudents(markedStudents.map(student =>
-      student.id === id ? { ...student, present: !student.present } : student
-    ));
+  const fetchStudentsForCourse = async (courseId) => {
+    if (!courseId) return;
+    try {
+      const res = await api.get(`/courses/${courseId}`);
+      if (res.data && res.data.enrolledStudents) {
+        const list = Array.isArray(res.data.enrolledStudents) ? res.data.enrolledStudents : [];
+        setEnrolledStudents(list);
+
+        // Initialize status map to Present by default
+        const initStatus = {};
+        list.forEach(s => {
+          const sId = typeof s === 'object' ? s._id : s;
+          initStatus[sId] = 'Present';
+        });
+        setRollCallStatus(initStatus);
+      }
+    } catch (err) {
+      console.error("Error fetching students for course", err);
+      if (stats.studentsList && stats.studentsList.length > 0) {
+        setEnrolledStudents(stats.studentsList);
+        const initStatus = {};
+        stats.studentsList.forEach(s => { initStatus[s._id] = 'Present'; });
+        setRollCallStatus(initStatus);
+      }
+    }
   };
 
-  const handleSubmitAttendance = (e) => {
+  const handleCourseChange = (e) => {
+    const courseId = e.target.value;
+    setSelectedCourse(courseId);
+    fetchStudentsForCourse(courseId);
+  };
+
+  const toggleStudentStatus = (studentId) => {
+    setRollCallStatus(prev => ({
+      ...prev,
+      [studentId]: prev[studentId] === 'Present' ? 'Absent' : 'Present'
+    }));
+  };
+
+  const handleSubmitRollCall = async (e) => {
     e.preventDefault();
-    // Simulate API request trigger
-    toast.success("Attendance logged successfully! Parents have been notified via automated email alert.");
+    if (!selectedCourse) {
+      toast.error("Please select a course for roll call.");
+      return;
+    }
+    if (enrolledStudents.length === 0) {
+      toast.error("No enrolled students found for this course.");
+      return;
+    }
+
+    setSavingAttendance(true);
+    try {
+      const records = enrolledStudents.map(student => {
+        const studentId = typeof student === 'object' ? student._id : student;
+        return {
+          studentId,
+          status: rollCallStatus[studentId] || 'Present'
+        };
+      });
+
+      const res = await api.post('/attendance/mark-batch', {
+        courseId: selectedCourse,
+        records
+      });
+
+      toast.success(res.data.message || "Attendance recorded successfully!");
+      const attRes = await api.get('/attendance/teacher');
+      if (attRes.data) setAttendanceLogs(attRes.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to save roll call attendance.");
+    } finally {
+      setSavingAttendance(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
+      {/* Hero Banner */}
+      <DashboardHero
+        user={user}
+        roleBadge="Teacher"
+        quickActions={
+          <button
+            onClick={() => navigate('/courses')}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg cursor-pointer"
+          >
+            <FaBookOpen /> Manage My Courses
+          </button>
+        }
+      />
+
       {/* Stats Ribbon */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-purple-50 text-lumina-purple rounded-lg">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
+          <div className="p-4 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform">
             <FaVideo className="text-2xl" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-500">My Courses</p>
-            <h3 className="text-2xl font-bold text-gray-800">{stats.coursesCount}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">My Courses</p>
+            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.coursesCount}</h3>
+            <span className="text-4xs text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded-full inline-block mt-1">Assigned Classes</span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-purple-50 text-lumina-purple rounded-lg">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
+          <div className="p-4 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-110 transition-transform">
             <FaUserGraduate className="text-2xl" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-500">Total Students</p>
-            <h3 className="text-2xl font-bold text-gray-800">{stats.studentsCount}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Students</p>
+            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.studentsCount}</h3>
+            <span className="text-4xs text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full inline-block mt-1">Active Enrolled</span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-yellow-50 text-yellow-500 rounded-lg">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
+          <div className="p-4 bg-amber-50 text-amber-500 rounded-xl group-hover:scale-110 transition-transform">
             <FaStar className="text-2xl" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-500">Average Rating</p>
-            <h3 className="text-2xl font-bold text-gray-800">{stats.rating} / 5.0</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Average Rating</p>
+            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.rating} / 5.0</h3>
+            <span className="text-4xs text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-full inline-block mt-1">Course Reviews</span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-indigo-50 text-indigo-600 rounded-lg">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
+          <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">
             <FaClock className="text-2xl" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-500">Classes Scheduled</p>
-            <h3 className="text-2xl font-bold text-gray-800">{schedule.length}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Scheduled Classes</p>
+            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{schedule.length}</h3>
+            <span className="text-4xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1">Timetable Sessions</span>
           </div>
         </div>
       </div>
 
-      {/* Main Grid */}
+      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Left Side: Timetable Schedule */}
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm lg:col-span-2 flex flex-col justify-between">
+        {/* Timetable Schedule */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs lg:col-span-2 flex flex-col justify-between">
           <div>
-            <h3 className="font-bold text-gray-800 text-lg mb-1">My Timetable</h3>
-            <p className="text-xs text-gray-400 mb-4">Timetable entries for courses assigned to you</p>
+            <h3 className="font-bold text-slate-800 text-lg mb-1">My Timetable</h3>
+            <p className="text-xs text-slate-400 mb-4">Recurring class timetable assigned to your lectures</p>
 
-            <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
               {schedule && schedule.length > 0 ? (
                 schedule.map((sch) => (
-                  <div key={sch._id} className="flex justify-between items-center p-3 rounded-lg border border-gray-50 hover:bg-gray-50/50 transition">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-indigo-50 text-indigo-600 font-bold px-3 py-1.5 rounded-lg text-xs min-w-[80px] text-center">
+                  <div key={sch._id} className="flex justify-between items-center p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50/80 transition">
+                    <div className="flex items-center gap-3.5">
+                      <div className="bg-indigo-50 text-indigo-700 font-bold px-3 py-1.5 rounded-xl text-xs min-w-[75px] text-center uppercase">
                         {sch.dayOfWeek}
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-gray-800">{sch.title}</h4>
-                        <p className="text-2xs text-gray-500 font-medium">
+                        <h4 className="text-sm font-bold text-slate-800">{sch.title}</h4>
+                        <p className="text-4xs text-slate-500 font-semibold mt-0.5">
                           🕒 {sch.startTime} - {sch.endTime} | 📍 Room: {sch.room}
                         </p>
                       </div>
                     </div>
-                    <span className="text-3xs font-bold bg-purple-50 text-lumina-purple px-3 py-1 rounded-full uppercase">
+                    <span className="text-4xs font-bold bg-purple-50 text-purple-700 px-3 py-1 rounded-full uppercase">
                       {sch.className}
                     </span>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 text-gray-400 italic">
+                <div className="text-center py-12 text-slate-400 italic text-xs">
                   No upcoming classes scheduled. Contact administrators to link your courses.
                 </div>
               )}
@@ -710,91 +873,104 @@ const TeacherDashboard = ({ user }) => {
           </div>
         </div>
 
-        {/* Right Side: Column for Forms and Real-time Logs */}
+        {/* Attendance Roll Call & Live Check-ins */}
         <div className="space-y-6 lg:col-span-1">
-          {/* Quick Attendance Logging Mockup */}
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
-            <form onSubmit={handleSubmitAttendance} className="space-y-4">
+          {/* Quick Roll Call Helper */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
+            <form onSubmit={handleSubmitRollCall} className="space-y-4">
               <div>
-                <h3 className="font-bold text-gray-800 text-lg">Record Attendance</h3>
-                <p className="text-xs text-gray-400">Quick logging helper tool for teachers</p>
+                <h3 className="font-bold text-slate-800 text-lg">Record Course Roll-Call</h3>
+                <p className="text-xs text-slate-400">Save real-time class attendance to database</p>
               </div>
 
               <div>
-                <label className="block text-3xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Select Class/Batch</label>
+                <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Select Course</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs bg-white outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
                   value={selectedCourse}
-                  onChange={(e) => setSelectedCourse(e.target.value)}
+                  onChange={handleCourseChange}
                 >
                   {stats.coursesList?.length > 0 ? (
                     stats.coursesList.map(c => (
-                      <option key={c.id} value={c.id}>{c.title}</option>
+                      <option key={c._id || c.id} value={c._id || c.id}>{c.title}</option>
                     ))
                   ) : (
-                    <option value="">No Course Linked</option>
+                    <option value="">No Courses Assigned</option>
                   )}
                 </select>
               </div>
 
-              <div className="space-y-2 border border-gray-100 rounded-lg p-2 max-h-[170px] overflow-y-auto">
-                <span className="block text-4xs font-bold text-gray-400 uppercase tracking-widest px-1">Roll Call</span>
-                {markedStudents.map(student => (
-                  <div key={student.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md">
-                    <span className="text-xs font-semibold text-gray-700">{student.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleAttendance(student.id)}
-                      className={`p-1 px-3 rounded-full text-4xs font-extrabold uppercase transition cursor-pointer
-                        ${student.present
-                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                          : 'bg-red-50 text-red-600 border border-red-200'}`}
-                    >
-                      {student.present ? "Present" : "Absent"}
-                    </button>
-                  </div>
-                ))}
+              <div className="space-y-2 border border-slate-100 rounded-xl p-2.5 max-h-[180px] overflow-y-auto">
+                <span className="block text-4xs font-extrabold text-slate-400 uppercase tracking-wider px-1">
+                  Enrolled Students ({enrolledStudents.length})
+                </span>
+                {enrolledStudents.length > 0 ? (
+                  enrolledStudents.map(student => {
+                    const studentId = typeof student === 'object' ? student._id : student;
+                    const studentName = typeof student === 'object' ? student.name : `Student (${studentId.slice(-4)})`;
+                    const isPresent = rollCallStatus[studentId] === 'Present';
+
+                    return (
+                      <div key={studentId} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-lg">
+                        <span className="text-xs font-semibold text-slate-700 truncate max-w-[140px]">{studentName}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleStudentStatus(studentId)}
+                          className={`p-1 px-3 rounded-full text-4xs font-extrabold uppercase transition cursor-pointer
+                            ${isPresent
+                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                              : 'bg-red-50 text-red-600 border border-red-200'}`}
+                        >
+                          {isPresent ? "Present" : "Absent"}
+                        </button>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-xs text-slate-400 italic text-center py-4">No enrolled students in this course</p>
+                )}
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-lumina-purple hover:bg-purple-800 text-white font-bold text-xs py-3 rounded-lg transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                disabled={savingAttendance || enrolledStudents.length === 0}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 rounded-xl transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shadow-md"
               >
-                <FaCheck /> Save Attendance
+                <FaCheck /> {savingAttendance ? "Saving..." : "Save Roll-Call"}
               </button>
             </form>
           </div>
 
-          {/* Live Check-ins Box */}
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 text-lg mb-1 flex items-center gap-2">
+          {/* Live Check-in Stream */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
+            <h3 className="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
-              Recent Arrivals
+              Recent Arrivals Stream
             </h3>
-            <p className="text-xs text-gray-400 mb-4">Real-time check-ins for your classes</p>
+            <p className="text-xs text-slate-400 mb-3">Real-time attendance entries for your lectures</p>
 
-            <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
               {attendanceLogs && attendanceLogs.length > 0 ? (
                 attendanceLogs.slice(0, 5).map((log) => (
-                  <div key={log._id} className="flex justify-between items-center p-2.5 rounded-lg border border-gray-50 hover:bg-gray-50 transition">
+                  <div key={log._id} className="flex justify-between items-center p-2.5 rounded-xl border border-slate-50 hover:bg-slate-50 transition">
                     <div>
-                      <h4 className="text-xs font-bold text-gray-800">{log.studentId?.name || 'Student'}</h4>
-                      <p className="text-4xs text-gray-400 font-medium mt-0.5">
-                        {log.scheduleId?.title || 'Class'} • {new Date(log.date).toLocaleDateString()}
+                      <h4 className="text-xs font-bold text-slate-800">{log.studentId?.name || 'Student'}</h4>
+                      <p className="text-4xs text-slate-400 font-medium mt-0.5">
+                        {log.scheduleId?.title || log.courseId?.title || 'Class'} • {new Date(log.date).toLocaleDateString()}
                       </p>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-4xs font-extrabold uppercase ${log.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-                        'bg-red-50 text-red-600 border border-red-200'
+                      'bg-red-50 text-red-600 border border-red-200'
                       }`}>
                       {log.status}
                     </span>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-450 italic text-xs">
+                <div className="text-center py-6 text-slate-400 italic text-xs">
                   No physical arrivals recorded yet.
                 </div>
               )}
@@ -811,141 +987,168 @@ const TeacherDashboard = ({ user }) => {
 //            STUDENT DASHBOARD
 // ==========================================
 const StudentDashboard = ({ user }) => {
-  const [stats, setStats] = useState({ coursesCount: 0, grade: 'Grade 10', enrolledCoursesList: [] });
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    coursesCount: 0,
+    grade: 'Grade 10',
+    enrolledCoursesList: [],
+    payments: [],
+    latestReceipt: null,
+    attendanceStats: { percentage: 100 },
+    announcements: []
+  });
   const [schedule, setSchedule] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [attendance, setAttendance] = useState([]);
-  const [attendancePercentage, setAttendancePercentage] = useState(100);
+  const [loading, setLoading] = useState(true);
 
-  // Mock Notification Alert State
-  const [showInvoiceMock, setShowInvoiceMock] = useState(false);
+  // Modal State
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   useEffect(() => {
-    fetchStudentStats();
-    fetchStudentSchedule();
-    fetchStudentAttendance();
+    fetchStudentData();
   }, []);
 
-  const fetchStudentAttendance = async () => {
+  const fetchStudentData = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/attendance/my');
-      setAttendance(res.data);
-      if (res.data.length > 0) {
-        const presentCount = res.data.filter(r => r.status === 'Present').length;
-        const pct = Math.round((presentCount / res.data.length) * 100);
-        setAttendancePercentage(pct);
-      } else {
-        setAttendancePercentage(100);
+      const [statsRes, schedRes, attRes] = await Promise.allSettled([
+        api.get('/auth/student-stats'),
+        api.get('/schedule'),
+        api.get('/attendance/my')
+      ]);
+
+      if (statsRes.status === 'fulfilled' && statsRes.value.data) {
+        setStats(statsRes.value.data);
       }
+      if (schedRes.status === 'fulfilled') setSchedule(schedRes.value.data);
+      if (attRes.status === 'fulfilled') setAttendance(attRes.value.data);
     } catch (err) {
-      console.error("Student attendance fetch failed", err);
-    }
-  };
-
-  const fetchStudentStats = async () => {
-    try {
-      const res = await api.get('/auth/student-stats');
-      setStats(res.data);
-    } catch (err) {
-      console.error("Student stats fetch failed", err);
-    }
-  };
-
-  const fetchStudentSchedule = async () => {
-    try {
-      const res = await api.get('/schedule');
-      setSchedule(res.data);
-    } catch (err) {
-      console.error("Student schedule fetch failed", err);
+      console.error("Student dashboard data fetch error", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Determine continue learning card course title
-  const activeCourseTitle = stats.enrolledCoursesList?.length > 0
-    ? stats.enrolledCoursesList[0].title
-    : "No Registered Course Enrolled";
+  const activeCourse = stats.enrolledCoursesList?.length > 0 ? stats.enrolledCoursesList[0] : null;
 
   return (
-    <div className="space-y-6">
-      {/* Continuing learning card */}
-      <div className="bg-gradient-to-r from-indigo-900 to-purple-850 rounded-xl shadow-lg p-7 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        {/* Subtle geometric circles */}
-        <div className="absolute right-0 top-0 w-44 h-44 bg-white/5 rounded-full blur-2xl transform translate-x-12 -translate-y-12"></div>
+    <div className="space-y-6 animate-fade-in">
+      {/* Hero Banner */}
+      <DashboardHero
+        user={user}
+        roleBadge={`Student • ${stats.grade || user.grade || 'Grade 10'}`}
+        quickActions={
+          <button
+            onClick={() => navigate('/courses')}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg cursor-pointer"
+          >
+            <FaBookOpen /> Browse All Courses
+          </button>
+        }
+      />
 
-        <div className="relative z-5">
-          <span className="bg-white/20 border border-white/10 px-3.5 py-1 rounded-full text-4xs font-extrabold uppercase tracking-widest mb-3 inline-block">
-            Resume Course
+      {/* Continue Learning Course Hero Card */}
+      <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-indigo-950 rounded-2xl shadow-xl p-7 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden border border-purple-900/30">
+        <div className="absolute right-0 top-0 w-56 h-56 bg-purple-500/10 rounded-full blur-3xl transform translate-x-12 -translate-y-12 pointer-events-none" />
+
+        <div className="relative z-10 max-w-xl">
+          <span className="bg-purple-500/25 border border-purple-400/30 px-3.5 py-1 rounded-full text-4xs font-extrabold uppercase tracking-widest mb-3 inline-block">
+            Resume Course Progress
           </span>
-          <h2 className="text-2xl font-bold mb-1.5 tracking-tight">{activeCourseTitle}</h2>
-          <p className="text-purple-200 text-xs mb-4">Module 1: General Core Lectures</p>
+          <h2 className="text-2xl font-extrabold mb-1.5 tracking-tight text-white">
+            {activeCourse ? activeCourse.title : "No Active Enrolled Course"}
+          </h2>
+          <p className="text-purple-200/80 text-xs mb-4">
+            {activeCourse ? (activeCourse.description || "Course modules and lecture videos available.") : "Enroll in courses to unlock live learning modules."}
+          </p>
 
-          <div className="w-56 h-1.5 bg-indigo-950/80 rounded-full overflow-hidden mb-2">
-            <div className="bg-indigo-400 h-full w-[35%] rounded-full animate-pulse"></div>
+          <div className="w-64 h-2 bg-slate-950/80 rounded-full overflow-hidden mb-2 border border-white/10">
+            <div
+              className="bg-gradient-to-r from-purple-400 to-indigo-400 h-full rounded-full transition-all duration-1000"
+              style={{ width: `${activeCourse ? (activeCourse.progress || 45) : 0}%` }}
+            />
           </div>
-          <p className="text-4xs text-purple-200 font-bold uppercase tracking-wider">35% Completed</p>
+          <p className="text-4xs text-purple-200 font-extrabold uppercase tracking-wider">
+            {activeCourse ? `${activeCourse.progress || 45}% Completed` : '0% Completed'}
+          </p>
         </div>
 
-        {stats.enrolledCoursesList?.length > 0 ? (
-          <button className="bg-white text-indigo-900 hover:bg-gray-150 px-6 py-3 rounded-lg font-bold text-xs transition shadow-lg flex items-center gap-1.5 cursor-pointer relative z-5 active:scale-95">
-            <FaPlayCircle className="text-base" /> Resume Learning
+        {activeCourse ? (
+          <button
+            onClick={() => navigate('/courses')}
+            className="bg-white text-slate-900 hover:bg-slate-150 px-6 py-3.5 rounded-xl font-bold text-xs transition shadow-lg flex items-center gap-2 cursor-pointer relative z-10 active:scale-95"
+          >
+            <FaPlayCircle className="text-base text-purple-700" /> Resume Learning
           </button>
         ) : (
-          <span className="text-xs text-white/50 italic">Enroll in a course from administration to begin learning</span>
+          <button
+            onClick={() => navigate('/courses')}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-xl font-bold text-xs transition shadow-lg flex items-center gap-2 cursor-pointer relative z-10"
+          >
+            Explore Course Offerings
+          </button>
         )}
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Stats Ribbon */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Enrolled Courses count */}
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
-          <div className="p-4 bg-purple-50 text-lumina-purple rounded-lg">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all">
+          <div className="p-4 bg-purple-50 text-purple-600 rounded-xl">
             <FaTrophy className="text-2xl" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-500">Enrolled Courses</p>
-            <h3 className="text-2xl font-bold text-gray-800">{stats.coursesCount}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Enrolled Courses</p>
+            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.coursesCount}</h3>
+            <span className="text-4xs text-emerald-700 font-extrabold bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full inline-block mt-1">Active Classes</span>
           </div>
         </div>
 
-        {/* Circular attendance indicator */}
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+        {/* Circular Attendance Indicator */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-semibold text-gray-500">Attendance Rating</h4>
-            <p className="text-3xs text-gray-450 font-medium mt-1">
-              Logged: {attendance.length} class{attendance.length !== 1 ? 'es' : ''}
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Attendance Rating</h4>
+            <p className="text-3xs text-slate-500 font-semibold mt-1">
+              Logged: {attendance.length} class session{attendance.length !== 1 ? 's' : ''}
             </p>
-            <p className="text-4xs text-gray-400 mt-1">
+            <p className="text-4xs text-slate-400 font-medium mt-1">
               Present: {attendance.filter(r => r.status === 'Present').length} | Absent: {attendance.filter(r => r.status === 'Absent').length}
             </p>
           </div>
-          <AttendanceRing percentage={attendancePercentage} />
+          <AttendanceRing percentage={stats.attendanceStats?.percentage || 100} />
         </div>
 
-        {/* Fees status mockup widget */}
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        {/* Tuition Fees Status */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
-              <h4 className="text-sm font-semibold text-gray-500">Tuition Fees Status</h4>
-              <p className="text-3xs text-gray-450 font-medium mt-0.5">July Monthly Fees due</p>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Tuition Fees Status</h4>
+              <p className="text-3xs text-slate-500 font-semibold mt-0.5">
+                {stats.latestReceipt ? `Last Paid: ${new Date(stats.latestReceipt.date).toLocaleDateString()}` : 'Monthly Tuition Record'}
+              </p>
             </div>
-            <span className="text-4xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">
-              Paid ✅
+            <span className="text-4xs font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+              {stats.latestReceipt ? 'Paid ✅' : 'Up to Date'}
             </span>
           </div>
 
-          <div className="mt-4 flex justify-between items-center bg-gray-50 rounded-lg p-2.5">
+          <div className="mt-4 flex justify-between items-center bg-slate-50 rounded-xl p-3 border border-slate-100">
             <div>
-              <p className="text-3xs font-bold text-gray-800">July Fees Receipt</p>
-              <p className="text-4xs text-gray-400">LKR 2,500.00 | Paid 05/07</p>
+              <p className="text-xs font-bold text-slate-800">
+                {stats.latestReceipt ? `Receipt #${stats.latestReceipt.receiptNo}` : 'Monthly Fee Status'}
+              </p>
+              <p className="text-4xs text-slate-400 font-semibold mt-0.5">
+                {stats.latestReceipt ? `LKR ${stats.latestReceipt.amount.toLocaleString()}` : 'No Pending Dues'}
+              </p>
             </div>
-            <button
-              onClick={() => setShowInvoiceMock(true)}
-              className="text-lumina-purple hover:underline text-3xs font-extrabold cursor-pointer"
-            >
-              View Receipt
-            </button>
+            {stats.latestReceipt && (
+              <button
+                onClick={() => setShowInvoiceModal(true)}
+                className="text-purple-700 hover:text-purple-900 text-3xs font-extrabold bg-purple-50 px-3 py-1.5 rounded-lg cursor-pointer transition"
+              >
+                View Receipt
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -953,36 +1156,36 @@ const StudentDashboard = ({ user }) => {
       {/* TIMETABLE & ANNOUNCEMENTS SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Timetable List filtered for student grade */}
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm lg:col-span-2 flex flex-col justify-between">
+        {/* Timetable List */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs lg:col-span-2 flex flex-col justify-between">
           <div>
-            <h3 className="font-bold text-gray-800 text-lg mb-1">My Timetable ({stats.grade})</h3>
-            <p className="text-xs text-gray-400 mb-4">Timetable classes matching your registered grade</p>
+            <h3 className="font-bold text-slate-800 text-lg mb-1">My Timetable ({stats.grade})</h3>
+            <p className="text-xs text-slate-400 mb-4">Timetable classes matching your registered grade</p>
 
-            <div className="space-y-3.5 max-h-[300px] overflow-y-auto">
+            <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
               {schedule && schedule.length > 0 ? (
                 schedule.map((sch) => (
-                  <div key={sch._id} className="flex justify-between items-center p-3 rounded-lg border border-gray-50 hover:bg-purple-50/10 transition">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-purple-50 text-lumina-purple font-bold px-3 py-1.5 rounded-lg text-xs min-w-[70px] text-center uppercase">
-                        {sch.dayOfWeek.slice(0, 3)}
+                  <div key={sch._id} className="flex justify-between items-center p-3.5 rounded-xl border border-slate-100 hover:bg-purple-50/10 transition">
+                    <div className="flex items-center gap-3.5">
+                      <div className="bg-purple-50 text-purple-700 font-bold px-3 py-1.5 rounded-xl text-xs min-w-[70px] text-center uppercase">
+                        {sch.dayOfWeek ? sch.dayOfWeek.slice(0, 3) : 'DAY'}
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-gray-800">{sch.title}</h4>
-                        <p className="text-2xs text-gray-500 font-medium mt-0.5">
+                        <h4 className="text-sm font-bold text-slate-800">{sch.title}</h4>
+                        <p className="text-4xs text-slate-500 font-semibold mt-0.5">
                           🕒 {sch.startTime} - {sch.endTime} | 📍 Room: {sch.room}
                         </p>
                       </div>
                     </div>
                     {sch.teacherId && (
-                      <span className="text-3xs font-bold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                      <span className="text-4xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
                         👨‍🏫 {sch.teacherId.name}
                       </span>
                     )}
                   </div>
                 ))
               ) : (
-                <div className="text-center py-10 text-gray-400 italic">
+                <div className="text-center py-10 text-slate-400 italic text-xs">
                   No classes scheduled for your grade ({stats.grade}) this week.
                 </div>
               )}
@@ -990,7 +1193,7 @@ const StudentDashboard = ({ user }) => {
           </div>
         </div>
 
-        {/* Announcements + Attendance Side Column */}
+        {/* Announcements & Check-in Log */}
         <div className="space-y-6 lg:col-span-1">
           {/* Digital QR Student ID Card */}
           <StudentIdCard user={user} />
@@ -1009,37 +1212,49 @@ const StudentDashboard = ({ user }) => {
                   <span className="text-4xs text-gray-400 mt-1 block">Just now</span>
                 </div>
 
-                <div className="border-l-3 border-gray-300 pl-3">
-                  <h4 className="text-xs font-bold text-gray-850">Monthly Exams - Term 2</h4>
-                  <p className="text-3xs text-gray-500 mt-0.5">Term 2 evaluation exams for Grade 10-12 batches will begin on July 25th.</p>
-                  <span className="text-4xs text-gray-400 mt-1 block">2 days ago</span>
+            <div className="space-y-3.5">
+              {stats.announcements && stats.announcements.length > 0 ? (
+                stats.announcements.map((notif) => (
+                  <div key={notif._id} className="border-l-3 border-purple-600 pl-3 py-0.5">
+                    <h4 className="text-xs font-bold text-slate-800">{notif.title || 'Announcement'}</h4>
+                    <p className="text-4xs text-slate-500 mt-0.5 leading-relaxed">{notif.message}</p>
+                    <span className="text-4xs text-slate-400 mt-1 block font-medium">
+                      {new Date(notif.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="border-l-3 border-slate-300 pl-3">
+                  <h4 className="text-xs font-bold text-slate-800">Welcome to LuminaLearn</h4>
+                  <p className="text-4xs text-slate-500 mt-0.5">Official announcements from institute administration will appear here.</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* My Check-in Log widget */}
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 text-base mb-1">My Check-in Log</h3>
-            <p className="text-xs text-gray-400 mb-3">Your physical class entrance logs</p>
+          {/* Entrance Check-in Log */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
+            <h3 className="font-bold text-slate-800 text-base mb-1">My Check-in Log</h3>
+            <p className="text-xs text-slate-400 mb-3">Your physical entrance arrival records</p>
+
             <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
               {attendance && attendance.length > 0 ? (
                 attendance.slice(0, 5).map((log) => (
-                  <div key={log._id} className="flex justify-between items-center p-2 rounded-lg border border-gray-50 text-xs">
+                  <div key={log._id} className="flex justify-between items-center p-2.5 rounded-xl border border-slate-50 text-xs">
                     <div>
-                      <h4 className="font-bold text-gray-850">{log.scheduleId?.title || 'Class'}</h4>
-                      <p className="text-4xs text-gray-450">{new Date(log.date).toLocaleDateString()}</p>
+                      <h4 className="font-bold text-slate-800">{log.scheduleId?.title || log.courseId?.title || 'Class Session'}</h4>
+                      <p className="text-4xs text-slate-400 font-medium">{new Date(log.date).toLocaleDateString()}</p>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-4xs font-bold uppercase ${log.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                        'bg-red-50 text-red-600 border border-red-200'
+                    <span className={`px-2 py-0.5 rounded-full text-4xs font-bold uppercase ${log.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                      'bg-red-50 text-red-600 border border-red-200'
                       }`}>
                       {log.status}
                     </span>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-6 text-gray-450 italic text-xs">
-                  No physical arrivals logged yet.
+                <div className="text-center py-6 text-slate-400 italic text-xs">
+                  No physical entrance check-ins recorded yet.
                 </div>
               )}
             </div>
@@ -1048,42 +1263,49 @@ const StudentDashboard = ({ user }) => {
 
       </div>
 
-      {/* MOCK RECEIPT MODAL */}
-      {showInvoiceMock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-150 max-w-sm w-full mx-4 transform scale-100 transition-all duration-200">
-            <div className="text-center pb-4 border-b border-gray-100">
-              <h3 className="text-base font-bold text-gray-800">LuminaLearn Tuition Institute</h3>
-              <p className="text-3xs text-gray-400 font-medium">Receipt #LL-2026-0798</p>
+      {/* REAL PAYMENT RECEIPT MODAL */}
+      {showInvoiceModal && stats.latestReceipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-slate-100 max-w-sm w-full mx-4 transform scale-100 transition-all">
+            <div className="text-center pb-4 border-b border-slate-100">
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                <FaReceipt className="text-xl" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">LuminaLearn Tuition Institute</h3>
+              <p className="text-4xs text-slate-400 font-medium">Receipt #{stats.latestReceipt.receiptNo}</p>
             </div>
 
-            <div className="py-4 space-y-2.5 text-xs text-gray-600">
+            <div className="py-4 space-y-2.5 text-xs text-slate-600">
               <div className="flex justify-between font-medium">
                 <span>Student Name:</span>
-                <span className="text-gray-800">{user.name}</span>
+                <span className="text-slate-800 font-bold">{user?.name}</span>
               </div>
               <div className="flex justify-between font-medium">
                 <span>Registration No:</span>
-                <span className="text-gray-800">{user.registrationNumber || '-'}</span>
+                <span className="text-slate-800 font-bold">{user?.registrationNumber || '-'}</span>
               </div>
               <div className="flex justify-between font-medium">
                 <span>Payment Purpose:</span>
-                <span className="text-gray-800">Grade 10 Science (July Tuition)</span>
+                <span className="text-slate-800 font-bold">{stats.latestReceipt.courseTitle}</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span>Payment Method:</span>
+                <span className="text-slate-800 font-bold">{stats.latestReceipt.paymentMethod}</span>
               </div>
               <div className="flex justify-between font-medium">
                 <span>Date Paid:</span>
-                <span className="text-gray-800">05/07/2026</span>
+                <span className="text-slate-800 font-bold">{new Date(stats.latestReceipt.date).toLocaleDateString()}</span>
               </div>
-              <div className="flex justify-between font-medium border-t border-gray-100 pt-2 text-sm">
-                <span className="font-bold text-gray-800">Amount Paid:</span>
-                <span className="font-bold text-emerald-600">LKR 2,500.00</span>
+              <div className="flex justify-between font-medium border-t border-slate-100 pt-2.5 text-sm">
+                <span className="font-bold text-slate-800">Amount Paid:</span>
+                <span className="font-bold text-emerald-600">LKR {stats.latestReceipt.amount.toLocaleString()}</span>
               </div>
             </div>
 
-            <div className="flex justify-center border-t border-gray-100 pt-4">
+            <div className="flex justify-center border-t border-slate-100 pt-4">
               <button
-                onClick={() => setShowInvoiceMock(false)}
-                className="px-5 py-2 bg-lumina-purple hover:bg-purple-800 text-white font-bold rounded-lg text-xs transition cursor-pointer"
+                onClick={() => setShowInvoiceModal(false)}
+                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-md"
               >
                 Close Receipt
               </button>
@@ -1104,10 +1326,6 @@ const Dashboard = () => {
 
   return (
     <div className="w-full">
-      <h1 className="text-3xl font-extrabold text-gray-850 mb-6 tracking-tight">
-        {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Dashboard
-      </h1>
-
       {/* Role-Based Switchboard */}
       {user.role === 'admin' && <AdminDashboard user={user} />}
       {user.role === 'teacher' && <TeacherDashboard user={user} />}

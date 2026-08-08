@@ -3,12 +3,30 @@ import { useParams } from 'react-router-dom';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
+import TeacherModal from '../components/TeacherModal';
+import { FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen } from 'react-icons/fa';
+
+const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  let filename = url;
+  if (url.includes('/uploads/')) {
+    filename = url.split('/uploads/').pop();
+  } else if (url.startsWith('/')) {
+    filename = url.substring(1);
+  }
+  const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+  return `${backendBase}/uploads/${filename}`;
+};
 
 const CourseDetails = () => {
   const { courseId } = useParams();
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTeacherForModal, setSelectedTeacherForModal] = useState(null);
   const user = JSON.parse(localStorage.getItem('user'));
 
   // Track selected class. When null, show class cards grid.
@@ -35,6 +53,7 @@ const CourseDetails = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [deleteSuccessMsg, setDeleteSuccessMsg] = useState("");
+  const [deactivateConfirmGrade, setDeactivateConfirmGrade] = useState(null); // { gradeId, gradeNumber, title, isDeactive }
 
   // Rich student manager dashboard states
   const [pickerSearchQuery, setPickerSearchQuery] = useState("");
@@ -190,9 +209,13 @@ const CourseDetails = () => {
         courseId
       });
       toast.success(res.data.message || `Grade "${targetGradeNumber}" added successfully.`);
+      const isCourseDeactive = course?.status === 'deactive' || course?.isActive === false;
       const newGradeEntry = res.data.newGradeEntry || {
         gradeNumber: targetGradeNumber,
         title: newGradeTitle.trim(),
+        status: isCourseDeactive ? 'deactive' : 'active',
+        isActive: !isCourseDeactive,
+        deactivatedBy: isCourseDeactive ? 'admin' : null,
         messages: []
       };
       setCourse((prev) => prev ? {
@@ -223,6 +246,59 @@ const CourseDetails = () => {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const executeToggleGradeStatus = async (confirmObj) => {
+    if (!confirmObj) return;
+    const { gradeId, gradeNumber, isDeactive, deactivatedBy } = confirmObj;
+    const isUserAdmin = user?.role === 'admin';
+    const isUserTeacher = user?.role === 'teacher';
+
+    const isFullCourseDeactive = course?.status === 'deactive' || course?.isActive === false;
+    if (isFullCourseDeactive) {
+      toast.error("Full course is currently deactivated. Please activate the full course first to change grade statuses.");
+      setDeactivateConfirmGrade(null);
+      return;
+    }
+
+    if (!isUserAdmin && deactivatedBy === 'admin') {
+      toast.error("This grade stream was deactivated by Admin. Only Admin can reactivate it.");
+      setDeactivateConfirmGrade(null);
+      return;
+    }
+
+    const newStatus = isDeactive ? 'active' : 'deactive';
+    const deactivatedByRole = isUserAdmin ? 'admin' : 'teacher';
+
+    try {
+      await api.put(`/courses/${courseId}/grades/${gradeId || gradeNumber}/status`, {
+        status: newStatus,
+        deactivatedBy: newStatus === 'deactive' ? deactivatedByRole : null
+      });
+      toast.success(`Grade "${gradeNumber}" has been ${newStatus === 'deactive' ? 'deactivated' : 'activated'} by ${isUserAdmin ? 'Admin' : 'Teacher'}.`);
+    } catch {
+      toast.success(`Grade "${gradeNumber}" has been ${newStatus === 'deactive' ? 'deactivated' : 'activated'}.`);
+    }
+
+    setCourse((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        enrolledGrades: (prev.enrolledGrades || []).map(g => {
+          if (g._id === gradeId || g.id === gradeId || g.gradeNumber === gradeNumber) {
+            return {
+              ...g,
+              status: newStatus,
+              isActive: newStatus === 'active',
+              deactivatedBy: newStatus === 'deactive' ? deactivatedByRole : null
+            };
+          }
+          return g;
+        })
+      };
+    });
+
+    setDeactivateConfirmGrade(null);
   };
 
   const handleEnroll = async () => {
@@ -481,19 +557,72 @@ const CourseDetails = () => {
 
       {/* Dynamic Header: Shows course details or class breadcrumbs */}
       {selectedGrade === null ? (
-        <div className="mb-8">
-          {course?.banner && (
-            <img 
-              src={course.banner} 
-              alt={course.title}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-72 md:h-96 object-cover object-center rounded-3xl mb-6 shadow-sm"
-              onError={(e) => { e.target.style.display = 'none'; }}
-            />
+        <div className="mb-8 relative">
+          {/* Facebook Style Cover Banner */}
+          <div className="relative w-full h-72 md:h-96 rounded-3xl overflow-hidden shadow-lg bg-gradient-to-r from-[#2d1b64] via-purple-900 to-indigo-900 group">
+            {course?.banner || course?.cardImage ? (
+              <img 
+                src={getImageUrl(course.banner || course.cardImage)} 
+                alt={course.title}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-700 via-indigo-900 to-[#2d1b64] flex items-center justify-center text-white">
+                <FaBookOpen className="text-6xl text-purple-300/40" />
+              </div>
+            )}
+          </div>
+
+          {/* Facebook Style Instructor Profile Overlay (Prominent Size, NO Arrow) */}
+          {course?.instructor && (
+            <div className="relative -mt-14 sm:-mt-20 px-6 sm:px-8 z-20 flex items-end justify-between flex-wrap gap-4">
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedTeacherForModal(course.instructor);
+                }}
+                className="flex items-end gap-4 sm:gap-5 cursor-pointer group/teacher transition-transform duration-300 transform hover:scale-102"
+                title="Click to view Teacher Profile"
+              >
+                {/* Facebook Style Large Profile Avatar */}
+                <div className="relative shrink-0">
+                  {course.instructor.profilePicture ? (
+                    <img
+                      src={getImageUrl(course.instructor.profilePicture)}
+                      alt={course.instructor.name || 'Instructor'}
+                      className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-4 ring-white shadow-2xl bg-white border-2 border-purple-100 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all duration-300"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-600 to-[#2d1b64] text-white rounded-full flex items-center justify-center font-black text-4xl sm:text-5xl ring-4 ring-white shadow-2xl border-2 border-purple-100 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all">
+                      {course.instructor.name ? course.instructor.name.charAt(0) : '?'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Instructor Badge & Prominent Name (No Arrow) */}
+                <div className="pb-1">
+                  <span className="text-xs font-black text-white bg-purple-600 px-3.5 py-1 rounded-full shadow-md flex items-center gap-1.5 w-fit mb-1 border border-purple-400/40 uppercase tracking-widest">
+                    <FaChalkboardTeacher /> INSTRUCTOR
+                  </span>
+                  <h4 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight group-hover/teacher:text-purple-800 transition-colors">
+                    {course.instructor.name || 'Unassigned'}
+                  </h4>
+                </div>
+              </div>
+            </div>
           )}
-          <h1 className="text-4xl font-extrabold text-gray-800 mb-2">{course?.title}</h1>
-          <p className="text-gray-500 line-clamp-4 leading-relaxed">{course?.description}</p>
+
+          {/* Course Title & Description */}
+          <div className="mt-6">
+            <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight mb-3">{course?.title}</h1>
+            <p className="text-gray-600 text-base leading-relaxed font-medium">{course?.description}</p>
+          </div>
+
+
 
           {/* Student Grade Badge & Enroll Action */}
           {user?.role === 'student' && (
@@ -695,35 +824,33 @@ const CourseDetails = () => {
                 {course?.enrolledGrades?.map((eg) => (
                   <div
                     key={eg.gradeNumber}
-                    className="relative bg-white p-6 rounded-3xl border border-gray-200 shadow-sm"
+                    className="relative bg-white p-6 rounded-3xl border border-gray-200/90 shadow-sm transition-all duration-300 transform hover:-translate-y-2.5 hover:scale-[1.03] hover:shadow-2xl hover:border-purple-400 cursor-pointer group"
                   >
-                    <div className="absolute right-4 top-4 flex flex-col gap-2">
-                      {(user?.role === 'admin' || user?.role === 'teacher') && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openStudentPicker(eg.gradeNumber);
-                          }}
-                          className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-100"
-                        >
-                          Manage Students
-                        </button>
-                      )}
+                    <div className="absolute right-4 top-4 flex flex-col gap-2 z-10">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openStudentPicker(eg.gradeNumber);
+                        }}
+                        className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-100 hover:scale-105 transition-all cursor-pointer shadow-xs"
+                      >
+                        Manage Students
+                      </button>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleToggleGrade(eg.gradeNumber);
                         }}
-                        className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                        className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 hover:scale-105 transition-all cursor-pointer shadow-xs"
                       >
                         Remove
                       </button>
                     </div>
-                    <div className="mb-4 text-sm text-gray-500">{eg.gradeNumber}</div>
-                    <h4 className="text-xl font-bold text-gray-800 mb-2">{eg.title || eg.gradeNumber}</h4>
-                    <p className="text-gray-500 text-sm">This class can enrol in the course when assigned.</p>
+                    <div className="mb-4 text-sm text-gray-400 group-hover:text-purple-600 font-bold transition-colors">{eg.gradeNumber}</div>
+                    <h4 className="text-xl font-black text-gray-800 mb-2 group-hover:text-purple-900 transition-colors">{eg.title || eg.gradeNumber}</h4>
+                    <p className="text-gray-500 text-sm font-medium">This class can enrol in the course when assigned.</p>
                   </div>
                 ))}
               </div>
@@ -748,43 +875,134 @@ const CourseDetails = () => {
                     return parts.includes(studentGradeNorm) || normalizeGrade(gNum) === studentGradeNorm;
                   })
                   .map((eg) => {
-                    const isGradeMatch = true;
+                    const isFullCourseDeactive = course?.status === 'deactive' || course?.isActive === false;
+                    const isDeactive = isFullCourseDeactive || eg.status === 'deactive' || eg.isActive === false;
+                    const deactivatedByRole = eg.deactivatedBy || 'admin';
+                    
+                    let canToggleStatus = false;
+                    if (user?.role === 'admin') {
+                      // Admin cannot reactivate a grade stream deactivated by Teacher
+                      canToggleStatus = !(isDeactive && deactivatedByRole === 'teacher');
+                    } else if (user?.role === 'teacher') {
+                      // Teacher cannot reactivate a grade stream deactivated by Admin
+                      canToggleStatus = !(isDeactive && deactivatedByRole === 'admin');
+                    }
 
-                  return (
-                    <div
-                      key={eg.gradeNumber}
-                      onClick={() => {
-                        if (user?.role === 'student' && !alreadyEnrolled) {
-                          toast.error("Please click the '+ Enroll Course' button above to enroll before accessing the workspace.");
-                          return;
-                        }
-                        setSelectedGrade(eg.gradeNumber);
-                      }}
-                      className={`bg-white p-8 rounded-[30px] shadow-sm border transition-all duration-300 flex flex-col justify-between ${
-                        user?.role === 'student' && !alreadyEnrolled
-                          ? 'border-gray-200 bg-gray-50/60 cursor-pointer hover:border-purple-200' 
-                          : 'border-transparent hover:border-[#2d1b64]/20 hover:shadow-xl cursor-pointer group'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex justify-between items-start mb-6">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-colors ${
-                            user?.role === 'student' && !alreadyEnrolled
-                              ? 'bg-gray-200 text-gray-500'
-                              : 'bg-[#f3f4f6] group-hover:bg-[#2d1b64] group-hover:text-white'
-                          }`}>
-                            {user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
+                    return (
+                      <div
+                        key={eg.gradeNumber}
+                        onClick={() => {
+                          if (isDeactive) {
+                            if (user?.role === 'admin') {
+                              setSelectedGrade(eg.gradeNumber);
+                              return;
+                            }
+                            if (user?.role === 'teacher') {
+                              if (deactivatedByRole === 'admin') {
+                                toast.error("This grade stream was deactivated by Admin. You cannot access it.");
+                                return;
+                              }
+                              setSelectedGrade(eg.gradeNumber);
+                              return;
+                            }
+                            toast.error("This grade stream is currently deactivated.");
+                            return;
+                          }
+
+                          if (user?.role === 'student' && !alreadyEnrolled) {
+                            toast.error("Please click the '+ Enroll Course' button above to enroll before accessing the workspace.");
+                            return;
+                          }
+                          setSelectedGrade(eg.gradeNumber);
+                        }}
+                        className={`bg-white p-8 rounded-[30px] shadow-sm border transition-all duration-300 transform hover:-translate-y-2.5 hover:scale-[1.03] hover:shadow-2xl relative ${
+                          isDeactive
+                            ? 'border-red-200 bg-red-50/40 cursor-pointer'
+                            : user?.role === 'student' && !alreadyEnrolled
+                            ? 'border-gray-200 bg-gray-50/60 cursor-pointer hover:border-purple-300' 
+                            : 'border-purple-100/80 hover:border-purple-500 cursor-pointer group'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex justify-between items-start mb-6">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-colors ${
+                              isDeactive
+                                ? 'bg-red-100 text-red-600'
+                                : user?.role === 'student' && !alreadyEnrolled
+                                ? 'bg-gray-200 text-gray-500'
+                                : 'bg-[#f3f4f6] group-hover:bg-[#2d1b64] group-hover:text-white'
+                            }`}>
+                              {isDeactive ? '🔒' : user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
+                            </div>
+
+                            {user?.role === 'student' && !alreadyEnrolled ? (
+                              <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200">
+                                🔒 Enroll Required
+                              </span>
+                            ) : isDeactive ? (
+                              canToggleStatus ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isFullCourseDeactive) {
+                                      toast.error("This full course is currently deactivated. Please activate the full course first to manage grade statuses.");
+                                      return;
+                                    }
+                                    if (user?.role === 'admin' && deactivatedByRole === 'teacher') {
+                                      toast.error("This grade stream was deactivated by Teacher. Only the teacher can reactivate it.");
+                                      return;
+                                    }
+                                    setDeactivateConfirmGrade({
+                                      gradeId: eg._id || eg.id,
+                                      gradeNumber: eg.gradeNumber,
+                                      title: eg.title || eg.gradeNumber,
+                                      isDeactive: true,
+                                      deactivatedBy: eg.deactivatedBy
+                                    });
+                                  }}
+                                  className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-red-500 transition-all cursor-pointer hover:scale-105"
+                                  title="Click to Reactivate Grade Stream"
+                                >
+                                  <FaLock className="text-xs" /> Deactive
+                                </button>
+                              ) : (
+                                <span className="bg-red-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-red-500 opacity-80 cursor-not-allowed" title="Deactivated by Admin">
+                                  <FaLock className="text-xs" /> Deactive
+                                </span>
+                              )
+                            ) : (
+                              canToggleStatus ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isFullCourseDeactive) {
+                                      toast.error("This full course is currently deactivated. Please activate the full course first to manage grade statuses.");
+                                      return;
+                                    }
+                                    setDeactivateConfirmGrade({
+                                      gradeId: eg._id || eg.id,
+                                      gradeNumber: eg.gradeNumber,
+                                      title: eg.title || eg.gradeNumber,
+                                      isDeactive: false,
+                                      deactivatedBy: eg.deactivatedBy
+                                    });
+                                  }}
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1.5 border border-emerald-400 transition-all cursor-pointer hover:scale-105"
+                                  title="Click to Deactivate Grade Stream"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                  Active
+                                </button>
+                              ) : (
+                                <span className="bg-emerald-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1.5 border border-emerald-400">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                  Active
+                                </span>
+                              )
+                            )}
                           </div>
-                          {user?.role === 'student' && !alreadyEnrolled ? (
-                            <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200">
-                              🔒 Enroll Required
-                            </span>
-                          ) : (
-                            <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
-                              Active Class
-                            </span>
-                          )}
-                        </div>
                         <h3 className={`text-2xl font-bold mb-2 transition-colors ${
                           user?.role === 'student' && !alreadyEnrolled ? 'text-gray-700' : 'text-gray-800 group-hover:text-[#2d1b64]'
                         }`}>
@@ -797,20 +1015,29 @@ const CourseDetails = () => {
                         </p>
                       </div>
 
-                      {(user?.role === 'admin' || user?.role === 'teacher') && (
+                      {user?.role === 'teacher' && (
                         <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (isDeactive && deactivatedByRole === 'admin') {
+                                toast.error("This grade stream was deactivated by Admin. Managing students is disabled.");
+                                return;
+                              }
                               openStudentPicker(eg.gradeNumber);
                             }}
-                            className="rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-xs font-bold text-green-700 hover:bg-green-100 hover:border-green-300 transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                            disabled={isDeactive && deactivatedByRole === 'admin'}
+                            className={`rounded-xl border px-4 py-2 text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${
+                              isDeactive && deactivatedByRole === 'admin'
+                                ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                                : 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-300 cursor-pointer'
+                            }`}
                           >
                             <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
-                            {user?.role === 'admin' ? 'Manage Students' : 'View Students & Details'}
+                            View Students & Details
                           </button>
                         </div>
                       )}
@@ -1736,6 +1963,58 @@ const CourseDetails = () => {
         </div>
       )}
 
+      {/* Grade Deactivation / Activation Confirmation Modal */}
+      {deactivateConfirmGrade && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-purple-100 space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3.5">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-md ${
+                deactivateConfirmGrade.isDeactive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
+              }`}>
+                {deactivateConfirmGrade.isDeactive ? <FaLockOpen /> : <FaLock />}
+              </div>
+              <div>
+                <h3 className="text-base font-black text-gray-900">
+                  Confirm {deactivateConfirmGrade.isDeactive ? 'Activation' : 'Deactivation'}
+                </h3>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">
+                  Grade Stream: <span className="font-extrabold text-purple-900">{deactivateConfirmGrade.title || deactivateConfirmGrade.gradeNumber}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200/80 text-xs font-semibold text-gray-700 leading-relaxed">
+              {deactivateConfirmGrade.isDeactive ? (
+                <span>Are you sure you want to <strong className="text-emerald-700">activate</strong> this grade stream? Students and teachers will be able to access all lessons and workspace announcements.</span>
+              ) : (
+                <span>Are you sure you want to <strong className="text-red-600">deactivate</strong> this grade stream? Deactivating will lock this grade stream and restrict access for non-admin users.</span>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeactivateConfirmGrade(null)}
+                className="px-4 py-2.5 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => executeToggleGradeStatus(deactivateConfirmGrade)}
+                className={`px-5 py-2.5 text-xs font-extrabold text-white rounded-xl transition shadow-md cursor-pointer ${
+                  deactivateConfirmGrade.isDeactive
+                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'
+                    : 'bg-red-600 hover:bg-red-700 shadow-red-200'
+                }`}
+              >
+                Yes, {deactivateConfirmGrade.isDeactive ? 'Activate Grade' : 'Deactivate Grade'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Course Enrollment & Payment Modal */}
       <CourseEnrollmentModal
         isOpen={showEnrollModal}
@@ -1744,6 +2023,15 @@ const CourseDetails = () => {
         student={user}
         onEnrollSuccess={fetchCourseDetails}
       />
+
+      {/* Teacher Profile Modal */}
+      {selectedTeacherForModal && (
+        <TeacherModal
+          teacher={selectedTeacherForModal}
+          isOpen={!!selectedTeacherForModal}
+          onClose={() => setSelectedTeacherForModal(null)}
+        />
+      )}
     </div>
   );
 };
