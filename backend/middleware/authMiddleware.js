@@ -82,4 +82,13 @@ const isTeacherOrAdmin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, optionalProtect, isAdmin, isTeacherOrAdmin };
+// --- ISCOUNTERSTAFFORADMIN MIDDLEWARE ---
+const isCounterStaffOrAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'counter_staff')) {
+    next();
+  } else {
+    return res.status(403).json({ message: "Access denied. Attendance Counter Staff and Admins only." });
+  }
+};
+
+module.exports = { protect, isAdmin, isTeacherOrAdmin, isCounterStaffOrAdmin, optionalProtect };

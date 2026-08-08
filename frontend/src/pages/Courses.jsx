@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { FaGraduationCap, FaCompass, FaBookOpen } from 'react-icons/fa';
+import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import { FaGraduationCap, FaCompass, FaBookOpen, FaLock, FaLockOpen } from 'react-icons/fa';
 import TeacherModal from '../components/TeacherModal';
 
@@ -24,6 +26,8 @@ const Courses = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+  const [selectedCourseForEnrollment, setSelectedCourseForEnrollment] = useState(null);
   const [selectedTeacherForModal, setSelectedTeacherForModal] = useState(null);
   const [confirmFullCourseModal, setConfirmFullCourseModal] = useState(null); // { courseId, title, isDeactive }
   const navigate = useNavigate(); 
@@ -350,6 +354,16 @@ const Courses = () => {
           </div>
         </div>
 
+{/* Course Title & Description */}
+        <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-[#2d1b64] transition-colors">
+          {course.title}
+        </h3>
+        <p className="text-gray-500 text-sm mb-6 line-clamp-4 leading-relaxed">
+          {course.description}
+        </p>
+      </div>
+
+      <div>
         {/* Card Footer (Instructor Info) */}
         <div className="flex items-center justify-between p-4 px-6 bg-white border-t border-gray-100 group/teacher transition-colors">
           <div className="flex items-center gap-3.5">
@@ -376,6 +390,22 @@ const Courses = () => {
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+          {user?.role === 'student' && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedCourseForEnrollment(course);
+                setEnrollModalOpen(true);
+              }}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-[#2d1b64] hover:from-purple-700 hover:to-purple-900 text-white font-extrabold text-xs rounded-xl shadow-md transition transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
+            >
+              Enroll & Pay Online 💳
+            </button>
+          )}
         </div>
       </div>
     );
@@ -463,6 +493,23 @@ const Courses = () => {
           </>
         )}
       </div>
+
+{/* Course Enrollment & Online Payment Gateway Modal */}
+      {selectedCourseForEnrollment && (
+        <CourseEnrollmentModal
+          isOpen={enrollModalOpen}
+          onClose={() => {
+            setEnrollModalOpen(false);
+            setSelectedCourseForEnrollment(null);
+          }}
+          course={selectedCourseForEnrollment}
+          student={user}
+          onEnrollSuccess={async () => {
+            const res = await api.get('/courses');
+            setCourses(res.data);
+          }}
+        />
+      )}
 
       {/* Full Course Deactivation / Activation Confirmation Modal */}
       {confirmFullCourseModal && (

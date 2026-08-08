@@ -642,20 +642,13 @@ const CourseDetails = () => {
               {!alreadyEnrolled ? (
                 <button
                   type="button"
-                  onClick={handleEnroll}
-                  disabled={isEnrolling}
-                  className="rounded-2xl bg-gradient-to-r from-purple-600 to-[#2d1b64] text-white px-7 py-3 text-sm font-extrabold hover:from-purple-700 hover:to-purple-900 transition-all shadow-md hover:shadow-xl disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                  onClick={() => setShowEnrollModal(true)}
+                  className="rounded-2xl bg-gradient-to-r from-purple-600 to-[#2d1b64] text-white px-7 py-3 text-sm font-extrabold hover:from-purple-700 hover:to-purple-900 transition-all shadow-md hover:shadow-xl cursor-pointer flex items-center gap-2"
                 >
-                  {isEnrolling ? (
-                    <span>Enrolling...</span>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      <span>Enroll Course</span>
-                    </>
-                  )}
+                  <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <span>Enroll & Pay Online 💳</span>
                 </button>
               ) : (
                 <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-sm">

@@ -37,13 +37,18 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/change-password" />;
   }
 
-  // 3. Role verification (The Bouncer).
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    console.warn(`Access denied. Role '${user.role}' cannot access this route.`);
-    return <Navigate to="/dashboard" replace />;
+  // 3. Counter staff auto-redirect to attendance kiosk
+  if (user.role === 'counter_staff' && window.location.pathname !== '/attendance' && window.location.pathname !== '/change-password') {
+    return <Navigate to="/attendance" replace />;
   }
 
-  // 4. All checks passed! Let them through.
+  // 4. Role verification (The Bouncer).
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    console.warn(`Access denied. Role '${user.role}' cannot access this route.`);
+    return <Navigate to={user.role === 'counter_staff' ? "/attendance" : "/dashboard"} replace />;
+  }
+
+  // 5. All checks passed! Let them through.
   return children;
 };
 
@@ -94,7 +99,7 @@ function App() {
           } />
 
           <Route path="/attendance" element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'counter_staff']}>
               <Attendance />
             </ProtectedRoute>
           } />

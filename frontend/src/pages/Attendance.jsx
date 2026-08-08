@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import {
   FaSearch,
   FaUser,
@@ -15,15 +16,27 @@ import {
   FaPhone,
   FaEnvelope,
   FaCalendarAlt,
-  FaSpinner
+  FaSpinner,
+  FaQrcode,
+  FaCamera,
+  FaVolumeUp,
+  FaCheck
 } from 'react-icons/fa';
 
 const Attendance = () => {
+  const [scannerMode, setScannerMode] = useState('qr'); // 'qr' | 'search'
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeTab, setActiveTab] = useState('mark'); // 'mark', 'history', 'payments'
+
+  // Live QR Scanner State
+  const [kioskScheduleId, setKioskScheduleId] = useState('AUTO');
+  const [lastScannedResult, setLastScannedResult] = useState(null);
+  const [recentScans, setRecentScans] = useState([]);
+  const [scanning, setScanning] = useState(false);
+  const [manualQrCode, setManualQrCode] = useState('');
 
   // Forms & Schedules State
   const [schedules, setSchedules] = useState([]);
@@ -43,6 +56,78 @@ const Attendance = () => {
   const getAuthHeaders = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
   });
+
+  const playChimeSound = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch (err) {
+      console.error("Audio error", err);
+    }
+  };
+
+  const processQrCheckIn = async (rawCode) => {
+    if (scanning || !rawCode) return;
+    setScanning(true);
+
+    let regNo = rawCode.trim();
+    try {
+      const parsed = JSON.parse(rawCode);
+      if (parsed.registrationNumber) {
+        regNo = parsed.registrationNumber;
+      }
+    } catch (e) {
+      // raw regNo string
+    }
+
+    try {
+      const res = await api.post('/attendance/scan-qr', {
+        registrationNumber: regNo,
+        scheduleId: kioskScheduleId
+      });
+
+      playChimeSound();
+      setLastScannedResult(res.data);
+      setRecentScans(prev => [res.data, ...prev.slice(0, 9)]);
+      toast.success(res.data.message || `Check-in recorded for ${res.data.student.name}!`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || "QR scan check-in failed.");
+    } finally {
+      setTimeout(() => setScanning(false), 2000);
+    }
+  };
+
+  useEffect(() => {
+    let scanner;
+    if (scannerMode === 'qr') {
+      scanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        /* verbose= */ false
+      );
+
+      scanner.render(
+        (decodedText) => processQrCheckIn(decodedText),
+        () => { /* per frame noop */ }
+      );
+    }
+
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(e => console.error("Scanner clear error", e));
+      }
+    };
+  }, [scannerMode]);
 
   // Search students when query changes (with min length check)
   const handleSearchSubmit = async (e) => {
@@ -175,7 +260,198 @@ const Attendance = () => {
         </div>
       </div>
 
-      {/* Student Search & Select Box */}
+      {/* Mode Switcher Bar */}
+      <div className="flex bg-white p-2 rounded-2xl border border-gray-200 shadow-sm gap-2">
+        <button
+          type="button"
+          onClick={() => setScannerMode('qr')}
+          className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            scannerMode === 'qr'
+              ? 'bg-purple-700 text-white shadow-md'
+              : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+          }`}
+        >
+          <FaCamera className="text-base" /> Live QR Scanner Kiosk
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setScannerMode('search')}
+          className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            scannerMode === 'search'
+              ? 'bg-purple-700 text-white shadow-md'
+              : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+          }`}
+        >
+          <FaSearch className="text-base" /> Student Search & Manual Roster
+        </button>
+      </div>
+
+      {/* MODE 1: LIVE QR CODE SCANNER KIOSK */}
+      {scannerMode === 'qr' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Left 2 Columns: Camera Scanner & Live Scan Result Card */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Camera Scanner Container */}
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-md space-y-4">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <div>
+                  <h3 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
+                    <FaQrcode className="text-purple-600" /> Counter QR Code Scanner
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Point student digital ID card at the camera for 1-second auto check-in.</p>
+                </div>
+                <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 border border-emerald-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  Camera Active
+                </span>
+              </div>
+
+              {/* Target Class Schedule Selector */}
+              <div className="bg-purple-50 p-3.5 rounded-2xl border border-purple-200 space-y-1">
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900">
+                  Target Session / Class Schedule
+                </label>
+                <select
+                  value={kioskScheduleId}
+                  onChange={(e) => setKioskScheduleId(e.target.value)}
+                  className="w-full bg-white p-2.5 rounded-xl border border-purple-300 font-bold text-xs text-purple-950 focus:ring-2 focus:ring-purple-600 outline-none cursor-pointer"
+                >
+                  <option value="AUTO">⚡ Auto-Detect Active Class (By Current Time & Student Grade)</option>
+                  {schedules.map(sch => (
+                    <option key={sch._id} value={sch._id}>
+                      {sch.title} ({sch.className}) — {sch.dayOfWeek} {sch.startTime}-{sch.endTime} (Room {sch.room || '1'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* HTML5 Camera Viewport */}
+              <div className="relative">
+                <div id="qr-reader" className="w-full max-w-md mx-auto rounded-2xl overflow-hidden shadow-inner border border-purple-200"></div>
+              </div>
+
+              {/* Quick Reg No Manual Override */}
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (manualQrCode) processQrCheckIn(manualQrCode);
+                }}
+                className="flex gap-2 pt-2 border-t border-gray-100"
+              >
+                <input
+                  type="text"
+                  placeholder="Enter Student Reg No manually (e.g. STU-2026-G06-0042 / OL-G06-2012-4829)..."
+                  value={manualQrCode}
+                  onChange={(e) => setManualQrCode(e.target.value)}
+                  className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs font-mono font-bold"
+                />
+                <button
+                  type="submit"
+                  disabled={scanning}
+                  className="bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  Quick Check-in ➔
+                </button>
+              </form>
+            </div>
+
+            {/* Last Scanned Result Card */}
+            {lastScannedResult && (
+              <div className="bg-gradient-to-br from-purple-900 via-indigo-950 to-purple-950 p-6 rounded-3xl text-white shadow-xl border border-purple-400/40 animate-fadeIn space-y-4 relative overflow-hidden">
+                <div className="flex justify-between items-start border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🔔</span>
+                    <div>
+                      <h4 className="font-extrabold text-amber-400 text-base">Instant Check-in Result</h4>
+                      <p className="text-xs text-purple-200 mt-0.5">Scanned at {new Date(lastScannedResult.scanTime).toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-extrabold border ${lastScannedResult.paymentStatus === 'PAID' ? 'bg-emerald-400/20 text-emerald-300 border-emerald-400/40' : 'bg-amber-400/20 text-amber-300 border-amber-400/40'}`}>
+                    {lastScannedResult.paymentStatus === 'PAID' ? 'Monthly Fee: Paid ✓' : 'Fee Unsettled ⚠️'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-5">
+                  <div className="w-16 h-16 bg-amber-400 text-purple-950 rounded-2xl flex items-center justify-center text-2xl font-black shadow-lg shrink-0">
+                    {lastScannedResult.student.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-extrabold">{lastScannedResult.student.name}</h3>
+                    <p className="font-mono text-xs text-amber-300 font-bold tracking-wider mt-0.5">
+                      {lastScannedResult.student.registrationNumber || 'No Reg No'}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="bg-white/10 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-md">
+                        {lastScannedResult.student.grade}
+                      </span>
+                      <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded-md">
+                        Attendance Status: Present ✓
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 p-3 rounded-xl border border-white/10 text-xs text-purple-200 flex items-center gap-2">
+                  <span>📱</span>
+                  <span>Automated Parent SMS Alert dispatched to <strong>{lastScannedResult.student.parentsPhoneNumber || 'Parent'}</strong></span>
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* Right Column: Live Recent Check-ins Feed */}
+          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-md space-y-4 h-fit">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <h4 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
+                <span>📋</span> Today's Check-ins Feed
+              </h4>
+              <span className="bg-purple-100 text-purple-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+                {recentScans.length} Students
+              </span>
+            </div>
+
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+              {recentScans.length > 0 ? (
+                recentScans.map((scan, idx) => (
+                  <div key={idx} className="p-3 bg-gray-50 border border-gray-150 rounded-2xl flex items-center justify-between hover:bg-purple-50/50 transition">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-purple-200 text-purple-950 rounded-xl flex items-center justify-center font-bold text-sm">
+                        {scan.student.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-xs">{scan.student.name}</p>
+                        <p className="font-mono text-[10px] text-purple-700 font-bold">{scan.student.registrationNumber}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full block ${scan.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {scan.paymentStatus === 'PAID' ? 'Paid ✓' : 'Unsettled'}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-semibold block mt-0.5">
+                        {new Date(scan.scanTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 text-gray-400 italic text-xs">
+                  No QR check-ins scanned yet today.
+                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* MODE 2: STUDENT SEARCH & MANUAL ROSTER (Rendered when scannerMode === 'search') */}
+      {scannerMode === 'search' && (
+        <>
+          {/* Student Search & Select Box */}
       <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
         <form onSubmit={handleSearchSubmit} className="relative">
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Search Student</label>
@@ -606,6 +882,8 @@ const Attendance = () => {
             Use the search panel above to search for a student by their Name or Registration Number to start marking attendance or auditing logs.
           </p>
         </div>
+      )}
+        </>
       )}
     </div>
   );

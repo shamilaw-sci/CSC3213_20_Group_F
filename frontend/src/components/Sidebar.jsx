@@ -35,22 +35,36 @@ const Sidebar = () => {
       
       {/* Navigation Links */}
       <nav className="flex-1 min-h-0 px-4 pb-6 space-y-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Link to="/dashboard" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/dashboard')}`}><FaHome /> Dashboard</Link>
-        <Link to="/courses" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/courses')}`}><FaBook /> Courses</Link>
-        {role !== 'student' && (
-          <Link to="/attendance" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/attendance')}`}><FaCalendarCheck /> Attendance</Link>
-        )}
-        <Link to="/payments" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/payments')}`}><FaCreditCard /> Payments</Link>
-        <Link to="/analytics" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/analytics')}`}><FaChartBar /> Analytics</Link>
-
-        {/* Admin Only Section */}
-        {role === 'admin' && (
+        {role === 'counter_staff' ? (
           <>
-            <div className="pt-6 pb-2">
-              <p className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Administration</p>
+            <div className="bg-purple-800/60 p-3 rounded-xl mb-4 border border-purple-600/40">
+              <span className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block">Staff Account</span>
+              <span className="text-xs font-bold text-white block">Attendance Counter Kiosk</span>
             </div>
-            <Link to="/manage-users" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/manage-users')}`}><FaUsers /> Manage Users</Link>
-            <Link to="/enrollments" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/enrollments')}`}><FaUserPlus /> Enrollments</Link>
+            <Link to="/attendance" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/attendance')}`}>
+              <FaCalendarCheck /> Live QR Kiosk
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link to="/dashboard" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/dashboard')}`}><FaHome /> Dashboard</Link>
+            <Link to="/courses" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/courses')}`}><FaBook /> Courses</Link>
+            {role !== 'student' && (
+              <Link to="/attendance" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/attendance')}`}><FaCalendarCheck /> Attendance</Link>
+            )}
+            <Link to="/payments" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/payments')}`}><FaCreditCard /> Payments</Link>
+            <Link to="/analytics" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/analytics')}`}><FaChartBar /> Analytics</Link>
+
+            {/* Admin Only Section */}
+            {role === 'admin' && (
+              <>
+                <div className="pt-6 pb-2">
+                  <p className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Administration</p>
+                </div>
+                <Link to="/manage-users" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/manage-users')}`}><FaUsers /> Manage Users</Link>
+                <Link to="/enrollments" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/enrollments')}`}><FaUserPlus /> Enrollments</Link>
+              </>
+            )}
           </>
         )}
       </nav>
