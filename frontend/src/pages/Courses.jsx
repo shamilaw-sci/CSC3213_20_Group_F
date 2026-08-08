@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { FaGraduationCap, FaCompass, FaBookOpen } from 'react-icons/fa';
 import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import { FaGraduationCap, FaCompass, FaBookOpen, FaLock, FaLockOpen } from 'react-icons/fa';
 import TeacherModal from '../components/TeacherModal';
@@ -353,17 +352,6 @@ const Courses = () => {
             </div>
           </div>
         </div>
-
-{/* Course Title & Description */}
-        <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-[#2d1b64] transition-colors">
-          {course.title}
-        </h3>
-        <p className="text-gray-500 text-sm mb-6 line-clamp-4 leading-relaxed">
-          {course.description}
-        </p>
-      </div>
-
-      <div>
         {/* Card Footer (Instructor Info) */}
         <div className="flex items-center justify-between p-4 px-6 bg-white border-t border-gray-100 group/teacher transition-colors">
           <div className="flex items-center gap-3.5">
@@ -390,8 +378,6 @@ const Courses = () => {
               </p>
             </div>
           </div>
-        </div>
-      </div>
 
           {user?.role === 'student' && (
             <button
