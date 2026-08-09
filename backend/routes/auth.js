@@ -609,7 +609,6 @@ router.get('/users/search-students', protect, async (req, res) => {
 
 // 2. GET ALL USERS
 router.get('/users', protect, async (req, res) => {
-  // Check if the person making the request is actually an admin
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: "Access Denied: Admins only." });
   }
@@ -619,7 +618,6 @@ router.get('/users', protect, async (req, res) => {
     if (req.query.role) {
       filter.role = req.query.role;
     }
-    // Fetch users but DO NOT send passwords back to the frontend!
     const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
     res.json(users);
   } catch (err) {
@@ -692,10 +690,8 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     // --- TRIGGER NOTIFICATIONS ---
     try {
       if (role === 'student') {
-        // Welcome Email with temporary login info
         sendRegistrationWelcomeEmail(user.email, user.name, user.registrationNumber);
 
-        // In-App notification for the new student
         await Notification.create({
           recipient: user._id,
           type: 'REGISTRATION',
@@ -823,13 +819,11 @@ router.get('/admin-stats', protect, async (req, res) => {
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
     const totalCourses = await Course.countDocuments();
 
-    // Recent Registrations (last 5 students)
     const recentRegistrations = await User.find({ role: 'student' })
       .sort({ createdAt: -1 })
       .limit(5)
       .select('name email grade studentType createdAt');
 
-    // Monthly Growth Data for Intake Line Chart
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const today = new Date();
     const monthsList = [];
@@ -852,11 +846,9 @@ router.get('/admin-stats', protect, async (req, res) => {
 
     const growthData = monthsList.map(m => ({ month: m, count: growthMap[m] }));
 
-    // Fee Collection Metrics
     const payments = await Payment.find({ status: 'COMPLETED' });
     const totalCollected = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
 
-    // Calculate total expected tuition revenue across all enrollments
     const allEnrollments = await Enrollment.find().populate('course', 'price');
     let totalExpected = 0;
     allEnrollments.forEach(e => {
@@ -865,7 +857,6 @@ router.get('/admin-stats', protect, async (req, res) => {
 
     const pendingDues = Math.max(0, totalExpected - totalCollected);
 
-    // Today's attendance summary
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const todayArrivalsCount = await Attendance.countDocuments({ date: { $gte: startOfToday }, status: 'Present' });
@@ -1066,11 +1057,9 @@ router.get('/teacher-stats', protect, async (req, res) => {
   try {
     const teacherId = req.user.id || req.user._id;
 
-    // 1. Fetch teacher courses
     const teacherCourses = await Course.find({ instructor: teacherId }).lean();
     const courseIds = teacherCourses.map(c => c._id);
 
-    // 2. Fetch distinct enrolled students across teacher courses
     const enrollments = await Enrollment.find({ course: { $in: courseIds } })
       .populate('student', 'name email registrationNumber grade studentType')
       .lean();
@@ -1095,7 +1084,6 @@ router.get('/teacher-stats', protect, async (req, res) => {
 
     const uniqueStudents = Object.values(studentMap);
 
-    // 3. Format courses list with student counts
     const coursesList = await Promise.all(teacherCourses.map(async (c) => {
       const countDoc = await Enrollment.countDocuments({ course: c._id });
       const countEmb = Array.isArray(c.enrolledStudents) ? c.enrolledStudents.length : 0;
@@ -1110,7 +1098,6 @@ router.get('/teacher-stats', protect, async (req, res) => {
       };
     }));
 
-    // 4. Fetch assigned schedule entries
     const assignedSchedules = await Schedule.find({
       $or: [
         { teacherId: teacherId },
@@ -1118,7 +1105,6 @@ router.get('/teacher-stats', protect, async (req, res) => {
       ]
     }).populate('teacherId', 'name').lean();
 
-    // 5. Calculate average rating across teacher courses
     let totalRating = 0;
     let ratingCount = 0;
     teacherCourses.forEach(c => {
@@ -1152,7 +1138,6 @@ router.get('/student-stats', protect, async (req, res) => {
   try {
     const studentId = req.user.id || req.user._id;
 
-    // 1. Fetch enrolled courses
     const enrollments = await Enrollment.find({ student: studentId })
       .populate({
         path: 'course',
@@ -1197,7 +1182,6 @@ router.get('/student-stats', protect, async (req, res) => {
 
     const enrolledCoursesList = Object.values(courseMap);
 
-    // 2. Fetch payments & latest receipt
     const studentPayments = await Payment.find({ student: studentId })
       .populate('course', 'title price')
       .sort({ createdAt: -1 })
@@ -1212,7 +1196,6 @@ router.get('/student-stats', protect, async (req, res) => {
       courseTitle: studentPayments[0].course?.title || (enrolledCoursesList[0]?.title || 'Tuition Fee')
     } : null;
 
-    // 3. Attendance Breakdown
     const totalAttendance = await Attendance.countDocuments({ studentId });
     const presentCount = await Attendance.countDocuments({ studentId, status: 'Present' });
     const absentCount = await Attendance.countDocuments({ studentId, status: 'Absent' });
@@ -1222,7 +1205,6 @@ router.get('/student-stats', protect, async (req, res) => {
       ? Math.round((presentCount / totalAttendance) * 100)
       : 100;
 
-    // 4. Student Announcements / Notifications
     const announcements = await Notification.find({
       $or: [
         { recipient: studentId },
@@ -1255,7 +1237,6 @@ router.get('/student-stats', protect, async (req, res) => {
 // --- GET ADMIN & TEACHER ANALYTICS SUMMARY ---
 router.get('/analytics-summary', protect, async (req, res) => {
   try {
-    // 0. Student Role Handling (Personal Learning Analytics)
     if (req.user.role?.toLowerCase() === 'student') {
       const studentId = req.user.id || req.user._id;
 
@@ -1298,20 +1279,16 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
       const enrolledCoursesList = Object.values(allCoursesMap);
 
-      // Student Personal Attendance & Weekly Attendance Tracking
       const totalAttendance = await Attendance.countDocuments({ studentId });
       const presentRecords = await Attendance.countDocuments({ studentId, status: 'Present' });
       const absentRecords = await Attendance.countDocuments({ studentId, status: 'Absent' });
       const lateRecords = await Attendance.countDocuments({ studentId, status: 'Late' });
 
-      // Weekly Online Attendance Submissions
       const weeklyRecords = await Attendance.find({ studentId, mode: 'ONLINE_WEEKLY' }).lean();
       const weeklyAttendedCount = weeklyRecords.length;
 
-      // Dynamic Active Months Count (e.g. July 2026, August 2026, September 2026, October 2026 = 4 months)
-      // 4 weeks per month = 16 weeks per course. Adding a new month automatically increases the dividing factor by +4 weeks.
       const activeMonthsList = ["July 2026", "August 2026", "September 2026", "October 2026"];
-      const weeksPerCourse = activeMonthsList.length * 4; // 16 weeks per course
+      const weeksPerCourse = activeMonthsList.length * 4;
       const totalAvailableWeeks = Math.max(16, (enrolledCoursesList.length || 1) * weeksPerCourse);
 
       let attendanceRate = 0;
@@ -1323,7 +1300,6 @@ router.get('/analytics-summary', protect, async (req, res) => {
         attendanceRate = 0;
       }
 
-      // Student Personal Payments
       const studentPayments = await Payment.find({ student: studentId, status: 'COMPLETED' })
         .populate('course', 'title price')
         .lean();
@@ -1357,16 +1333,14 @@ router.get('/analytics-summary', protect, async (req, res) => {
       });
     }
 
-    const { studentType } = req.query; // 'all', 'online', 'physical'
+    const { studentType } = req.query;
     const filterType = (studentType && studentType !== 'all') ? studentType.toLowerCase() : null;
 
-    // Build user filter query
     const studentFilter = { role: 'student' };
     if (filterType) {
       studentFilter.studentType = filterType;
     }
 
-    // 1. User Demographic Stats
     const totalAllStudents = await User.countDocuments({ role: 'student' });
     const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
     const physicalStudents = Math.max(0, totalAllStudents - onlineStudents);
@@ -1375,11 +1349,9 @@ router.get('/analytics-summary', protect, async (req, res) => {
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
     const totalAdmins = await User.countDocuments({ role: 'admin' });
 
-    // Fetch filtered student IDs for course & payment scoping
     const filteredStudents = await User.find(studentFilter).select('_id grade studentType createdAt');
     const filteredStudentIds = filteredStudents.map(s => s._id);
 
-    // 2. Grade Distribution (scoped to filterType)
     const gradeCounts = {};
     const gradeTypeBreakdown = {};
 
@@ -1410,7 +1382,6 @@ router.get('/analytics-summary', protect, async (req, res) => {
       physical: gradeTypeBreakdown[gradeName]?.physical || 0
     })).sort((a, b) => b.count - a.count);
 
-    // 3. Course Popularity Analytics (Most Taken Courses - scoped to filterType)
     const courses = await Course.find({})
       .populate('instructor', 'name email profilePicture')
       .lean();
@@ -1449,7 +1420,6 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
     topCourses.sort((a, b) => b.enrolledCount - a.enrolledCount);
 
-    // 4. Financial & Payment Analytics (scoped to filterType)
     const paymentQuery = { status: 'COMPLETED' };
     if (filterType) {
       paymentQuery.student = { $in: filteredStudentIds };
@@ -1461,7 +1431,6 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
     const totalRevenue = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
 
-    // Revenue per course
     const courseRevenueMap = {};
     payments.forEach(p => {
       const courseTitle = p.course?.title || 'General Course';
@@ -1473,7 +1442,6 @@ router.get('/analytics-summary', protect, async (req, res) => {
       revenue: courseRevenueMap[title]
     })).sort((a, b) => b.revenue - a.revenue);
 
-    // 5. Weekly Student Registration Trend Data (Grouping by Weeks instead of Months)
     const allStudentsList = await User.find({ role: 'student' }).select('studentType createdAt').lean();
 
     const getWeekLabel = (d) => {
@@ -1500,7 +1468,6 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
     const weeklyStudentTrend = Object.values(weeklyStudentMap);
 
-    // 6. Platform Attendance Analytics (scoped to filterType)
     const attendanceQuery = filterType ? { studentId: { $in: filteredStudentIds } } : {};
     const totalAttendanceRecords = await Attendance.countDocuments(attendanceQuery);
     const presentRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Present' });
