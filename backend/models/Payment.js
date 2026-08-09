@@ -36,7 +36,8 @@ const paymentSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    default: 'Card_Mock'
+    enum: ['CARD', 'Card_Mock', 'CASH_COUNTER', 'BANK_SLIP', 'POS_CARD', 'BANK_TRANSFER'],
+    default: 'CARD'
   },
   transactionId: {
     type: String,
@@ -45,12 +46,27 @@ const paymentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['PENDING', 'COMPLETED', 'FAILED'],
+    enum: ['PENDING', 'PENDING_APPROVAL', 'COMPLETED', 'FAILED', 'REJECTED'],
     default: 'COMPLETED'
   },
   cardLastFour: {
     type: String,
     default: '0000'
+  },
+  slipImage: {
+    type: String,
+    default: ''
+  },
+  depositorName: {
+    type: String,
+    default: ''
+  },
+  depositDate: {
+    type: Date
+  },
+  rejectionReason: {
+    type: String,
+    default: ''
   },
   paymentDate: {
     type: Date,

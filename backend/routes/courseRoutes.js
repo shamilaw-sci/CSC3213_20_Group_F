@@ -335,8 +335,14 @@ router.post(
                 cardImagePath = convertBase64ToStaticFile(req.body.cardImage, 'cardImage');
             }
 
-            const validStudentTypes = ['all', 'online', 'physical'];
-            const finalStudentType = validStudentTypes.includes(studentType) ? studentType : 'all';
+            let parsedBankDetails = {};
+            if (req.body.bankDetails) {
+                try {
+                    parsedBankDetails = typeof req.body.bankDetails === 'string' ? JSON.parse(req.body.bankDetails) : req.body.bankDetails;
+                } catch (e) {
+                    parsedBankDetails = {};
+                }
+            }
 
             const newCourse = await Course.create({
                 title,
@@ -344,7 +350,8 @@ router.post(
                 instructor: instructorId,
                 banner: bannerPath,
                 cardImage: cardImagePath,
-                studentType: finalStudentType
+                studentType: finalStudentType,
+                bankDetails: parsedBankDetails
             });
 
             // Trigger In-App Notification for all students

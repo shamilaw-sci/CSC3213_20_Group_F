@@ -445,4 +445,241 @@ router.post('/record-physical-payment', protect, isAdmin, async (req, res) => {
   }
 });
 
+// ==========================================
+// 6. SUBMIT BANK DEPOSIT SLIP (STUDENT)
+// ==========================================
+router.post('/submit-bank-slip', protect, async (req, res) => {
+  try {
+    const { courseId, amount, slipImage, depositorName, depositDate, transactionId } = req.body;
+    const studentId = req.user._id;
+
+    if (!courseId) {
+      return res.status(400).json({ error: 'Course ID is required.', message: 'Course ID is required.' });
+    }
+
+    if (!slipImage) {
+      return res.status(400).json({ error: 'Bank deposit slip image/file is required.', message: 'Bank deposit slip image/file is required.' });
+    }
+
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found.', message: 'Student not found.' });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found.', message: 'Course not found.' });
+    }
+
+    // Check if student already enrolled
+    const isEnrolled = course.enrolledStudents?.some(id => id.toString() === studentId.toString());
+    if (isEnrolled) {
+      return res.status(400).json({ error: 'You are already enrolled in this course.', message: 'You are already enrolled in this course.' });
+    }
+
+    const finalAmount = amount || course.price || 2500;
+    const txId = transactionId && transactionId.trim() ? transactionId.trim() : `REC-SLIP-${Date.now()}`;
+
+    // Check duplicate pending slip for same student & course
+    const existingPending = await Payment.findOne({
+      student: studentId,
+      course: courseId,
+      status: 'PENDING_APPROVAL'
+    });
+
+    if (existingPending) {
+      return res.status(400).json({ 
+        error: 'You already have a bank slip pending Admin approval for this course.', 
+        message: 'You already have a bank slip pending Admin approval for this course.' 
+      });
+    }
+
+    const newPayment = await Payment.create({
+      student: studentId,
+      studentId,
+      course: courseId,
+      courseId,
+      amount: finalAmount,
+      currency: 'LKR',
+      paymentMethod: 'BANK_SLIP',
+      transactionId: txId,
+      status: 'PENDING_APPROVAL',
+      slipImage,
+      depositorName: depositorName || student.name,
+      depositDate: depositDate ? new Date(depositDate) : new Date(),
+      paymentDate: new Date()
+    });
+
+    // Notify Admins
+    try {
+      await Notification.create({
+        recipientRole: 'admin',
+        type: 'PAYMENT',
+        title: 'New Bank Slip Approval Request',
+        message: `${student.name} uploaded a bank slip of LKR ${finalAmount.toLocaleString()} for '${course.title}'. Pending Approval.`,
+        link: '/enrollments',
+        metadata: { paymentId: newPayment._id, studentId, courseId, amount: finalAmount }
+      });
+    } catch (notifErr) {
+      console.error('Notification error:', notifErr.message);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Bank deposit slip for '${course.title}' submitted successfully! Pending Admin approval.`,
+      payment: newPayment
+    });
+
+  } catch (err) {
+    console.error('Submit bank slip error:', err);
+    res.status(500).json({ error: 'Failed to submit bank slip: ' + err.message, message: 'Failed to submit bank slip: ' + err.message });
+  }
+});
+
+// ==========================================
+// 7. GET PENDING BANK SLIPS (ADMIN)
+// ==========================================
+router.get('/pending-slips', protect, isAdmin, async (req, res) => {
+  try {
+    const pendingSlips = await Payment.find({ status: 'PENDING_APPROVAL' })
+      .populate('student', 'name email registrationNumber grade parentsPhoneNumber studentType profilePicture')
+      .populate('course', 'title price banner cardImage bankDetails')
+      .sort({ createdAt: -1 });
+
+    res.json(pendingSlips);
+  } catch (err) {
+    console.error('Fetch pending slips error:', err);
+    res.status(500).json({ error: 'Failed to fetch pending slips.' });
+  }
+});
+
+// ==========================================
+// 8. APPROVE BANK SLIP (ADMIN)
+// ==========================================
+router.put('/:id/approve-slip', protect, isAdmin, async (req, res) => {
+  try {
+    const paymentId = req.params.id;
+
+    const payment = await Payment.findById(paymentId)
+      .populate('student')
+      .populate('course');
+
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment record not found.' });
+    }
+
+    if (payment.status === 'COMPLETED') {
+      return res.status(400).json({ error: 'This payment has already been approved.' });
+    }
+
+    // Update payment status
+    payment.status = 'COMPLETED';
+    payment.paymentDate = new Date();
+    await payment.save();
+
+    // Enroll student in Course
+    const course = payment.course;
+    const student = payment.student;
+
+    if (course && student) {
+      const isAlreadyEnrolled = course.enrolledStudents.some(id => id.toString() === student._id.toString());
+      if (!isAlreadyEnrolled) {
+        course.enrolledStudents.push(student._id);
+        await course.save();
+      }
+
+      // Also create Enrollment record
+      await Enrollment.create({
+        student: student._id,
+        course: course._id,
+        paymentStatus: 'COMPLETED',
+        paymentId: payment._id,
+        enrollmentDate: new Date()
+      }).catch(() => {});
+
+      // Notifications
+      try {
+        await Notification.create({
+          recipient: student._id,
+          type: 'ENROLLMENT',
+          title: 'Bank Slip Approved! Course Unlocked 🎉',
+          message: `Your bank deposit slip for '${course.title}' has been verified and approved by Admin. You are now enrolled!`,
+          link: `/course/${course._id}`,
+          metadata: { courseId: course._id, paymentId: payment._id }
+        });
+
+        if (student.email) {
+          sendPaymentReceiptEmail(student.email, student.name, {
+            transactionId: payment.transactionId,
+            courseTitle: course.title,
+            amount: payment.amount,
+            date: new Date(),
+            paymentMethod: 'Bank Slip Deposit (Approved)'
+          });
+        }
+      } catch (notifErr) {
+        console.error('Approve slip notification error:', notifErr.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Bank slip for ${student?.name || 'student'} approved successfully! Course unlocked.`,
+      payment
+    });
+
+  } catch (err) {
+    console.error('Approve bank slip error:', err);
+    res.status(500).json({ error: 'Failed to approve bank slip: ' + err.message });
+  }
+});
+
+// ==========================================
+// 9. REJECT BANK SLIP (ADMIN)
+// ==========================================
+router.put('/:id/reject-slip', protect, isAdmin, async (req, res) => {
+  try {
+    const paymentId = req.params.id;
+    const { rejectionReason } = req.body;
+
+    const payment = await Payment.findById(paymentId)
+      .populate('student')
+      .populate('course');
+
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment record not found.' });
+    }
+
+    payment.status = 'REJECTED';
+    payment.rejectionReason = rejectionReason || 'Bank deposit slip could not be verified by institute administration.';
+    await payment.save();
+
+    // In-App Notification for Student
+    if (payment.student) {
+      try {
+        await Notification.create({
+          recipient: payment.student._id,
+          type: 'PAYMENT',
+          title: 'Bank Slip Rejected',
+          message: `Your bank slip for '${payment.course?.title || 'Course'}' was rejected: "${payment.rejectionReason}". Please re-upload a clear slip.`,
+          link: '/courses',
+          metadata: { paymentId: payment._id }
+        });
+      } catch (notifErr) {
+        console.error('Reject slip notification error:', notifErr.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Bank slip rejected.`,
+      payment
+    });
+
+  } catch (err) {
+    console.error('Reject bank slip error:', err);
+    res.status(500).json({ error: 'Failed to reject bank slip: ' + err.message });
+  }
+});
+
 module.exports = router;
