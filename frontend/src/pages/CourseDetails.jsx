@@ -4,6 +4,7 @@ import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import TeacherModal from '../components/TeacherModal';
+import PdfReaderModal from '../components/PdfReaderModal';
 import { FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen } from 'react-icons/fa';
 
 const getImageUrl = (url) => {
@@ -27,6 +28,8 @@ const CourseDetails = () => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTeacherForModal, setSelectedTeacherForModal] = useState(null);
+  const [pdfProgressMap, setPdfProgressMap] = useState({});
+  const [activePdfModal, setActivePdfModal] = useState(null);
   const user = JSON.parse(localStorage.getItem('user'));
 
   // Track selected class. When null, show class cards grid.
@@ -103,8 +106,21 @@ const CourseDetails = () => {
     }
   };
 
+  const fetchPdfReadingProgress = async () => {
+    if (user?.role !== 'student' || !courseId) return;
+    try {
+      const res = await api.get(`/progress/course/${courseId}`);
+      if (res.data?.progressMap) {
+        setPdfProgressMap(res.data.progressMap);
+      }
+    } catch (err) {
+      console.error("Error fetching PDF reading progress:", err);
+    }
+  };
+
   useEffect(() => {
     fetchWeeklyAttendanceStatus();
+    fetchPdfReadingProgress();
   }, [courseId, user, selectedMonth]);
 
   const handleSubmitWeeklyAttendance = async (weekNum) => {
@@ -1382,7 +1398,7 @@ const CourseDetails = () => {
               </div>
             )}
 
-            {/* Demo / Real PDFs List */}
+            {/* PDF Notes List with Reading Progress */}
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-blue-100 rounded-xl bg-blue-50/40 hover:bg-blue-50 transition-all gap-3">
                 <div className="flex items-center gap-3">
@@ -1391,60 +1407,114 @@ const CourseDetails = () => {
                     <p className="font-extrabold text-gray-900 text-sm">
                       Week {activeWeek} Lecture Notes & Tutorial Problems ({selectedMonth}).pdf
                     </p>
-                    <p className="text-xs text-blue-700 font-semibold mt-0.5">
-                      Required Study Notes — PDF Document (2.4 MB)
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-blue-700 font-semibold">
+                        Required Study Notes — PDF Document (2.4 MB)
+                      </span>
+                      {pdfProgressMap['demo-pdf']?.progressPercentage > 0 && (
+                        <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                          pdfProgressMap['demo-pdf'].progressPercentage >= 100 
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+                            : 'bg-purple-100 text-purple-900 border-purple-300'
+                        }`}>
+                          {pdfProgressMap['demo-pdf'].progressPercentage >= 100 
+                            ? '✓ 100% Read' 
+                            : `📖 ${pdfProgressMap['demo-pdf'].progressPercentage}% Read (Page ${pdfProgressMap['demo-pdf'].maxPageRead}/${pdfProgressMap['demo-pdf'].totalPages})`}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setActivePdfModal({
+                      pdf: {
+                        _id: 'demo-pdf',
+                        title: `Week ${activeWeek} Lecture Notes (${selectedMonth}).pdf`,
+                        fileUrl: ''
+                      },
+                      lessonId: currentLesson?._id || 'demo-lesson'
+                    })}
+                    className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>📖</span> Read PDF Notes
+                  </button>
+
                   {isPdfDownloaded ? (
-                    <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-4 py-2 rounded-xl border border-emerald-200">
-                      ✓ Downloaded & Covered
+                    <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-2 rounded-xl border border-emerald-200">
+                      ✓ Covered
                     </span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => markMaterialCompleted('pdf')}
-                      className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
+                      className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer"
                     >
-                      <span>📄</span> View / Download PDF Notes
+                      Mark Done
                     </button>
                   )}
                 </div>
               </div>
 
-              {currentLesson?.pdfMaterials?.map((pdf) => (
-                <div key={pdf._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="text-red-600 text-2xl font-bold">📕</div>
-                    <div>
-                      <p className="font-bold text-gray-800">{pdf.title}</p>
-                      <p className="text-xs text-gray-500">
-                        Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown'} | Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()}
-                      </p>
+              {currentLesson?.pdfMaterials?.map((pdf) => {
+                const pId = pdf._id || pdf.filename;
+                const pProg = pdfProgressMap[pId];
+                const pPercent = pProg?.progressPercentage || 0;
+                const pMaxRead = pProg?.maxPageRead || 0;
+                const pTotal = pProg?.totalPages || 0;
+
+                return (
+                  <div key={pdf._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/20 hover:bg-purple-50 transition-all gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-red-600 text-2xl font-bold">📕</div>
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-sm">{pdf.title}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-500">
+                            Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : 'PDF Document'}
+                          </span>
+                          {pPercent > 0 && (
+                            <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${pPercent >= 100 ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-purple-100 text-purple-900 border-purple-300'}`}>
+                              {pPercent >= 100 ? '✓ 100% Read' : `📖 ${pPercent}% Read (Page ${pMaxRead}/${pTotal})`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => setActivePdfModal({ pdf, lessonId: currentLesson?._id })}
+                        className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>📖</span> {pPercent > 0 ? 'Continue Reading' : 'Read PDF'}
+                      </button>
+
+                      <a
+                        href={pdf.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition"
+                        title="Download File"
+                      >
+                        Download
+                      </a>
+
+                      {user?.role !== 'student' && (
+                        <button
+                          onClick={() => handleDeletePdf(pdf._id)}
+                          className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={pdf.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
-                    >
-                      Download
-                    </a>
-                    {user?.role !== 'student' && (
-                      <button
-                        onClick={() => handleDeletePdf(pdf._id)}
-                        className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -2030,6 +2100,23 @@ const CourseDetails = () => {
           teacher={selectedTeacherForModal}
           isOpen={!!selectedTeacherForModal}
           onClose={() => setSelectedTeacherForModal(null)}
+        />
+      )}
+
+      {/* PDF Document Reader & Progress Tracker Modal */}
+      {activePdfModal && (
+        <PdfReaderModal
+          pdf={activePdfModal.pdf}
+          courseId={courseId}
+          lessonId={activePdfModal.lessonId}
+          initialProgress={pdfProgressMap[activePdfModal.pdf?._id || activePdfModal.pdf?.filename]}
+          onClose={() => setActivePdfModal(null)}
+          onProgressUpdated={(pdfId, newProgress) => {
+            setPdfProgressMap(prev => ({ ...prev, [pdfId]: newProgress }));
+            if (newProgress.isCompleted) {
+              markMaterialCompleted('pdf');
+            }
+          }}
         />
       )}
     </div>

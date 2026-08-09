@@ -34,7 +34,8 @@ const UserSchema = new mongoose.Schema({
     default: ''
   },
   password: { type: String, required: true },
-  role: { type: String, enum: ['student', 'teacher', 'admin', 'counter_staff'], default: 'student' },
+  role: { type: String, enum: ['student', 'teacher', 'admin', 'counter_staff', 'parent'], default: 'student' },
+  linkedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   studentType: {
     type: String,
     enum: ['physical', 'online'],

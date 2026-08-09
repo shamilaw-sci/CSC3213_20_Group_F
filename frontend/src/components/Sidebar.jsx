@@ -45,6 +45,19 @@ const Sidebar = () => {
               <FaCalendarCheck /> Live QR Kiosk
             </Link>
           </>
+        ) : role === 'parent' ? (
+          <>
+            <div className="bg-purple-800/60 p-3 rounded-xl mb-4 border border-purple-600/40">
+              <span className="text-[10px] font-extrabold uppercase text-purple-200 tracking-wider block">Parent Account</span>
+              <span className="text-xs font-bold text-white block">Child Monitoring Portal</span>
+            </div>
+            <Link to="/parent-dashboard" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/parent-dashboard')}`}>
+              <FaHome /> Child Dashboard
+            </Link>
+            <Link to="/courses" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/courses')}`}>
+              <FaBook /> Institute Courses
+            </Link>
+          </>
         ) : (
           <>
             <Link to="/dashboard" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/dashboard')}`}><FaHome /> Dashboard</Link>
