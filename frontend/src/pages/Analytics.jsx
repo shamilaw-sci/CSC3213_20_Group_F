@@ -22,6 +22,7 @@ const Analytics = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [studentTypeFilter, setStudentTypeFilter] = useState('all'); // Admin filter
+  const [chartStyle, setChartStyle] = useState('bars'); // 'bars' | 'area' | 'lines'
 
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
@@ -562,33 +563,75 @@ const Analytics = () => {
         {/* Section 1: Weekly Growth Line Chart & Donut Mode Share Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          <div className="lg:col-span-2 bg-[#fffaf5] p-8 rounded-[30px] border border-amber-100 shadow-sm space-y-6 overflow-hidden">
-            <div className="flex justify-between items-center">
+          {/* Section 1: Interactive Weekly Growth Chart & Donut Mode Share Chart */}
+          <div className="lg:col-span-2 bg-[#fffaf5] p-6 sm:p-8 rounded-[30px] border border-amber-100 shadow-sm space-y-6 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200/60 pb-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <FaChartLine className="text-red-500" /> Student Mode Growth Trend (Weekly Line Chart)
+                  <FaChartLine className="text-purple-700 text-lg" /> Weekly Student Growth Analysis
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {studentTypeFilter === 'all' 
                     ? 'Weekly breakdown of Online, Physical, and Total registrations' 
                     : `Weekly growth trend for ${studentTypeFilter.toUpperCase()} students`}
                 </p>
               </div>
 
-              <div className="flex gap-3 text-xs font-bold">
+              {/* Chart Style Switcher Buttons */}
+              <div className="flex bg-amber-100/70 p-1 rounded-2xl border border-amber-200/80 items-center gap-1 self-start sm:self-auto">
+                <button
+                  onClick={() => setChartStyle('bars')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1 ${
+                    chartStyle === 'bars'
+                      ? 'bg-purple-900 text-white shadow-sm scale-105'
+                      : 'text-amber-900 hover:bg-white/60'
+                  }`}
+                  title="Grouped Vertical Bar Pillars"
+                >
+                  📊 Bar Pillars
+                </button>
+                <button
+                  onClick={() => setChartStyle('area')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1 ${
+                    chartStyle === 'area'
+                      ? 'bg-purple-900 text-white shadow-sm scale-105'
+                      : 'text-amber-900 hover:bg-white/60'
+                  }`}
+                  title="Smooth Wave Area Chart"
+                >
+                  🌊 Smooth Area
+                </button>
+                <button
+                  onClick={() => setChartStyle('lines')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1 ${
+                    chartStyle === 'lines'
+                      ? 'bg-purple-900 text-white shadow-sm scale-105'
+                      : 'text-amber-900 hover:bg-white/60'
+                  }`}
+                  title="Compact Line Trend"
+                >
+                  📈 Line Trend
+                </button>
+              </div>
+            </div>
+
+            {/* Legend & Filter Badges */}
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-bold bg-white p-3 rounded-2xl border border-amber-100 shadow-xs">
+              <span className="text-gray-500 font-extrabold uppercase text-[10px] tracking-wider">Metrics Legend:</span>
+              <div className="flex flex-wrap items-center gap-4">
                 {(studentTypeFilter === 'all' || studentTypeFilter === 'online') && (
-                  <span className="flex items-center gap-1.5 text-red-600">
-                    <span className="w-3 h-3 bg-red-500 rounded-full inline-block"></span> Online
+                  <span className="flex items-center gap-1.5 text-red-600 font-extrabold">
+                    <span className="w-3 h-3 bg-red-500 rounded-full inline-block shadow-xs"></span> Online (Red)
                   </span>
                 )}
                 {(studentTypeFilter === 'all' || studentTypeFilter === 'physical') && (
-                  <span className="flex items-center gap-1.5 text-blue-700">
-                    <span className="w-3 h-3 bg-blue-600 rounded-full inline-block"></span> Physical
+                  <span className="flex items-center gap-1.5 text-blue-700 font-extrabold">
+                    <span className="w-3 h-3 bg-blue-600 rounded-full inline-block shadow-xs"></span> Physical (Blue)
                   </span>
                 )}
                 {studentTypeFilter === 'all' && (
-                  <span className="flex items-center gap-1.5 text-amber-600">
-                    <span className="w-3 h-3 bg-amber-400 rounded-full inline-block"></span> Total
+                  <span className="flex items-center gap-1.5 text-amber-700 font-extrabold">
+                    <span className="w-3 h-3 bg-amber-400 rounded-full inline-block shadow-xs"></span> Combined Total
                   </span>
                 )}
               </div>
@@ -597,95 +640,246 @@ const Analytics = () => {
             {weeklyStudentTrend.length === 0 ? (
               <p className="text-sm text-gray-400 py-12 text-center">No weekly registration trend data available yet.</p>
             ) : (
-              <div className="pt-4">
-                <div className="relative h-64 w-full overflow-hidden">
-                  <svg className="w-full h-full overflow-hidden" viewBox="0 0 500 200" preserveAspectRatio="none">
-                    <line x1="0" y1="30" x2="500" y2="30" stroke="#f3e8dc" strokeWidth="1.5" />
-                    <line x1="0" y1="80" x2="500" y2="80" stroke="#f3e8dc" strokeWidth="1.5" />
-                    <line x1="0" y1="130" x2="500" y2="130" stroke="#f3e8dc" strokeWidth="1.5" />
-                    <line x1="0" y1="180" x2="500" y2="180" stroke="#f3e8dc" strokeWidth="1.5" />
+              <div className="pt-2">
 
-                    {(studentTypeFilter === 'all' || studentTypeFilter === 'online') && (
-                      <path
-                        d={weeklyStudentTrend.map((t, idx) => {
-                          const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
-                          const val = t.online || 0;
-                          const y = 175 - (val / maxWeeklyValue) * 140;
-                          return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
-                        }).join(' ')}
-                        fill="none"
-                        stroke="#ef4444"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    )}
+                {/* 1. BAR PILLARS VIEW */}
+                {chartStyle === 'bars' && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="h-56 w-full flex items-end justify-between gap-3 pt-6 pb-2 px-2 bg-gradient-to-b from-white to-amber-50/40 rounded-2xl border border-amber-100/60 relative">
+                      {weeklyStudentTrend.map((t) => {
+                        const onlineHeight = Math.max(Math.round(((t.online || 0) / maxWeeklyValue) * 100), 6);
+                        const physicalHeight = Math.max(Math.round(((t.physical || 0) / maxWeeklyValue) * 100), 6);
+                        const totalHeight = Math.max(Math.round(((t.total || 0) / maxWeeklyValue) * 100), 6);
 
-                    {(studentTypeFilter === 'all' || studentTypeFilter === 'physical') && (
-                      <path
-                        d={weeklyStudentTrend.map((t, idx) => {
-                          const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
-                          const val = t.physical || 0;
-                          const y = 175 - (val / maxWeeklyValue) * 140;
-                          return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
-                        }).join(' ')}
-                        fill="none"
-                        stroke="#1d4ed8"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    )}
+                        return (
+                          <div key={t.week} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                            {/* Hover Tooltip */}
+                            <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none bg-gray-900 text-white text-[11px] font-bold py-1.5 px-3 rounded-xl shadow-xl z-20 whitespace-nowrap border border-gray-700">
+                              {t.week}: {t.online || 0} Online • {t.physical || 0} Physical ({t.total || 0} Total)
+                            </div>
 
-                    {studentTypeFilter === 'all' && (
-                      <path
-                        d={weeklyStudentTrend.map((t, idx) => {
-                          const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
-                          const val = t.total || 0;
-                          const y = 175 - (val / maxWeeklyValue) * 140;
-                          return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
-                        }).join(' ')}
-                        fill="none"
-                        stroke="#f59e0b"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    )}
+                            <div className="flex items-end justify-center gap-1.5 w-full h-full">
+                              {(studentTypeFilter === 'all' || studentTypeFilter === 'online') && (
+                                <div
+                                  style={{ height: `${onlineHeight}%` }}
+                                  className="w-1/3 max-w-[20px] bg-gradient-to-t from-red-600 to-red-400 rounded-t-lg shadow-sm transition-all duration-500 group-hover:brightness-110 flex items-center justify-center"
+                                  title={`Week ${t.week}: ${t.online} Online`}
+                                ></div>
+                              )}
+                              {(studentTypeFilter === 'all' || studentTypeFilter === 'physical') && (
+                                <div
+                                  style={{ height: `${physicalHeight}%` }}
+                                  className="w-1/3 max-w-[20px] bg-gradient-to-t from-blue-700 to-blue-500 rounded-t-lg shadow-sm transition-all duration-500 group-hover:brightness-110 flex items-center justify-center"
+                                  title={`Week ${t.week}: ${t.physical} Physical`}
+                                ></div>
+                              )}
+                              {studentTypeFilter === 'all' && (
+                                <div
+                                  style={{ height: `${totalHeight}%` }}
+                                  className="w-1/3 max-w-[20px] bg-gradient-to-t from-amber-500 to-amber-300 rounded-t-lg shadow-sm transition-all duration-500 group-hover:brightness-110 flex items-center justify-center opacity-80"
+                                  title={`Week ${t.week}: ${t.total} Total`}
+                                ></div>
+                              )}
+                            </div>
 
-                    {weeklyStudentTrend.map((t, idx) => {
-                      const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
-                      const yOnline = 175 - ((t.online || 0) / maxWeeklyValue) * 140;
-                      const yPhysical = 175 - ((t.physical || 0) / maxWeeklyValue) * 140;
-                      const yTotal = 175 - ((t.total || 0) / maxWeeklyValue) * 140;
-
-                      return (
-                        <g key={t.week}>
-                          {(studentTypeFilter === 'all' || studentTypeFilter === 'online') && (
-                            <circle cx={x} cy={yOnline} r="5" fill="#ef4444" stroke="#ffffff" strokeWidth="2" />
-                          )}
-                          {(studentTypeFilter === 'all' || studentTypeFilter === 'physical') && (
-                            <circle cx={x} cy={yPhysical} r="5" fill="#1d4ed8" stroke="#ffffff" strokeWidth="2" />
-                          )}
-                          {studentTypeFilter === 'all' && (
-                            <circle cx={x} cy={yTotal} r="5" fill="#f59e0b" stroke="#ffffff" strokeWidth="2" />
-                          )}
-                        </g>
-                      );
-                    })}
-                  </svg>
-                </div>
-
-                <div className="flex justify-between items-center text-xs font-bold text-gray-500 pt-4 border-t border-amber-200/60">
-                  {weeklyStudentTrend.map(t => (
-                    <div key={t.week} className="text-center">
-                      <span className="block text-gray-900 font-extrabold">{t.week}</span>
-                      <span className="text-[10px] text-gray-600 font-bold">
-                        {studentTypeFilter === 'online' ? `${t.online} Online` : studentTypeFilter === 'physical' ? `${t.physical} Physical` : `${t.online} Online / ${t.physical} Physical`}
-                      </span>
+                            <span className="text-[11px] font-extrabold text-gray-800 mt-2 truncate max-w-full">
+                              {t.week}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* 2. SMOOTH GRADIENT AREA VIEW */}
+                {chartStyle === 'area' && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="relative h-56 w-full overflow-hidden bg-white p-2 rounded-2xl border border-amber-100">
+                      <svg className="w-full h-full overflow-hidden" viewBox="0 0 500 180" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="onlineGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#ef4444" stopOpacity="0.0" />
+                          </linearGradient>
+                          <linearGradient id="physicalGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#1d4ed8" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.0" />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Grid lines */}
+                        <line x1="0" y1="30" x2="500" y2="30" stroke="#f3e8dc" strokeWidth="1" strokeDasharray="3 3" />
+                        <line x1="0" y1="90" x2="500" y2="90" stroke="#f3e8dc" strokeWidth="1" strokeDasharray="3 3" />
+                        <line x1="0" y1="150" x2="500" y2="150" stroke="#f3e8dc" strokeWidth="1" strokeDasharray="3 3" />
+
+                        {/* Physical Area */}
+                        {(studentTypeFilter === 'all' || studentTypeFilter === 'physical') && (
+                          <>
+                            <path
+                              d={`M 0 160 ${weeklyStudentTrend.map((t, idx) => {
+                                const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
+                                const y = 150 - ((t.physical || 0) / maxWeeklyValue) * 120;
+                                return `L ${x} ${y}`;
+                              }).join(' ')} L 500 160 Z`}
+                              fill="url(#physicalGrad)"
+                            />
+                            <path
+                              d={weeklyStudentTrend.map((t, idx) => {
+                                const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
+                                const y = 150 - ((t.physical || 0) / maxWeeklyValue) * 120;
+                                return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+                              }).join(' ')}
+                              fill="none"
+                              stroke="#1d4ed8"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                            />
+                          </>
+                        )}
+
+                        {/* Online Area */}
+                        {(studentTypeFilter === 'all' || studentTypeFilter === 'online') && (
+                          <>
+                            <path
+                              d={`M 0 160 ${weeklyStudentTrend.map((t, idx) => {
+                                const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
+                                const y = 150 - ((t.online || 0) / maxWeeklyValue) * 120;
+                                return `L ${x} ${y}`;
+                              }).join(' ')} L 500 160 Z`}
+                              fill="url(#onlineGrad)"
+                            />
+                            <path
+                              d={weeklyStudentTrend.map((t, idx) => {
+                                const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
+                                const y = 150 - ((t.online || 0) / maxWeeklyValue) * 120;
+                                return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+                              }).join(' ')}
+                              fill="none"
+                              stroke="#ef4444"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                            />
+                          </>
+                        )}
+
+                        {/* Dots */}
+                        {weeklyStudentTrend.map((t, idx) => {
+                          const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
+                          const yOnline = 150 - ((t.online || 0) / maxWeeklyValue) * 120;
+                          const yPhysical = 150 - ((t.physical || 0) / maxWeeklyValue) * 120;
+
+                          return (
+                            <g key={t.week}>
+                              {(studentTypeFilter === 'all' || studentTypeFilter === 'online') && (
+                                <circle cx={x} cy={yOnline} r="4.5" fill="#ef4444" stroke="#ffffff" strokeWidth="2" />
+                              )}
+                              {(studentTypeFilter === 'all' || studentTypeFilter === 'physical') && (
+                                <circle cx={x} cy={yPhysical} r="4.5" fill="#1d4ed8" stroke="#ffffff" strokeWidth="2" />
+                              )}
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs font-bold text-gray-500 px-2">
+                      {weeklyStudentTrend.map(t => (
+                        <div key={t.week} className="text-center">
+                          <span className="block text-gray-900 font-extrabold">{t.week}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. LINE TREND VIEW */}
+                {chartStyle === 'lines' && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="relative h-56 w-full overflow-hidden bg-white p-2 rounded-2xl border border-amber-100">
+                      <svg className="w-full h-full overflow-hidden" viewBox="0 0 500 180" preserveAspectRatio="none">
+                        <line x1="0" y1="30" x2="500" y2="30" stroke="#f3e8dc" strokeWidth="1.5" strokeDasharray="3 3" />
+                        <line x1="0" y1="90" x2="500" y2="90" stroke="#f3e8dc" strokeWidth="1.5" strokeDasharray="3 3" />
+                        <line x1="0" y1="150" x2="500" y2="150" stroke="#f3e8dc" strokeWidth="1.5" strokeDasharray="3 3" />
+
+                        {(studentTypeFilter === 'all' || studentTypeFilter === 'online') && (
+                          <path
+                            d={weeklyStudentTrend.map((t, idx) => {
+                              const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
+                              const y = 150 - ((t.online || 0) / maxWeeklyValue) * 120;
+                              return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+                            }).join(' ')}
+                            fill="none"
+                            stroke="#ef4444"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                          />
+                        )}
+
+                        {(studentTypeFilter === 'all' || studentTypeFilter === 'physical') && (
+                          <path
+                            d={weeklyStudentTrend.map((t, idx) => {
+                              const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
+                              const y = 150 - ((t.physical || 0) / maxWeeklyValue) * 120;
+                              return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+                            }).join(' ')}
+                            fill="none"
+                            stroke="#1d4ed8"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                          />
+                        )}
+
+                        {studentTypeFilter === 'all' && (
+                          <path
+                            d={weeklyStudentTrend.map((t, idx) => {
+                              const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
+                              const y = 150 - ((t.total || 0) / maxWeeklyValue) * 120;
+                              return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+                            }).join(' ')}
+                            fill="none"
+                            stroke="#f59e0b"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                          />
+                        )}
+
+                        {weeklyStudentTrend.map((t, idx) => {
+                          const x = (idx / Math.max(weeklyStudentTrend.length - 1, 1)) * 500;
+                          const yOnline = 150 - ((t.online || 0) / maxWeeklyValue) * 120;
+                          const yPhysical = 150 - ((t.physical || 0) / maxWeeklyValue) * 120;
+                          const yTotal = 150 - ((t.total || 0) / maxWeeklyValue) * 120;
+
+                          return (
+                            <g key={t.week}>
+                              {(studentTypeFilter === 'all' || studentTypeFilter === 'online') && (
+                                <circle cx={x} cy={yOnline} r="4.5" fill="#ef4444" stroke="#ffffff" strokeWidth="2" />
+                              )}
+                              {(studentTypeFilter === 'all' || studentTypeFilter === 'physical') && (
+                                <circle cx={x} cy={yPhysical} r="4.5" fill="#1d4ed8" stroke="#ffffff" strokeWidth="2" />
+                              )}
+                              {studentTypeFilter === 'all' && (
+                                <circle cx={x} cy={yTotal} r="4.5" fill="#f59e0b" stroke="#ffffff" strokeWidth="2" />
+                              )}
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs font-bold text-gray-500 px-2">
+                      {weeklyStudentTrend.map(t => (
+                        <div key={t.week} className="text-center">
+                          <span className="block text-gray-900 font-extrabold">{t.week}</span>
+                          <span className="text-[10px] text-gray-600 font-bold">
+                            {studentTypeFilter === 'online' ? `${t.online} Online` : studentTypeFilter === 'physical' ? `${t.physical} Physical` : `${t.online} / ${t.physical}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
           </div>
@@ -740,11 +934,11 @@ const Analytics = () => {
 
         </div>
 
-        {/* Section 2: Grade Concentration & Demographics */}
+        {/* Section 2: Grade Concentration & Demographics (2-Column Compact Grid) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          <div className="bg-[#f5f3ff] p-8 rounded-[30px] border border-indigo-100 shadow-sm space-y-6">
-            <div className="flex justify-between items-center">
+          <div className="bg-[#f5f3ff] p-6 sm:p-8 rounded-[30px] border border-indigo-100 shadow-sm space-y-6">
+            <div className="flex justify-between items-center border-b border-indigo-100/60 pb-3">
               <div>
                 <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
                   <FaGraduationCap className="text-purple-600" /> Grade Concentration
@@ -759,21 +953,24 @@ const Analytics = () => {
             {gradeDistribution.length === 0 ? (
               <p className="text-sm text-gray-400 py-8 text-center">No student grade data recorded yet.</p>
             ) : (
-              <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 pt-1">
                 {gradeDistribution.map((g) => {
                   const percentage = Math.round((g.count / maxGradeCount) * 100);
                   return (
-                    <div key={g.grade} className="space-y-1.5">
-                      <div className="flex justify-between items-center text-sm font-semibold">
-                        <span className="text-purple-950 font-bold">{g.grade}</span>
-                        <span className="text-purple-900 font-bold">{g.count} Students ({g.online} Online / {g.physical} Physical)</span>
+                    <div key={g.grade} className="bg-white/80 p-3 rounded-2xl border border-purple-100/70 space-y-1 shadow-2xs hover:shadow-xs transition">
+                      <div className="flex justify-between items-center text-xs font-bold">
+                        <span className="text-purple-950 truncate max-w-[120px]">{g.grade}</span>
+                        <span className="text-purple-900 font-extrabold">{g.count} Students</span>
                       </div>
-                      <div className="w-full bg-purple-100/70 h-3.5 rounded-full overflow-hidden flex">
+                      <div className="w-full bg-purple-100/70 h-2.5 rounded-full overflow-hidden flex">
                         <div 
                           className="bg-gradient-to-r from-purple-600 to-indigo-600 h-full rounded-full transition-all duration-500" 
                           style={{ width: `${percentage}%` }}
                         ></div>
                       </div>
+                      <span className="text-[10px] text-purple-700 block text-right font-medium">
+                        {g.online} Online / {g.physical} Physical
+                      </span>
                     </div>
                   );
                 })}
@@ -781,35 +978,35 @@ const Analytics = () => {
             )}
           </div>
 
-          <div className="bg-[#eef2ff] p-8 rounded-[30px] border border-indigo-100 shadow-sm space-y-6">
-            <div className="flex justify-between items-center">
+          <div className="bg-[#eef2ff] p-6 sm:p-8 rounded-[30px] border border-indigo-100 shadow-sm space-y-6">
+            <div className="flex justify-between items-center border-b border-indigo-100/60 pb-3">
               <div>
                 <h3 className="text-xl font-bold text-indigo-950 flex items-center gap-2">
-                  <FaGlobe className="text-indigo-600" /> Online vs Physical Mode Split per Grade
+                  <FaGlobe className="text-indigo-600" /> Mode Split per Grade
                 </h3>
                 <p className="text-xs text-indigo-400 mt-0.5">Ratio of online to physical students per grade level</p>
               </div>
               <div className="flex gap-2 text-xs font-bold">
-                <span className="px-2 py-0.5 bg-red-500 text-white rounded">Online</span>
-                <span className="px-2 py-0.5 bg-indigo-900 text-white rounded">Physical</span>
+                <span className="px-2 py-0.5 bg-red-500 text-white rounded-md text-[10px]">Online</span>
+                <span className="px-2 py-0.5 bg-indigo-900 text-white rounded-md text-[10px]">Physical</span>
               </div>
             </div>
 
             {gradeDistribution.length === 0 ? (
               <p className="text-sm text-gray-400 py-8 text-center">No grade mode data available.</p>
             ) : (
-              <div className="space-y-5 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 pt-1">
                 {gradeDistribution.map((g) => {
                   const totalInGrade = g.count || 1;
                   const onlineRatio = Math.round((g.online / totalInGrade) * 100);
                   const physicalRatio = 100 - onlineRatio;
                   return (
-                    <div key={g.grade} className="space-y-1.5">
-                      <div className="flex justify-between items-center text-sm font-semibold">
-                        <span className="text-indigo-950 font-bold">{g.grade}</span>
-                        <span className="text-xs text-indigo-600 font-bold">{onlineRatio}% Online / {physicalRatio}% Physical</span>
+                    <div key={g.grade} className="bg-white/80 p-3 rounded-2xl border border-indigo-100/70 space-y-1 shadow-2xs hover:shadow-xs transition">
+                      <div className="flex justify-between items-center text-xs font-bold">
+                        <span className="text-indigo-950 truncate max-w-[120px]">{g.grade}</span>
+                        <span className="text-[10px] text-indigo-700 font-extrabold">{onlineRatio}% Online / {physicalRatio}% Physical</span>
                       </div>
-                      <div className="w-full bg-indigo-900 h-4 rounded-full overflow-hidden flex shadow-inner">
+                      <div className="w-full bg-indigo-900 h-3 rounded-full overflow-hidden flex shadow-inner">
                         <div 
                           className="bg-red-500 h-full transition-all duration-500"
                           style={{ width: `${onlineRatio}%` }}

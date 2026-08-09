@@ -279,10 +279,13 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white relative">
           <button 
+            type="button"
             onClick={onClose}
-            className="absolute top-5 right-5 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition"
+            className="absolute top-4 right-4 bg-white/20 hover:bg-red-600 text-white font-bold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 shadow-md border border-white/30 cursor-pointer"
+            title="Close & Go Back"
           >
-            ✕
+            <span className="text-base font-black leading-none">✕</span>
+            <span className="font-extrabold text-xs">Close / Go Back</span>
           </button>
           
           <div className="flex items-center space-x-3">
@@ -528,20 +531,29 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
             </div>
 
             {/* Fee Breakdown */}
-            <div className="flex justify-between items-center bg-gray-900 text-white p-4 rounded-2xl">
+            <div className="flex justify-between items-center bg-gray-900 text-white p-4 rounded-2xl gap-3">
               <div>
                 <span className="text-xs text-gray-400 block uppercase font-bold tracking-wider">Total Course Fee</span>
                 <span className="text-2xl font-extrabold text-amber-400">LKR {courseFee.toLocaleString()}</span>
               </div>
-              {paymentMethodType === 'CARD' && (
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
-                  className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-purple-950 font-bold rounded-xl shadow-lg transition flex items-center gap-2 text-sm cursor-pointer"
+                  onClick={onClose}
+                  className="px-3.5 py-2.5 bg-gray-800 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer border border-gray-700 hover:border-red-600"
                 >
-                  Proceed to Pay Online ➔
+                  <span className="text-sm font-black">✕</span> Cancel & Go Back
                 </button>
-              )}
+                {paymentMethodType === 'CARD' && (
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-purple-950 font-bold rounded-xl shadow-lg transition flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
+                  >
+                    Proceed to Pay Online ➔
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
