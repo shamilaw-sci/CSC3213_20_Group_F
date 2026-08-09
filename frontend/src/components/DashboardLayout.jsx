@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import BroadcastModal from './BroadcastModal';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+
 import {
   FaBell,
   FaUserCircle,
@@ -17,6 +18,21 @@ import {
   FaInfoCircle
 } from 'react-icons/fa';
 import api from '../utils/api';
+
+const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  let filename = url;
+  if (url.includes('/uploads/')) {
+    filename = url.split('/uploads/').pop();
+  } else if (url.startsWith('/')) {
+    filename = url.substring(1);
+  }
+  const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+  return `${backendBase}/uploads/${filename}`;
+};
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -37,14 +53,20 @@ const DashboardLayout = () => {
 
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
 
-  // Listen for storage changes (triggered by Settings.jsx)
+  // Listen for storage and userUpdated changes
   useEffect(() => {
     const handleStorageChange = () => {
       const updatedUser = JSON.parse(localStorage.getItem('user'));
       if (updatedUser) setUser(updatedUser);
     };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('userUpdated', handleStorageChange);
+    window.addEventListener('teacherProfileUpdated', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userUpdated', handleStorageChange);
+      window.removeEventListener('teacherProfileUpdated', handleStorageChange);
+    };
   }, []);
 
   // --- FETCH NOTIFICATIONS FROM BACKEND ---
@@ -154,7 +176,7 @@ const DashboardLayout = () => {
 
       <div className="flex-1 flex flex-col overflow-y-auto ml-64">
 
-        <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm sticky top-0 z-10">
+        <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm sticky top-0 z-40">
 
           <h2 className="text-xl font-bold text-gray-800 flex-shrink-0 truncate max-w-[25%] mr-4">
             {getPageTitle()}
@@ -279,7 +301,7 @@ const DashboardLayout = () => {
               >
                 {user?.profilePicture ? (
                   <img
-                    src={user.profilePicture}
+                    src={getImageUrl(user.profilePicture)}
                     alt="Profile"
                     referrerPolicy="no-referrer"
                     className="w-9 h-9 rounded-full object-cover border border-purple-200 shadow-sm"
@@ -294,7 +316,7 @@ const DashboardLayout = () => {
                   <div className="p-4 border-b border-gray-100 bg-gray-50 text-center flex flex-col items-center">
                     {user?.profilePicture ? (
                       <img
-                        src={user.profilePicture}
+                        src={getImageUrl(user.profilePicture)}
                         alt="Profile"
                         referrerPolicy="no-referrer"
                         className="w-16 h-16 rounded-full object-cover border-2 border-purple-200 mb-2 shadow-inner"
@@ -338,3 +360,4 @@ const DashboardLayout = () => {
 };
 
 export default DashboardLayout;
+

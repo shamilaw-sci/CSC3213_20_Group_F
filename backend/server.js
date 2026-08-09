@@ -12,6 +12,7 @@ const scheduleRoutes = require('./routes/scheduleRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 
@@ -20,7 +21,7 @@ const app = express();
 app.use(express.json({ limit: '10mb' })); // Parses incoming JSON requests
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors());         // Enables Cross-Origin Resource Sharing
-app.use('/uploads', express.static('uploads')); // Serve uploaded images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded images
 
 // --- ROOT HEALTH CHECK ---
 app.get('/', (req, res) => {
@@ -42,6 +43,7 @@ app.use('/api/schedule', scheduleRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/chat', chatRoutes);
 
 // --- GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {

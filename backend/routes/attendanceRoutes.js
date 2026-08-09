@@ -4,6 +4,7 @@ const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Schedule = require('../models/Schedule');
 const Notification = require('../models/Notification');
+const Course = require('../models/Course');
 const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authMiddleware');
 const { sendAttendanceSMS } = require('../services/smsService');
 
@@ -117,6 +118,74 @@ router.post('/', protect, async (req, res) => {
       });
     }
     res.status(500).json({ message: "Server error marking attendance." });
+  }
+});
+
+// ==========================================
+//          1B. BATCH MARK ATTENDANCE (TEACHER & ADMIN)
+// ==========================================
+router.post('/mark-batch', protect, async (req, res) => {
+  if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Access Denied: Teachers and Admins only." });
+  }
+
+  const { courseId, scheduleId, records, date } = req.body;
+  if (!Array.isArray(records) || records.length === 0) {
+    return res.status(400).json({ message: "Student records list is required." });
+  }
+
+  try {
+    const normalizedDate = normalizeDate(date);
+    const markedBy = req.user.id || req.user._id;
+
+    const savedRecords = [];
+    for (const item of records) {
+      if (!item.studentId) continue;
+      
+      const filter = {
+        studentId: item.studentId,
+        date: normalizedDate
+      };
+      if (courseId) filter.courseId = courseId;
+      if (scheduleId) filter.scheduleId = scheduleId;
+
+      const updateData = {
+        studentId: item.studentId,
+        courseId: courseId || undefined,
+        scheduleId: scheduleId || undefined,
+        status: item.status || 'Present',
+        date: normalizedDate,
+        markedBy
+      };
+
+      const recordDoc = await Attendance.findOneAndUpdate(
+        filter,
+        updateData,
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      savedRecords.push(recordDoc);
+
+      // In-App Notification trigger
+      try {
+        await Notification.create({
+          recipient: item.studentId,
+          type: 'ATTENDANCE',
+          title: `Attendance Recorded: ${item.status || 'Present'}`,
+          message: `Your attendance status for today was recorded as '${item.status || 'Present'}'.`,
+          link: '/dashboard'
+        });
+      } catch (notifErr) {
+        // Silent catch for notification error
+      }
+    }
+
+    res.json({
+      message: `Successfully recorded attendance for ${savedRecords.length} student(s)!`,
+      count: savedRecords.length
+    });
+  } catch (err) {
+    console.error("Mark Batch Attendance Error:", err);
+    res.status(500).json({ message: "Server error marking batch attendance." });
   }
 });
 
@@ -267,7 +336,6 @@ router.post('/submit-weekly', protect, async (req, res) => {
 
   try {
     // Verify enrollment
-    const Course = require('../models/Course');
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({ message: "Course not found." });

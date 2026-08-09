@@ -1,19 +1,21 @@
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { protect, isAdmin } = require('../middleware/authMiddleware');
+const { protect, isAdmin, isTeacherOrAdmin } = require('../middleware/authMiddleware');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const Payment = require('../models/Payment');
 const Attendance = require('../models/Attendance');
+const Schedule = require('../models/Schedule');
+const Notification = require('../models/Notification');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
-const Notification = require('../models/Notification');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail } = require('../utils/emailService');
-
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Helper to generate Online Student Registration Number (e.g. OL-G06-2012-4829)
@@ -38,12 +40,57 @@ const generateOnlineRegistrationNumber = async (grade, dateOfBirth) => {
   return regNo;
 };
 
+// Helper function to convert base64 data URIs to static files in /uploads for super-fast image loading
+const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
+  if (!base64OrPath) return "";
+  if (!base64OrPath.startsWith('data:')) {
+    return base64OrPath;
+  }
+  try {
+    const matches = base64OrPath.match(/^data:(.+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) return base64OrPath;
+
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    let ext = 'png';
+    if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
+    else if (mimeType.includes('webp')) ext = 'webp';
+    else if (mimeType.includes('gif')) ext = 'gif';
+
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const filename = `${prefix}-${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+    const buffer = Buffer.from(base64Data, 'base64');
+    fs.writeFileSync(filePath, buffer);
+
+    return `/uploads/${filename}`;
+  } catch (err) {
+    console.error("Error converting base64 to static file:", err);
+    return base64OrPath;
+  }
+};
+
 // --- LOGIN ROUTE ---
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+  const input = (email || req.body.identifier || req.body.registrationNumber || '').trim();
+
+  if (!input || !password) {
+    return res.status(400).json({ message: "Email or registration number and password are required" });
+  }
 
   try {
-    const user = await User.findOne({ email });
+    const safeRegex = new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    const user = await User.findOne({
+      $or: [
+        { email: input.toLowerCase() },
+        { registrationNumber: safeRegex }
+      ]
+    });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -442,11 +489,11 @@ router.post('/reset-password/:token', async (req, res) => {
     // Hash the new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
-    
+
     // Clear reset token and expiration fields
     user.resetPasswordToken = '';
     user.resetPasswordExpires = undefined;
-    
+
     // Clear mustChangePassword if set
     user.mustChangePassword = false;
 
@@ -461,7 +508,7 @@ router.post('/reset-password/:token', async (req, res) => {
 
 // --- UPDATE PROFILE ROUTE (Name and/or Password) ---
 router.put('/update-profile', protect, async (req, res) => {
-  const { name, newPassword, profilePicture } = req.body;
+  const { name, newPassword, profilePicture, coverPicture, bio, qualifications, department, phoneNumber } = req.body;
 
   try {
     const user = await User.findById(req.user.id || req.user._id);
@@ -478,21 +525,17 @@ router.put('/update-profile', protect, async (req, res) => {
 
     // 3. Update profile picture if provided
     if (profilePicture !== undefined) {
-      if (profilePicture && profilePicture.startsWith('data:image/')) {
-        // Validate size of base64
-        const base64Length = profilePicture.length - (profilePicture.indexOf(',') + 1);
-        const padding = (profilePicture.charAt(profilePicture.length - 2) === '=') ? 2 : ((profilePicture.charAt(profilePicture.length - 1) === '=') ? 1 : 0);
-        const sizeInBytes = (base64Length * 3 / 4) - padding;
-        if (sizeInBytes > 1024 * 1024) {
-          return res.status(400).json({ message: "Profile photo exceeds 1MB size limit" });
-        }
-      }
       user.profilePicture = profilePicture;
     }
 
+    if (coverPicture !== undefined) user.coverPicture = coverPicture;
+    if (bio !== undefined) user.bio = bio;
+    if (qualifications !== undefined) user.qualifications = qualifications;
+    if (department !== undefined) user.department = department;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+
     await user.save();
 
-    // 4. Send back the updated user info (excluding password)
     res.json({
       message: "Profile updated successfully!",
       user: {
@@ -504,7 +547,12 @@ router.put('/update-profile', protect, async (req, res) => {
         grade: user.grade,
         registrationNumber: user.registrationNumber,
         mustChangePassword: user.mustChangePassword,
-        profilePicture: user.profilePicture || ''
+        profilePicture: user.profilePicture || '',
+        coverPicture: user.coverPicture || '',
+        bio: user.bio || '',
+        qualifications: user.qualifications || '',
+        department: user.department || 'Academic Faculty',
+        phoneNumber: user.phoneNumber || ''
       }
     });
 
@@ -646,7 +694,7 @@ router.post('/users', protect, isAdmin, async (req, res) => {
       if (role === 'student') {
         // Welcome Email with temporary login info
         sendRegistrationWelcomeEmail(user.email, user.name, user.registrationNumber);
-        
+
         // In-App notification for the new student
         await Notification.create({
           recipient: user._id,
@@ -676,11 +724,11 @@ router.put('/users/:id/role', protect, async (req, res) => {
 
   try {
     const updatedUser = await User.findByIdAndUpdate(
-      req.params.id, 
-      { role: req.body.role }, 
+      req.params.id,
+      { role: req.body.role },
       { new: true }
     ).select('-password');
-    
+
     res.json(updatedUser);
   } catch (err) {
     res.status(500).json({ message: "Failed to update role" });
@@ -696,11 +744,11 @@ router.delete('/users/:id', protect, async (req, res) => {
     await Enrollment.deleteMany({ student: userId });
     await Course.updateMany(
       {},
-      { 
-        $pull: { 
+      {
+        $pull: {
           enrolledStudents: userId,
           "classes.$[].enrolledStudents": userId
-        } 
+        }
       }
     );
     await User.findByIdAndDelete(userId);
@@ -729,7 +777,7 @@ router.put('/users/:id/grade', protect, async (req, res) => {
     if (!updatedUser) {
       return res.status(404).json({ message: "Student not found." });
     }
-    
+
     res.json(updatedUser);
   } catch (err) {
     console.error("Update Grade Error:", err);
@@ -773,7 +821,7 @@ router.get('/admin-stats', protect, async (req, res) => {
     const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
     const physicalStudents = Math.max(0, totalStudents - onlineStudents);
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
-    const totalCourses = await Course.countDocuments();    
+    const totalCourses = await Course.countDocuments();
 
     // Recent Registrations (last 5 students)
     const recentRegistrations = await User.find({ role: 'student' })
@@ -808,6 +856,20 @@ router.get('/admin-stats', protect, async (req, res) => {
     const payments = await Payment.find({ status: 'COMPLETED' });
     const totalCollected = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
 
+    // Calculate total expected tuition revenue across all enrollments
+    const allEnrollments = await Enrollment.find().populate('course', 'price');
+    let totalExpected = 0;
+    allEnrollments.forEach(e => {
+      totalExpected += (e.course?.price || 2500);
+    });
+
+    const pendingDues = Math.max(0, totalExpected - totalCollected);
+
+    // Today's attendance summary
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayArrivalsCount = await Attendance.countDocuments({ date: { $gte: startOfToday }, status: 'Present' });
+
     res.json({
       students: totalStudents,
       physicalStudents,
@@ -816,11 +878,377 @@ router.get('/admin-stats', protect, async (req, res) => {
       courses: totalCourses,
       recentRegistrations,
       growthData,
-      totalCollected
+      totalCollected,
+      pendingDues,
+      todayArrivalsCount
     });
   } catch (err) {
     console.error("Error fetching admin stats:", err);
     res.status(500).json({ message: "Error fetching stats" });
+  }
+});
+
+// --- GET TEACHER PROFILE PUBLIC/AUTH INFO ---
+router.get('/teacher-profile/:id', protect, async (req, res) => {
+  try {
+    const [teacher, courses] = await Promise.all([
+      User.findById(req.params.id).select('-password').lean(),
+      Course.find({ instructor: req.params.id })
+        .populate('instructor', 'name profilePicture')
+        .lean()
+    ]);
+
+    if (!teacher) {
+      return res.status(404).json({ message: 'Teacher profile not found.' });
+    }
+
+    let totalStudentsCount = 0;
+    const processedCourses = courses.map(c => {
+      if (Array.isArray(c.enrolledStudents)) {
+        totalStudentsCount += c.enrolledStudents.length;
+      }
+      let banner = c.banner || '';
+      let cardImage = c.cardImage || '';
+      if (banner && !banner.startsWith('http') && !banner.startsWith('data:')) {
+        const filename = banner.includes('/uploads/') ? banner.split('/uploads/').pop() : banner.replace(/^\//, '');
+        banner = `/uploads/${filename}`;
+      }
+      if (cardImage && !cardImage.startsWith('http') && !cardImage.startsWith('data:')) {
+        const filename = cardImage.includes('/uploads/') ? cardImage.split('/uploads/').pop() : cardImage.replace(/^\//, '');
+        cardImage = `/uploads/${filename}`;
+      }
+      return {
+        ...c,
+        banner,
+        cardImage
+      };
+    });
+
+    let profilePicture = teacher.profilePicture || '';
+    if (profilePicture && !profilePicture.startsWith('http') && !profilePicture.startsWith('data:')) {
+      const filename = profilePicture.includes('/uploads/') ? profilePicture.split('/uploads/').pop() : profilePicture.replace(/^\//, '');
+      profilePicture = `/uploads/${filename}`;
+    }
+
+    let coverPicture = teacher.coverPicture || '';
+    if (coverPicture && !coverPicture.startsWith('http') && !coverPicture.startsWith('data:')) {
+      const filename = coverPicture.includes('/uploads/') ? coverPicture.split('/uploads/').pop() : coverPicture.replace(/^\//, '');
+      coverPicture = `/uploads/${filename}`;
+    }
+
+    res.json({
+      success: true,
+      teacher: {
+        _id: teacher._id,
+        name: teacher.name,
+        email: teacher.email,
+        profilePicture,
+        coverPicture,
+        bio: teacher.bio || '',
+        qualifications: teacher.qualifications || '',
+        department: teacher.department || 'Academic Faculty',
+        phoneNumber: teacher.phoneNumber || '',
+        teacherTags: teacher.teacherTags || ['🎓 Instructor', '✔ Verified Educator'],
+        role: teacher.role,
+        createdAt: teacher.createdAt
+      },
+      courses: processedCourses,
+      totalStudentsCount,
+      totalCoursesCount: courses.length
+    });
+  } catch (err) {
+    console.error("Error fetching teacher profile:", err);
+    res.status(500).json({ message: "Server error fetching teacher profile." });
+  }
+});
+
+// --- UPDATE TEACHER TAGS (Teacher or Admin) ---
+router.put('/teacher-tags/:id', protect, isTeacherOrAdmin, async (req, res) => {
+  try {
+    const { tags } = req.body;
+    if (!Array.isArray(tags)) {
+      return res.status(400).json({ message: "Tags array is required." });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: { teacherTags: tags } },
+      { new: true, runValidators: false }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Teacher profile not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Teacher tags updated successfully!",
+      teacherTags: updatedUser.teacherTags
+    });
+  } catch (err) {
+    console.error("Error updating teacher tags:", err);
+    res.status(500).json({ message: err.message || "Server error updating teacher tags." });
+  }
+});
+
+// --- UPDATE TEACHER PROFILE (By Teacher or Admin) ---
+router.put('/teacher-profile/:id', protect, async (req, res) => {
+  try {
+    const currentUserId = (req.user.id || req.user._id).toString();
+    const targetId = req.params.id.toString();
+
+    if (currentUserId !== targetId && req.user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only the assigned teacher or Admin can edit this profile." });
+    }
+
+    const teacher = await User.findById(targetId);
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher not found." });
+    }
+
+    const { name, profilePicture, coverPicture, bio, qualifications, department, phoneNumber } = req.body;
+
+    if (name) teacher.name = name;
+    if (profilePicture !== undefined) {
+      teacher.profilePicture = convertBase64ToStaticFile(profilePicture, 'profile');
+    }
+    if (coverPicture !== undefined) {
+      teacher.coverPicture = convertBase64ToStaticFile(coverPicture, 'cover');
+    }
+    if (bio !== undefined) teacher.bio = bio;
+    if (qualifications !== undefined) teacher.qualifications = qualifications;
+    if (department !== undefined) teacher.department = department;
+    if (phoneNumber !== undefined) teacher.phoneNumber = phoneNumber;
+
+    await teacher.save();
+
+    let formattedProfilePic = teacher.profilePicture || '';
+    if (formattedProfilePic && !formattedProfilePic.startsWith('http') && !formattedProfilePic.startsWith('data:')) {
+      const filename = formattedProfilePic.includes('/uploads/') ? formattedProfilePic.split('/uploads/').pop() : formattedProfilePic.replace(/^\//, '');
+      formattedProfilePic = `/uploads/${filename}`;
+    }
+
+    let formattedCoverPic = teacher.coverPicture || '';
+    if (formattedCoverPic && !formattedCoverPic.startsWith('http') && !formattedCoverPic.startsWith('data:')) {
+      const filename = formattedCoverPic.includes('/uploads/') ? formattedCoverPic.split('/uploads/').pop() : formattedCoverPic.replace(/^\//, '');
+      formattedCoverPic = `/uploads/${filename}`;
+    }
+
+    res.json({
+      success: true,
+      message: "Teacher profile updated successfully!",
+      teacher: {
+        _id: teacher._id,
+        name: teacher.name,
+        email: teacher.email,
+        profilePicture: formattedProfilePic,
+        coverPicture: formattedCoverPic,
+        bio: teacher.bio || '',
+        qualifications: teacher.qualifications || '',
+        department: teacher.department || 'Academic Faculty',
+        phoneNumber: teacher.phoneNumber || '',
+        role: teacher.role,
+        createdAt: teacher.createdAt
+      }
+    });
+  } catch (err) {
+    console.error("Error updating teacher profile:", err);
+    res.status(500).json({ message: "Server error updating teacher profile." });
+  }
+});
+
+// --- GET TEACHER DASHBOARD STATS ---
+router.get('/teacher-stats', protect, async (req, res) => {
+  if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Forbidden: Teacher access required" });
+  }
+
+  try {
+    const teacherId = req.user.id || req.user._id;
+
+    // 1. Fetch teacher courses
+    const teacherCourses = await Course.find({ instructor: teacherId }).lean();
+    const courseIds = teacherCourses.map(c => c._id);
+
+    // 2. Fetch distinct enrolled students across teacher courses
+    const enrollments = await Enrollment.find({ course: { $in: courseIds } })
+      .populate('student', 'name email registrationNumber grade studentType')
+      .lean();
+
+    const studentMap = {};
+    enrollments.forEach(e => {
+      if (e.student && e.student._id) {
+        studentMap[e.student._id.toString()] = e.student;
+      }
+    });
+
+    for (const c of teacherCourses) {
+      if (Array.isArray(c.enrolledStudents) && c.enrolledStudents.length > 0) {
+        const embeddedStudents = await User.find({ _id: { $in: c.enrolledStudents }, role: 'student' })
+          .select('name email registrationNumber grade studentType')
+          .lean();
+        embeddedStudents.forEach(s => {
+          studentMap[s._id.toString()] = s;
+        });
+      }
+    }
+
+    const uniqueStudents = Object.values(studentMap);
+
+    // 3. Format courses list with student counts
+    const coursesList = await Promise.all(teacherCourses.map(async (c) => {
+      const countDoc = await Enrollment.countDocuments({ course: c._id });
+      const countEmb = Array.isArray(c.enrolledStudents) ? c.enrolledStudents.length : 0;
+      return {
+        id: c._id,
+        _id: c._id,
+        title: c.title,
+        description: c.description,
+        price: c.price || 2500,
+        cardImage: c.cardImage || '',
+        enrolledCount: Math.max(countDoc, countEmb)
+      };
+    }));
+
+    // 4. Fetch assigned schedule entries
+    const assignedSchedules = await Schedule.find({
+      $or: [
+        { teacherId: teacherId },
+        { courseId: { $in: courseIds } }
+      ]
+    }).populate('teacherId', 'name').lean();
+
+    // 5. Calculate average rating across teacher courses
+    let totalRating = 0;
+    let ratingCount = 0;
+    teacherCourses.forEach(c => {
+      if (c.rating) {
+        totalRating += c.rating;
+        ratingCount++;
+      }
+    });
+    const avgRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : "4.9";
+
+    res.json({
+      coursesCount: teacherCourses.length,
+      studentsCount: uniqueStudents.length,
+      rating: avgRating,
+      coursesList,
+      studentsList: uniqueStudents,
+      assignedSchedules
+    });
+  } catch (err) {
+    console.error("Error fetching teacher stats:", err);
+    res.status(500).json({ message: "Error fetching teacher stats" });
+  }
+});
+
+// --- GET STUDENT DASHBOARD STATS ---
+router.get('/student-stats', protect, async (req, res) => {
+  if (req.user.role !== 'student' && req.user.role !== 'admin') {
+    return res.status(403).json({ message: "Forbidden: Student access required" });
+  }
+
+  try {
+    const studentId = req.user.id || req.user._id;
+
+    // 1. Fetch enrolled courses
+    const enrollments = await Enrollment.find({ student: studentId })
+      .populate({
+        path: 'course',
+        populate: { path: 'instructor', select: 'name email' }
+      })
+      .lean();
+
+    const directCourses = await Course.find({ enrolledStudents: studentId })
+      .populate('instructor', 'name email profilePicture')
+      .lean();
+
+    const courseMap = {};
+    directCourses.forEach(c => {
+      courseMap[c._id.toString()] = {
+        _id: c._id,
+        id: c._id,
+        title: c.title,
+        description: c.description,
+        instructorName: c.instructor?.name || 'Faculty Instructor',
+        price: c.price || 2500,
+        cardImage: c.cardImage || '',
+        banner: c.banner || '',
+        progress: 45
+      };
+    });
+
+    enrollments.forEach(e => {
+      if (e.course) {
+        courseMap[e.course._id.toString()] = {
+          _id: e.course._id,
+          id: e.course._id,
+          title: e.course.title,
+          description: e.course.description,
+          instructorName: e.course.instructor?.name || 'Faculty Instructor',
+          price: e.course.price || 2500,
+          cardImage: e.course.cardImage || '',
+          banner: e.course.banner || '',
+          progress: e.progress || 45
+        };
+      }
+    });
+
+    const enrolledCoursesList = Object.values(courseMap);
+
+    // 2. Fetch payments & latest receipt
+    const studentPayments = await Payment.find({ student: studentId })
+      .populate('course', 'title price')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const latestReceipt = studentPayments.length > 0 ? {
+      receiptNo: `LL-${new Date(studentPayments[0].createdAt).getFullYear()}-${String(studentPayments[0]._id).slice(-4).toUpperCase()}`,
+      amount: studentPayments[0].amount || 2500,
+      date: studentPayments[0].createdAt,
+      status: studentPayments[0].status || 'COMPLETED',
+      paymentMethod: studentPayments[0].paymentMethod || 'Online Card Payment',
+      courseTitle: studentPayments[0].course?.title || (enrolledCoursesList[0]?.title || 'Tuition Fee')
+    } : null;
+
+    // 3. Attendance Breakdown
+    const totalAttendance = await Attendance.countDocuments({ studentId });
+    const presentCount = await Attendance.countDocuments({ studentId, status: 'Present' });
+    const absentCount = await Attendance.countDocuments({ studentId, status: 'Absent' });
+    const lateCount = await Attendance.countDocuments({ studentId, status: 'Late' });
+
+    const attendanceRate = totalAttendance > 0
+      ? Math.round((presentCount / totalAttendance) * 100)
+      : 100;
+
+    // 4. Student Announcements / Notifications
+    const announcements = await Notification.find({
+      $or: [
+        { recipient: studentId },
+        { recipient: null }
+      ]
+    }).sort({ createdAt: -1 }).limit(5).lean();
+
+    res.json({
+      coursesCount: enrolledCoursesList.length,
+      grade: req.user.grade || 'Grade 10',
+      studentType: req.user.studentType || 'physical',
+      enrolledCoursesList,
+      payments: studentPayments,
+      latestReceipt,
+      attendanceStats: {
+        total: totalAttendance,
+        present: presentCount,
+        absent: absentCount,
+        late: lateCount,
+        percentage: attendanceRate
+      },
+      announcements
+    });
+  } catch (err) {
+    console.error("Error fetching student stats:", err);
+    res.status(500).json({ message: "Error fetching student stats" });
   }
 });
 
@@ -837,7 +1265,7 @@ router.get('/analytics-summary', protect, async (req, res) => {
       }).lean();
 
       const directCourses = await Course.find({ enrolledStudents: studentId })
-        .populate('instructor', 'name email')
+        .populate('instructor', 'name email profilePicture')
         .lean();
 
       const allCoursesMap = {};
@@ -942,7 +1370,7 @@ router.get('/analytics-summary', protect, async (req, res) => {
     const totalAllStudents = await User.countDocuments({ role: 'student' });
     const onlineStudents = await User.countDocuments({ role: 'student', studentType: 'online' });
     const physicalStudents = Math.max(0, totalAllStudents - onlineStudents);
-    
+
     const totalStudents = filterType === 'online' ? onlineStudents : filterType === 'physical' ? physicalStudents : totalAllStudents;
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
     const totalAdmins = await User.countDocuments({ role: 'admin' });
@@ -962,9 +1390,9 @@ router.get('/analytics-summary', protect, async (req, res) => {
       } else if (!isNaN(g)) {
         g = `Grade ${g.trim()}`;
       }
-      
+
       gradeCounts[g] = (gradeCounts[g] || 0) + 1;
-      
+
       if (!gradeTypeBreakdown[g]) {
         gradeTypeBreakdown[g] = { online: 0, physical: 0 };
       }
@@ -984,27 +1412,27 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
     // 3. Course Popularity Analytics (Most Taken Courses - scoped to filterType)
     const courses = await Course.find({})
-      .populate('instructor', 'name email')
+      .populate('instructor', 'name email profilePicture')
       .lean();
 
     const topCourses = await Promise.all(courses.map(async (c) => {
-      const enrollmentQuery = filterType 
+      const enrollmentQuery = filterType
         ? { course: c._id, student: { $in: filteredStudentIds } }
         : { course: c._id };
 
       const enrollmentDocsCount = await Enrollment.countDocuments(enrollmentQuery);
-      
+
       let embeddedArrayCount = 0;
       if (Array.isArray(c.enrolledStudents)) {
         if (filterType) {
-          embeddedArrayCount = c.enrolledStudents.filter(id => 
+          embeddedArrayCount = c.enrolledStudents.filter(id =>
             filteredStudentIds.some(fid => fid.toString() === id.toString())
           ).length;
         } else {
           embeddedArrayCount = c.enrolledStudents.length;
         }
       }
-      
+
       const enrolledCount = Math.max(enrollmentDocsCount, embeddedArrayCount);
 
       return {
@@ -1047,7 +1475,7 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
     // 5. Weekly Student Registration Trend Data (Grouping by Weeks instead of Months)
     const allStudentsList = await User.find({ role: 'student' }).select('studentType createdAt').lean();
-    
+
     const getWeekLabel = (d) => {
       const date = new Date(d);
       const day = date.getDate();
@@ -1079,8 +1507,8 @@ router.get('/analytics-summary', protect, async (req, res) => {
     const absentRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Absent' });
     const lateRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Late' });
 
-    const attendanceRate = totalAttendanceRecords > 0 
-      ? Math.round((presentRecords / totalAttendanceRecords) * 100) 
+    const attendanceRate = totalAttendanceRecords > 0
+      ? Math.round((presentRecords / totalAttendanceRecords) * 100)
       : 100;
 
     res.json({

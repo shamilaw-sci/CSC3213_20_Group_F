@@ -8,6 +8,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import DashboardLayout from './components/DashboardLayout';
 import Dashboard from './components/Dashboard';
+import ChatWidget from './components/ChatWidget';
 
 // --- PAGES ---
 import Home from './pages/Home';
@@ -108,6 +109,7 @@ function App() {
         {/* Catch-all for random URLs */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
+      <ChatWidget />
     </Router>
   );
 }

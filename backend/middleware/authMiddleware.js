@@ -38,6 +38,31 @@ const protect = async (req, res, next) => {
   }
 };
 
+// --- OPTIONAL PROTECT MIDDLEWARE (allows guests while attaching user if token exists) ---
+const optionalProtect = async (req, res, next) => {
+  try {
+    let token;
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith('Bearer')
+    ) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (token && token !== 'null' && token !== 'undefined') {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select('-password');
+      if (user) {
+        req.user = user;
+      }
+    }
+  } catch (error) {
+    // If token invalid/expired, continue as guest
+    req.user = null;
+  }
+  next();
+};
+
 // --- ISADMIN MIDDLEWARE ---
 const isAdmin = (req, res, next) => {
   // Check if user exists and role is admin
@@ -66,4 +91,4 @@ const isCounterStaffOrAdmin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, isAdmin, isTeacherOrAdmin, isCounterStaffOrAdmin };
+module.exports = { protect, optionalProtect, isAdmin, isTeacherOrAdmin, isCounterStaffOrAdmin };

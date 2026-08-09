@@ -99,12 +99,12 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* Email Input */}
+            {/* Email / Registration Number Input */}
             <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
               <FaEnvelope className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
-                type="email"
-                placeholder="Enter your email"
+                type="text"
+                placeholder="Enter your email or registration number"
                 className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -131,8 +131,8 @@ const Login = () => {
                 <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-[#3a1c8a] accent-[#3a1c8a] cursor-pointer" />
                 Remember me
               </label>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => navigate('/forgot-password')}
                 className="font-medium text-[#3a1c8a] hover:text-purple-800 transition-colors cursor-pointer"
               >
@@ -190,7 +190,7 @@ const Login = () => {
               <button
                 className="font-medium text-[#3a1c8a] hover:underline cursor-pointer"
                 onClick={() => {
-                  const email = "thanukavishal22@gmail.com";
+                  const email = "admin.luminalearn@gmail.com";
                   const subject = encodeURIComponent("Request to add new course");
                   const body = encodeURIComponent("Hi LuminaLearn \n\nI would like to start a new course.");
                   window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
