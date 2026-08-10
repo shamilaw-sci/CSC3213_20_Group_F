@@ -77,11 +77,13 @@ router.get('/course/:courseId', protect, async (req, res) => {
 
     const progressMap = {};
     progressList.forEach(p => {
+      const nextPage = p.isCompleted ? p.totalPages : Math.min(p.totalPages, (p.maxPageRead || 1) + 1);
       progressMap[p.pdfId] = {
         maxPageRead: p.maxPageRead,
         totalPages: p.totalPages,
         progressPercentage: p.progressPercentage,
         isCompleted: p.isCompleted,
+        nextPageToRead: nextPage,
         lastReadAt: p.lastReadAt
       };
     });

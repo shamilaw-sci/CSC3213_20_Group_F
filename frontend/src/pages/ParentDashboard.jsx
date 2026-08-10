@@ -445,7 +445,7 @@ const ParentDashboard = () => {
                         </span>
                         <h4 className="text-sm font-extrabold text-slate-900">{item.pdfTitle}</h4>
                         <p className="text-xs text-slate-500">
-                          Highest Page Read: <strong>Page {item.maxPageRead}</strong> of {item.totalPages} pages
+                          Highest Page Read: <strong>Page {item.maxPageRead}</strong> of {item.totalPages} pages {!item.isCompleted && item.maxPageRead > 0 && <span className="text-purple-700 font-bold ml-1">• Next: Page {Math.min(item.totalPages, item.maxPageRead + 1)}</span>}
                         </p>
                       </div>
 
