@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
 import {
   FaTimes, FaBookOpen, FaDownload, FaSync,
-  FaSpinner, FaChevronLeft, FaChevronRight, FaCheckCircle, FaExclamationTriangle
+  FaSpinner, FaChevronLeft, FaChevronRight, FaCheckCircle
 } from 'react-icons/fa';
 
 const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onProgressUpdated }) => {
-  const [status, setStatus]             = useState('loading'); // loading | done | error
-  const [totalPages, setTotalPages]     = useState(initialProgress?.totalPages || 0);
+  const [status, setStatus]             = useState('loading'); // loading | done | native
+  const [totalPages, setTotalPages]     = useState(initialProgress?.totalPages || 20);
   const [maxPageRead, setMaxPageRead]   = useState(initialProgress?.maxPageRead || 0);
   const [currentPage, setCurrentPage]   = useState(initialProgress?.maxPageRead || 1);
   const [saving, setSaving]             = useState(false);
@@ -16,7 +16,7 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
   const [showManual, setShowManual]     = useState(false);
 
   const maxPageReadRef   = useRef(initialProgress?.maxPageRead || 0);
-  const totalPagesRef    = useRef(initialProgress?.totalPages  || 0);
+  const totalPagesRef    = useRef(initialProgress?.totalPages  || 20);
   const debounceRef      = useRef(null);
   const pageRatiosRef    = useRef({});
   const renderedRef      = useRef(new Set());
@@ -65,7 +65,6 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
     if (pageNum > maxPageReadRef.current) {
       maxPageReadRef.current = pageNum;
       setMaxPageRead(pageNum);
-      // Debounce: save 1.5s after scrolling stops
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         doSave(maxPageReadRef.current, totalPagesRef.current);
@@ -95,29 +94,44 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
     }
   };
 
+  // ── Load PDF.js with CDN fallbacks ──────────────────────────────────────
+  const loadPdfJsScript = () => {
+    if (window.pdfjsLib) return Promise.resolve();
+    const cdnUrls = [
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+      'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+      'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js'
+    ];
+
+    const tryLoad = (index) => {
+      if (index >= cdnUrls.length) return Promise.reject(new Error('All PDF.js CDNs failed'));
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = cdnUrls[index];
+        s.onload = resolve;
+        s.onerror = () => tryLoad(index + 1).then(resolve).catch(reject);
+        document.head.appendChild(s);
+      });
+    };
+
+    return tryLoad(0);
+  };
+
   // ── PDF.js init — runs ONCE per fileUrl ──────────────────────────────────
   useEffect(() => {
-    if (!fileUrl) { setStatus('error'); return; }
+    if (!fileUrl) { setStatus('native'); return; }
     let alive = true;
 
     (async () => {
       setStatus('loading');
       try {
-        // Load PDF.js script if needed
-        if (!window.pdfjsLib) {
-          await new Promise((res, rej) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-            s.onload = res; s.onerror = rej;
-            document.head.appendChild(s);
-          });
-        }
+        await loadPdfJsScript();
         if (!alive) return;
 
         window.pdfjsLib.GlobalWorkerOptions.workerSrc =
           'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // Fetch document metadata only (fast)
+        // Fetch document metadata
         const doc = await window.pdfjsLib.getDocument({
           url: fileUrl,
           cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
@@ -130,7 +144,7 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
         setTotalPages(n);
         totalPagesRef.current = n;
 
-        // Build ALL page placeholders instantly
+        // Build page containers
         const container = pagesContRef.current;
         if (!container) return;
         container.innerHTML = '';
@@ -147,7 +161,6 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
             minHeight:'320px', display:'flex', alignItems:'center', justifyContent:'center',
           });
 
-          // Spinner placeholder (removed once canvas renders)
           const ph = document.createElement('div');
           ph.className = 'ph';
           ph.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:8px;padding:40px;color:#475569;';
@@ -175,7 +188,7 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
 
         setStatus('done');
 
-        // Observer A — picks most-visible page → updates header + triggers debounced save
+        // Observer A — visibility detection
         if (visObsRef.current) visObsRef.current.disconnect();
         visObsRef.current = new IntersectionObserver((entries) => {
           entries.forEach(e => {
@@ -189,7 +202,7 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
           onPageSeen(best);
         }, { root: scrollContRef.current, threshold: [0, 0.25, 0.5, 0.75, 1] });
 
-        // Observer B — triggers canvas render when page is 400px from viewport
+        // Observer B — render trigger
         if (renderObsRef.current) renderObsRef.current.disconnect();
         renderObsRef.current = new IntersectionObserver((entries) => {
           entries.forEach(e => {
@@ -214,8 +227,8 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
         }
 
       } catch (err) {
-        console.error('PDF.js init failed:', err);
-        if (alive) setStatus('error');
+        console.warn('PDF.js init failed, loading native PDF view:', err);
+        if (alive) setStatus('native');
       }
     })();
 
@@ -225,7 +238,7 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
       renderObsRef.current?.disconnect();
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [fileUrl]); // Only re-runs when the PDF URL changes
+  }, [fileUrl]);
 
   // ── Prev / Next button ───────────────────────────────────────────────────
   const handlePageChange = (newPage) => {
@@ -237,7 +250,7 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
     doSave(Math.max(vp, maxPageReadRef.current), totalPagesRef.current);
   };
 
-  // ── Manual page sync (student types current page number) ─────────────────
+  // ── Manual page sync ─────────────────────────────────────────────────────
   const handleManualSync = () => {
     const pg = parseInt(manualPage, 10);
     if (!pg || pg < 1 || pg > totalPagesRef.current) return;
@@ -259,7 +272,7 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
         justifyContent:'space-between', alignItems:'center', gap:'10px', zIndex:20 }}>
 
         {/* Title */}
-        <div style={{ display:'flex', alignItems:'center', gap:'10px', minWidth:0 }}>
+        <div style={{ display:'flex', itemsCenter:'center', gap:'10px', minWidth:0 }}>
           <div style={{ padding:'8px', background:'#3b0764', border:'1px solid #6b21a8',
             borderRadius:'10px', color:'#d8b4fe', flexShrink:0 }}><FaBookOpen /></div>
           <div style={{ minWidth:0 }}>
@@ -274,9 +287,9 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
           <div style={{ display:'flex', alignItems:'center', gap:'8px',
             background:'#1e293b', border:'1px solid #334155',
             padding:'7px 14px', borderRadius:'12px', fontWeight:700, fontSize:'14px' }}>
-            <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1}
-              style={{ background:'none', border:'none', color: currentPage <= 1 ? '#475569' : '#94a3b8',
-                cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+            <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1 || status === 'native'}
+              style={{ background:'none', border:'none', color: (currentPage <= 1 || status === 'native') ? '#475569' : '#94a3b8',
+                cursor: (currentPage <= 1 || status === 'native') ? 'not-allowed' : 'pointer',
                 paddingRight:'8px', borderRight:'1px solid #334155' }}>
               <FaChevronLeft />
             </button>
@@ -284,10 +297,10 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
               {currentPage} <span style={{ color:'#475569' }}>/</span> {totalPages || '…'}
             </span>
             <button onClick={() => handlePageChange(currentPage + 1)}
-              disabled={!totalPages || currentPage >= totalPages}
+              disabled={!totalPages || currentPage >= totalPages || status === 'native'}
               style={{ background:'none', border:'none',
-                color: (!totalPages || currentPage >= totalPages) ? '#475569' : '#94a3b8',
-                cursor: (!totalPages || currentPage >= totalPages) ? 'not-allowed' : 'pointer',
+                color: (!totalPages || currentPage >= totalPages || status === 'native') ? '#475569' : '#94a3b8',
+                cursor: (!totalPages || currentPage >= totalPages || status === 'native') ? 'not-allowed' : 'pointer',
                 paddingLeft:'8px', borderLeft:'1px solid #334155' }}>
               <FaChevronRight />
             </button>
@@ -386,29 +399,34 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
             justifyContent:'center', padding:'120px 0', gap:'16px' }}>
             <FaSpinner style={{ fontSize:'40px', color:'#7c3aed', animation:'_spin 1s linear infinite' }} />
             <p style={{ fontWeight:700, fontSize:'14px', color:'#cbd5e1' }}>Loading PDF…</p>
-            <p style={{ fontSize:'12px', color:'#475569' }}>Preparing document (just a moment)</p>
+            <p style={{ fontSize:'12px', color:'#475569' }}>Preparing document</p>
           </div>
         )}
 
-        {/* Error with download fallback */}
-        {status === 'error' && (
-          <div style={{ textAlign:'center', padding:'80px 20px' }}>
-            <FaExclamationTriangle style={{ fontSize:'40px', color:'#f59e0b', marginBottom:'16px' }} />
-            <p style={{ color:'#f87171', fontWeight:700, marginBottom:'12px' }}>
-              Could not render the PDF in-browser.
-            </p>
-            {fileUrl && (
-              <a href={fileUrl} target="_blank" rel="noopener noreferrer"
-                style={{ display:'inline-flex', alignItems:'center', gap:'8px', padding:'10px 20px',
-                  background:'#7c3aed', color:'#fff', borderRadius:'10px', fontWeight:700,
-                  textDecoration:'none', fontSize:'13px' }}>
-                <FaDownload /> Open / Download PDF
-              </a>
+        {/* Native browser viewer fallback (embeds PDF directly in browser so it ALWAYS displays) */}
+        {status === 'native' && (
+          <div style={{ width:'100%', maxWidth:'1000px', height:'calc(100vh - 120px)', background:'#1e293b', borderRadius:'16px', overflow:'hidden', border:'1px solid #334155' }}>
+            {fileUrl ? (
+              <object
+                data={`${fileUrl}#toolbar=1`}
+                type="application/pdf"
+                style={{ width:'100%', height:'100%', border:'none' }}
+              >
+                <iframe
+                  src={`${fileUrl}#toolbar=1`}
+                  title={pdfTitle}
+                  style={{ width:'100%', height:'100%', border:'none' }}
+                />
+              </object>
+            ) : (
+              <div style={{ textAlign:'center', padding:'80px 20px', color:'#94a3b8' }}>
+                PDF file URL is missing or unavailable.
+              </div>
             )}
           </div>
         )}
 
-        {/* PDF.js lazy-rendered pages injected here */}
+        {/* PDF.js lazy-rendered pages */}
         <div ref={pagesContRef}
           style={{ width:'100%', maxWidth:'900px', paddingBottom:'80px',
             display: status === 'done' ? 'block' : 'none' }} />
