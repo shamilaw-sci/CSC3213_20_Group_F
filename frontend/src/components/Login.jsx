@@ -22,11 +22,16 @@ const Login = () => {
 
       toast.success('Welcome back!');
 
-      if (res.data.user.mustChangePassword) {
-        navigate('/change-password');
-      } else {
-        navigate('/dashboard');
-      }
+      const targetPath = res.data.user.mustChangePassword
+        ? '/change-password'
+        : res.data.user.role === 'parent'
+        ? '/parent-dashboard'
+        : res.data.user.role === 'counter_staff'
+        ? '/attendance'
+        : '/dashboard';
+
+      window.dispatchEvent(new Event('userUpdated'));
+      navigate(targetPath);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid Login!');
     }
@@ -48,11 +53,16 @@ const Login = () => {
 
       toast.success('Signed in with Google');
 
-      if (res.data.user.mustChangePassword) {
-        navigate('/change-password');
-      } else {
-        navigate('/dashboard');
-      }
+      const targetPath = res.data.user.mustChangePassword
+        ? '/change-password'
+        : res.data.user.role === 'parent'
+        ? '/parent-dashboard'
+        : res.data.user.role === 'counter_staff'
+        ? '/attendance'
+        : '/dashboard';
+
+      window.dispatchEvent(new Event('userUpdated'));
+      navigate(targetPath);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Google sign-in is not available for this account.');
     }

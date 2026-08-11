@@ -1606,9 +1606,22 @@ router.get('/parent-summary', protect, async (req, res) => {
           .select('title description price banner cardImage status studentType instructor');
 
         // 2. Attendance History
-        const attendanceLogs = await Attendance.find({ student: childId })
+        const rawAttendance = await Attendance.find({
+          $or: [{ studentId: childId }, { student: childId }]
+        })
+          .populate('courseId', 'title')
           .sort({ createdAt: -1 })
           .limit(50);
+
+        const attendanceLogs = rawAttendance.map(a => {
+          const courseTitle = a.courseId?.title || '';
+          const weekStr = a.weekNumber ? `Week ${a.weekNumber}` : '';
+          const autoRemark = courseTitle ? `${courseTitle} ${weekStr ? `(${weekStr})` : ''}`.trim() : 'Standard Class Attendance Scan';
+          return {
+            ...a.toObject(),
+            remarks: a.remarks || autoRemark
+          };
+        });
 
         const totalAtt = attendanceLogs.length;
         const presentCount = attendanceLogs.filter(a => a.status === 'Present').length;
