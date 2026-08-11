@@ -805,8 +805,10 @@ router.post('/:id/toggle-grade', protect, isAdmin, async (req, res) => {
         } else {
             // නැත්නම් ඇඩ් කරන්න
             const isCourseDeactive = course.status === 'deactive' || course.isActive === false;
+            const titleVal = req.body.title || (gradeNumber.toLowerCase().startsWith('grade') ? gradeNumber : `Grade ${gradeNumber}`);
             course.enrolledGrades.push({ 
                 gradeNumber, 
+                title: titleVal,
                 messages: [],
                 status: isCourseDeactive ? 'deactive' : 'active',
                 isActive: !isCourseDeactive,

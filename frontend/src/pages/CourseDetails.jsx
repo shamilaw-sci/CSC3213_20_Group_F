@@ -718,7 +718,7 @@ const CourseDetails = () => {
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <h3 className="font-bold text-gray-700 mb-2">Assign/Remove Classes</h3>
+                  <h3 className="font-bold text-gray-700 mb-1">Assign/Remove Classes</h3>
                   <p className="text-sm text-gray-500">
                     Add grades that can access this course and remove them when needed.
                   </p>
@@ -726,15 +726,15 @@ const CourseDetails = () => {
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={() => setShowAddGrade(!showAddGrade)}
-                    className="rounded-full bg-purple-600 px-5 py-2 text-white font-semibold hover:bg-purple-700 transition"
+                    onClick={() => setShowAddGrade(true)}
+                    className="rounded-full bg-purple-600 px-5 py-2 text-white font-semibold hover:bg-purple-700 transition cursor-pointer shadow-xs"
                   >
-                    {showAddGrade ? 'Cancel New Grade' : '+ Add Grade'}
+                    + Add Grade
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="rounded-full bg-red-500 px-5 py-2 text-white font-semibold hover:bg-red-600 transition"
+                    className="rounded-full bg-red-500 px-5 py-2 text-white font-semibold hover:bg-red-600 transition cursor-pointer shadow-xs"
                     disabled={isDeleting}
                   >
                     {isDeleting ? 'Deleting...' : 'Delete Course'}
@@ -742,124 +742,11 @@ const CourseDetails = () => {
                 </div>
               </div>
 
-              {showAddGrade && (
-                <form onSubmit={handleAddGrade} className="space-y-4 bg-purple-50/50 p-6 rounded-3xl border border-purple-100 mb-6">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <label className="text-sm font-bold text-gray-700">Grade Assignment Mode</label>
-                    <div className="flex bg-white p-1 rounded-xl border border-gray-200 gap-1">
-                      <button
-                        type="button"
-                        onClick={() => { setGradeMode('single'); setCombinationGrades([]); setCustomGradeInput(''); }}
-                        className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition ${gradeMode === 'single' ? 'bg-[#2d1b64] text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
-                      >
-                        Single Grade
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setGradeMode('combination'); setNewGradeNumber(''); }}
-                        className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition ${gradeMode === 'combination' ? 'bg-[#2d1b64] text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
-                      >
-                        Combination Grade
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Grade Title</label>
-                      <input
-                        value={newGradeTitle}
-                        onChange={(e) => setNewGradeTitle(e.target.value)}
-                        placeholder="e.g. Theory Class or Combined Batch"
-                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                        required
-                      />
-                    </div>
-
-                    {gradeMode === 'single' ? (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Select Grade</label>
-                        <select
-                          value={newGradeNumber}
-                          onChange={(e) => setNewGradeNumber(e.target.value)}
-                          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                          required
-                        >
-                          <option value="">Choose grade</option>
-                          {allGrades.map((grade) => (
-                            <option key={grade} value={grade}>{grade}</option>
-                          ))}
-                        </select>
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Custom Combination Name</label>
-                        <input
-                          value={customGradeInput}
-                          onChange={(e) => setCustomGradeInput(e.target.value)}
-                          placeholder="e.g. Grade 10 & 11 or Grade 6-8"
-                          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {gradeMode === 'combination' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Or Select Multiple Grades to Combine</label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 bg-white p-4 rounded-2xl border border-gray-200 max-h-44 overflow-y-auto">
-                        {allGrades.map((g) => {
-                          const isChecked = combinationGrades.includes(g);
-                          return (
-                            <label key={g} className={`flex items-center gap-2 p-2 rounded-xl text-xs font-medium cursor-pointer transition ${isChecked ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'hover:bg-gray-50 text-gray-700'}`}>
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setCombinationGrades([...combinationGrades, g]);
-                                  } else {
-                                    setCombinationGrades(combinationGrades.filter(item => item !== g));
-                                  }
-                                }}
-                                className="rounded text-purple-600 focus:ring-purple-500"
-                              />
-                              <span>{g}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                      {combinationGrades.length > 0 && (
-                        <p className="mt-2 text-xs text-purple-700 font-semibold">
-                          Combined Result: <span className="underline">{combinationGrades.join(' & ')}</span>
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddGrade(false)}
-                      className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="rounded-xl bg-[#2d1b64] px-6 py-2.5 text-sm font-semibold text-white hover:bg-purple-900 transition shadow-sm"
-                    >
-                      Save Grade Assignment
-                    </button>
-                  </div>
-                </form>
-              )}
-
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {course?.enrolledGrades?.map((eg) => (
                   <div
                     key={eg.gradeNumber}
-                    className="relative bg-white p-6 rounded-3xl border border-gray-200/90 shadow-sm transition-all duration-300 transform hover:-translate-y-2.5 hover:scale-[1.03] hover:shadow-2xl hover:border-purple-400 cursor-pointer group"
+                    className="relative bg-white p-5 rounded-2xl border border-gray-200 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-purple-300 cursor-pointer group"
                   >
                     <div className="absolute right-4 top-4 flex flex-col gap-2 z-10">
                       <button
@@ -868,7 +755,7 @@ const CourseDetails = () => {
                           e.stopPropagation();
                           openStudentPicker(eg.gradeNumber);
                         }}
-                        className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-100 hover:scale-105 transition-all cursor-pointer shadow-xs"
+                        className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-100 transition cursor-pointer shadow-xs"
                       >
                         Manage Students
                       </button>
@@ -878,14 +765,14 @@ const CourseDetails = () => {
                           e.stopPropagation();
                           handleToggleGrade(eg.gradeNumber);
                         }}
-                        className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 hover:scale-105 transition-all cursor-pointer shadow-xs"
+                        className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer shadow-xs"
                       >
                         Remove
                       </button>
                     </div>
-                    <div className="mb-4 text-sm text-gray-400 group-hover:text-purple-600 font-bold transition-colors">{eg.gradeNumber}</div>
-                    <h4 className="text-xl font-black text-gray-800 mb-2 group-hover:text-purple-900 transition-colors">{eg.title || eg.gradeNumber}</h4>
-                    <p className="text-gray-500 text-sm font-medium">This class can enrol in the course when assigned.</p>
+                    <div className="mb-2 text-xs text-gray-400 group-hover:text-purple-600 font-bold transition-colors">{eg.gradeNumber}</div>
+                    <h4 className="text-lg font-extrabold text-gray-800 mb-1 group-hover:text-purple-900 transition-colors">{eg.title || eg.gradeNumber}</h4>
+                    <p className="text-gray-500 text-xs font-medium">This class can enrol in the course when assigned.</p>
                   </div>
                 ))}
               </div>
@@ -950,12 +837,12 @@ const CourseDetails = () => {
                           }
                           setSelectedGrade(eg.gradeNumber);
                         }}
-                        className={`bg-white p-8 rounded-[30px] shadow-sm border transition-all duration-300 transform hover:-translate-y-2.5 hover:scale-[1.03] hover:shadow-2xl relative ${
+                        className={`bg-white p-6 rounded-2xl shadow-xs border transition-all duration-200 hover:-translate-y-1 hover:shadow-md relative ${
                           isDeactive
                             ? 'border-red-200 bg-red-50/40 cursor-pointer'
                             : user?.role === 'student' && !alreadyEnrolled
                             ? 'border-gray-200 bg-gray-50/60 cursor-pointer hover:border-purple-300' 
-                            : 'border-purple-100/80 hover:border-purple-500 cursor-pointer group'
+                            : 'border-purple-100/80 hover:border-purple-400 cursor-pointer group'
                         }`}
                       >
                         <div>
@@ -2193,6 +2080,138 @@ const CourseDetails = () => {
             }
           }}
         />
+      )}
+
+      {/* Add Grade Modal */}
+      {showAddGrade && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-lg font-extrabold text-gray-900">Add Grade Assignment</h3>
+                <p className="text-xs text-gray-500">Select a grade or combination to access this course.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddGrade(false)}
+                className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddGrade} className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <label className="text-xs font-bold text-gray-700">Assignment Mode</label>
+                <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { setGradeMode('single'); setCombinationGrades([]); setCustomGradeInput(''); }}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer ${gradeMode === 'single' ? 'bg-[#2d1b64] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'}`}
+                  >
+                    Single Grade
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setGradeMode('combination'); setNewGradeNumber(''); }}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer ${gradeMode === 'combination' ? 'bg-[#2d1b64] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'}`}
+                  >
+                    Combination Grade
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Grade Title</label>
+                  <input
+                    value={newGradeTitle}
+                    onChange={(e) => setNewGradeTitle(e.target.value)}
+                    placeholder="e.g. Grade 8 or Theory Class"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                    required
+                  />
+                </div>
+
+                {gradeMode === 'single' ? (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Select Grade</label>
+                    <select
+                      value={newGradeNumber}
+                      onChange={(e) => setNewGradeNumber(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                      required
+                    >
+                      <option value="">Choose grade</option>
+                      {allGrades.map((grade) => (
+                        <option key={grade} value={grade}>{grade}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Custom Combination Name</label>
+                    <input
+                      value={customGradeInput}
+                      onChange={(e) => setCustomGradeInput(e.target.value)}
+                      placeholder="e.g. Grade 10 & 11"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {gradeMode === 'combination' && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Select Grades to Combine</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 max-h-36 overflow-y-auto">
+                    {allGrades.map((g) => {
+                      const isChecked = combinationGrades.includes(g);
+                      return (
+                        <label key={g} className={`flex items-center gap-2 p-1.5 rounded-lg text-xs font-medium cursor-pointer transition ${isChecked ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'hover:bg-gray-100 text-gray-700'}`}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setCombinationGrades([...combinationGrades, g]);
+                              } else {
+                                setCombinationGrades(combinationGrades.filter(item => item !== g));
+                              }
+                            }}
+                            className="rounded text-purple-600 focus:ring-purple-500"
+                          />
+                          <span>{g}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {combinationGrades.length > 0 && (
+                    <p className="mt-1.5 text-xs text-purple-700 font-semibold">
+                      Combined Result: <span className="underline">{combinationGrades.join(' & ')}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddGrade(false)}
+                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-[#2d1b64] px-5 py-2 text-sm font-semibold text-white hover:bg-purple-900 transition shadow-xs cursor-pointer"
+                >
+                  Save Grade Assignment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
