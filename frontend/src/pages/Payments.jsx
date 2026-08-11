@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { FaCreditCard, FaSearch, FaCheckCircle, FaBookOpen, FaReceipt, FaGraduationCap, FaPlusCircle, FaBuilding, FaStore } from 'react-icons/fa';
+import { FaCreditCard, FaSearch, FaCheckCircle, FaBookOpen, FaReceipt, FaGraduationCap, FaPlusCircle, FaBuilding, FaStore, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import RecordPhysicalPaymentModal from '../components/RecordPhysicalPaymentModal';
 
 const Payments = () => {
@@ -10,6 +10,10 @@ const Payments = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPhysicalPaymentModal, setShowPhysicalPaymentModal] = useState(false);
 
+  // Pagination State (25 per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
+
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
   const isAdmin = user?.role === 'admin';
@@ -17,6 +21,11 @@ const Payments = () => {
   useEffect(() => {
     fetchPayments();
   }, []);
+
+  // Reset page number on search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const fetchPayments = async () => {
     setLoading(true);
@@ -56,6 +65,11 @@ const Payments = () => {
   });
 
   const totalSpent = filteredPayments.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+  // Pagination calculation (25 per page)
+  const totalPages = Math.max(1, Math.ceil(filteredPayments.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPayments = filteredPayments.slice(startIndex, startIndex + itemsPerPage);
 
   if (loading) {
     return (
@@ -152,7 +166,9 @@ const Payments = () => {
             />
           </div>
           <span className="text-xs font-semibold text-gray-500">
-            Showing <span className="text-gray-800 font-bold">{filteredPayments.length}</span> payment records
+            Showing <span className="text-gray-800 font-bold">{filteredPayments.length === 0 ? 0 : startIndex + 1}</span> to{' '}
+            <span className="text-gray-800 font-bold">{Math.min(startIndex + itemsPerPage, filteredPayments.length)}</span> of{' '}
+            <span className="text-gray-800 font-bold">{filteredPayments.length}</span> payment records
           </span>
         </div>
 
@@ -168,7 +184,7 @@ const Payments = () => {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-[30px] shadow-sm border border-gray-200/80 overflow-hidden">
+          <div className="bg-white rounded-[30px] shadow-sm border border-gray-200/80 overflow-hidden p-2 sm:p-4">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -183,7 +199,7 @@ const Payments = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm">
-                  {filteredPayments.map((item) => {
+                  {paginatedPayments.map((item) => {
                     const isCounterPayment = item.paymentMethod === 'CASH_COUNTER' || item.paymentMethod === 'POS_CARD' || item.paymentMethod === 'BANK_TRANSFER' || item.transactionId?.startsWith('REC-PHYS');
                     const studentGrade = item.student?.grade || user?.grade || 'N/A';
                     const formattedGrade = studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`;
@@ -282,6 +298,48 @@ const Payments = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Footer (25 per page) */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border-t border-gray-100">
+              <div className="text-xs font-semibold text-gray-500">
+                Showing <span className="font-extrabold text-gray-800">{filteredPayments.length === 0 ? 0 : startIndex + 1}</span> to{' '}
+                <span className="font-extrabold text-gray-800">{Math.min(startIndex + itemsPerPage, filteredPayments.length)}</span> of{' '}
+                <span className="font-extrabold text-gray-800">{filteredPayments.length}</span> payment records
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
+                >
+                  <FaChevronLeft className="text-[10px]" /> Previous
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      currentPage === pageNum
+                        ? 'bg-[#2d1b64] text-white shadow-sm'
+                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages || filteredPayments.length === 0}
+                  className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
+                >
+                  Next <FaChevronRight className="text-[10px]" />
+                </button>
+              </div>
+            </div>
+
           </div>
         )}
 

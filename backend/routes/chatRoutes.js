@@ -195,8 +195,11 @@ Guidelines for responding:
    - If logged in: utilize the Database Real-time User Context provided above.
    - If guest (not logged in): politely invite them to log in to access their private student records, while still providing general info (e.g. general fees/schedules).
 3. Multilingual & Singlish Support: The user might ask in English, pure Sinhala (සිංහල), or Singlish (e.g., "mata ada tiyena panthi monawada", "attendance balanne kohomada", "ayubowan"). Understand it seamlessly and reply in the matching tone/language warmly and clearly.
-4. For general academic or educational questions outside the institution context, provide accurate, helpful answers politely.
-5. Format your responses with clean bullet points and bold formatting where appropriate. Keep answers clear and friendly.`;
+4. For general academic or educational questions outside the institute context, provide accurate, helpful answers politely.
+5. Format your responses with clean bullet points and bold formatting where appropriate. Keep answers clear and friendly.
+6. If you cant understand the users question, ask them to rephrase the question.
+7. Don't include any code blocks in your response.
+8. Don't provide any offensive,explicit or answers not related to institute or general education knowledge (eg: if students asks about things like politics,religion,gossip,sexual,racist etc.)`;
 
         // Attempt Gemini Generation
         const replyText = await generateGeminiReply(systemInstruction, message);

@@ -3,13 +3,70 @@
  LuminaLearn is the Online learning and Institite management platform of Kirula Education Center
 
 
-- Grade 10 Science class is held on Tuesdays from 3:00 PM to 5:00 PM with Mr. Silva in Main Hall A.
-- Grade 11 Mathematics class is held on Thursdays from 4:00 PM to 6:00 PM with Mrs. Perera in Main Hall B.
-- Grade 12 Physics class is held on Saturdays from 8:00 AM to 11:00 AM with Dr. Nalin in Lab 1.
-- Grade 13 Chemistry class is held on Sundays from 1:00 PM to 4:00 PM with Prof. Bandara in Main Hall A.
-- Contact Kirula Education Center:Mr. Chaminda Kumara Herath, 071 7577 688, ckumarah@gmail.com (Available 8:00 AM - 6:00 PM daily).
+Class Schedules:
+- Science (Science Grade 6 - 9 & O/L (Grade 10, Grade 11))
+    - Class Fees (General) : Will_be_updated_soon
+    - Instructor : Mr. Pathum Gunawardhana
+        - Grade 6 : Saturday 9.30 AM - 11.30 AM 
+        - Grade 7 : Saturday 7.30 AM - 9.30 AM 
+        - Grade 8 : Saturday 11.30 AM - 1.30 PM
+        - Grade 9 : Saturday 1.30 PM - 3.30 PM
+        - Grade 10 : Saturday 3.30 PM - 5.30 PM
+        - Grade 11 : Sunday 8.30 AM - 12.30 PM
+
+- Scholarship (Grade 2 - 5)
+    - Class Fees (General) : Will_be_updated_soon
+    - Instructor : Mr. Sankha Dissanayake
+        - Grade 2 & Grade 3 : Sunday 1.00 PM - 3.00 PM
+        - Grade 4 & Grade 5 : Sunday 3.00 PM - 5.00 PM
+
+- Mathematics (Mathematics Grade 6 - 9 & O/L (Grade 10, Grade 11))
+    - Class Fees (General) : Will_be_updated_soon
+    - Instructor : Mr. Lasantha Wedagedara
+        - Grade 6 : Saturday 11.30 AM - 1.30 PM
+        - Grade 7 : Saturday 9.30 AM - 11.30 AM
+        - Grade 8 : Saturday 7.30 AM - 9.30 AM
+        - Grade 9 : Sunday 1.30 PM - 3.30 PM
+        - Grade 10 : Sunday 3.30 PM - 5.30 PM
+        - Grade 11 : Saturday 1.30 PM - 5.30 PM 
+
+- Sinhala (O/L Grade 10 and Grade 11)
+    - Class Fees (General) : Will_be_updated_soon
+    - Instructor : Mr. Chaminda Kumara Herath
+        - Grade 10 : Sunday 3.30 PM - 5.30 PM
+        - Grade 11 : Sunday 1.30 PM - 3.30 PM
+
+- English (English Grade 6 - 9 & O/L (Grade 10, Grade 11))
+    - Class Fees (General) : Will_be_updated_soon
+    - Instructor : Mr. Kevin Daraniyagala
+        - Grade 6 : Saturday 7.30 AM - 9.30 AM
+        - Grade 7 : Saturday 11.30 AM - 1.30 PM
+        - Grade 8 : Saturday 9.30 AM - 11.30 AM
+        - Grade 9 : Saturday 3.30 PM - 5.30 PM
+        - Grade 10 : Saturday 1.30 PM - 3.30 PM
+        - Grade 11 : Saturday 5.30 PM - 7.30 PM 
+        
+- English (Grade 1 - 5)
+    - Class Fees (General) : Will_be_updated_soon
+    - Instructor : Miss Rashmi Gunawardhana
+        - Group 1 : Saturday 11.30 AM - 1.30 PM
+        - Group 2 : Sunday 3.30 PM - 5.30 PM
+
+Other Information:
+
+- Contact Kirula Education Center (Owner): Mr. Chaminda Kumara Herath, 071 7577 688, ckumarah@gmail.com (Available 8:00 AM - 6:00 PM daily).
 - Address: Kirula Education Center,621 road,Menikhinna,Kandy
-- Admission & Fees Policy: Monthly fees are payable on or before the 7th of every month. Online payments are updated instantly.
+- Admission & Fees Policy: 
+    Physical students Monthly fees are payable on or before the 7th of every month. 
+    Online payments are updated instantly.
 - Attendance Policy: Physical attendance is logged via QR code/Barcode counter. Online students mark attendance via weekly lesson access.
 - Student Support Email: admin.luminalearn@gmail.com
 - Copyrights: LuminaLearn by Kirula Education Center @ 2026
+
+- LuminaLearn Developed by:
+    - Thanuka Vishal : thanukavishal22@gmail.com
+    - Pathum Gunawardhana : s21060@sci.pdn.ac.lk
+    - Sakindu Rathnasiri : s21486@sci.pdn.ac.lk
+    - Rashmika Wijewardhana : s21580@sci.pdn.ac.lk
+
+
