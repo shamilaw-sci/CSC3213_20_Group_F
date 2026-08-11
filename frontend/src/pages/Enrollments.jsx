@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { FaUserPlus, FaTrash, FaSearch } from 'react-icons/fa';
+import { FaUserPlus, FaTrash, FaSearch, FaTimes, FaCheckCircle, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 const normalizeGradeStr = (g) => {
   if (!g) return '';
@@ -22,6 +22,14 @@ const Enrollments = () => {
   const [submitting, setSubmitting] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
 
+  // Pagination & Search State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
+  const [tableSearch, setTableSearch] = useState('');
+
+  // Popup Modal State
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+
   // Slip Image Modal State
   const [selectedSlipImage, setSelectedSlipImage] = useState(null);
 
@@ -32,20 +40,18 @@ const Enrollments = () => {
   const [studentSearch, setStudentSearch] = useState('');
   const [courseSearch, setCourseSearch] = useState('');
 
-  // Table filters
-  const [tableSearch, setTableSearch] = useState('');
-
   // Delete modal states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [enrollmentToDelete, setEnrollmentToDelete] = useState(null);
 
-  const getAuthHeaders = () => ({
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  });
-
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Reset pagination when search or tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [tableSearch, activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -87,7 +93,7 @@ const Enrollments = () => {
 
   const handleRejectSlip = async (slipId) => {
     const reason = window.prompt('Enter rejection reason for student (e.g. Unclear slip photo, incorrect amount):');
-    if (reason === null) return; // User cancelled
+    if (reason === null) return;
 
     setActionLoadingId(slipId);
     try {
@@ -138,6 +144,7 @@ const Enrollments = () => {
       setSelectedClass('');
       setStudentSearch('');
       setCourseSearch('');
+      setShowEnrollModal(false);
 
       // Reload all data
       await fetchData();
@@ -173,10 +180,6 @@ const Enrollments = () => {
     }
   };
 
-  // Get students who:
-  // 1. Are in the selected grade/class
-  // 2. Are not already enrolled in the selected course
-  // 3. Match the search query
   const filteredStudentsForSelect = students.filter(s => {
     if (!selectedClass) return false;
     if (!isMatchingGrade(s.grade, selectedClass)) return false;
@@ -215,25 +218,43 @@ const Enrollments = () => {
     );
   });
 
+  // Pagination calculation (25 per page)
+  const totalPages = Math.max(1, Math.ceil(filteredEnrollments.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedEnrollments = filteredEnrollments.slice(startIndex, startIndex + itemsPerPage);
+
   const selectedCourse = courses.find(c => c._id === selectedCourseId);
   const assignedGrades = selectedCourse?.enrolledGrades || [];
 
   if (loading) return <div className="text-center p-10 text-gray-500 font-bold">Loading enrollments data...</div>;
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 animate-fade-in font-sans">
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 animate-fade-in font-sans">
+      
+      {/* Header & Trigger Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Enrollment & Bank Slip Management</h2>
-          <p className="text-gray-500 text-sm mt-1">Manage course enrollments and verify student bank deposit slips.</p>
+          <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Enrollment & Bank Slip Management</h2>
+          <p className="text-gray-500 text-xs mt-1">Manage course enrollments and verify student bank deposit slips.</p>
         </div>
+
+        {/* Action Button to trigger New Enrollment Modal */}
+        {activeTab === 'enrollments' && (
+          <button
+            onClick={() => setShowEnrollModal(true)}
+            className="px-4 py-2.5 bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer border-none shrink-0"
+          >
+            <FaUserPlus className="text-amber-400 text-sm" />
+            <span>+ New Course Enrollment</span>
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 mb-6 space-x-6">
         <button
           onClick={() => setActiveTab('enrollments')}
-          className={`pb-3 font-semibold text-sm transition-all border-b-2 cursor-pointer ${
+          className={`pb-3 font-semibold text-xs sm:text-sm transition-all border-b-2 cursor-pointer ${
             activeTab === 'enrollments'
               ? 'border-purple-700 text-purple-900 font-extrabold'
               : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -244,7 +265,7 @@ const Enrollments = () => {
 
         <button
           onClick={() => setActiveTab('pending_slips')}
-          className={`pb-3 font-semibold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+          className={`pb-3 font-semibold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
             activeTab === 'pending_slips'
               ? 'border-purple-700 text-purple-900 font-extrabold'
               : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -252,7 +273,7 @@ const Enrollments = () => {
         >
           <span>🏦 Pending Bank Slips</span>
           {pendingSlips.length > 0 && (
-            <span className="bg-amber-500 text-white text-xs font-black px-2 py-0.5 rounded-full animate-pulse">
+            <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
               {pendingSlips.length}
             </span>
           )}
@@ -261,187 +282,107 @@ const Enrollments = () => {
 
       {activeTab === 'enrollments' ? (
         <>
-          {/* Enrollment Creation Form */}
-          <form onSubmit={handleEnroll} className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-lg bg-purple-100 text-[#2d1b64] flex items-center justify-center">
-                <FaUserPlus />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-800">New Course Enrollment</h3>
-                <p className="text-sm text-gray-500">Enroll a registered student in a course class.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* 1. Course Selector */}
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">1. Select Course</label>
-                <input
-                  type="text"
-                  placeholder="Search Course..."
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-purple-500 mb-2"
-                  value={courseSearch}
-                  onChange={(e) => setCourseSearch(e.target.value)}
-                />
-                <select
-                  value={selectedCourseId}
-                  onChange={(e) => handleCourseChange(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm cursor-pointer"
-                  required
-                >
-                  <option value="">-- Choose Course --</option>
-                  {filteredCoursesForSelect.map(c => (
-                    <option key={c._id} value={c._id}>
-                      {c.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 2. Class Selector */}
-              <div className="flex flex-col justify-between">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">2. Select Class (Grade)</label>
-                  {selectedCourseId && assignedGrades.length === 0 ? (
-                    <div className="text-sm font-semibold text-red-500 mt-2 bg-red-50 p-3 rounded-lg border border-red-200">
-                      No grades assigned to this course.
-                    </div>
-                  ) : (
-                    <>
-                      <div className="h-[38px] mb-2 hidden md:block"></div>
-                      <select
-                        value={selectedClass}
-                        onChange={(e) => handleGradeChange(e.target.value)}
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        disabled={!selectedCourseId}
-                        required
-                      >
-                        {!selectedCourseId ? (
-                          <option value="">-- Choose Course First --</option>
-                        ) : (
-                          <>
-                            <option value="">-- Choose Class --</option>
-                            {assignedGrades.map(g => (
-                              <option key={g.gradeNumber} value={g.gradeNumber}>
-                                {g.title || g.gradeNumber}
-                              </option>
-                            ))}
-                          </>
-                        )}
-                      </select>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* 3. Student Selector */}
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">3. Select Student</label>
-                <input
-                  type="text"
-                  placeholder="Search Name, Email or Reg No..."
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-purple-500 mb-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  value={studentSearch}
-                  onChange={(e) => setStudentSearch(e.target.value)}
-                  disabled={!selectedClass}
-                />
-                <select
-                  value={selectedStudentId}
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  disabled={!selectedClass}
-                  required
-                >
-                  {!selectedClass ? (
-                    <option value="">-- Choose Class First --</option>
-                  ) : filteredStudentsForSelect.length === 0 ? (
-                    <option value="">-- No matching students in Grade {selectedClass} --</option>
-                  ) : (
-                    <>
-                      <option value="">-- Choose Student ({filteredStudentsForSelect.length} available) --</option>
-                      {filteredStudentsForSelect.map(s => (
-                        <option key={s._id} value={s._id}>
-                          {s.name} ({s.registrationNumber || s.email})
-                        </option>
-                      ))}
-                    </>
-                  )}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <button
-                type="submit"
-                disabled={submitting || !selectedStudentId || !selectedCourseId || !selectedClass}
-                className="bg-purple-700 hover:bg-purple-800 disabled:bg-purple-300 text-white font-bold px-6 py-3 rounded-lg transition cursor-pointer flex items-center gap-2 border-none text-sm"
-              >
-                <FaUserPlus />
-                {submitting ? 'Enrolling...' : 'Enroll Student'}
-              </button>
-            </div>
-          </form>
-
           {/* Search bar */}
           <div className="mb-4 relative">
             <input
               type="text"
               placeholder="Search enrollments by student name, email, reg no, or course title..."
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-purple-500 outline-none"
               value={tableSearch}
               onChange={(e) => setTableSearch(e.target.value)}
             />
-            <FaSearch className="absolute left-3.5 top-3.5 text-gray-400 text-sm" />
+            <FaSearch className="absolute left-3.5 top-3.5 text-gray-400 text-xs" />
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="w-full text-left border-collapse text-sm">
+          {/* Enrollments Table */}
+          <div className="overflow-x-auto rounded-2xl border border-gray-200/80 shadow-xs">
+            <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b border-gray-200">
-                  <th className="p-4 font-semibold">Student Name</th>
-                  <th className="p-4 font-semibold">Email</th>
-                  <th className="p-4 font-semibold">Reg No.</th>
-                  <th className="p-4 font-semibold">Course Title</th>
-                  <th className="p-4 font-semibold">Class (Grade)</th>
-                  <th className="p-4 font-semibold">Parents Phone</th>
-                  <th className="p-4 font-semibold text-right">Actions</th>
+                <tr className="bg-gray-50/80 text-gray-600 uppercase text-[11px] tracking-wider border-b border-gray-200 font-bold">
+                  <th className="p-3.5 pl-4">Student Name</th>
+                  <th className="p-3.5">Email</th>
+                  <th className="p-3.5">Reg No.</th>
+                  <th className="p-3.5">Course Title</th>
+                  <th className="p-3.5">Class (Grade)</th>
+                  <th className="p-3.5">Parents Phone</th>
+                  <th className="p-3.5 text-right pr-4">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-150">
-                {filteredEnrollments.length > 0 ? (
-                  filteredEnrollments.map((e) => (
-                    <tr key={`${e.studentId}-${e.courseId}-${e.className}`} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-4 font-medium text-gray-800">{e.studentName}</td>
-                      <td className="p-4 text-gray-600">{e.studentEmail}</td>
-                      <td className="p-4 text-gray-600">{e.studentRegNo || '-'}</td>
-                      <td className="p-4 font-medium text-purple-950">{e.courseTitle}</td>
-                      <td className="p-4">
-                        <span className="bg-purple-50 text-[#2d1b64] font-semibold px-3 py-1 rounded-full text-xs">
+              <tbody className="divide-y divide-gray-100">
+                {paginatedEnrollments.length > 0 ? (
+                  paginatedEnrollments.map((e) => (
+                    <tr key={`${e.studentId}-${e.courseId}-${e.className}`} className="hover:bg-purple-50/30 transition-colors">
+                      <td className="p-3.5 pl-4 font-bold text-gray-900">{e.studentName}</td>
+                      <td className="p-3.5 text-gray-600 font-medium">{e.studentEmail}</td>
+                      <td className="p-3.5 font-mono text-gray-700 font-semibold">{e.studentRegNo || '-'}</td>
+                      <td className="p-3.5 font-bold text-purple-950">{e.courseTitle}</td>
+                      <td className="p-3.5">
+                        <span className="bg-purple-50 text-[#2d1b64] font-bold px-2.5 py-1 rounded-lg text-[11px] border border-purple-100">
                           {e.className}
                         </span>
                       </td>
-                      <td className="p-4 text-gray-600">{e.studentPhone || '-'}</td>
-                      <td className="p-4 text-right">
+                      <td className="p-3.5 text-gray-600 font-medium">{e.studentPhone || '-'}</td>
+                      <td className="p-3.5 text-right pr-4">
                         <button
                           onClick={() => handleUnenroll(e.studentId, e.courseId, e.className, e.studentName, e.courseTitle)}
-                          className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 cursor-pointer transition-colors border-none bg-transparent"
+                          className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 cursor-pointer transition-colors border-none bg-transparent"
                           title="Unenroll student"
                         >
-                          <FaTrash />
+                          <FaTrash className="text-xs" />
                         </button>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="p-8 text-center text-gray-500">
+                    <td colSpan="7" className="p-10 text-center text-gray-500 font-medium">
                       No enrollments found.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Footer (25 records per page) */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-100">
+            <div className="text-xs font-semibold text-gray-500">
+              Showing <span className="font-extrabold text-gray-800">{filteredEnrollments.length === 0 ? 0 : startIndex + 1}</span> to{' '}
+              <span className="font-extrabold text-gray-800">{Math.min(startIndex + itemsPerPage, filteredEnrollments.length)}</span> of{' '}
+              <span className="font-extrabold text-gray-800">{filteredEnrollments.length}</span> enrollments
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
+              >
+                <FaChevronLeft className="text-[10px]" /> Previous
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    currentPage === pageNum
+                      ? 'bg-[#2d1b64] text-white shadow-sm'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || filteredEnrollments.length === 0}
+                className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
+              >
+                Next <FaChevronRight className="text-[10px]" />
+              </button>
+            </div>
           </div>
         </>
       ) : (
@@ -537,17 +478,185 @@ const Enrollments = () => {
         </div>
       )}
 
+
+      {/* ========================================================================= */}
+      {/* POPUP MODAL: NEW COURSE ENROLLMENT (Est. Payment Recording Style) */}
+      {/* ========================================================================= */}
+      {showEnrollModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 animate-fadeIn my-8">
+            
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white relative">
+              <button
+                onClick={() => setShowEnrollModal(false)}
+                className="absolute top-5 right-5 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition cursor-pointer"
+              >
+                <FaTimes />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <span className="p-3 bg-amber-400 text-purple-950 rounded-2xl text-xl font-black">🎓</span>
+                <div>
+                  <h3 className="text-xl font-extrabold tracking-tight">New Course Enrollment</h3>
+                  <p className="text-indigo-200 text-xs mt-0.5">
+                    Enroll a registered student in a course class.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleEnroll} className="p-6 md:p-8 space-y-6">
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                {/* 1. Select Course */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    1. Select Course <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Search Course..."
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs bg-gray-50 outline-none focus:ring-2 focus:ring-purple-500 mb-2 font-medium"
+                    value={courseSearch}
+                    onChange={(e) => setCourseSearch(e.target.value)}
+                  />
+                  <select
+                    value={selectedCourseId}
+                    onChange={(e) => handleCourseChange(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-bold cursor-pointer"
+                    required
+                  >
+                    <option value="">-- Choose Course --</option>
+                    {filteredCoursesForSelect.map(c => (
+                      <option key={c._id} value={c._id}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 2. Select Class (Grade) */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    2. Select Class <span className="text-red-500">*</span>
+                  </label>
+                  {selectedCourseId && assignedGrades.length === 0 ? (
+                    <div className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200 mt-8">
+                      No grades assigned to this course.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="h-[34px] mb-2 hidden md:block"></div>
+                      <select
+                        value={selectedClass}
+                        onChange={(e) => handleGradeChange(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-bold cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        disabled={!selectedCourseId}
+                        required
+                      >
+                        {!selectedCourseId ? (
+                          <option value="">-- Choose Course First --</option>
+                        ) : (
+                          <>
+                            <option value="">-- Choose Class --</option>
+                            {assignedGrades.map(g => (
+                              <option key={g.gradeNumber} value={g.gradeNumber}>
+                                {g.title || g.gradeNumber}
+                              </option>
+                            ))}
+                          </>
+                        )}
+                      </select>
+                    </>
+                  )}
+                </div>
+
+                {/* 3. Select Student */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    3. Select Student <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Search Student..."
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs bg-gray-50 outline-none focus:ring-2 focus:ring-purple-500 mb-2 disabled:bg-gray-100 disabled:cursor-not-allowed font-medium"
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    disabled={!selectedClass}
+                  />
+                  <select
+                    value={selectedStudentId}
+                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-bold cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    disabled={!selectedClass}
+                    required
+                  >
+                    {!selectedClass ? (
+                      <option value="">-- Choose Class First --</option>
+                    ) : filteredStudentsForSelect.length === 0 ? (
+                      <option value="">-- No matching students in Grade {selectedClass} --</option>
+                    ) : (
+                      <>
+                        <option value="">-- Choose Student ({filteredStudentsForSelect.length} available) --</option>
+                        {filteredStudentsForSelect.map(s => (
+                          <option key={s._id} value={s._id}>
+                            {s.name} ({s.registrationNumber || s.email})
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                </div>
+
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowEnrollModal(false)}
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !selectedStudentId || !selectedCourseId || !selectedClass}
+                  className="px-6 py-2.5 bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <>
+                      <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
+                      Enrolling Student...
+                    </>
+                  ) : (
+                    <>
+                      <FaCheckCircle className="text-amber-400" /> Enroll Student
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+
       {/* Delete Confirmation Custom Modal */}
       {showDeleteModal && enrollmentToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-150 max-w-md w-full mx-4 transform transition-all scale-100 duration-200">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-red-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
+          <div className="bg-white p-6 rounded-3xl shadow-2xl border border-red-100 max-w-md w-full mx-4">
+            <div className="text-center font-sans">
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-red-200">
                 <FaTrash className="text-xl text-red-500" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Unenroll Student</h3>
-              <p className="text-gray-500 text-sm mb-6">
-                Are you sure you want to remove <strong className="text-[#2d1b64] font-semibold">{enrollmentToDelete.studentName}</strong> from <strong className="text-purple-800 font-semibold">{enrollmentToDelete.courseTitle} ({enrollmentToDelete.className})</strong>?
+              <h3 className="text-xl font-extrabold text-gray-900 mb-2">Unenroll Student</h3>
+              <p className="text-gray-600 text-xs mb-6 leading-relaxed">
+                Are you sure you want to remove <strong className="text-[#2d1b64] font-bold">{enrollmentToDelete.studentName}</strong> from <strong className="text-purple-900 font-bold">{enrollmentToDelete.courseTitle} ({enrollmentToDelete.className})</strong>?
               </p>
               <div className="flex gap-3 justify-center">
                 <button
@@ -556,14 +665,14 @@ const Enrollments = () => {
                     setShowDeleteModal(false);
                     setEnrollmentToDelete(null);
                   }}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition cursor-pointer border-none"
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer border-none"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={executeUnenroll}
-                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 cursor-pointer text-white font-semibold rounded-lg text-sm transition flex items-center gap-2 border-none"
+                  className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-lg transition flex items-center gap-2 border-none cursor-pointer"
                 >
                   Yes, Remove
                 </button>
