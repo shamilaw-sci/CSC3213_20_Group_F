@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
+
 import { FaGraduationCap, FaCompass, FaBookOpen, FaLock, FaLockOpen } from 'react-icons/fa';
+import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import TeacherModal from '../components/TeacherModal';
 
 const getImageUrl = (url) => {
@@ -352,6 +353,7 @@ const Courses = () => {
             </div>
           </div>
         </div>
+
         {/* Card Footer (Instructor Info) */}
         <div className="flex items-center justify-between p-4 px-6 bg-white border-t border-gray-100 group/teacher transition-colors">
           <div className="flex items-center gap-3.5">
@@ -480,7 +482,7 @@ const Courses = () => {
         )}
       </div>
 
-{/* Course Enrollment & Online Payment Gateway Modal */}
+      {/* Course Enrollment & Online Payment Gateway Modal */}
       {selectedCourseForEnrollment && (
         <CourseEnrollmentModal
           isOpen={enrollModalOpen}

@@ -1198,19 +1198,11 @@ const StudentDashboard = ({ user }) => {
           {/* Digital QR Student ID Card */}
           <StudentIdCard user={user} />
 
-          {/* Announcements widget */}
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
-            <div>
-              <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
-                <FaBullhorn className="text-purple-600" /> Institute Announcements
-              </h3>
-
-              <div className="space-y-4">
-                <div className="border-l-3 border-purple-600 pl-3">
-                  <h4 className="text-xs font-bold text-gray-850">Class Reschedule Notice</h4>
-                  <p className="text-3xs text-gray-500 mt-0.5">Grade 10 Science class will commence at 11 AM instead of 10 AM this Saturday.</p>
-                  <span className="text-4xs text-gray-400 mt-1 block">Just now</span>
-                </div>
+          {/* Announcements Widget */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
+            <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+              <FaBullhorn className="text-purple-600" /> Institute Announcements
+            </h3>
 
             <div className="space-y-3.5">
               {stats.announcements && stats.announcements.length > 0 ? (
@@ -1231,8 +1223,6 @@ const StudentDashboard = ({ user }) => {
               )}
             </div>
           </div>
-        </div>
-      </div>
 
           {/* Entrance Check-in Log */}
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">

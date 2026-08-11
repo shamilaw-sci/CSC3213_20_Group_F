@@ -23,6 +23,7 @@ import Attendance from './pages/Attendance';
 import Enrollments from './pages/Enrollments';
 import Payments from './pages/Payments';
 import Analytics from './pages/Analytics';
+import ParentDashboard from './pages/ParentDashboard';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -42,13 +43,19 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/attendance" replace />;
   }
 
-  // 4. Role verification (The Bouncer).
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    console.warn(`Access denied. Role '${user.role}' cannot access this route.`);
-    return <Navigate to={user.role === 'counter_staff' ? "/attendance" : "/dashboard"} replace />;
+  // 4. Parent role auto-redirect to parent dashboard
+  if (user.role === 'parent' && window.location.pathname === '/dashboard') {
+    return <Navigate to="/parent-dashboard" replace />;
   }
 
-  // 5. All checks passed! Let them through.
+  // 5. Role verification (The Bouncer).
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    console.warn(`Access denied. Role '${user.role}' cannot access this route.`);
+    const fallbackPath = user.role === 'counter_staff' ? "/attendance" : user.role === 'parent' ? "/parent-dashboard" : "/dashboard";
+    return <Navigate to={fallbackPath} replace />;
+  }
+
+  // 6. All checks passed! Let them through.
   return children;
 };
 
@@ -101,6 +108,12 @@ function App() {
           <Route path="/attendance" element={
             <ProtectedRoute allowedRoles={['admin', 'counter_staff']}>
               <Attendance />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/parent-dashboard" element={
+            <ProtectedRoute allowedRoles={['parent', 'admin']}>
+              <ParentDashboard />
             </ProtectedRoute>
           } />
 

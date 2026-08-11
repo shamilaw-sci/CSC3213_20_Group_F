@@ -91,4 +91,4 @@ const isCounterStaffOrAdmin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, isAdmin, isTeacherOrAdmin, isCounterStaffOrAdmin, optionalProtect };
+module.exports = { protect, optionalProtect, isAdmin, isTeacherOrAdmin, isCounterStaffOrAdmin };

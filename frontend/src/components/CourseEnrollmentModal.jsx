@@ -6,10 +6,21 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
+  const [submittingSlip, setSubmittingSlip] = useState(false);
+
+  // Payment Method Selection: 'CARD' | 'BANK_SLIP'
+  const [paymentMethodType, setPaymentMethodType] = useState('CARD');
 
   // Step 1 State: Enrollment details
   const [enrollmentDate, setEnrollmentDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedBatch, setSelectedBatch] = useState(student?.grade ? `Grade ${student.grade} - Regular Session` : 'Regular Session');
+
+  // Bank Slip Upload State
+  const [slipImage, setSlipImage] = useState('');
+  const [depositorName, setDepositorName] = useState(student?.name || '');
+  const [depositDate, setDepositDate] = useState(new Date().toISOString().split('T')[0]);
+  const [slipReference, setSlipReference] = useState('');
+  const [slipError, setSlipError] = useState('');
 
   // Step 2 State: Card payment details
   const [cardholderName, setCardholderName] = useState(student?.name || '');
@@ -56,6 +67,72 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
   if (!isOpen || !course) return null;
 
   const courseFee = course.price || 2500;
+  const courseBankDetails = course.bankDetails || {};
+
+  // Handle Slip File Upload to Base64
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      setSlipError('File size exceeds 8MB limit. Please upload a smaller image.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setSlipImage(event.target.result);
+      setSlipError('');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Submit Bank Deposit Slip to Backend
+  const handleBankSlipSubmit = async (e) => {
+    e.preventDefault();
+    setSlipError('');
+
+    if (!slipImage) {
+      setSlipError('Please upload a photo or image of your bank deposit receipt/slip.');
+      return;
+    }
+
+    if (!depositorName.trim()) {
+      setSlipError('Please enter depositor name.');
+      return;
+    }
+
+    setSubmittingSlip(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        'http://localhost:5000/api/payments/submit-bank-slip',
+        {
+          courseId: course._id,
+          amount: courseFee,
+          slipImage,
+          depositorName: depositorName.trim(),
+          depositDate,
+          transactionId: slipReference ? slipReference.trim() : undefined
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      toast.success(res.data.message || 'Bank slip submitted successfully! Pending Admin approval.');
+      if (onEnrollSuccess) {
+        onEnrollSuccess();
+      }
+      onClose();
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to submit bank slip.';
+      setSlipError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setSubmittingSlip(false);
+    }
+  };
 
   // Format Card Number (adds space every 4 digits)
   const handleCardNumberChange = (e) => {
@@ -202,10 +279,13 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white relative">
           <button 
+            type="button"
             onClick={onClose}
-            className="absolute top-5 right-5 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition"
+            className="absolute top-4 right-4 bg-white/20 hover:bg-red-600 text-white font-bold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 shadow-md border border-white/30 cursor-pointer"
+            title="Close & Go Back"
           >
-            ✕
+            <span className="text-base font-black leading-none">✕</span>
+            <span className="font-extrabold text-xs">Close / Go Back</span>
           </button>
           
           <div className="flex items-center space-x-3">
@@ -289,21 +369,191 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 font-medium text-sm"
                 />
               </div>
+
+              {/* Payment Method Selector */}
+              <div className="space-y-2 pt-1">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Select Payment Method <span className="text-red-500">*</span>
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Option A: Card IPG */}
+                  <div 
+                    onClick={() => setPaymentMethodType('CARD')}
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                      paymentMethodType === 'CARD' 
+                        ? 'border-purple-600 bg-purple-50/80 shadow-md ring-2 ring-purple-200' 
+                        : 'border-gray-200 bg-gray-50 hover:bg-gray-100/80'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-extrabold text-xs text-purple-950">💳 Online Card Payment</span>
+                      {paymentMethodType === 'CARD' && <span className="text-xs text-purple-700 font-bold">✓ Selected</span>}
+                    </div>
+                    <p className="text-[10px] text-gray-500 leading-tight">
+                      Visa / Mastercard IPG with OTP. Instant enrollment.
+                    </p>
+                  </div>
+
+                  {/* Option B: Bank Slip */}
+                  <div 
+                    onClick={() => setPaymentMethodType('BANK_SLIP')}
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                      paymentMethodType === 'BANK_SLIP' 
+                        ? 'border-purple-600 bg-purple-50/80 shadow-md ring-2 ring-purple-200' 
+                        : 'border-gray-200 bg-gray-50 hover:bg-gray-100/80'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-extrabold text-xs text-purple-950">🏦 Direct Bank Deposit</span>
+                      {paymentMethodType === 'BANK_SLIP' && <span className="text-xs text-purple-700 font-bold">✓ Selected</span>}
+                    </div>
+                    <p className="text-[10px] text-gray-500 leading-tight">
+                      Deposit course fee at bank & upload slip for Admin approval.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* IF BANK SLIP SELECTED: RENDER BANK DETAILS & FILE UPLOAD */}
+              {paymentMethodType === 'BANK_SLIP' && (
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50/60 p-4 rounded-2xl border border-purple-200 space-y-4 animate-fadeIn">
+                  <div className="border-b border-purple-200/60 pb-2">
+                    <h4 className="font-extrabold text-purple-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <span>🏦</span> Institute Bank Account Details
+                    </h4>
+                    <p className="text-[11px] text-purple-700 mt-0.5">Transfer LKR {courseFee.toLocaleString()} to the account below and upload receipt.</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs bg-white p-3 rounded-xl border border-purple-100 shadow-xs">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Bank Name</span>
+                      <span className="font-extrabold text-gray-800">{courseBankDetails.bankName || 'Sampath Bank PLC'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Account Holder</span>
+                      <span className="font-extrabold text-gray-800">{courseBankDetails.accountName || 'LuminaLearn Institute'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Account Number</span>
+                      <span className="font-mono font-bold text-purple-900">{courseBankDetails.accountNumber || '1098 7654 3210'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Branch</span>
+                      <span className="font-extrabold text-gray-800">{courseBankDetails.branchName || 'Colombo Head Office'}</span>
+                    </div>
+                  </div>
+
+                  {courseBankDetails.paymentInstructions && (
+                    <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-amber-900 text-[11px]">
+                      <strong>Instructions:</strong> {courseBankDetails.paymentInstructions}
+                    </div>
+                  )}
+
+                  {slipError && (
+                    <div className="bg-red-50 text-red-600 text-xs p-2.5 rounded-xl border border-red-200 font-medium">
+                      ⚠️ {slipError}
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 mb-1">
+                        Upload Deposit Slip Photo / PDF <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={handleFileUpload}
+                        className="w-full bg-white p-2 border border-purple-200 rounded-xl text-xs outline-none cursor-pointer"
+                        required
+                      />
+                      {slipImage && (
+                        <div className="mt-2 text-center">
+                          <img src={slipImage} alt="Deposit Slip Preview" className="max-h-32 mx-auto rounded-lg border-2 border-purple-400 shadow-md object-contain" />
+                          <span className="text-[10px] text-emerald-600 font-bold block mt-1">✓ Slip Image Loaded</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 mb-1">
+                          Depositor Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Name on bank slip"
+                          value={depositorName}
+                          onChange={(e) => setDepositorName(e.target.value)}
+                          className="w-full p-2.5 bg-white border border-purple-200 rounded-xl text-xs font-semibold outline-none"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 mb-1">
+                          Deposit Date
+                        </label>
+                        <input
+                          type="date"
+                          value={depositDate}
+                          onChange={(e) => setDepositDate(e.target.value)}
+                          className="w-full p-2.5 bg-white border border-purple-200 rounded-xl text-xs font-semibold outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 mb-1">
+                        Bank Reference / Receipt No (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. REF98765432"
+                        value={slipReference}
+                        onChange={(e) => setSlipReference(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-purple-200 rounded-xl text-xs font-mono font-semibold outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleBankSlipSubmit}
+                    disabled={submittingSlip}
+                    className="w-full py-3 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white font-extrabold rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2 cursor-pointer mt-2"
+                  >
+                    {submittingSlip ? 'Submitting Bank Slip...' : 'Submit Bank Slip for Approval ➔'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Fee Breakdown */}
-            <div className="flex justify-between items-center bg-gray-900 text-white p-4 rounded-2xl">
+            <div className="flex justify-between items-center bg-gray-900 text-white p-4 rounded-2xl gap-3">
               <div>
                 <span className="text-xs text-gray-400 block uppercase font-bold tracking-wider">Total Course Fee</span>
                 <span className="text-2xl font-extrabold text-amber-400">LKR {courseFee.toLocaleString()}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-purple-950 font-bold rounded-xl shadow-lg transition flex items-center gap-2 text-sm"
-              >
-                Proceed to Pay ➔
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3.5 py-2.5 bg-gray-800 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer border border-gray-700 hover:border-red-600"
+                >
+                  <span className="text-sm font-black">✕</span> Cancel & Go Back
+                </button>
+                {paymentMethodType === 'CARD' && (
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-purple-950 font-bold rounded-xl shadow-lg transition flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
+                  >
+                    Proceed to Pay Online ➔
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -7,7 +7,8 @@ import {
   FaTrash,
   FaUserGraduate,
   FaUserShield,
-  FaQrcode
+  FaQrcode,
+  FaUserFriends
 } from 'react-icons/fa';
 
 const emptyStudentForm = {
@@ -212,6 +213,7 @@ const ManageUsers = () => {
     if (role === 'admin') return <FaUserShield className="text-red-500" />;
     if (role === 'teacher') return <FaChalkboardTeacher className="text-blue-500" />;
     if (role === 'counter_staff') return <FaQrcode className="text-purple-500" />;
+    if (role === 'parent') return <FaUserFriends className="text-amber-500" />;
     return <FaUserGraduate className="text-green-500" />;
   };
 
@@ -367,17 +369,17 @@ const ManageUsers = () => {
         </form>
       )}
 
-      <div className="flex border-b border-gray-200 mb-6 space-x-8">
-        {['All', 'admin', 'teacher', 'student', 'counter_staff'].map((tab) => (
+      <div className="flex border-b border-gray-200 mb-6 space-x-8 overflow-x-auto">
+        {['All', 'admin', 'teacher', 'student', 'counter_staff', 'parent'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`pb-3 font-semibold text-sm capitalize transition-all border-b-2 ${activeTab === tab
+            className={`pb-3 font-semibold text-sm capitalize transition-all border-b-2 whitespace-nowrap ${activeTab === tab
               ? 'border-lumina-purple text-lumina-purple'
               : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
-            {tab === 'All' ? 'All Users' : tab === 'counter_staff' ? 'Counter Staff' : `${tab}s`}
+            {tab === 'All' ? 'All Users' : tab === 'counter_staff' ? 'Counter Staff' : tab === 'parent' ? 'Parent Accounts' : `${tab}s`}
           </button>
         ))}
       </div>

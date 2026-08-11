@@ -13,6 +13,7 @@ const Payment = require('../models/Payment');
 const Attendance = require('../models/Attendance');
 const Schedule = require('../models/Schedule');
 const Notification = require('../models/Notification');
+const ReadingProgress = require('../models/ReadingProgress');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail } = require('../utils/emailService');
@@ -134,7 +135,65 @@ router.post('/login', async (req, res) => {
 
 // --- REGISTER ROUTE ---
 router.post('/register', async (req, res) => {
-  const { email, password, grade, parentsPhoneNumber, dateOfBirth, nicNumber, name } = req.body;
+  const { email, password, grade, parentsPhoneNumber, dateOfBirth, nicNumber, name, role = 'student', childRegNo } = req.body;
+
+  if (role === 'parent') {
+    if (!email || !password || (!parentsPhoneNumber && !req.body.phone)) {
+      return res.status(400).json({ message: "Email, password, and mobile phone number are required for parent registration." });
+    }
+    const parentPhone = (parentsPhoneNumber || req.body.phone || '').trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    try {
+      const existingUser = await User.findOne({ email: normalizedEmail });
+      if (existingUser) {
+        return res.status(400).json({ message: "An account with this email already exists." });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      const phoneOrReg = [];
+      if (parentPhone) phoneOrReg.push({ parentsPhoneNumber: parentPhone });
+      if (childRegNo && childRegNo.trim()) phoneOrReg.push({ registrationNumber: new RegExp(`^${childRegNo.trim()}$`, 'i') });
+
+      const matchingStudents = phoneOrReg.length > 0 ? await User.find({ role: 'student', $or: phoneOrReg }) : [];
+      const linkedStudentIds = matchingStudents.map(s => s._id);
+
+      const newParent = await User.create({
+        name: name && name.trim() ? name.trim() : 'Parent User',
+        email: normalizedEmail,
+        password: hashedPassword,
+        phoneNumber: parentPhone,
+        parentsPhoneNumber: parentPhone,
+        role: 'parent',
+        linkedStudents: linkedStudentIds,
+        mustChangePassword: false
+      });
+
+      const token = jwt.sign(
+        { id: newParent._id, role: newParent.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '1d' }
+      );
+
+      return res.status(201).json({
+        token,
+        message: `Parent account created successfully! ${linkedStudentIds.length} child(ren) linked.`,
+        user: {
+          id: newParent._id,
+          name: newParent.name,
+          email: newParent.email,
+          role: newParent.role,
+          phoneNumber: newParent.phoneNumber,
+          linkedStudentsCount: linkedStudentIds.length
+        }
+      });
+    } catch (err) {
+      console.error("Parent Register Error:", err);
+      return res.status(500).json({ message: "Server error during parent registration." });
+    }
+  }
 
   if (!email || !password || !grade || !parentsPhoneNumber) {
     return res.status(400).json({ message: "Email, password, grade, and parent's phone number are required." });
@@ -631,7 +690,7 @@ router.post('/users', protect, isAdmin, async (req, res) => {
   const normalizedName = name?.trim();
   const normalizedEmail = email?.trim().toLowerCase();
   const normalizedRegistrationNumber = registrationNumber?.trim();
-  const allowedRoles = ['student', 'teacher', 'admin', 'counter_staff'];
+  const allowedRoles = ['student', 'teacher', 'admin', 'counter_staff', 'parent'];
   const normalizedGrade = grade !== undefined ? String(grade).trim() : undefined;
 
   if (!allowedRoles.includes(role)) {
@@ -1507,6 +1566,169 @@ router.get('/analytics-summary', protect, async (req, res) => {
   } catch (err) {
     console.error("Fetch Analytics Error:", err);
     res.status(500).json({ message: "Failed to fetch analytics data: " + err.message });
+  }
+});
+
+// ==========================================
+// PARENT PORTAL ENDPOINTS
+// ==========================================
+
+// @route   GET /api/auth/parent-summary
+// @desc    Parent retrieves linked children metrics, attendance, payments, and courses
+// @access  Private (Parent)
+router.get('/parent-summary', protect, async (req, res) => {
+  if (req.user.role !== 'parent') {
+    return res.status(403).json({ message: "Access denied. Parent role required." });
+  }
+
+  try {
+    const parent = await User.findById(req.user._id).populate('linkedStudents');
+    const parentPhone = parent.phoneNumber || parent.parentsPhoneNumber;
+
+    // Find all linked students matching linkedStudents array OR parentsPhoneNumber
+    const phoneQuery = parentPhone && parentPhone.trim() ? [{ parentsPhoneNumber: parentPhone.trim() }] : [];
+    const children = await User.find({
+      role: 'student',
+      $or: [
+        { _id: { $in: parent.linkedStudents || [] } },
+        ...phoneQuery
+      ]
+    }).select('-password');
+
+    // Build comprehensive data for each child
+    const childrenData = await Promise.all(
+      children.map(async (child) => {
+        const childId = child._id;
+
+        // 1. Enrolled Courses
+        const courses = await Course.find({ enrolledStudents: childId })
+          .populate('instructor', 'name profilePicture')
+          .select('title description price banner cardImage status studentType instructor');
+
+        // 2. Attendance History
+        const attendanceLogs = await Attendance.find({ student: childId })
+          .sort({ createdAt: -1 })
+          .limit(50);
+
+        const totalAtt = attendanceLogs.length;
+        const presentCount = attendanceLogs.filter(a => a.status === 'Present').length;
+        const absentCount = attendanceLogs.filter(a => a.status === 'Absent').length;
+        const lateCount = attendanceLogs.filter(a => a.status === 'Late').length;
+
+        const attendanceRate = totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 100;
+
+        // 3. Payments & Receipts
+        const payments = await Payment.find({ student: childId })
+          .populate('course', 'title price')
+          .sort({ createdAt: -1 });
+
+        const totalPaidAmount = payments
+          .filter(p => p.status === 'COMPLETED')
+          .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+        // 4. PDF Reading & Study Progress Metrics
+        const readingProgress = await ReadingProgress.find({ student: childId })
+          .populate('course', 'title')
+          .sort({ lastReadAt: -1 });
+
+        return {
+          child: {
+            _id: child._id,
+            name: child.name,
+            email: child.email,
+            registrationNumber: child.registrationNumber,
+            grade: child.grade,
+            studentType: child.studentType,
+            dateOfBirth: child.dateOfBirth,
+            nicNumber: child.nicNumber,
+            profilePicture: child.profilePicture
+          },
+          courses: courses.map(c => ({
+            _id: c._id,
+            title: c.title,
+            description: c.description,
+            price: c.price,
+            instructorName: c.instructor?.name || 'Faculty Teacher',
+            studentType: c.studentType
+          })),
+          attendanceMetrics: {
+            total: totalAtt,
+            present: presentCount,
+            absent: absentCount,
+            late: lateCount,
+            attendanceRate
+          },
+          attendanceLogs,
+          payments,
+          totalPaidAmount,
+          readingProgress
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      parentName: parent.name,
+      parentEmail: parent.email,
+      parentPhone,
+      linkedChildrenCount: childrenData.length,
+      childrenData
+    });
+
+  } catch (err) {
+    console.error("Fetch Parent Summary Error:", err);
+    res.status(500).json({ message: "Failed to fetch parent summary data: " + err.message });
+  }
+});
+
+// @route   POST /api/auth/link-child
+// @desc    Parent links another child by Registration Number
+// @access  Private (Parent)
+router.post('/link-child', protect, async (req, res) => {
+  if (req.user.role !== 'parent') {
+    return res.status(403).json({ message: "Access denied. Parent role required." });
+  }
+
+  const { childRegNo } = req.body;
+  if (!childRegNo || !childRegNo.trim()) {
+    return res.status(400).json({ message: "Child Registration Number is required." });
+  }
+
+  try {
+    const student = await User.findOne({
+      role: 'student',
+      registrationNumber: new RegExp(`^${childRegNo.trim()}$`, 'i')
+    });
+
+    if (!student) {
+      return res.status(404).json({ message: "No active student found with registration number: " + childRegNo });
+    }
+
+    const parent = await User.findById(req.user._id);
+    if (!parent.linkedStudents) parent.linkedStudents = [];
+
+    const isAlreadyLinked = parent.linkedStudents.some(id => id.toString() === student._id.toString());
+    if (isAlreadyLinked) {
+      return res.status(400).json({ message: `Student ${student.name} is already linked to your parent account.` });
+    }
+
+    parent.linkedStudents.push(student._id);
+    await parent.save();
+
+    res.json({
+      success: true,
+      message: `Student ${student.name} (Grade ${student.grade}) successfully linked to your parent account!`,
+      student: {
+        id: student._id,
+        name: student.name,
+        registrationNumber: student.registrationNumber,
+        grade: student.grade
+      }
+    });
+
+  } catch (err) {
+    console.error("Link Child Error:", err);
+    res.status(500).json({ message: "Failed to link child account: " + err.message });
   }
 });
 

@@ -58,6 +58,13 @@ const courseSchema = new mongoose.Schema({
   deactivatedBy: { type: String, default: null },
   enrolledGrades: [gradeSchema],
   classes: [classSchema],
+  bankDetails: {
+    bankName: { type: String, trim: true, default: '' },
+    accountName: { type: String, trim: true, default: '' },
+    accountNumber: { type: String, trim: true, default: '' },
+    branchName: { type: String, trim: true, default: '' },
+    paymentInstructions: { type: String, trim: true, default: '' }
+  },
   enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, {
   timestamps: true

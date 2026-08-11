@@ -4,9 +4,8 @@ const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Schedule = require('../models/Schedule');
 const Notification = require('../models/Notification');
-const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authMiddleware');
 const Course = require('../models/Course');
-
+const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authMiddleware');
 const { sendAttendanceSMS } = require('../services/smsService');
 
 // --- HELPER: Normalize date to Midnight UTC/Local (YYYY-MM-DD) ---
