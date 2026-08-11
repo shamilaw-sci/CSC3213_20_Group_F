@@ -241,14 +241,17 @@ const Courses = () => {
                     {isDeactive ? <><FaLock className="text-xs" /> Deactive</> : <><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> Active</>}
                   </span>
                 )}
-                {course.studentType === 'online' && (
+                {course.studentType === 'online' ? (
                   <span className="bg-blue-600/90 backdrop-blur-md text-white text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
                     💻 Online
                   </span>
-                )}
-                {course.studentType === 'physical' && (
+                ) : course.studentType === 'physical' ? (
                   <span className="bg-amber-600/90 backdrop-blur-md text-white text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
                     🏫 Physical
+                  </span>
+                ) : (
+                  <span className="bg-indigo-600/90 backdrop-blur-md text-white text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
+                    🌐 Online & Physical
                   </span>
                 )}
                 {user?.role === 'student' && isStudentEnrolled(course) && (
@@ -334,14 +337,17 @@ const Courses = () => {
                 <span className="bg-purple-600/90 backdrop-blur-md text-white text-[11px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md">
                   Available Course
                 </span>
-                {course.studentType === 'online' && (
+                {course.studentType === 'online' ? (
                   <span className="bg-blue-600/90 backdrop-blur-md text-white text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
                     💻 Online
                   </span>
-                )}
-                {course.studentType === 'physical' && (
+                ) : course.studentType === 'physical' ? (
                   <span className="bg-amber-600/90 backdrop-blur-md text-white text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
                     🏫 Physical
+                  </span>
+                ) : (
+                  <span className="bg-indigo-600/90 backdrop-blur-md text-white text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
+                    🌐 Online & Physical
                   </span>
                 )}
               </div>

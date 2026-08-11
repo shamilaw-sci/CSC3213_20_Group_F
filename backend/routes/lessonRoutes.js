@@ -22,13 +22,14 @@ const isTeacherOrAdmin = (req, res, next) => {
 // @route   POST /api/lessons/add-grade
 // @desc    Admin විසින් Course එකක් තුළට Grade එකක් ඇතුළත් කිරීම
 router.post('/add-grade', protect, isAdmin, async (req, res) => {
-    const { grade, courseId } = req.body;
+    const { grade, title, courseId } = req.body;
 
     if (!grade || !String(grade).trim()) {
         return res.status(400).json({ error: "Invalid grade selection." });
     }
 
     const gradeVal = String(grade).trim();
+    const gradeTitle = (title && String(title).trim()) ? String(title).trim() : (gradeVal.toLowerCase().startsWith('grade') ? gradeVal : `Grade ${gradeVal}`);
 
     try {
         const course = await Course.findById(courseId);
