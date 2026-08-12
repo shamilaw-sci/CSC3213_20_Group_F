@@ -126,7 +126,7 @@ router.get('/course/:courseId', protect, async (req, res) => {
 // @route   PUT /api/lessons/:lessonId
 // @desc    Update lesson message and/or video lessons
 router.put('/:lessonId', protect, isTeacherOrAdmin, async (req, res) => {
-    const { teacherMessage, videoLessons } = req.body;
+    const { teacherMessage, videoLessons, hideDemoVideo, hideDemoPdf } = req.body;
 
     try {
         const lesson = await Lesson.findById(req.params.lessonId);
@@ -139,6 +139,12 @@ router.put('/:lessonId', protect, isTeacherOrAdmin, async (req, res) => {
         }
         if (videoLessons !== undefined) {
             lesson.videoLessons = videoLessons;
+        }
+        if (hideDemoVideo !== undefined) {
+            lesson.hideDemoVideo = hideDemoVideo;
+        }
+        if (hideDemoPdf !== undefined) {
+            lesson.hideDemoPdf = hideDemoPdf;
         }
 
         await lesson.save();
@@ -244,6 +250,109 @@ router.delete('/:lessonId/pdf/:pdfId', protect, isTeacherOrAdmin, async (req, re
         res.json({ message: "PDF removed successfully!", lesson });
     } catch (err) {
         res.status(500).json({ error: "Failed to delete PDF: " + err.message });
+    }
+});
+
+// @route   POST /api/lessons/:lessonId/assignment
+// @desc    Upload an Assignment PDF (Admin/Teacher only)
+router.post('/:lessonId/assignment', protect, isTeacherOrAdmin, uploadPdfMiddleware, async (req, res) => {
+    try {
+        const lesson = await Lesson.findById(req.params.lessonId);
+        if (!lesson) {
+            return res.status(404).json({ error: "Class not found." });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ error: "Please upload a PDF file." });
+        }
+
+        const title = req.body.title || req.file.originalname;
+        const filename = req.file.filename;
+        const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+        const fileSize = req.file.size;
+
+        if (!lesson.assignments) {
+            lesson.assignments = [];
+        }
+
+        lesson.assignments.push({
+            title,
+            filename,
+            fileUrl,
+            fileSize
+        });
+
+        await lesson.save();
+
+        // --- TRIGGER NOTIFICATIONS FOR ENROLLED STUDENTS ---
+        try {
+            const course = await Course.findById(lesson.course);
+            if (course && course.enrolledStudents && course.enrolledStudents.length > 0) {
+                const enrolledUsers = await User.find({ _id: { $in: course.enrolledStudents } });
+                
+                const notifDocs = enrolledUsers.map(st => ({
+                    recipient: st._id,
+                    type: 'NEW_CONTENT',
+                    title: `New Assignment in ${course.title}`,
+                    message: `New Assignment PDF "${title}" has been uploaded for Grade ${lesson.grade}.`,
+                    link: `/courses`,
+                    metadata: { courseId: course._id, lessonId: lesson._id }
+                }));
+
+                if (notifDocs.length > 0) {
+                    await Notification.insertMany(notifDocs);
+                }
+
+                // Email notification to enrolled students
+                enrolledUsers.forEach(st => {
+                    if (st.email) {
+                        sendCourseUpdateEmail(st.email, st.name, course.title, `New Assignment: ${title}`, `A new assignment "${title}" has been published for Grade ${lesson.grade}.`);
+                    }
+                });
+            }
+        } catch (notifErr) {
+            console.error('Lesson Assignment PDF notification error:', notifErr.message);
+        }
+
+        res.status(201).json({ message: "Assignment PDF uploaded successfully!", lesson });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to upload Assignment PDF: " + err.message });
+    }
+});
+
+// @route   DELETE /api/lessons/:lessonId/assignment/:pdfId
+// @desc    Delete an Assignment PDF (Admin/Teacher only)
+router.delete('/:lessonId/assignment/:pdfId', protect, isTeacherOrAdmin, async (req, res) => {
+    try {
+        const lesson = await Lesson.findById(req.params.lessonId);
+        if (!lesson) {
+            return res.status(404).json({ error: "Class not found." });
+        }
+
+        if (!lesson.assignments) {
+            return res.status(404).json({ error: "Assignment not found." });
+        }
+
+        const pdfIndex = lesson.assignments.findIndex(pdf => pdf._id.toString() === req.params.pdfId);
+        if (pdfIndex === -1) {
+            return res.status(404).json({ error: "Assignment not found." });
+        }
+
+        const pdf = lesson.assignments[pdfIndex];
+        const pdfFilePath = path.join(__dirname, '..', 'uploads', pdf.filename);
+
+        // Delete from filesystem
+        if (fs.existsSync(pdfFilePath)) {
+            fs.unlinkSync(pdfFilePath);
+        }
+
+        // Remove from database array
+        lesson.assignments.splice(pdfIndex, 1);
+        await lesson.save();
+
+        res.json({ message: "Assignment PDF removed successfully!", lesson });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to delete Assignment PDF: " + err.message });
     }
 });
 
