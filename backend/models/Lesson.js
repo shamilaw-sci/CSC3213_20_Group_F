@@ -30,7 +30,17 @@ const lessonSchema = new mongoose.Schema({
     fileSize: { type: Number },
     weekNumber: { type: Number, enum: [1, 2, 3, 4], default: 1 },
     uploadedAt: { type: Date, default: Date.now }
-  }]
+  }],
+  assignments: [{
+    title: { type: String, required: true },
+    filename: { type: String, required: true },
+    fileUrl: { type: String, required: true },
+    fileSize: { type: Number },
+    weekNumber: { type: Number, enum: [1, 2, 3, 4], default: 1 },
+    uploadedAt: { type: Date, default: Date.now }
+  }],
+  hideDemoVideo: { type: Boolean, default: false },
+  hideDemoPdf: { type: Boolean, default: false }
 }, { 
   timestamps: true 
 });
