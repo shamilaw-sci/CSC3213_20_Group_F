@@ -12,6 +12,8 @@ import ChatWidget from './components/ChatWidget';
 
 // --- PAGES ---
 import Home from './pages/Home';
+import Instructors from './pages/Instructors';
+import AboutUs from './pages/AboutUs';
 import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
 import ForgotPassword from './pages/ForgotPassword';
@@ -70,6 +72,9 @@ function App() {
         {/* === PUBLIC ROUTES === */}
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/instructors" element={<Instructors />} />
+        <Route path="/timetable" element={<Instructors />} />
+        <Route path="/about" element={<AboutUs />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/change-password" element={<ChangePassword />} />
