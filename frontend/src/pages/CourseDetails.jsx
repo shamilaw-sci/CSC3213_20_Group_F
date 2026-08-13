@@ -69,10 +69,19 @@ const CourseDetails = () => {
   const [pdfTitle, setPdfTitle] = useState("");
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
 
+  // Helper to resolve current academic month string (e.g. "August 2026")
+  const getCurrentAcademicMonth = () => {
+    const now = new Date();
+    const monthName = now.toLocaleString('en-US', { month: 'long' });
+    const year = now.getFullYear();
+    return `${monthName} ${year}`;
+  };
+
   // Weekly Attendance & Class Navigation State
-  const [selectedMonth, setSelectedMonth] = useState('July 2026');
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentAcademicMonth);
   const [activeWeek, setActiveWeek] = useState(1);
   const [attendedWeeks, setAttendedWeeks] = useState([]);
+  const [loadingWeeklyStatus, setLoadingWeeklyStatus] = useState(true);
   const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
 
   // Material Completion Tracking (stored in localStorage per student/course/month/week)
@@ -97,7 +106,7 @@ const CourseDetails = () => {
   const coveredCount = (isVideoWatched ? 1 : 0) + (isPdfDownloaded ? 1 : 0);
 
   const fetchWeeklyAttendanceStatus = async () => {
-    if (user?.role !== 'student' || !courseId) return;
+    if (!courseId) return;
     try {
       const res = await api.get(`/attendance/weekly-status/${courseId}?month=${encodeURIComponent(selectedMonth)}`);
       setAttendedWeeks(res.data.attendedWeeks || []);
@@ -140,7 +149,7 @@ const CourseDetails = () => {
   useEffect(() => {
     fetchWeeklyAttendanceStatus();
     fetchPdfReadingProgress();
-  }, [courseId, user, selectedMonth]);
+  }, [courseId, user?._id || user?.id, selectedMonth]);
 
   const handleSubmitWeeklyAttendance = async (weekNum) => {
     if (!allMaterialsCovered) {

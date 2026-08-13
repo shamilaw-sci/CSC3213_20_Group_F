@@ -592,10 +592,11 @@ router.put('/:id/approve-slip', protect, isAdmin, async (req, res) => {
       await Enrollment.create({
         student: student._id,
         course: course._id,
+        className: course.grade || student.grade || 'Grade Active',
         paymentStatus: 'COMPLETED',
         paymentId: payment._id,
         enrollmentDate: new Date()
-      }).catch(() => {});
+      }).catch((err) => console.error("Enrollment creation error during slip approval:", err));
 
       // Notifications
       try {

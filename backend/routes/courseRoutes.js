@@ -141,11 +141,28 @@ router.get('/', protect, async (req, res) => {
 // @desc    Admin retrieves all active class enrollments
 router.get('/enrollments/all', protect, isAdmin, async (req, res) => {
     try {
-        // Legacy backfill is handled once at server startup by migration.js
-        // Directly query the Enrollment collection for fast response
+        // Auto-sync any students in course.enrolledStudents who are missing from Enrollment collection
+        const courses = await Course.find({}).populate('enrolledStudents');
+        for (const c of courses) {
+            if (Array.isArray(c.enrolledStudents)) {
+                for (const stu of c.enrolledStudents) {
+                    if (stu && stu._id) {
+                        const exists = await Enrollment.findOne({ student: stu._id, course: c._id });
+                        if (!exists) {
+                            await Enrollment.create({
+                                student: stu._id,
+                                course: c._id,
+                                className: c.grade || stu.grade || 'Grade Active'
+                            }).catch(() => {});
+                        }
+                    }
+                }
+            }
+        }
+
         const dbEnrollments = await Enrollment.find({})
             .populate('student', 'name email registrationNumber grade parentsPhoneNumber')
-            .populate('course', 'title');
+            .populate('course', 'title grade');
 
         const enrollments = dbEnrollments
             .filter(e => e.student && e.course)
@@ -153,13 +170,13 @@ router.get('/enrollments/all', protect, isAdmin, async (req, res) => {
                 _id: e._id,
                 courseId: e.course._id,
                 courseTitle: e.course.title,
-                className: e.className,
+                className: e.className || e.course.grade || e.student?.grade || 'Grade Active',
                 studentId: e.student._id,
                 studentName: e.student.name,
                 studentEmail: e.student.email,
-                studentRegNo: e.student.registrationNumber,
-                studentGrade: e.student.grade,
-                studentPhone: e.student.parentsPhoneNumber
+                studentRegNo: e.student.registrationNumber || 'N/A',
+                studentGrade: e.student.grade || 'Grade Active',
+                studentPhone: e.student.parentsPhoneNumber || 'N/A'
             }));
 
         res.json(enrollments);

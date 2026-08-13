@@ -15,12 +15,30 @@ router.get('/', protect, async (req, res) => {
     let query = {};
 
     if (userRole === 'student') {
-      // Students see schedule entries matching their current grade/class
+      const Enrollment = require('../models/Enrollment');
+
+      // Find all courses where student is enrolled
+      const directCourses = await Course.find({
+        $or: [
+          { enrolledStudents: userId },
+          { "classes.enrolledStudents": userId }
+        ]
+      }).select('_id');
+
+      const dbEnrollments = await Enrollment.find({ student: userId }).select('course');
+
+      const enrolledCourseIds = Array.from(new Set([
+        ...directCourses.map(c => c._id.toString()),
+        ...dbEnrollments.map(e => e.course ? e.course.toString() : null).filter(Boolean)
+      ]));
+
+      // Only show schedule entries for courses the student is actively enrolled in
+      query = {
+        courseId: { $in: enrolledCourseIds }
+      };
+
       if (req.user.grade) {
         query.className = req.user.grade;
-      } else {
-        // If student has no grade assigned yet, they won't see schedule entries
-        return res.json([]);
       }
     } else if (userRole === 'teacher') {
       // Teachers see schedule entries where they are assigned, 
