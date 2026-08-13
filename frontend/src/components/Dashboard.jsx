@@ -362,7 +362,7 @@ const AdminDashboard = ({ user }) => {
             <FaChalkboardTeacher className="text-2xl" />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Faculty Teachers</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Institute Teachers</p>
             <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.teachers || 0}</h3>
             <span className="text-4xs text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-1">
               Teaching Staff

@@ -12,6 +12,8 @@ import ChatWidget from './components/ChatWidget';
 
 // --- PAGES ---
 import Home from './pages/Home';
+import Instructors from './pages/Instructors';
+import AboutUs from './pages/AboutUs';
 import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
 import ForgotPassword from './pages/ForgotPassword';
@@ -24,6 +26,9 @@ import Enrollments from './pages/Enrollments';
 import Payments from './pages/Payments';
 import Analytics from './pages/Analytics';
 import ParentDashboard from './pages/ParentDashboard';
+import CreateQuiz from './pages/CreateQuiz';
+import TakeQuiz from './pages/TakeQuiz';
+import QuizSubmissions from './pages/QuizSubmissions';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -67,6 +72,9 @@ function App() {
         {/* === PUBLIC ROUTES === */}
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/instructors" element={<Instructors />} />
+        <Route path="/timetable" element={<Instructors />} />
+        <Route path="/about" element={<AboutUs />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/change-password" element={<ChangePassword />} />
@@ -81,6 +89,25 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<Courses />} /> 
           <Route path="/course/:courseId" element={<CourseDetails />} />
+          
+          <Route path="/course/:courseId/create-quiz" element={
+            <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+              <CreateQuiz />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/quiz/:quizId/take" element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <TakeQuiz />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/quiz/:quizId/submissions" element={
+            <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+              <QuizSubmissions />
+            </ProtectedRoute>
+          } />
+
           <Route path="/payments" element={<Payments />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
