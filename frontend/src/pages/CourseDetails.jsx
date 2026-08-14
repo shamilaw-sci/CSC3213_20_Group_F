@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
@@ -24,8 +24,10 @@ const getImageUrl = (url) => {
 
 const CourseDetails = () => {
   const { courseId } = useParams();
+  const navigate = useNavigate();
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTeacherForModal, setSelectedTeacherForModal] = useState(null);
   const [pdfProgressMap, setPdfProgressMap] = useState({});
@@ -76,6 +78,10 @@ const CourseDetails = () => {
     const year = now.getFullYear();
     return `${monthName} ${year}`;
   };
+  // Assignment PDF state
+  const [assignmentFile, setAssignmentFile] = useState(null);
+  const [assignmentTitle, setAssignmentTitle] = useState("");
+  const [isUploadingAssignment, setIsUploadingAssignment] = useState(false);
 
   // Weekly Attendance & Class Navigation State
   const [selectedMonth, setSelectedMonth] = useState(getCurrentAcademicMonth);
@@ -183,6 +189,36 @@ const CourseDetails = () => {
     fetchCourseDetails();
   }, [courseId]);
 
+  const fetchQuizzes = async () => {
+    try {
+      const res = await api.get(`/quizzes/course/${courseId}`);
+      setQuizzes(res.data);
+    } catch (err) {
+      console.error("Error fetching quizzes:", err);
+    }
+  };
+
+  const handleToggleQuizActive = async (quizId) => {
+    try {
+      await api.patch(`/quizzes/${quizId}/toggle`);
+      toast.success("Quiz status updated!");
+      await fetchQuizzes();
+    } catch (err) {
+      toast.error("Failed to toggle quiz status.");
+    }
+  };
+
+  const handleDeleteQuiz = async (quizId) => {
+    if (!window.confirm("Are you sure you want to delete this quiz?")) return;
+    try {
+      await api.delete(`/quizzes/${quizId}`);
+      toast.success("Quiz deleted successfully!");
+      await fetchQuizzes();
+    } catch (err) {
+      toast.error("Failed to delete quiz.");
+    }
+  };
+
   const fetchCourseDetails = async () => {
     try {
       const res = await api.get(`/courses/${courseId}`);
@@ -190,6 +226,8 @@ const CourseDetails = () => {
 
       const lessonsRes = await api.get(`/lessons/course/${courseId}`);
       setLessons(lessonsRes.data);
+      
+      await fetchQuizzes();
     } catch (err) {
       toast.error("Failed to fetch details.");
     } finally {
@@ -567,6 +605,86 @@ const CourseDetails = () => {
       await fetchCourseDetails();
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to delete PDF.");
+    }
+  };
+
+  const handleUploadAssignment = async (e) => {
+    e.preventDefault();
+    if (!assignmentFile) {
+      toast.error("Please select an assignment PDF file first.");
+      return;
+    }
+
+    if (assignmentFile.size > 5 * 1024 * 1024) {
+      toast.error("Cannot upload file. The maximum allowed size is 5MB.");
+      return;
+    }
+
+    const currentLesson = lessons.find(l => l.grade === selectedGrade);
+    if (!currentLesson) return;
+
+    setIsUploadingAssignment(true);
+    const formData = new FormData();
+    formData.append('pdf', assignmentFile);
+    formData.append('title', assignmentTitle.trim() || assignmentFile.name);
+
+    try {
+      await api.post(`/lessons/${currentLesson._id}/assignment`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      toast.success("Assignment PDF uploaded successfully!");
+      setAssignmentFile(null);
+      setAssignmentTitle("");
+      await fetchCourseDetails();
+    } catch (err) {
+      const errMsg = err.response?.data?.error || "Failed to upload Assignment PDF.";
+      toast.error(errMsg);
+    } finally {
+      setIsUploadingAssignment(false);
+    }
+  };
+
+  const handleDeleteAssignment = async (pdfId) => {
+    const currentLesson = lessons.find(l => l.grade === selectedGrade);
+    if (!currentLesson) return;
+    if (!window.confirm("Are you sure you want to delete this Assignment PDF?")) return;
+
+    try {
+      await api.delete(`/lessons/${currentLesson._id}/assignment/${pdfId}`);
+      toast.success("Assignment PDF removed!");
+      await fetchCourseDetails();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to delete Assignment PDF.");
+    }
+  };
+
+  const handleDeleteDemoVideo = async () => {
+    const currentLesson = lessons.find(l => l.grade === selectedGrade);
+    if (!currentLesson) return;
+    if (!window.confirm("Are you sure you want to remove the default master lecture video?")) return;
+
+    try {
+      await api.put(`/lessons/${currentLesson._id}`, { hideDemoVideo: true });
+      toast.success("Default lecture video removed!");
+      await fetchCourseDetails();
+    } catch (err) {
+      toast.error("Failed to remove default video.");
+    }
+  };
+
+  const handleDeleteDemoPdf = async () => {
+    const currentLesson = lessons.find(l => l.grade === selectedGrade);
+    if (!currentLesson) return;
+    if (!window.confirm("Are you sure you want to remove the default study material PDF?")) return;
+
+    try {
+      await api.put(`/lessons/${currentLesson._id}`, { hideDemoPdf: true });
+      toast.success("Default study material PDF removed!");
+      await fetchCourseDetails();
+    } catch (err) {
+      toast.error("Failed to remove default PDF.");
     }
   };
 
@@ -1214,35 +1332,49 @@ const CourseDetails = () => {
 
             {/* Demo / Real Videos List */}
             <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/40 hover:bg-purple-50 transition-all gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="text-red-500 text-2xl">🎬</div>
-                  <div>
-                    <p className="font-extrabold text-gray-900 text-sm">
-                      Week {activeWeek} Master Lecture Video: Theory & Concepts ({selectedMonth})
-                    </p>
-                    <p className="text-xs text-purple-700 font-semibold mt-0.5">
-                      Required Video Material — 45 mins HD Recording
-                    </p>
+              {!currentLesson?.hideDemoVideo && (
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/40 hover:bg-purple-50 transition-all gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="text-red-500 text-2xl">🎬</div>
+                    <div>
+                      <p className="font-extrabold text-gray-900 text-sm">
+                        Week {activeWeek} Master Lecture Video: Theory & Concepts ({selectedMonth})
+                      </p>
+                      <p className="text-xs text-purple-700 font-semibold mt-0.5">
+                        Required Video Material — 45 mins HD Recording
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    {isVideoWatched ? (
+                      <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-4 py-2 rounded-xl border border-emerald-200">
+                        ✓ Watched & Completed
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => markMaterialCompleted('video')}
+                        className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>▶</span> Watch Lecture Video
+                      </button>
+                    )}
+                    {user?.role !== 'student' && (
+                      <button
+                        onClick={handleDeleteDemoVideo}
+                        className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
+              )}
 
-                <div className="flex items-center gap-2 self-end sm:self-auto">
-                  {isVideoWatched ? (
-                    <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-4 py-2 rounded-xl border border-emerald-200">
-                      ✓ Watched & Completed
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => markMaterialCompleted('video')}
-                      className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>▶</span> Watch Lecture Video
-                    </button>
-                  )}
-                </div>
-              </div>
+              {currentLesson?.hideDemoVideo && (!currentLesson?.videoLessons || currentLesson.videoLessons.length === 0) && (
+                <p className="text-sm text-gray-500 text-center py-4">No video lessons uploaded for this grade yet.</p>
+              )}
 
               {currentLesson?.videoLessons?.map((vid) => (
                 <div key={vid._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all">
@@ -1315,84 +1447,98 @@ const CourseDetails = () => {
 
             {/* PDF Notes List with Reading Progress */}
             <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-blue-100 rounded-xl bg-blue-50/40 hover:bg-blue-50 transition-all gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="text-red-600 text-2xl font-bold">📕</div>
-                  <div>
-                    <p className="font-extrabold text-gray-900 text-sm">
-                      Week {activeWeek} Lecture Notes & Tutorial Problems ({selectedMonth}).pdf
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <span className="text-xs text-blue-700 font-semibold">
-                        Required Study Notes — PDF Document (2.4 MB)
-                      </span>
-                      {(() => {
+              {!currentLesson?.hideDemoPdf && (
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-blue-100 rounded-xl bg-blue-50/40 hover:bg-blue-50 transition-all gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="text-red-600 text-2xl font-bold">📕</div>
+                    <div>
+                      <p className="font-extrabold text-gray-900 text-sm">
+                        Week {activeWeek} Lecture Notes & Tutorial Problems ({selectedMonth}).pdf
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className="text-xs text-blue-700 font-semibold">
+                          Required Study Notes — PDF Document (2.4 MB)
+                        </span>
+                        {(() => {
+                          const prog = pdfProgressMap['demo-pdf'];
+                          const percent = prog?.progressPercentage || 0;
+                          const maxRead = prog?.maxPageRead || 0;
+                          const total = prog?.totalPages || 20;
+                          const nextPage = prog?.nextPageToRead || (maxRead > 0 ? Math.min(total, maxRead + 1) : 1);
+
+                          if (percent >= 100) {
+                            return (
+                              <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                ✓ 100% Completed
+                              </span>
+                            );
+                          } else if (percent > 0) {
+                            return (
+                              <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-300">
+                                📖 {percent}% Read (Page {maxRead} of {total} • Continue Pg {nextPage})
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setActivePdfModal({
+                        pdf: {
+                          _id: 'demo-pdf',
+                          title: `Week ${activeWeek} Lecture Notes (${selectedMonth}).pdf`,
+                          fileUrl: ''
+                        },
+                        lessonId: currentLesson?._id || 'demo-lesson'
+                      })}
+                      className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>📖</span> {(() => {
                         const prog = pdfProgressMap['demo-pdf'];
                         const percent = prog?.progressPercentage || 0;
                         const maxRead = prog?.maxPageRead || 0;
                         const total = prog?.totalPages || 20;
                         const nextPage = prog?.nextPageToRead || (maxRead > 0 ? Math.min(total, maxRead + 1) : 1);
 
-                        if (percent >= 100) {
-                          return (
-                            <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                              ✓ 100% Completed
-                            </span>
-                          );
-                        } else if (percent > 0) {
-                          return (
-                            <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-300">
-                              📖 {percent}% Read (Page {maxRead} of {total} • Continue Pg {nextPage})
-                            </span>
-                          );
-                        }
-                        return null;
+                        if (percent >= 100) return 'Review PDF Notes ▶';
+                        if (percent > 0) return `Continue from Page ${nextPage} ▶`;
+                        return 'Start Reading PDF ▶';
                       })()}
-                    </div>
+                    </button>
+
+                    {isPdfDownloaded ? (
+                      <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-2 rounded-xl border border-emerald-200">
+                        ✓ Covered
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => markMaterialCompleted('pdf')}
+                        className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer"
+                      >
+                        Mark Done
+                      </button>
+                    )}
+                    {user?.role !== 'student' && (
+                      <button
+                        onClick={handleDeleteDemoPdf}
+                        className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
+              )}
 
-                <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={() => setActivePdfModal({
-                      pdf: {
-                        _id: 'demo-pdf',
-                        title: `Week ${activeWeek} Lecture Notes (${selectedMonth}).pdf`,
-                        fileUrl: ''
-                      },
-                      lessonId: currentLesson?._id || 'demo-lesson'
-                    })}
-                    className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
-                  >
-                    <span>📖</span> {(() => {
-                      const prog = pdfProgressMap['demo-pdf'];
-                      const percent = prog?.progressPercentage || 0;
-                      const maxRead = prog?.maxPageRead || 0;
-                      const total = prog?.totalPages || 20;
-                      const nextPage = prog?.nextPageToRead || (maxRead > 0 ? Math.min(total, maxRead + 1) : 1);
-
-                      if (percent >= 100) return 'Review PDF Notes ▶';
-                      if (percent > 0) return `Continue from Page ${nextPage} ▶`;
-                      return 'Start Reading PDF ▶';
-                    })()}
-                  </button>
-
-                  {isPdfDownloaded ? (
-                    <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-2 rounded-xl border border-emerald-200">
-                      ✓ Covered
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => markMaterialCompleted('pdf')}
-                      className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer"
-                    >
-                      Mark Done
-                    </button>
-                  )}
-                </div>
-              </div>
+              {currentLesson?.hideDemoPdf && (!currentLesson?.pdfMaterials || currentLesson.pdfMaterials.length === 0) && (
+                <p className="text-sm text-gray-500 text-center py-4">No study materials uploaded for this grade yet.</p>
+              )}
 
               {currentLesson?.pdfMaterials?.map((pdf) => {
                 // Normalize the PDF id to a plain string (MongoDB ObjectId arrives as object)
@@ -1475,6 +1621,200 @@ const CourseDetails = () => {
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Assignments Section */}
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <div>
+                <h4 className="font-bold text-lg text-gray-800">
+                  Assignments ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
+                </h4>
+                <p className="text-xs text-gray-500">Download class assignment PDF documents or upload new ones.</p>
+              </div>
+            </div>
+
+            {/* Assignment upload form (Teacher/Admin only) */}
+            {user?.role !== 'student' && (
+              <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Upload Assignment PDF</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Assignment Title (Optional)"
+                    value={assignmentTitle}
+                    onChange={(e) => setAssignmentTitle(e.target.value)}
+                    className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
+                  />
+                  <div>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      key={assignmentFile ? 'loaded' : 'empty'}
+                      onChange={(e) => setAssignmentFile(e.target.files[0])}
+                      className="w-full p-2 bg-white border border-gray-200 rounded-lg outline-none text-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={handleUploadAssignment}
+                    disabled={isUploadingAssignment}
+                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer transition-colors text-sm"
+                  >
+                    {isUploadingAssignment ? 'Uploading...' : '+ Upload Assignment'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">Maximum size: 5MB. Only PDF files are allowed.</p>
+              </div>
+            )}
+
+            {/* Assignment PDFs List */}
+            <div className="space-y-3">
+              {!currentLesson?.assignments || currentLesson.assignments.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No assignments uploaded for this grade yet.</p>
+              ) : (
+                currentLesson.assignments.map((assignment) => (
+                  <div key={assignment._id || assignment.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/20 hover:bg-purple-50 transition-all gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-purple-600 text-2xl font-bold">📝</div>
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-sm">{assignment.title}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-500 font-medium">
+                            Size: {assignment.fileSize ? (assignment.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '0.99 MB'}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            Uploaded: {assignment.uploadedAt ? new Date(assignment.uploadedAt).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <a
+                        href={assignment.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition"
+                        title="Download Assignment"
+                      >
+                        Download
+                      </a>
+
+                      {user?.role !== 'student' && (
+                        <button
+                          onClick={() => handleDeleteAssignment(assignment._id)}
+                          className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Quizzes & Assessments Section */}
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <div>
+                <h4 className="font-bold text-lg text-gray-800">
+                  Quizes ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
+                </h4>
+                <p className="text-xs text-gray-500">Test your knowledge by attempting the weekly quiz assessments.</p>
+              </div>
+              {user?.role !== 'student' && (
+                <button
+                  onClick={() => navigate(`/course/${courseId}/create-quiz`)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+                >
+                  + Create Quiz
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {quizzes.filter(q => q.grade === selectedGrade).length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No quizzes available for this grade yet.</p>
+              ) : (
+                quizzes.filter(q => q.grade === selectedGrade).map((quiz) => {
+                  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+                  return (
+                    <div key={quiz._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="text-yellow-500 text-2xl">📝</div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-extrabold text-gray-900 text-sm">{quiz.title}</p>
+                            {!quiz.isActive && (
+                              <span className="bg-gray-100 text-gray-600 text-[10px] font-extrabold px-2 py-0.5 rounded border border-gray-200">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Questions: {quiz.questions?.length} · Time: {quiz.timeLimit > 0 ? `${quiz.timeLimit} mins` : 'No limit'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                        {isTeacher ? (
+                          <>
+                            <button
+                              onClick={() => handleToggleQuizActive(quiz._id)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                quiz.isActive
+                                  ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                                  : 'bg-green-50 text-green-700 hover:bg-green-100'
+                              }`}
+                            >
+                              {quiz.isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button
+                              onClick={() => navigate(`/quiz/${quiz._id}/submissions`)}
+                              className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
+                            >
+                              Submissions
+                            </button>
+                            <button
+                              onClick={() => handleDeleteQuiz(quiz._id)}
+                              className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {quiz.hasAttempted ? (
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-bold text-gray-500">
+                                  Score: <strong className="text-purple-600">{quiz.score}</strong> / {quiz.totalPoints}
+                                </span>
+                                <button
+                                  onClick={() => navigate(`/quiz/${quiz._id}/take`)}
+                                  className="bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer"
+                                >
+                                  Review Answers
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => navigate(`/quiz/${quiz._id}/take`)}
+                                className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer"
+                              >
+                                Start Quiz
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
