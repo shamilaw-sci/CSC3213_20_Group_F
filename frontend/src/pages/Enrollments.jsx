@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { FaUserPlus, FaTrash, FaSearch, FaTimes, FaCheckCircle, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { 
+  FaUserPlus, FaTrash, FaSearch, FaTimes, FaCheckCircle, 
+  FaChevronLeft, FaChevronRight, FaChevronDown, FaChevronUp, 
+  FaEye, FaDownload, FaFilePdf, FaImage 
+} from 'react-icons/fa';
+import PdfReaderModal from '../components/PdfReaderModal';
+
+const isPdfFile = (fileStr) => {
+  if (!fileStr) return false;
+  const lower = fileStr.toLowerCase();
+  return (
+    lower.startsWith('data:application/pdf') ||
+    lower.endsWith('.pdf') ||
+    lower.includes('.pdf?') ||
+    lower.includes('application/pdf')
+  );
+};
 
 const normalizeGradeStr = (g) => {
   if (!g) return '';
@@ -31,8 +47,80 @@ const Enrollments = () => {
   // Popup Modal State
   const [showEnrollModal, setShowEnrollModal] = useState(false);
 
-  // Slip Image Modal State
+  // Slip Image / PDF Modal State
   const [selectedSlipImage, setSelectedSlipImage] = useState(null);
+  const [activePdfSlip, setActivePdfSlip] = useState(null);
+
+  // Expandable Bank Slip List Items State
+  const [expandedSlipIds, setExpandedSlipIds] = useState({});
+
+  const toggleExpandSlip = (slipId) => {
+    setExpandedSlipIds(prev => ({
+      ...prev,
+      [slipId]: !prev[slipId]
+    }));
+  };
+
+  const handleViewSlip = (slip) => {
+    if (!slip || !slip.slipImage) {
+      toast.error('No bank slip uploaded.');
+      return;
+    }
+    const isPdf = isPdfFile(slip.slipImage);
+    if (isPdf) {
+      setActivePdfSlip({
+        fileUrl: slip.slipImage,
+        title: `Bank Deposit Slip - ${slip.student?.name || 'Student'} (${slip.course?.title || 'Course'})`
+      });
+    } else {
+      setSelectedSlipImage(slip.slipImage);
+    }
+  };
+
+  const handleDownloadSlip = (slip) => {
+    if (!slip || !slip.slipImage) {
+      toast.error('No bank slip available to download.');
+      return;
+    }
+    const slipUrl = slip.slipImage;
+    const isPdf = isPdfFile(slipUrl);
+    const ext = isPdf ? 'pdf' : 'jpg';
+    const cleanName = (slip.student?.name || 'student').replace(/[^a-zA-Z0-9]/g, '_');
+    const fileName = `Bank_Slip_${cleanName}_${slip.transactionId || 'slip'}.${ext}`;
+
+    if (slipUrl.startsWith('data:')) {
+      const a = document.createElement('a');
+      a.href = slipUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success('Bank slip download started!');
+    } else {
+      fetch(slipUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+          toast.success('Bank slip download started!');
+        })
+        .catch(() => {
+          const a = document.createElement('a');
+          a.href = slipUrl;
+          a.download = fileName;
+          a.target = '_blank';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        });
+    }
+  };
 
   // Form states
   const [selectedStudentId, setSelectedStudentId] = useState('');
@@ -79,6 +167,12 @@ const Enrollments = () => {
     }
   };
 
+  // Reject Slip Custom Modal state
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [slipToReject, setSlipToReject] = useState(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
+  const [rejecting, setRejecting] = useState(false);
+
   const handleApproveSlip = async (slipId) => {
     setActionLoadingId(slipId);
     try {
@@ -92,18 +186,35 @@ const Enrollments = () => {
     }
   };
 
-  const handleRejectSlip = async (slipId) => {
-    const reason = window.prompt('Enter rejection reason for student (e.g. Unclear slip photo, incorrect amount):');
-    if (reason === null) return;
+  const handleOpenRejectModal = (slip) => {
+    setSlipToReject(slip);
+    setRejectionReasonInput('');
+    setShowRejectModal(true);
+  };
 
-    setActionLoadingId(slipId);
+  const executeRejectSlip = async (e) => {
+    if (e) e.preventDefault();
+    if (!slipToReject) return;
+    if (!rejectionReasonInput.trim()) {
+      toast.error('Please enter or select a rejection reason.');
+      return;
+    }
+
+    setRejecting(true);
+    setActionLoadingId(slipToReject._id);
     try {
-      const res = await api.put(`/payments/${slipId}/reject-slip`, { rejectionReason: reason });
+      const res = await api.put(`/payments/${slipToReject._id}/reject-slip`, {
+        rejectionReason: rejectionReasonInput.trim()
+      });
       toast.success(res.data.message || 'Bank slip rejected.');
+      setShowRejectModal(false);
+      setSlipToReject(null);
+      setRejectionReasonInput('');
       await fetchData();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to reject bank slip');
     } finally {
+      setRejecting(false);
       setActionLoadingId(null);
     }
   };
@@ -463,106 +574,213 @@ const Enrollments = () => {
           </div>
 
           {filteredBankSlips.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredBankSlips.map((slip) => (
-                <div key={slip._id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4 hover:border-purple-300 transition">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-extrabold text-gray-900 text-base">{slip.student?.name || 'Unknown Student'}</h4>
-                      <p className="text-xs text-gray-500">{slip.student?.email} • Grade {slip.student?.grade || 'N/A'}</p>
-                      <span className="inline-block mt-1 px-2.5 py-0.5 bg-purple-100 text-purple-900 font-mono font-bold text-[11px] rounded-md">
-                        {slip.student?.registrationNumber || 'No Reg No'}
-                      </span>
-                    </div>
+            <div className="space-y-3">
+              {filteredBankSlips.map((slip) => {
+                const isExpanded = !!expandedSlipIds[slip._id];
+                const isPdf = isPdfFile(slip.slipImage);
 
-                    <div className="text-right">
-                      <span className="text-lg font-extrabold text-purple-950 block">LKR {slip.amount?.toLocaleString()}</span>
-                      {slip.status === 'PENDING_APPROVAL' && (
-                        <span className="text-[10px] font-extrabold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                          Pending Approval
-                        </span>
-                      )}
-                      {slip.status === 'COMPLETED' && (
-                        <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center justify-end gap-1">
-                          <FaCheckCircle className="text-emerald-600 text-[10px]" /> Approved
-                        </span>
-                      )}
-                      {slip.status === 'REJECTED' && (
-                        <span className="text-[10px] font-extrabold bg-red-100 text-red-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                          Rejected
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                return (
+                  <div 
+                    key={slip._id} 
+                    className={`bg-white border rounded-2xl transition shadow-xs overflow-hidden ${
+                      isExpanded ? 'border-purple-300 ring-2 ring-purple-500/10' : 'border-gray-200 hover:border-purple-200'
+                    }`}
+                  >
+                    {/* Collapsed Header / Summary Row */}
+                    <div 
+                      onClick={() => toggleExpandSlip(slip._id)}
+                      className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer select-none bg-gray-50/50 hover:bg-purple-50/20 transition"
+                    >
+                      <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpandSlip(slip._id);
+                          }}
+                          className="p-2 text-gray-400 hover:text-purple-700 bg-white border border-gray-200 rounded-xl transition cursor-pointer text-xs shrink-0"
+                          title={isExpanded ? "Collapse details" : "Expand details"}
+                        >
+                          {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
 
-                  <div className="bg-gray-50 p-3 rounded-xl text-xs space-y-1 text-gray-700">
-                    <p><strong>Course Requested:</strong> <span className="text-purple-900 font-bold">{slip.course?.title || 'Unknown Course'}</span></p>
-                    <p><strong>Depositor Name:</strong> {slip.depositorName || slip.student?.name}</p>
-                    <p><strong>Deposit Date:</strong> {slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : 'N/A'}</p>
-                    <p><strong>Reference / Tx ID:</strong> <span className="font-mono text-gray-900 font-bold">{slip.transactionId}</span></p>
-                    {slip.status === 'COMPLETED' && slip.paymentDate && (
-                      <p><strong>Approved Date:</strong> <span className="text-emerald-700 font-bold">{new Date(slip.paymentDate).toLocaleString()}</span></p>
-                    )}
-                  </div>
-
-                  {/* Bank Slip Image Preview Thumbnail */}
-                  {slip.slipImage ? (
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase text-gray-500 block mb-1">Uploaded Bank Slip Image</span>
-                      <div 
-                        onClick={() => setSelectedSlipImage(slip.slipImage)}
-                        className="relative rounded-xl border border-gray-200 overflow-hidden cursor-pointer group max-h-48 bg-gray-100 flex items-center justify-center"
-                      >
-                        <img src={slip.slipImage} alt="Bank Slip" className="object-contain max-h-48 w-full group-hover:scale-105 transition duration-300" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-xs">
-                          🔍 Click to View Full Image
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="font-extrabold text-gray-900 text-sm sm:text-base truncate">
+                              {slip.student?.name || 'Unknown Student'}
+                            </h4>
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-900 font-mono font-bold text-[10px] rounded-md">
+                              {slip.student?.registrationNumber || 'No Reg No'}
+                            </span>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mt-1">
+                            <span>{slip.student?.email}</span>
+                            <span>•</span>
+                            <span>Course: <strong className="text-purple-900 font-bold">{slip.course?.title || 'N/A'}</strong></span>
+                            <span>•</span>
+                            <span>Date: {slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : 'N/A'}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="p-3 bg-red-50 text-red-600 text-xs font-semibold rounded-xl text-center">
-                      No slip image attached
-                    </div>
-                  )}
 
-                  {/* Status Footer or Action Buttons */}
-                  {slip.status === 'PENDING_APPROVAL' ? (
-                    <div className="flex gap-3 pt-2 border-t border-gray-100">
-                      <button
-                        onClick={() => handleRejectSlip(slip._id)}
-                        disabled={actionLoadingId === slip._id}
-                        className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl transition border-none cursor-pointer"
-                      >
-                        ✕ Reject Slip
-                      </button>
-                      <button
-                        onClick={() => handleApproveSlip(slip._id)}
-                        disabled={actionLoadingId === slip._id}
-                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition border-none cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        {actionLoadingId === slip._id ? 'Processing...' : '✓ Approve & Enroll'}
-                      </button>
-                    </div>
-                  ) : slip.status === 'COMPLETED' ? (
-                    <div className="pt-2 border-t border-gray-100">
-                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-1.5">
-                        <FaCheckCircle className="text-emerald-600 text-sm" /> Slip Approved & Student Access Granted
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                        <div className="text-right">
+                          <span className="text-base sm:text-lg font-extrabold text-purple-950 block">LKR {slip.amount?.toLocaleString()}</span>
+                          {slip.status === 'PENDING_APPROVAL' && (
+                            <span className="text-[10px] font-extrabold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                              Pending Approval
+                            </span>
+                          )}
+                          {slip.status === 'COMPLETED' && (
+                            <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center justify-end gap-1">
+                              <FaCheckCircle className="text-emerald-600 text-[10px]" /> Approved
+                            </span>
+                          )}
+                          {slip.status === 'REJECTED' && (
+                            <span className="text-[10px] font-extrabold bg-red-100 text-red-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                              Rejected
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpandSlip(slip._id);
+                          }}
+                          className="px-3 py-1.5 bg-gray-100 hover:bg-purple-100 hover:text-purple-900 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer border-none flex items-center gap-1.5"
+                        >
+                          <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
+                          {isExpanded ? <FaChevronUp className="text-[10px]" /> : <FaChevronDown className="text-[10px]" />}
+                        </button>
                       </div>
                     </div>
-                  ) : (
-                    <div className="pt-2 border-t border-gray-100">
-                      <div className="p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-xl space-y-1">
-                        <p className="font-extrabold text-red-900 flex items-center gap-1">
-                          <span>✕</span> Bank Slip Rejected
-                        </p>
-                        <p className="text-[11px] text-red-700">
-                          <strong>Reason:</strong> {slip.rejectionReason || 'Deposit slip details could not be verified.'}
-                        </p>
+
+                    {/* Expanded Detailed Section */}
+                    {isExpanded && (
+                      <div className="p-5 border-t border-gray-100 bg-white space-y-4 animate-fadeIn">
+                        
+                        {/* Meta Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-xl text-xs text-gray-700 border border-gray-100">
+                          <div>
+                            <span className="text-[10px] font-bold uppercase text-gray-400 block mb-0.5">Depositor Name</span>
+                            <span className="font-semibold text-gray-900">{slip.depositorName || slip.student?.name || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold uppercase text-gray-400 block mb-0.5">Deposit Date</span>
+                            <span className="font-semibold text-gray-900">{slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold uppercase text-gray-400 block mb-0.5">Reference / Tx ID</span>
+                            <span className="font-mono font-bold text-purple-950">{slip.transactionId || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold uppercase text-gray-400 block mb-0.5">Student Contact</span>
+                            <span className="font-semibold text-gray-900">{slip.student?.parentsPhoneNumber || slip.student?.phone || 'N/A'}</span>
+                          </div>
+                        </div>
+
+                        {/* Bank Slip Attachment & View/Download options */}
+                        <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${isPdf ? 'bg-red-100 text-red-600' : 'bg-purple-100 text-purple-700'}`}>
+                              {isPdf ? <FaFilePdf /> : <FaImage />}
+                            </div>
+                            <div>
+                              <h5 className="font-extrabold text-xs text-gray-900">
+                                Uploaded Bank Slip Attachment ({isPdf ? 'PDF Document' : 'Image File'})
+                              </h5>
+                              <p className="text-[11px] text-gray-500 mt-0.5">
+                                {slip.slipImage ? (isPdf ? 'PDF document ready to view/download' : 'Image file ready to preview/download') : 'No attachment file uploaded'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {slip.slipImage ? (
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleViewSlip(slip)}
+                                className="px-3.5 py-2 bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                              >
+                                <FaEye className="text-purple-600" />
+                                <span>View Slip</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadSlip(slip)}
+                                className="px-3.5 py-2 bg-[#2d1b64] hover:bg-indigo-950 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-xs border-none"
+                              >
+                                <FaDownload className="text-amber-400 text-xs" />
+                                <span>Download Slip</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-semibold text-red-500">No slip file available</span>
+                          )}
+                        </div>
+
+                        {/* Image Preview Thumbnail inside expanded view if it's an image */}
+                        {slip.slipImage && !isPdf && (
+                          <div className="mt-2">
+                            <span className="text-[10px] font-extrabold uppercase text-gray-400 block mb-1.5">Slip Image Preview</span>
+                            <div 
+                              onClick={() => handleViewSlip(slip)}
+                              className="relative rounded-xl border border-gray-200 overflow-hidden cursor-pointer group max-h-48 max-w-md bg-gray-100 flex items-center justify-center"
+                            >
+                              <img src={slip.slipImage} alt="Bank Slip Thumbnail" className="object-contain max-h-48 w-full group-hover:scale-105 transition duration-300" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-xs">
+                                🔍 Click to View Full Image
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action Buttons or Processed Status Footer */}
+                        {slip.status === 'PENDING_APPROVAL' ? (
+                          <div className="flex gap-3 pt-3 border-t border-gray-100">
+                            <button
+                              onClick={() => handleOpenRejectModal(slip)}
+                              disabled={actionLoadingId === slip._id}
+                              className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl transition border-none cursor-pointer"
+                            >
+                              ✕ Reject Slip
+                            </button>
+                            <button
+                              onClick={() => handleApproveSlip(slip._id)}
+                              disabled={actionLoadingId === slip._id}
+                              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition border-none cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              {actionLoadingId === slip._id ? 'Processing...' : '✓ Approve & Enroll'}
+                            </button>
+                          </div>
+                        ) : slip.status === 'COMPLETED' ? (
+                          <div className="pt-3 border-t border-gray-100">
+                            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-2">
+                              <FaCheckCircle className="text-emerald-600 text-base" /> 
+                              <span>Slip Approved & Student Access Granted {slip.paymentDate ? `on ${new Date(slip.paymentDate).toLocaleString()}` : ''}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="pt-3 border-t border-gray-100">
+                            <div className="p-3.5 bg-red-50 border border-red-200 text-red-800 text-xs rounded-xl space-y-1">
+                              <p className="font-extrabold text-red-900 flex items-center gap-1.5">
+                                <span>✕</span> Bank Slip Rejected
+                              </p>
+                              <p className="text-[11px] text-red-700">
+                                <strong>Reason:</strong> {slip.rejectionReason || 'Deposit slip details could not be verified.'}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="p-12 text-center bg-gray-50 rounded-2xl border border-gray-200">
@@ -783,6 +1001,116 @@ const Enrollments = () => {
         </div>
       )}
 
+      {/* Custom Rejection Reason Popup Modal */}
+      {showRejectModal && slipToReject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl overflow-hidden border border-red-100 font-sans my-8">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-5 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white font-bold text-lg">
+                  ✕
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold tracking-tight">Reject Bank Deposit Slip</h3>
+                  <p className="text-red-100 text-xs mt-0.5">Specify reason for rejecting student's payment slip.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setSlipToReject(null);
+                }}
+                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition border-none cursor-pointer text-sm"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={executeRejectSlip} className="p-6 space-y-5">
+              <div className="bg-red-50/70 p-3.5 rounded-2xl border border-red-100 text-xs text-red-900 space-y-1">
+                <p><strong>Student Name:</strong> {slipToReject.student?.name || 'Student'}</p>
+                <p><strong>Course:</strong> {slipToReject.course?.title || 'Course'}</p>
+                <p><strong>Amount / Tx ID:</strong> LKR {slipToReject.amount?.toLocaleString()} ({slipToReject.transactionId})</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                  Quick Rejection Reasons (Click to select)
+                </label>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {[
+                    "Unclear or blurry slip photo",
+                    "Incorrect deposit amount",
+                    "Duplicate transaction reference",
+                    "Depositor name mismatch",
+                    "Invalid bank transfer receipt"
+                  ].map((presetReason) => (
+                    <button
+                      key={presetReason}
+                      type="button"
+                      onClick={() => setRejectionReasonInput(presetReason)}
+                      className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                        rejectionReasonInput === presetReason
+                          ? 'bg-red-600 text-white border-red-600 shadow-2xs'
+                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-red-50 hover:text-red-700'
+                      }`}
+                    >
+                      {presetReason}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Detailed Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows="3"
+                  required
+                  placeholder="Enter rejection reason to notify student (e.g. Image resolution is too low, amount paid does not match course fee)..."
+                  value={rejectionReasonInput}
+                  onChange={(e) => setRejectionReasonInput(e.target.value)}
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-red-500 focus:bg-white text-gray-800 font-medium transition"
+                ></textarea>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setSlipToReject(null);
+                  }}
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={rejecting || !rejectionReasonInput.trim()}
+                  className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-lg transition cursor-pointer flex items-center gap-2 disabled:opacity-50 border-none"
+                >
+                  {rejecting ? (
+                    <>
+                      <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
+                      Rejecting...
+                    </>
+                  ) : (
+                    <>
+                      ✕ Confirm Rejection
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Full Screen Bank Slip Image Viewer Modal */}
       {selectedSlipImage && (
         <div 
@@ -804,6 +1132,14 @@ const Enrollments = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* PDF Bank Slip Reader Modal */}
+      {activePdfSlip && (
+        <PdfReaderModal
+          pdf={{ fileUrl: activePdfSlip.fileUrl, title: activePdfSlip.title }}
+          onClose={() => setActivePdfSlip(null)}
+        />
       )}
     </div>
   );
