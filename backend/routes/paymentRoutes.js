@@ -537,21 +537,43 @@ router.post('/submit-bank-slip', protect, async (req, res) => {
 });
 
 // ==========================================
-// 7. GET PENDING BANK SLIPS (ADMIN)
 // ==========================================
-router.get('/pending-slips', protect, isAdmin, async (req, res) => {
+// 7. GET BANK SLIPS (ADMIN) - PENDING, APPROVED, REJECTED OR ALL
+// ==========================================
+const getBankSlipsHandler = async (req, res) => {
   try {
-    const pendingSlips = await Payment.find({ status: 'PENDING_APPROVAL' })
+    const { status } = req.query;
+    let filter = {
+      $or: [
+        { paymentMethod: 'BANK_SLIP' },
+        { slipImage: { $exists: true, $ne: '' } }
+      ]
+    };
+
+    if (status && status.toUpperCase() !== 'ALL') {
+      const upperStatus = status.toUpperCase();
+      if (upperStatus === 'APPROVED') {
+        filter.status = 'COMPLETED';
+      } else {
+        filter.status = upperStatus;
+      }
+    }
+
+    const slips = await Payment.find(filter)
       .populate('student', 'name email registrationNumber grade parentsPhoneNumber studentType profilePicture')
       .populate('course', 'title price banner cardImage bankDetails')
       .sort({ createdAt: -1 });
 
-    res.json(pendingSlips);
+    res.json(slips);
   } catch (err) {
-    console.error('Fetch pending slips error:', err);
-    res.status(500).json({ error: 'Failed to fetch pending slips.' });
+    console.error('Fetch bank slips error:', err);
+    res.status(500).json({ error: 'Failed to fetch bank slips.' });
   }
-});
+};
+
+router.get('/pending-slips', protect, isAdmin, getBankSlipsHandler);
+router.get('/bank-slips', protect, isAdmin, getBankSlipsHandler);
+
 
 // ==========================================
 // 8. APPROVE BANK SLIP (ADMIN)

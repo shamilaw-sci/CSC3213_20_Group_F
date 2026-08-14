@@ -15,7 +15,8 @@ const isMatchingGrade = (studentGrade, classGrade) => {
 const Enrollments = () => {
   const [activeTab, setActiveTab] = useState('enrollments'); // 'enrollments' | 'pending_slips'
   const [enrollments, setEnrollments] = useState([]);
-  const [pendingSlips, setPendingSlips] = useState([]);
+  const [bankSlips, setBankSlips] = useState([]);
+  const [bankSlipStatusFilter, setBankSlipStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING_APPROVAL' | 'COMPLETED' | 'REJECTED'
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,20 +52,20 @@ const Enrollments = () => {
   // Reset pagination when search or tab changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [tableSearch, activeTab]);
+  }, [tableSearch, activeTab, bankSlipStatusFilter]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [enrollmentsRes, pendingSlipsRes, usersRes, coursesRes] = await Promise.allSettled([
+      const [enrollmentsRes, bankSlipsRes, usersRes, coursesRes] = await Promise.allSettled([
         api.get('/courses/enrollments/all'),
-        api.get('/payments/pending-slips'),
+        api.get('/payments/bank-slips?status=ALL'),
         api.get('/auth/users?role=student'),
         api.get('/courses')
       ]);
 
       if (enrollmentsRes.status === 'fulfilled') setEnrollments(enrollmentsRes.value.data);
-      if (pendingSlipsRes.status === 'fulfilled') setPendingSlips(pendingSlipsRes.value.data);
+      if (bankSlipsRes.status === 'fulfilled') setBankSlips(bankSlipsRes.value.data);
       if (usersRes.status === 'fulfilled') setStudents(usersRes.value.data);
       if (coursesRes.status === 'fulfilled') setCourses(coursesRes.value.data);
 
@@ -223,6 +224,17 @@ const Enrollments = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedEnrollments = filteredEnrollments.slice(startIndex, startIndex + itemsPerPage);
 
+  const pendingSlipsCount = bankSlips.filter(s => s.status === 'PENDING_APPROVAL').length;
+  const approvedSlipsCount = bankSlips.filter(s => s.status === 'COMPLETED').length;
+  const rejectedSlipsCount = bankSlips.filter(s => s.status === 'REJECTED').length;
+
+  const filteredBankSlips = bankSlips.filter(s => {
+    if (bankSlipStatusFilter === 'ALL') return true;
+    if (bankSlipStatusFilter === 'COMPLETED') return s.status === 'COMPLETED';
+    if (bankSlipStatusFilter === 'REJECTED') return s.status === 'REJECTED';
+    return s.status === 'PENDING_APPROVAL';
+  });
+
   const selectedCourse = courses.find(c => c._id === selectedCourseId);
   const assignedGrades = selectedCourse?.enrolledGrades || [];
 
@@ -271,12 +283,16 @@ const Enrollments = () => {
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          <span>🏦 Pending Bank Slips</span>
-          {pendingSlips.length > 0 && (
+          <span>🏦 Bank Deposit Slips</span>
+          {pendingSlipsCount > 0 ? (
             <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
-              {pendingSlips.length}
+              {pendingSlipsCount} Pending
             </span>
-          )}
+          ) : bankSlips.length > 0 ? (
+            <span className="bg-gray-200 text-gray-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+              {bankSlips.length}
+            </span>
+          ) : null}
         </button>
       </div>
 
@@ -305,6 +321,7 @@ const Enrollments = () => {
                   <th className="p-3.5">Course Title</th>
                   <th className="p-3.5">Class (Grade)</th>
                   <th className="p-3.5">Parents Phone</th>
+                  <th className="p-3.5">Enrolled Date</th>
                   <th className="p-3.5 text-right pr-4">Actions</th>
                 </tr>
               </thead>
@@ -322,6 +339,9 @@ const Enrollments = () => {
                         </span>
                       </td>
                       <td className="p-3.5 text-gray-600 font-medium">{e.studentPhone || '-'}</td>
+                      <td className="p-3.5 text-gray-600 font-medium whitespace-nowrap">
+                        {e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '-'}
+                      </td>
                       <td className="p-3.5 text-right pr-4">
                         <button
                           onClick={() => handleUnenroll(e.studentId, e.courseId, e.className, e.studentName, e.courseTitle)}
@@ -335,7 +355,7 @@ const Enrollments = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="p-10 text-center text-gray-500 font-medium">
+                    <td colSpan="8" className="p-10 text-center text-gray-500 font-medium">
                       No enrollments found.
                     </td>
                   </tr>
@@ -386,23 +406,65 @@ const Enrollments = () => {
           </div>
         </>
       ) : (
-        /* PENDING BANK SLIPS VIEW */
+        /* BANK SLIPS MANAGEMENT & HISTORY VIEW */
         <div className="space-y-6 animate-fadeIn">
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center justify-between text-amber-900">
+          {/* Header & Status Filter Pills */}
+          <div className="bg-gray-50 border border-gray-200 p-4 md:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h3 className="font-extrabold text-sm flex items-center gap-2">
-                <span>🏦</span> Pending Bank Deposit Slips Verification
+              <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
+                <span>🏦</span> Bank Deposit Slips Verification & History
               </h3>
-              <p className="text-xs text-amber-800 mt-0.5">Review uploaded payment receipt slips and approve to unlock course access for students.</p>
+              <p className="text-xs text-gray-500 mt-0.5">Review pending slips for verification, or view previously approved and rejected deposit records.</p>
             </div>
-            <span className="bg-amber-500 text-white text-xs font-black px-3 py-1 rounded-full shadow-xs">
-              {pendingSlips.length} Pending
-            </span>
+
+            {/* Filter Pills */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setBankSlipStatusFilter('ALL')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                  bankSlipStatusFilter === 'ALL'
+                    ? 'bg-purple-900 text-white border-purple-900 shadow-xs'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                All ({bankSlips.length})
+              </button>
+              <button
+                onClick={() => setBankSlipStatusFilter('PENDING_APPROVAL')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
+                  bankSlipStatusFilter === 'PENDING_APPROVAL'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                    : 'bg-white text-amber-800 border-amber-200 hover:bg-amber-50'
+                }`}
+              >
+                <span>Pending ({pendingSlipsCount})</span>
+              </button>
+              <button
+                onClick={() => setBankSlipStatusFilter('COMPLETED')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
+                  bankSlipStatusFilter === 'COMPLETED'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-white text-emerald-800 border-emerald-200 hover:bg-emerald-50'
+                }`}
+              >
+                <span>Approved ({approvedSlipsCount})</span>
+              </button>
+              <button
+                onClick={() => setBankSlipStatusFilter('REJECTED')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
+                  bankSlipStatusFilter === 'REJECTED'
+                    ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                    : 'bg-white text-red-800 border-red-200 hover:bg-red-50'
+                }`}
+              >
+                <span>Rejected ({rejectedSlipsCount})</span>
+              </button>
+            </div>
           </div>
 
-          {pendingSlips.length > 0 ? (
+          {filteredBankSlips.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {pendingSlips.map((slip) => (
+              {filteredBankSlips.map((slip) => (
                 <div key={slip._id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4 hover:border-purple-300 transition">
                   <div className="flex justify-between items-start">
                     <div>
@@ -415,17 +477,32 @@ const Enrollments = () => {
 
                     <div className="text-right">
                       <span className="text-lg font-extrabold text-purple-950 block">LKR {slip.amount?.toLocaleString()}</span>
-                      <span className="text-[10px] font-extrabold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        Pending Approval
-                      </span>
+                      {slip.status === 'PENDING_APPROVAL' && (
+                        <span className="text-[10px] font-extrabold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                          Pending Approval
+                        </span>
+                      )}
+                      {slip.status === 'COMPLETED' && (
+                        <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center justify-end gap-1">
+                          <FaCheckCircle className="text-emerald-600 text-[10px]" /> Approved
+                        </span>
+                      )}
+                      {slip.status === 'REJECTED' && (
+                        <span className="text-[10px] font-extrabold bg-red-100 text-red-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                          Rejected
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   <div className="bg-gray-50 p-3 rounded-xl text-xs space-y-1 text-gray-700">
-                    <p><strong>Course Requested:</strong> <span className="text-purple-900 font-bold">{slip.course?.title}</span></p>
+                    <p><strong>Course Requested:</strong> <span className="text-purple-900 font-bold">{slip.course?.title || 'Unknown Course'}</span></p>
                     <p><strong>Depositor Name:</strong> {slip.depositorName || slip.student?.name}</p>
                     <p><strong>Deposit Date:</strong> {slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : 'N/A'}</p>
                     <p><strong>Reference / Tx ID:</strong> <span className="font-mono text-gray-900 font-bold">{slip.transactionId}</span></p>
+                    {slip.status === 'COMPLETED' && slip.paymentDate && (
+                      <p><strong>Approved Date:</strong> <span className="text-emerald-700 font-bold">{new Date(slip.paymentDate).toLocaleString()}</span></p>
+                    )}
                   </div>
 
                   {/* Bank Slip Image Preview Thumbnail */}
@@ -448,35 +525,59 @@ const Enrollments = () => {
                     </div>
                   )}
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-2 border-t border-gray-100">
-                    <button
-                      onClick={() => handleRejectSlip(slip._id)}
-                      disabled={actionLoadingId === slip._id}
-                      className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl transition border-none cursor-pointer"
-                    >
-                      ✕ Reject Slip
-                    </button>
-                    <button
-                      onClick={() => handleApproveSlip(slip._id)}
-                      disabled={actionLoadingId === slip._id}
-                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition border-none cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      {actionLoadingId === slip._id ? 'Processing...' : '✓ Approve & Enroll'}
-                    </button>
-                  </div>
+                  {/* Status Footer or Action Buttons */}
+                  {slip.status === 'PENDING_APPROVAL' ? (
+                    <div className="flex gap-3 pt-2 border-t border-gray-100">
+                      <button
+                        onClick={() => handleRejectSlip(slip._id)}
+                        disabled={actionLoadingId === slip._id}
+                        className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl transition border-none cursor-pointer"
+                      >
+                        ✕ Reject Slip
+                      </button>
+                      <button
+                        onClick={() => handleApproveSlip(slip._id)}
+                        disabled={actionLoadingId === slip._id}
+                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition border-none cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        {actionLoadingId === slip._id ? 'Processing...' : '✓ Approve & Enroll'}
+                      </button>
+                    </div>
+                  ) : slip.status === 'COMPLETED' ? (
+                    <div className="pt-2 border-t border-gray-100">
+                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-1.5">
+                        <FaCheckCircle className="text-emerald-600 text-sm" /> Slip Approved & Student Access Granted
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-gray-100">
+                      <div className="p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-xl space-y-1">
+                        <p className="font-extrabold text-red-900 flex items-center gap-1">
+                          <span>✕</span> Bank Slip Rejected
+                        </p>
+                        <p className="text-[11px] text-red-700">
+                          <strong>Reason:</strong> {slip.rejectionReason || 'Deposit slip details could not be verified.'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           ) : (
             <div className="p-12 text-center bg-gray-50 rounded-2xl border border-gray-200">
-              <span className="text-4xl block mb-2">🎉</span>
-              <h4 className="font-extrabold text-gray-800 text-base">No Pending Bank Slips</h4>
-              <p className="text-xs text-gray-500 mt-1">All student bank transfer deposit slips have been verified and processed.</p>
+              <span className="text-4xl block mb-2">📋</span>
+              <h4 className="font-extrabold text-gray-800 text-base">No Bank Slips Found</h4>
+              <p className="text-xs text-gray-500 mt-1">
+                {bankSlipStatusFilter === 'ALL'
+                  ? 'No bank deposit slips have been submitted yet.'
+                  : `No bank deposit slips with status "${bankSlipStatusFilter}".`}
+              </p>
             </div>
           )}
         </div>
       )}
+
 
 
       {/* ========================================================================= */}
