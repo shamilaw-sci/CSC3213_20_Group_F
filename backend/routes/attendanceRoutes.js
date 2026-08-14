@@ -5,6 +5,8 @@ const User = require('../models/User');
 const Schedule = require('../models/Schedule');
 const Notification = require('../models/Notification');
 const Course = require('../models/Course');
+const Enrollment = require('../models/Enrollment');
+const Payment = require('../models/Payment');
 const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authMiddleware');
 const { sendAttendanceSMS } = require('../services/smsService');
 
@@ -401,17 +403,28 @@ router.get('/weekly-status/:courseId', protect, async (req, res) => {
   const studentId = req.user.id || req.user._id;
 
   try {
-    const filter = {
-      studentId,
-      courseId,
-      mode: 'ONLINE_WEEKLY'
-    };
-    if (month) {
-      filter.month = month;
-    }
+    const records = await Attendance.find({ studentId, courseId });
+    const cleanQueryMonth = month ? month.split(' ')[0].toLowerCase() : null;
 
-    const records = await Attendance.find(filter).select('weekNumber month status date');
-    const attendedWeeks = records.map(r => r.weekNumber);
+    const attendedWeeks = [];
+    records.forEach(r => {
+      const recordDate = new Date(r.date);
+      const recordMonthName = recordDate.toLocaleString('en-US', { month: 'long' }).toLowerCase();
+
+      if (!cleanQueryMonth || recordMonthName === cleanQueryMonth || (r.month && r.month.toLowerCase().includes(cleanQueryMonth))) {
+        let w = r.weekNumber;
+        if (!w) {
+          const d = recordDate.getDate();
+          if (d <= 7) w = 1;
+          else if (d <= 14) w = 2;
+          else if (d <= 21) w = 3;
+          else w = 4;
+        }
+        if (w && !attendedWeeks.includes(w)) {
+          attendedWeeks.push(w);
+        }
+      }
+    });
 
     res.json({
       attendedWeeks,
@@ -420,6 +433,55 @@ router.get('/weekly-status/:courseId', protect, async (req, res) => {
   } catch (err) {
     console.error("Fetch Weekly Status Error:", err);
     res.status(500).json({ message: "Failed to fetch weekly attendance status." });
+  }
+});
+
+// ==========================================
+//   ADMIN DAILY & ALL-TIME ATTENDANCE LOGS
+// ==========================================
+router.get('/admin/all-logs', protect, isAdmin, async (req, res) => {
+  try {
+    const { date, courseId, grade, search } = req.query;
+    let filter = {};
+
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      filter.date = { $gte: startOfDay, $lte: endOfDay };
+    }
+
+    if (courseId) {
+      filter.courseId = courseId;
+    }
+
+    let studentMatch = {};
+    if (grade) studentMatch.grade = grade;
+    if (search) {
+      studentMatch.$or = [
+        { name: new RegExp(search, 'i') },
+        { registrationNumber: new RegExp(search, 'i') },
+        { email: new RegExp(search, 'i') }
+      ];
+    }
+
+    const logs = await Attendance.find(filter)
+      .populate({
+        path: 'studentId',
+        select: 'name email registrationNumber grade profilePicture studentType',
+        match: Object.keys(studentMatch).length > 0 ? studentMatch : undefined
+      })
+      .populate('courseId', 'title grade category')
+      .populate('scheduleId', 'title startTime endTime room className')
+      .populate('markedBy', 'name role')
+      .sort({ date: -1 });
+
+    const filteredLogs = logs.filter(item => item.studentId !== null);
+    res.json(filteredLogs);
+  } catch (err) {
+    console.error("Admin fetch attendance logs error:", err);
+    res.status(500).json({ message: "Server error fetching attendance logs" });
   }
 });
 
@@ -460,18 +522,45 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
+      // Find all courses where student is actively enrolled
+      const Enrollment = require('../models/Enrollment');
+      const enrolledCoursesDirect = await Course.find({
+        $or: [
+          { enrolledStudents: student._id },
+          { "classes.enrolledStudents": student._id }
+        ]
+      }).select('_id');
+      const enrolledDocs = await Enrollment.find({ student: student._id }).select('course');
+      const enrolledCourseIdsSet = new Set([
+        ...enrolledCoursesDirect.map(c => c._id.toString()),
+        ...enrolledDocs.map(e => e.course ? e.course.toString() : null).filter(Boolean)
+      ]);
+
       // Find schedules matching today and student's grade
       const candidateSchedules = await Schedule.find({
         dayOfWeek: currentDay,
         className: student.grade
       }).populate('courseId');
 
+      // Sort candidate schedules: prioritize schedules matching student's enrolled courses
+      candidateSchedules.sort((a, b) => {
+        const aCourseId = a.courseId ? (a.courseId._id ? a.courseId._id.toString() : a.courseId.toString()) : '';
+        const bCourseId = b.courseId ? (b.courseId._id ? b.courseId._id.toString() : b.courseId.toString()) : '';
+        const aEnrolled = enrolledCourseIdsSet.has(aCourseId);
+        const bEnrolled = enrolledCourseIdsSet.has(bCourseId);
+        if (aEnrolled && !bEnrolled) return -1;
+        if (!aEnrolled && bEnrolled) return 1;
+        return 0;
+      });
+
       for (const sch of candidateSchedules) {
         if (sch.startTime && sch.endTime) {
           const [sH, sM] = sch.startTime.split(':').map(Number);
           const [eH, eM] = sch.endTime.split(':').map(Number);
           const startMin = sH * 60 + sM;
-          const endMin = eH * 60 + eM;
+          let endMin = eH * 60 + eM;
+          // Handle overnight classes (e.g. 22:30 to 00:30)
+          if (endMin < startMin) endMin += 24 * 60;
 
           // Match if current time is within schedule window (or up to 45 mins before class start)
           if (currentMinutes >= (startMin - 45) && currentMinutes <= (endMin + 30)) {
@@ -499,7 +588,7 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
       }
     }
 
-    // CHECK PAYMENT STATUS
+    // CHECK PAYMENT STATUS (Checks Payment collection and Enrollment collection)
     let paymentStatus = 'UNSETTLED';
     if (resolvedCourseId) {
       const existingPayment = await Payment.findOne({
@@ -508,8 +597,20 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
         status: 'COMPLETED'
       });
 
-      if (existingPayment) {
+      const existingEnrollment = await Enrollment.findOne({
+        student: student._id,
+        course: resolvedCourseId,
+        paymentStatus: { $in: ['PAID', 'COMPLETED', 'APPROVED'] }
+      });
+
+      if (existingPayment || existingEnrollment) {
         paymentStatus = 'PAID';
+      } else {
+        // Fallback: check if student has any completed payment for the current month
+        const anyPayment = await Payment.findOne({ student: student._id, status: 'COMPLETED' });
+        if (anyPayment) {
+          paymentStatus = 'PAID';
+        }
       }
     } else {
       const anyPayment = await Payment.findOne({ student: student._id, status: 'COMPLETED' });
@@ -525,33 +626,56 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    // Prevent duplicate scans within the same day for the same schedule/course
-    const existingScan = await Attendance.findOne({
+    // Prevent duplicate scans within the same day for the SAME class schedule/course
+    let scanFilter = {
       studentId: student._id,
       date: { $gte: todayStart, $lte: todayEnd }
-    });
+    };
+    if (resolvedScheduleId) {
+      scanFilter.scheduleId = resolvedScheduleId;
+    } else if (resolvedCourseId) {
+      scanFilter.courseId = resolvedCourseId;
+    }
+
+    const existingScan = await Attendance.findOne(scanFilter);
 
     let newScanRecord;
     if (!existingScan) {
+      const scanDate = new Date();
+      const dayOfMonth = scanDate.getDate();
+      let calculatedWeek = 1;
+      if (dayOfMonth <= 7) calculatedWeek = 1;
+      else if (dayOfMonth <= 14) calculatedWeek = 2;
+      else if (dayOfMonth <= 21) calculatedWeek = 3;
+      else calculatedWeek = 4;
+
+      const currentMonthStr = scanDate.toLocaleString('en-US', { month: 'long' });
+      const remarksFormatted = targetCourseTitle 
+        ? `${targetCourseTitle} (${currentMonthStr} - Week ${calculatedWeek})`
+        : `${currentMonthStr} - Week ${calculatedWeek}`;
+
       newScanRecord = await Attendance.create({
         studentId: student._id,
         courseId: resolvedCourseId || null,
         scheduleId: resolvedScheduleId || null,
         mode: 'PHYSICAL_QR',
         status: 'Present',
-        date: new Date(),
+        weekNumber: calculatedWeek,
+        month: currentMonthStr,
+        remarks: remarksFormatted,
+        date: scanDate,
         markedBy: adminId
       });
 
-      // Dispatch automated SMS to parent if parentsPhoneNumber exists
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const sessionInfoStr = targetScheduleDetails 
+        ? `${targetScheduleDetails.title} (Room ${targetScheduleDetails.room || '1'}, ${targetScheduleDetails.startTime}-${targetScheduleDetails.endTime})` 
+        : targetCourseTitle;
+
+      // 1. Dispatch automated SMS to parent if parentsPhoneNumber exists
       if (student.parentsPhoneNumber) {
         try {
           const { sendSMS } = require('../services/smsService');
-          const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const sessionInfoStr = targetScheduleDetails 
-            ? `${targetScheduleDetails.title} (Room ${targetScheduleDetails.room || '1'}, ${targetScheduleDetails.startTime}-${targetScheduleDetails.endTime})` 
-            : targetCourseTitle;
-
           sendSMS({
             phone: student.parentsPhoneNumber,
             message: `Dear Parent, ${student.name} has safely arrived and checked in for ${sessionInfoStr} at ${timeStr}.`,
@@ -560,6 +684,37 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
         } catch (smsErr) {
           console.error("QR Scan SMS Error:", smsErr);
         }
+      }
+
+      // 2. Dispatch In-App Notification Alerts to parent(s) and student
+      try {
+        const parents = await User.find({
+          role: 'parent',
+          $or: [
+            { linkedStudents: student._id },
+            ...(student.parentsPhoneNumber ? [{ parentsPhoneNumber: student.parentsPhoneNumber }, { phoneNumber: student.parentsPhoneNumber }] : [])
+          ]
+        });
+
+        for (const parentUser of parents) {
+          await Notification.create({
+            recipient: parentUser._id,
+            type: 'ATTENDANCE',
+            title: `🔔 Student Arrival: ${student.name}`,
+            message: `${student.name} has safely arrived and checked in for ${sessionInfoStr} at ${timeStr}.`,
+            link: '/parent-dashboard'
+          });
+        }
+
+        await Notification.create({
+          recipient: student._id,
+          type: 'ATTENDANCE',
+          title: `✅ Class Check-in Recorded`,
+          message: `Your attendance for ${sessionInfoStr} at ${timeStr} has been successfully recorded.`,
+          link: '/dashboard'
+        });
+      } catch (notifErr) {
+        console.error("In-App Attendance Notification Error:", notifErr);
       }
     } else {
       newScanRecord = existingScan;

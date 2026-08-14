@@ -8,7 +8,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   recipientRole: {
     type: String,
-    enum: ['all', 'student', 'teacher', 'admin'],
+    enum: ['all', 'student', 'teacher', 'admin', 'parent'],
     default: null
   },
   sender: {
