@@ -210,8 +210,8 @@ export default function ChatWidget() {
 
                 <div
                   className={`max-w-[82%] p-3 rounded-2xl text-xs leading-relaxed ${msg.sender === 'user'
-                      ? 'bg-purple-600 text-white rounded-tr-none shadow-md'
-                      : 'bg-white text-gray-800 border border-gray-200/80 shadow-sm rounded-tl-none'
+                    ? 'bg-purple-600 text-white rounded-tr-none shadow-md'
+                    : 'bg-white text-gray-800 border border-gray-200/80 shadow-sm rounded-tl-none'
                     }`}
                 >
                   {formatText(msg.text)}
@@ -236,7 +236,7 @@ export default function ChatWidget() {
                   <span className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></span>
                   <span className="w-2 h-2 bg-purple-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
                   <span className="w-2 h-2 bg-purple-600 rounded-full animate-bounce [animation-delay:0.4s]"></span>
-                  <span className="text-[11px] text-gray-400 ml-1 italic">Thinking...</span>
+                  <span className="text-[11px] text-gray-400 ml-1 italic">Typing...</span>
                 </div>
               </div>
             )}
