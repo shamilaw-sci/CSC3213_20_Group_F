@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import BroadcastModal from './BroadcastModal';
+import MessagingPopup from './MessagingPopup';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 
 import {
@@ -15,7 +16,9 @@ import {
   FaCalendarCheck,
   FaBookOpen,
   FaExclamationCircle,
-  FaInfoCircle
+  FaInfoCircle,
+  FaPaperPlane,
+  FaComments
 } from 'react-icons/fa';
 import api from '../utils/api';
 
@@ -42,10 +45,12 @@ const DashboardLayout = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
+  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
 
-  // --- NOTIFICATION DATA STATES ---
+  // --- DATA STATES ---
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   // --- CLICK OUTSIDE REFS ---
   const notifRef = useRef(null);
@@ -82,12 +87,29 @@ const DashboardLayout = () => {
     }
   };
 
+  // --- FETCH UNREAD MESSAGES COUNT ---
+  const fetchUnreadMessagesCount = async () => {
+    try {
+      const res = await api.get('/messages/unread-count');
+      if (res.data) {
+        setUnreadMessageCount(res.data.unreadCount || 0);
+      }
+    } catch (err) {
+      console.error('Error fetching unread messages count:', err.message);
+    }
+  };
+
   useEffect(() => {
     fetchNotifications();
-    // Poll every 20 seconds for real-time notifications
-    const interval = setInterval(fetchNotifications, 20000);
+    fetchUnreadMessagesCount();
+    // Poll every 15 seconds for real-time notifications & unread messages
+    const interval = setInterval(() => {
+      fetchNotifications();
+      fetchUnreadMessagesCount();
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
+
 
   // --- CLICK OUTSIDE LOGIC ---
   useEffect(() => {
@@ -218,12 +240,33 @@ const DashboardLayout = () => {
               </Link>
             )}
 
+            {/* --- DIRECT MESSAGING SYSTEM ICON --- */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setIsMessagingOpen(!isMessagingOpen);
+                  setShowNotifications(false);
+                  setShowProfileMenu(false);
+                }}
+                className="p-2.5 text-gray-500 hover:text-lumina-purple hover:bg-purple-50 rounded-full transition-all relative outline-none cursor-pointer"
+                title="Direct Messages"
+              >
+                <FaPaperPlane className="text-lg" />
+                {unreadMessageCount > 0 && (
+                  <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white min-w-[18px] text-center leading-none">
+                    {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
             {/* --- NOTIFICATION SYSTEM --- */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => {
                   setShowNotifications(!showNotifications);
                   setShowProfileMenu(false);
+                  setIsMessagingOpen(false);
                 }}
                 className="p-2.5 text-gray-500 hover:text-lumina-purple hover:bg-purple-50 rounded-full transition-all relative outline-none cursor-pointer"
                 title="Notifications"
@@ -296,6 +339,7 @@ const DashboardLayout = () => {
                 onClick={() => {
                   setShowProfileMenu(!showProfileMenu);
                   setShowNotifications(false);
+                  setIsMessagingOpen(false);
                 }}
                 className="flex items-center gap-2 p-1 text-gray-500 hover:text-lumina-purple rounded-full transition-all outline-none cursor-pointer"
               >
@@ -355,9 +399,17 @@ const DashboardLayout = () => {
         isOpen={isBroadcastOpen}
         onClose={() => setIsBroadcastOpen(false)}
       />
+
+      {/* --- EMBEDDED POPUP MESSAGING WIDGET --- */}
+      <MessagingPopup
+        isOpen={isMessagingOpen}
+        onClose={() => setIsMessagingOpen(false)}
+        onUnreadUpdate={(count) => setUnreadMessageCount(count)}
+      />
     </div>
   );
 };
 
 export default DashboardLayout;
+
 

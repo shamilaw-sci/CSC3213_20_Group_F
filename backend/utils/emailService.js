@@ -289,11 +289,70 @@ const sendClassAnnouncementEmail = async (recipients = [], subject, messageText,
   }
 };
 
+/**
+ * Sends Direct Message Email Notification to Recipient
+ * Note: Per security & requirements, message content is NOT included in the email.
+ */
+const sendMessageNotificationEmail = async (toEmail, recipientName, senderName) => {
+  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) return;
+
+  const mailOptions = {
+    from: `"LuminaLearn Messages" <${process.env.SMTP_EMAIL}>`,
+    to: toEmail,
+    subject: `New Message from ${senderName} on LuminaLearn`,
+    html: `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; padding: 30px 15px;">
+        <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <div style="background: linear-gradient(135deg, #6366f1, #4f46e5); padding: 25px; color: #ffffff; text-align: center;">
+            <h1 style="margin: 0; font-size: 20px; font-weight: 700;">You Received a New Message 📩</h1>
+            <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">LuminaLearn Direct Messaging</p>
+          </div>
+
+          <div style="padding: 25px; color: #334155;">
+            <p style="font-size: 15px;">Hi <strong>${recipientName}</strong>,</p>
+            <p style="font-size: 14px; color: #64748b; line-height: 1.6;">
+              You have received a new direct message from <strong>${senderName}</strong> on the LuminaLearn platform.
+            </p>
+
+            <div style="background-color: #f1f5f9; border-left: 4px solid #6366f1; padding: 15px; border-radius: 4px; margin: 20px 0;">
+              <p style="margin: 0; font-size: 13px; color: #475569; font-weight: 500;">
+                🔒 <em>Message content is protected for privacy. Please log into your account to read and reply to this message.</em>
+              </p>
+            </div>
+
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 26px; font-size: 14px; font-weight: 600; border-radius: 8px; display: inline-block;">
+                Open LuminaLearn Portal
+              </a>
+            </div>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 15px; text-align: center; border-top: 1px solid #f1f5f9;">
+            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+              © ${new Date().getFullYear()} LuminaLearn Smart Learning Platform. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Message notification email sent to ${toEmail}. ID: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error('❌ Failed to send message notification email:', error.message);
+  }
+};
+
 module.exports = {
   transporter,
   sendResetPasswordEmail,
   sendPaymentReceiptEmail,
   sendCourseUpdateEmail,
   sendRegistrationWelcomeEmail,
-  sendClassAnnouncementEmail
+  sendClassAnnouncementEmail,
+  sendMessageNotificationEmail
 };
+
