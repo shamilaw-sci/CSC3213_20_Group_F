@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
@@ -71,13 +71,23 @@ const CourseDetails = () => {
   const [pdfTitle, setPdfTitle] = useState("");
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
 
-  // Helper to resolve current academic month string (e.g. "August 2026")
-  const getCurrentAcademicMonth = () => {
-    const now = new Date();
-    const monthName = now.toLocaleString('en-US', { month: 'long' });
-    const year = now.getFullYear();
-    return `${monthName} ${year}`;
-  };
+  // ─── Month / Year Navigator helpers ───────────────────────────────────────
+  const MONTH_NAMES = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
+  ];
+
+  const todayForNav = new Date();
+  const currentMonthIndex = todayForNav.getMonth();   // 0-based
+  const currentYear      = todayForNav.getFullYear();
+
+  // Derive selectedYear from selectedMonth string, default to current year
+  const getYearFromMonth = (mStr) => parseInt(mStr.split(' ')[1], 10) || currentYear;
+  const getMonthIdxFromStr = (mStr) => MONTH_NAMES.indexOf(mStr.split(' ')[0]);
+
+  const getCurrentAcademicMonth = () =>
+    `${MONTH_NAMES[currentMonthIndex]} ${currentYear}`;
+
   // Assignment PDF state
   const [assignmentFile, setAssignmentFile] = useState(null);
   const [assignmentTitle, setAssignmentTitle] = useState("");
@@ -85,10 +95,166 @@ const CourseDetails = () => {
 
   // Weekly Attendance & Class Navigation State
   const [selectedMonth, setSelectedMonth] = useState(getCurrentAcademicMonth);
+  const [navYear, setNavYear] = useState(currentYear);
   const [activeWeek, setActiveWeek] = useState(1);
   const [attendedWeeks, setAttendedWeeks] = useState([]);
   const [loadingWeeklyStatus, setLoadingWeeklyStatus] = useState(true);
   const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
+
+  // Helper: is a given month (0-based index) in navYear in the future?
+  const isFutureMonth = (monthIdx, year) =>
+    year > currentYear || (year === currentYear && monthIdx > currentMonthIndex);
+
+  // Navigate displayed year with clamping (don't go below 2024 as start year)
+  const MIN_NAV_YEAR = 2024;
+  const handleNavYearPrev = () => setNavYear(y => Math.max(MIN_NAV_YEAR, y - 1));
+  const handleNavYearNext = () => setNavYear(y => (y < currentYear ? y + 1 : y));
+
+  // Build the available months (all 12) for the displayed navYear
+  const availableMonths = MONTH_NAMES.map((name, idx) => ({
+    label: `${name} ${navYear}`,
+    monthIdx: idx,
+    locked: isFutureMonth(idx, navYear),
+  }));
+
+  // Timetables and Role Helpers
+  const [courseSchedules, setCourseSchedules] = useState([]);
+  const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
+  const isParent = user?.role === 'parent';
+
+  useEffect(() => {
+    if (courseId) {
+      api.get('/schedules').then(res => {
+        const matching = (res.data || []).filter(s => {
+          const sCourseId = s.courseId?._id || s.courseId;
+          return String(sCourseId) === String(courseId);
+        });
+        setCourseSchedules(matching);
+      }).catch(() => {});
+    }
+  }, [courseId]);
+
+  // Match course schedule matching student's grade or selected class
+  const getActiveCourseSchedule = (schedules, userGrade, sGrade) => {
+    if (!schedules || schedules.length === 0) return null;
+    const targetGrade = userGrade || sGrade;
+    if (targetGrade) {
+      const uNum = targetGrade.toString().replace(/[^0-9]/g, '');
+      const gradeMatch = schedules.find(s => {
+        const sGradeStr = (s.grade || '').toString().toLowerCase();
+        const sClassStr = (s.className || '').toString().toLowerCase();
+        const sNum = (s.grade || s.className || '').toString().replace(/[^0-9]/g, '');
+        return (uNum && sNum === uNum) || sGradeStr.includes(targetGrade.toString().toLowerCase()) || sClassStr.includes(targetGrade.toString().toLowerCase());
+      });
+      if (gradeMatch) return gradeMatch;
+    }
+    return schedules[0];
+  };
+
+  // Resolve all class session dates for the selected academic month according to class timetable day
+  const getMonthSessionDates = (monthStr, schedule) => {
+    if (!monthStr) return [];
+    const parts = monthStr.split(' ');
+    const monthName = parts[0];
+    const year = parseInt(parts[1], 10) || new Date().getFullYear();
+    const monthIdx = MONTH_NAMES.indexOf(monthName);
+    if (monthIdx === -1) return [];
+
+    const dayMap = {
+      'sunday': 0, 'sun': 0,
+      'monday': 1, 'mon': 1,
+      'tuesday': 2, 'tue': 2,
+      'wednesday': 3, 'wed': 3,
+      'thursday': 4, 'thu': 4,
+      'friday': 5, 'fri': 5,
+      'saturday': 6, 'sat': 6
+    };
+
+    // Use timetable's scheduled day (e.g. Monday, Tuesday, Friday, Saturday)
+    const targetDayName = schedule?.dayOfWeek || 'Saturday';
+    const targetDayIdx = dayMap[targetDayName.toLowerCase()] ?? 6;
+    const sessions = [];
+    const numDaysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+    let weekNum = 1;
+
+    for (let day = 1; day <= numDaysInMonth; day++) {
+      const d = new Date(year, monthIdx, day);
+      if (d.getDay() === targetDayIdx) {
+        const shortMonth = monthName.slice(0, 3);
+        const dayPad = String(day).padStart(2, '0');
+        const shortDay = targetDayName.slice(0, 3);
+        sessions.push({
+          weekNumber: weekNum,
+          dayNumber: day,
+          label: `${shortMonth} ${dayPad} (${shortDay})`,
+          fullDateStr: `${shortMonth} ${dayPad}, ${year} (${targetDayName})`,
+          dateObj: d,
+          isFifthWeek: weekNum === 5,
+          dayName: targetDayName
+        });
+        weekNum++;
+      }
+    }
+
+    if (sessions.length === 0) {
+      for (let w = 1; w <= 4; w++) {
+        sessions.push({
+          weekNumber: w,
+          dayNumber: w * 7,
+          label: `Week ${w}`,
+          fullDateStr: `Week ${w} (${monthName} ${year})`,
+          dateObj: new Date(year, monthIdx, Math.min(w * 7, numDaysInMonth)),
+          isFifthWeek: false,
+          dayName: targetDayName
+        });
+      }
+    }
+
+    return sessions;
+  };
+
+  // Helper to determine the relevant session week for today's date
+  const getRelevantWeekForDate = (sessions, targetDate = new Date()) => {
+    if (!sessions || sessions.length === 0) return 1;
+    const todayMidnight = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    let matchedWeek = 1;
+    for (const session of sessions) {
+      if (session.dateObj && todayMidnight >= session.dateObj) {
+        matchedWeek = session.weekNumber;
+      }
+    }
+    return matchedWeek;
+  };
+
+  const activeSchedule = useMemo(() => {
+    return getActiveCourseSchedule(courseSchedules, user?.grade, selectedGrade);
+  }, [courseSchedules, user?.grade, selectedGrade]);
+
+  const currentMonthSessions = useMemo(() => {
+    return getMonthSessionDates(selectedMonth, activeSchedule);
+  }, [selectedMonth, activeSchedule]);
+
+  const hasAutoNavigatedRef = useRef(false);
+
+  // Auto-navigate to current month and relevant session week when student enters
+  useEffect(() => {
+    if (currentMonthSessions.length > 0) {
+      const isCurrentAcademicMonth = selectedMonth === getCurrentAcademicMonth();
+      if (isCurrentAcademicMonth && !hasAutoNavigatedRef.current) {
+        const relWeek = getRelevantWeekForDate(currentMonthSessions);
+        setActiveWeek(relWeek);
+        hasAutoNavigatedRef.current = true;
+      } else if (activeWeek > currentMonthSessions.length) {
+        setActiveWeek(1);
+      }
+    }
+  }, [selectedMonth, currentMonthSessions, activeWeek]);
+
+  const activeSessionObj = currentMonthSessions.find(s => s.weekNumber === activeWeek) || currentMonthSessions[0] || {
+    weekNumber: activeWeek,
+    label: `Week ${activeWeek}`,
+    fullDateStr: `Week ${activeWeek} (${selectedMonth})`
+  };
 
   // Material Completion Tracking (stored in localStorage per student/course/month/week)
   const [completedMaterials, setCompletedMaterials] = useState(() => {
@@ -96,7 +262,6 @@ const CourseDetails = () => {
     return saved ? JSON.parse(saved) : {};
   });
 
-  const availableMonths = ["July 2026", "August 2026", "September 2026", "October 2026"];
 
   const markMaterialCompleted = (type) => {
     const key = `${user?.id || user?._id}_${courseId}_${selectedMonth}_w${activeWeek}_${type}`;
@@ -715,7 +880,27 @@ const CourseDetails = () => {
   });
 
   return (
-    <div className="p-8 max-w-5xl mx-auto font-sans text-gray-800">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans text-gray-800 space-y-6">
+
+      {/* Parent Read-Only Overview Banner */}
+      {user?.role === 'parent' && (
+        <div className="bg-gradient-to-r from-purple-950 via-indigo-900 to-purple-900 text-white p-5 sm:p-6 rounded-3xl shadow-lg border border-purple-700/50 flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/40 text-amber-300 flex items-center justify-center text-2xl font-black shrink-0">
+              👨‍👩‍👧
+            </div>
+            <div>
+              <h4 className="font-extrabold text-white text-base sm:text-lg">Parent Read-Only Mode</h4>
+              <p className="text-xs text-purple-200/90 mt-0.5 max-w-2xl leading-relaxed">
+                Overview of course curriculum, assigned instructors, available grade streams, and live class timetables. Management and upload controls are disabled for parents.
+              </p>
+            </div>
+          </div>
+          <span className="px-4 py-1.5 bg-amber-400 text-purple-950 text-xs font-black rounded-full uppercase tracking-wider shadow-sm">
+            👁️ Read-Only View
+          </span>
+        </div>
+      )}
 
       {/* Dynamic Header: Shows course details or class breadcrumbs */}
       {selectedGrade === null ? (
@@ -782,6 +967,48 @@ const CourseDetails = () => {
           <div className="mt-6">
             <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight mb-3">{course?.title}</h1>
             <p className="text-gray-600 text-base leading-relaxed font-medium">{course?.description}</p>
+          </div>
+
+          {/* Class Timetables & Schedule Card (Visible for Parents and All Visitors) */}
+          <div className="mt-8 pt-6 border-t border-gray-100 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h3 className="text-xl font-black text-purple-950 flex items-center gap-2">
+                  <span>📅</span> Class Timetables & Weekly Schedule
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">Live class session times, scheduled days, and venue locations for enrolled grades.</p>
+              </div>
+              <span className="bg-purple-100 text-purple-900 text-xs font-extrabold px-3 py-1 rounded-xl border border-purple-200">
+                {courseSchedules.length} Timetable Sessions
+              </span>
+            </div>
+
+            {courseSchedules.length === 0 ? (
+              <div className="p-5 bg-purple-50/40 rounded-2xl border border-purple-100 text-center text-xs font-semibold text-purple-900">
+                No specific live timetable schedules registered for this course yet.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {courseSchedules.map((sch) => (
+                  <div key={sch._id} className="p-4 bg-gradient-to-br from-purple-50 via-white to-indigo-50/40 rounded-2xl border border-purple-200/80 shadow-xs space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="px-2.5 py-0.5 bg-purple-900 text-amber-300 font-black text-[11px] rounded-md uppercase tracking-wider">
+                        🎓 {sch.className || sch.grade || 'All Grades'}
+                      </span>
+                      <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 font-black text-[11px] rounded-md border border-amber-200 uppercase">
+                        🗓️ {sch.dayOfWeek}
+                      </span>
+                    </div>
+                    <h5 className="font-extrabold text-slate-900 text-sm line-clamp-1">{sch.title}</h5>
+                    <div className="text-xs text-purple-900 font-extrabold flex items-center gap-2 flex-wrap">
+                      <span>⏰ {sch.startTime} - {sch.endTime}</span>
+                      <span>•</span>
+                      <span>📍 Room: {sch.room || 'Main Hall'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
 
@@ -1104,48 +1331,94 @@ const CourseDetails = () => {
         <div className="space-y-6">
 
           {/* Month Selector Bar */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h4 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
-                <span>🗓️</span> Academic Month Selector
-              </h4>
-              <p className="text-xs text-gray-500 mt-0.5">Select an academic month to view weekly study materials and attendance logs.</p>
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
+                  <span>🗓️</span> Academic Month Selector
+                </h4>
+                <p className="text-xs text-gray-500 mt-0.5">Select a month to view weekly study materials and attendance logs. Future months are locked.</p>
+              </div>
+
+              {/* Year Navigation */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleNavYearPrev}
+                  disabled={navYear <= MIN_NAV_YEAR}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-purple-100 text-gray-600 hover:text-purple-800 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  title="Previous Year"
+                >
+                  ‹
+                </button>
+                <span className="font-black text-gray-900 text-base min-w-[56px] text-center tabular-nums">{navYear}</span>
+                <button
+                  type="button"
+                  onClick={handleNavYearNext}
+                  disabled={navYear >= currentYear}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-purple-100 text-gray-600 hover:text-purple-800 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  title="Next Year"
+                >
+                  ›
+                </button>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {availableMonths.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setSelectedMonth(m)}
-                  className={`px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-                    selectedMonth === m
-                      ? 'bg-purple-700 text-white shadow-md scale-105'
-                      : 'bg-gray-100 text-gray-700 hover:bg-purple-100 hover:text-purple-900'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
+            {/* 12-Month Grid */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+              {availableMonths.map(({ label, monthIdx, locked }) => {
+                const isSelected = selectedMonth === label;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    disabled={locked}
+                    onClick={() => !locked && setSelectedMonth(label)}
+                    title={locked ? 'This month is not available yet' : label}
+                    className={`relative px-2 py-2.5 text-xs font-bold rounded-xl transition text-center leading-tight ${
+                      locked
+                        ? 'bg-gray-50 text-gray-300 cursor-not-allowed border border-dashed border-gray-200'
+                        : isSelected
+                          ? 'bg-purple-700 text-white shadow-md ring-2 ring-purple-400 ring-offset-1 scale-105 cursor-pointer'
+                          : 'bg-gray-100 text-gray-700 hover:bg-purple-100 hover:text-purple-900 cursor-pointer'
+                    }`}
+                  >
+                    {locked && (
+                      <span className="absolute top-1 right-1 text-[9px] text-gray-300">🔒</span>
+                    )}
+                    {MONTH_NAMES[monthIdx].slice(0, 3)}
+                    {isSelected && !locked && (
+                      <span className="block text-[9px] font-extrabold text-purple-200 mt-0.5 uppercase tracking-wide">Active</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* 4-Week Class Workspace Navigation Tabs */}
+          {/* Class Workspace Navigation Tabs */}
           <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
               <div>
                 <h4 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
-                  <span>📅</span> Weekly Workspace — {selectedMonth}
+                  <span>📅</span> Class Sessions & Workspace — {selectedMonth}
                 </h4>
-                <p className="text-xs text-gray-500 mt-0.5">Select a week to access study materials and verify attendance.</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {activeSchedule ? (
+                    <span>Timetable: <strong className="text-purple-900 font-extrabold">{activeSchedule.dayOfWeek} ({activeSchedule.startTime} - {activeSchedule.endTime})</strong> • {currentMonthSessions.length} sessions in {selectedMonth}</span>
+                  ) : (
+                    <span>Select a scheduled class date to access study materials and attendance logs. ({currentMonthSessions.length} sessions in {selectedMonth})</span>
+                  )}
+                </p>
               </div>
               <span className="bg-purple-100 text-purple-900 text-xs font-extrabold px-3 py-1 rounded-lg self-start sm:self-auto border border-purple-200">
-                Month: {selectedMonth}
+                Active: {activeSessionObj.label}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[1, 2, 3, 4].map((wNum) => {
+            <div className={`grid grid-cols-2 sm:grid-cols-3 ${currentMonthSessions.length >= 5 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3`}>
+              {currentMonthSessions.map((session) => {
+                const wNum = session.weekNumber;
                 const isAttended = attendedWeeks.includes(wNum);
                 const isActive = activeWeek === wNum;
 
@@ -1154,29 +1427,34 @@ const CourseDetails = () => {
                     key={wNum}
                     type="button"
                     onClick={() => setActiveWeek(wNum)}
-                    className={`p-4 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer ${
+                    className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden ${
                       isActive
-                        ? 'border-purple-600 bg-purple-50/90 ring-2 ring-purple-300 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50/50'
+                        ? 'border-purple-600 bg-purple-50/95 ring-2 ring-purple-400/50 shadow-md scale-[1.02]'
+                        : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50/70 shadow-2xs'
                     }`}
                   >
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className={`text-xs font-black uppercase tracking-wider ${isActive ? 'text-purple-900' : 'text-gray-700'}`}>
-                        Week {wNum}
+                    <div className="flex justify-between items-center mb-1.5 gap-1">
+                      <span className={`text-xs font-black tracking-wide ${isActive ? 'text-purple-900' : 'text-slate-800'}`}>
+                        📅 {session.label}
                       </span>
                       {isAttended ? (
-                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
                           ✓ Attended
                         </span>
                       ) : (
-                        <span className="bg-amber-100 text-amber-800 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                        <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0">
                           Pending
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] font-medium text-gray-500">
-                      {isAttended ? 'Attendance Logged ✓' : 'Click to Access'}
-                    </p>
+                    <div className="flex items-center justify-between mt-1 text-[11px]">
+                      <span className="text-purple-700 font-bold">
+                        Session {wNum} {session.isFifthWeek ? '• 5th Class' : ''}
+                      </span>
+                      <span className="text-gray-400 font-medium text-[10px]">
+                        {isAttended ? 'Logged ✓' : 'View Lesson'}
+                      </span>
+                    </div>
                   </button>
                 );
               })}
@@ -1303,7 +1581,7 @@ const CourseDetails = () => {
             </div>
 
             {/* Video addition form (Teacher/Admin only) */}
-            {user?.role !== 'student' && (
+            {isTeacherOrAdmin && (
               <form onSubmit={handleAddVideo} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 p-4 bg-gray-50 rounded-xl">
                 <input
                   type="text"
@@ -1360,7 +1638,7 @@ const CourseDetails = () => {
                         <span>▶</span> Watch Lecture Video
                       </button>
                     )}
-                    {user?.role !== 'student' && (
+                    {isTeacherOrAdmin && (
                       <button
                         onClick={handleDeleteDemoVideo}
                         className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
@@ -1387,7 +1665,7 @@ const CourseDetails = () => {
                       </a>
                     </div>
                   </div>
-                  {user?.role !== 'student' && (
+                  {isTeacherOrAdmin && (
                     <button
                       onClick={() => handleDeleteVideo(vid._id)}
                       className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
@@ -1413,7 +1691,7 @@ const CourseDetails = () => {
             </div>
 
             {/* PDF upload form (Teacher/Admin only) */}
-            {user?.role !== 'student' && (
+            {isTeacherOrAdmin && (
               <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
                 <p className="text-sm font-semibold text-gray-700">Upload PDF Lesson Material</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1524,7 +1802,7 @@ const CourseDetails = () => {
                         Mark Done
                       </button>
                     )}
-                    {user?.role !== 'student' && (
+                    {isTeacherOrAdmin && (
                       <button
                         onClick={handleDeleteDemoPdf}
                         className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
@@ -1609,7 +1887,7 @@ const CourseDetails = () => {
                         Download
                       </a>
 
-                      {user?.role !== 'student' && (
+                      {isTeacherOrAdmin && (
                         <button
                           onClick={() => handleDeletePdf(pdf._id)}
                           className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
@@ -1636,7 +1914,7 @@ const CourseDetails = () => {
             </div>
 
             {/* Assignment upload form (Teacher/Admin only) */}
-            {user?.role !== 'student' && (
+            {isTeacherOrAdmin && (
               <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
                 <p className="text-sm font-semibold text-gray-700">Upload Assignment PDF</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1701,7 +1979,7 @@ const CourseDetails = () => {
                         Download
                       </a>
 
-                      {user?.role !== 'student' && (
+                      {isTeacherOrAdmin && (
                         <button
                           onClick={() => handleDeleteAssignment(assignment._id)}
                           className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
@@ -1725,7 +2003,7 @@ const CourseDetails = () => {
                 </h4>
                 <p className="text-xs text-gray-500">Test your knowledge by attempting the weekly quiz assessments.</p>
               </div>
-              {user?.role !== 'student' && (
+              {isTeacherOrAdmin && (
                 <button
                   onClick={() => navigate(`/course/${courseId}/create-quiz`)}
                   className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"

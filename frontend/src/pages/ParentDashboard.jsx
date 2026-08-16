@@ -79,15 +79,21 @@ const ParentDashboard = () => {
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
             Welcome, {data?.parentName || 'Parent'}!
           </h1>
-          <p className="text-sm text-purple-200/80 max-w-xl">
+          {child && (
+            <div className="inline-flex items-center gap-2 bg-amber-400/20 border border-amber-400/40 px-3.5 py-1.5 rounded-xl text-amber-200 font-black text-sm sm:text-base">
+              <span>👦 Currently Viewing Student:</span>
+              <span className="text-amber-300 underline underline-offset-4 font-black">{child.name}</span>
+            </div>
+          )}
+          <p className="text-sm text-purple-200/80 max-w-xl leading-relaxed">
             Real-time academic monitoring, classroom attendance tracking, and payment fee receipts for your enrolled children.
           </p>
         </div>
 
         {/* Multi-Child Selector */}
-        <div className="z-10 bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl w-full md:w-auto min-w-[280px]">
-          <label className="block text-[10px] uppercase tracking-wider font-extrabold text-purple-200 mb-1.5 flex items-center gap-1.5">
-            <FaUserFriends className="text-amber-400" /> Active Selected Child ({childrenData.length}):
+        <div className="z-10 bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl w-full md:w-auto min-w-[300px] shadow-lg">
+          <label className="block text-[11px] uppercase tracking-widest font-extrabold text-amber-300 mb-2 flex items-center gap-1.5">
+            <FaUserFriends className="text-amber-400 text-sm" /> Select Active Child ({childrenData.length}):
           </label>
 
           {childrenData.length === 0 ? (
@@ -96,10 +102,10 @@ const ParentDashboard = () => {
             <select
               value={selectedChildIndex}
               onChange={(e) => setSelectedChildIndex(Number(e.target.value))}
-              className="w-full bg-purple-950/90 text-white text-sm font-bold py-2.5 px-3 rounded-xl border border-purple-400/40 outline-none cursor-pointer"
+              className="w-full bg-purple-950 text-white text-base font-extrabold py-3 px-4 rounded-xl border-2 border-amber-400/60 outline-none cursor-pointer focus:ring-2 focus:ring-amber-300 transition shadow-inner"
             >
               {childrenData.map((cObj, idx) => (
-                <option key={cObj.child._id} value={idx}>
+                <option key={cObj.child._id} value={idx} className="bg-purple-950 text-white font-bold py-2">
                   👦 {cObj.child.name} ({cObj.child.grade} • {cObj.child.registrationNumber || 'Online'})
                 </option>
               ))}
@@ -141,19 +147,38 @@ const ParentDashboard = () => {
           {/* Child Quick Metrics Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+            {/* Student Profile Card (High Prominence & Large Visible Typography) */}
+            <div className="bg-gradient-to-br from-purple-50 via-white to-purple-100/50 p-6 rounded-3xl border-2 border-purple-200/90 shadow-md space-y-4 relative overflow-hidden">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Student Profile</span>
-                <span className="p-2 bg-purple-100 text-purple-900 rounded-xl text-lg">
+                <span className="text-[11px] font-black text-purple-900 uppercase tracking-widest bg-purple-200/70 px-2.5 py-1 rounded-md border border-purple-300/60">
+                  ACTIVE STUDENT PROFILE
+                </span>
+                <span className="p-2 bg-purple-900 text-white rounded-xl text-lg shadow-sm">
                   <FaUserGraduate />
                 </span>
               </div>
-              <div>
-                <h4 className="text-lg font-extrabold text-slate-900 line-clamp-1">{child?.name}</h4>
-                <p className="text-xs font-mono font-bold text-purple-700">{child?.registrationNumber || 'Online Student'}</p>
+
+              <div className="flex items-center gap-3.5 pt-1">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-800 to-indigo-900 text-white flex items-center justify-center text-2xl font-black shrink-0 shadow-lg border-2 border-purple-300/40">
+                  {child?.name ? child.name.charAt(0).toUpperCase() : '🎓'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-2xl sm:text-3xl font-black text-purple-950 tracking-tight leading-none truncate" title={child?.name}>
+                    {child?.name}
+                  </h4>
+                  <div className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-purple-900 text-amber-300 font-mono font-black text-xs rounded-md shadow-xs">
+                    🆔 Reg No: {child?.registrationNumber || 'Online'}
+                  </div>
+                </div>
               </div>
-              <div className="inline-block px-2.5 py-0.5 bg-purple-50 text-purple-900 text-[11px] font-bold rounded-md border border-purple-200">
-                {child?.grade} ({child?.studentType === 'online' ? '💻 Online' : '🏫 Physical'})
+
+              <div className="pt-1 flex items-center gap-2 flex-wrap">
+                <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-black text-xs rounded-xl shadow-xs flex items-center gap-1">
+                  🎓 {child?.grade}
+                </span>
+                <span className="px-3 py-1 bg-purple-900 text-purple-100 font-extrabold text-xs rounded-xl shadow-xs">
+                  {child?.studentType === 'online' ? '💻 Online Student' : '🏫 Physical Classroom'}
+                </span>
               </div>
             </div>
 

@@ -327,11 +327,11 @@ router.post('/submit-weekly', protect, async (req, res) => {
   const studentId = req.user.id || req.user._id;
 
   if (!courseId || !weekNumber) {
-    return res.status(400).json({ message: "Course ID and Week Number (1-4) are required." });
+    return res.status(400).json({ message: "Course ID and Week Number (1-5) are required." });
   }
 
-  if (![1, 2, 3, 4].includes(Number(weekNumber))) {
-    return res.status(400).json({ message: "Week Number must be between 1 and 4." });
+  if (![1, 2, 3, 4, 5].includes(Number(weekNumber))) {
+    return res.status(400).json({ message: "Week Number must be between 1 and 5." });
   }
 
   const currentMonth = month || new Date().toLocaleString('default', { month: 'long' }) + ' ' + new Date().getFullYear();
@@ -418,7 +418,8 @@ router.get('/weekly-status/:courseId', protect, async (req, res) => {
           if (d <= 7) w = 1;
           else if (d <= 14) w = 2;
           else if (d <= 21) w = 3;
-          else w = 4;
+          else if (d <= 28) w = 4;
+          else w = 5;
         }
         if (w && !attendedWeeks.includes(w)) {
           attendedWeeks.push(w);
