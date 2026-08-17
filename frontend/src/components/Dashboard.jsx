@@ -1032,8 +1032,32 @@ const StudentDashboard = ({ user }) => {
 
   const activeCourse = stats.enrolledCoursesList?.length > 0 ? stats.enrolledCoursesList[0] : null;
 
+  const hasVerifiedEmail = !!user?.isEmailVerified && !!user?.email;
+
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Unverified Email Warning Banner */}
+      {!hasVerifiedEmail && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl shadow-md p-4 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 bg-white/20 rounded-xl text-xl">⚠️</span>
+            <div>
+              <h3 className="text-sm font-extrabold tracking-tight">Complete Your Profile: Add & Verify Email</h3>
+              <p className="text-xs text-amber-100 mt-0.5">
+                You are currently registered with mobile credentials only. Add your email in Account Settings to receive official notices, payment receipts, and class updates.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/settings')}
+            className="px-4 py-2 bg-white text-amber-900 font-bold text-xs rounded-xl shadow hover:bg-amber-50 transition cursor-pointer shrink-0 flex items-center gap-1.5"
+          >
+            Go to Settings →
+          </button>
+        </div>
+      )}
+
       {/* Hero Banner */}
       <DashboardHero
         user={user}

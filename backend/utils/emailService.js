@@ -346,6 +346,66 @@ const sendMessageNotificationEmail = async (toEmail, recipientName, senderName) 
   }
 };
 
+/**
+ * Sends a 6-digit verification passcode email (for registration, email linking, or password reset)
+ */
+const sendPasscodeEmail = async (toEmail, passcode, userName = 'Student', purpose = 'Account Verification') => {
+  if (!toEmail) return;
+  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
+    console.log(`⚠️ [EMAIL MOCK] Verification passcode for ${toEmail}: [ ${passcode} ] (${purpose})`);
+    return;
+  }
+
+  const mailOptions = {
+    from: `"LuminaLearn Security" <${process.env.SMTP_EMAIL}>`,
+    to: toEmail,
+    subject: `LuminaLearn - Your Verification Code is ${passcode}`,
+    html: `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; padding: 30px 15px;">
+        <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <div style="background: linear-gradient(135deg, #3a1c8a, #5d31b4); padding: 25px; color: #ffffff; text-align: center;">
+            <h1 style="margin: 0; font-size: 22px; font-weight: 700;">${purpose}</h1>
+            <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">LuminaLearn Security Verification</p>
+          </div>
+
+          <div style="padding: 30px; color: #334155;">
+            <p style="font-size: 15px;">Hi <strong>${userName}</strong>,</p>
+            <p style="font-size: 14px; color: #64748b; line-height: 1.6;">
+              Please use the verification code below to complete your <strong>${purpose}</strong> request on LuminaLearn.
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <div style="display: inline-block; background: #f3f0ff; border: 2px dashed #7c3aed; border-radius: 12px; padding: 15px 35px; letter-spacing: 8px; font-size: 32px; font-weight: 800; color: #4c1d95; font-family: monospace;">
+                ${passcode}
+              </div>
+            </div>
+
+            <div style="background-color: #faf5ff; border-left: 4px solid #7c3aed; padding: 12px 16px; border-radius: 4px; margin: 20px 0;">
+              <p style="margin: 0; font-size: 13px; color: #581c87; font-weight: 500;">
+                ⏱️ This code is valid for <strong>10 minutes</strong>. Never share your passcode with anyone.
+              </p>
+            </div>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 15px; text-align: center; border-top: 1px solid #f1f5f9;">
+            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+              © ${new Date().getFullYear()} LuminaLearn Smart Learning Platform. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Verification passcode email sent to ${toEmail}. Message ID: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error('❌ Failed to send passcode email:', error.message);
+  }
+};
+
 module.exports = {
   transporter,
   sendResetPasswordEmail,
@@ -353,6 +413,8 @@ module.exports = {
   sendCourseUpdateEmail,
   sendRegistrationWelcomeEmail,
   sendClassAnnouncementEmail,
-  sendMessageNotificationEmail
+  sendMessageNotificationEmail,
+  sendPasscodeEmail
 };
+
 

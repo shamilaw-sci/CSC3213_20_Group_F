@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const VerificationCode = require('../models/VerificationCode');
 const { protect, isAdmin, isTeacherOrAdmin } = require('../middleware/authMiddleware');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
@@ -16,7 +17,8 @@ const Notification = require('../models/Notification');
 const ReadingProgress = require('../models/ReadingProgress');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
-const { sendResetPasswordEmail, sendRegistrationWelcomeEmail } = require('../utils/emailService');
+const { sendResetPasswordEmail, sendRegistrationWelcomeEmail, sendPasscodeEmail } = require('../utils/emailService');
+const { sendVerificationOTP, formatSriLankaPhone, maskPhoneNumber } = require('../services/smsService');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Helper to generate Online Student Registration Number (e.g. OL-G06-2012-4829)
@@ -40,6 +42,91 @@ const generateOnlineRegistrationNumber = async (grade, dateOfBirth) => {
   }
   return regNo;
 };
+
+// Helper to generate Physical Student Registration Number (e.g. REG-G06-2012-4829)
+const generatePhysicalRegistrationNumber = async (grade, dateOfBirth) => {
+  const digitsMatch = String(grade || '').match(/\d+/);
+  const gradeNum = digitsMatch ? digitsMatch[0].padStart(2, '0') : '00';
+  const birthYear = dateOfBirth ? new Date(dateOfBirth).getFullYear() : new Date().getFullYear();
+
+  let isUnique = false;
+  let regNo = '';
+  let attempts = 0;
+
+  while (!isUnique && attempts < 15) {
+    attempts++;
+    const randomSeq = Math.floor(1000 + Math.random() * 9000);
+    regNo = `REG-G${gradeNum}-${birthYear}-${randomSeq}`;
+    const existing = await User.findOne({ registrationNumber: regNo });
+    if (!existing) {
+      isUnique = true;
+    }
+  }
+  return regNo;
+};
+
+// Helper to ensure parent account exists and links student without creating duplicate accounts
+const ensureParentAccount = async (parentPhone, studentId, studentName = 'Student') => {
+  if (!parentPhone || !parentPhone.trim()) return null;
+  const cleanedPhone = parentPhone.trim();
+  const digitsOnly = cleanedPhone.replace(/\D/g, '');
+  const last9 = digitsOnly.length >= 9 ? digitsOnly.slice(-9) : digitsOnly;
+
+  try {
+    // Search for existing parent by exact phone or by last 9 digits
+    const searchConditions = [
+      { phoneNumber: cleanedPhone },
+      { parentsPhoneNumber: cleanedPhone }
+    ];
+    if (last9) {
+      searchConditions.push({ phoneNumber: { $regex: last9 + '$' } });
+      searchConditions.push({ parentsPhoneNumber: { $regex: last9 + '$' } });
+    }
+
+    let parent = await User.findOne({
+      role: 'parent',
+      $or: searchConditions
+    });
+
+    if (parent) {
+      if (!parent.linkedStudents) parent.linkedStudents = [];
+      const alreadyLinked = parent.linkedStudents.some(
+        id => id && id.toString() === studentId.toString()
+      );
+
+      if (!alreadyLinked) {
+        parent.linkedStudents.push(studentId);
+        await parent.save();
+        console.log(`🔗 Linked student ${studentName} (${studentId}) to existing parent ${parent.name} (${cleanedPhone})`);
+      } else {
+        console.log(`ℹ️ Student ${studentName} already linked to parent ${parent.name} (${cleanedPhone})`);
+      }
+      return parent;
+    } else {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('Parent@123', salt);
+
+      const parentData = {
+        name: `Parent of ${studentName}`,
+        phoneNumber: cleanedPhone,
+        parentsPhoneNumber: cleanedPhone,
+        password: hashedPassword,
+        role: 'parent',
+        linkedStudents: [studentId],
+        mustChangePassword: true,
+        isPhoneVerified: true
+      };
+
+      parent = await User.create(parentData);
+      console.log(`👨‍👩‍👧 Created new parent account for ${cleanedPhone} with default password (Parent@123)`);
+      return parent;
+    }
+  } catch (err) {
+    console.error('Error in ensureParentAccount:', err.message);
+    return null;
+  }
+};
+
 
 // Helper function to convert base64 data URIs to static files in /uploads for super-fast image loading
 const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
@@ -75,7 +162,7 @@ const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
   }
 };
 
-// --- LOGIN ROUTE ---
+// --- LOGIN ROUTE (STUDENTS & STAFF) ---
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   const input = (email || req.body.identifier || req.body.registrationNumber || '').trim();
@@ -93,7 +180,7 @@ router.post('/login', async (req, res) => {
       ]
     });
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "Invalid credentials. Please check your email or registration number." });
     }
 
     // Check password
@@ -115,23 +202,371 @@ router.post('/login', async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email,
+        email: user.email || '',
         role: user.role,
         studentType: user.studentType || 'physical',
         grade: user.grade,
         registrationNumber: user.registrationNumber,
+        parentsPhoneNumber: user.parentsPhoneNumber || '',
+        phoneNumber: user.phoneNumber || '',
         dateOfBirth: user.dateOfBirth,
         nicNumber: user.nicNumber,
         mustChangePassword: user.mustChangePassword,
+        isEmailVerified: !!user.isEmailVerified,
+        isPhoneVerified: !!user.isPhoneVerified,
         profilePicture: user.profilePicture || ''
       }
     });
 
   } catch (err) {
     console.error("Login Error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error during login." });
   }
 });
+
+// --- PARENT PORTAL LOGIN ROUTE ---
+router.post('/parent-login', async (req, res) => {
+  const { phoneNumber, phone, password } = req.body;
+  const rawPhone = (phoneNumber || phone || req.body.identifier || '').trim();
+
+  if (!rawPhone || !password) {
+    return res.status(400).json({ message: "Parent mobile phone number and password are required." });
+  }
+
+  try {
+    const formatted = formatSriLankaPhone(rawPhone);
+    const cleanedDigits = rawPhone.replace(/\D/g, '');
+
+    const parent = await User.findOne({
+      role: 'parent',
+      $or: [
+        { phoneNumber: rawPhone },
+        { parentsPhoneNumber: rawPhone },
+        { phoneNumber: formatted },
+        { parentsPhoneNumber: formatted },
+        { phoneNumber: new RegExp(cleanedDigits.slice(-9) + '$') },
+        { parentsPhoneNumber: new RegExp(cleanedDigits.slice(-9) + '$') }
+      ]
+    });
+
+    if (!parent) {
+      return res.status(400).json({ message: "No Parent Account found with this phone number. Please check the number or contact administration." });
+    }
+
+    const isMatch = await bcrypt.compare(password, parent.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect password. If this is your first login, use your default password (e.g. Parent@123)." });
+    }
+
+    const token = jwt.sign(
+      { id: parent._id, role: parent.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: parent._id,
+        name: parent.name,
+        email: parent.email || '',
+        phoneNumber: parent.phoneNumber || parent.parentsPhoneNumber || rawPhone,
+        role: 'parent',
+        mustChangePassword: !!parent.mustChangePassword,
+        isPhoneVerified: true,
+        linkedStudents: parent.linkedStudents || []
+      }
+    });
+  } catch (err) {
+    console.error("Parent Login Error:", err);
+    res.status(500).json({ message: "Server error during parent login." });
+  }
+});
+
+// --- STEP 1: INITIATE SELF-REGISTRATION (EMAIL OR PHONE) ---
+router.post('/register-initiate', async (req, res) => {
+  const {
+    registrationType = 'email',
+    email,
+    phoneNumber,
+    phone,
+    name,
+    password,
+    grade,
+    dateOfBirth,
+    nicNumber,
+    parentsPhoneNumber
+  } = req.body;
+
+  if (!grade) {
+    return res.status(400).json({ message: "Please select your grade." });
+  }
+
+  if (!dateOfBirth) {
+    return res.status(400).json({ message: "Date of Birth (Birthday) is required for student registration." });
+  }
+
+  if (!password || password.length < 6) {
+    return res.status(400).json({ message: "Password must be at least 6 characters long." });
+  }
+
+  // Check if Grade is 10 or above
+  // const digitsMatch = String(grade || '').match(/\d+/);
+  // const gradeVal = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
+  // if (gradeVal >= 10 && (!nicNumber || !nicNumber.trim())) {
+  //   return res.status(400).json({ message: "National ID / NIC number is required for students in Grade 10 or above." });
+  // }
+
+  const rawPhone = (phoneNumber || phone || '').trim();
+
+  // Generate 6-digit random passcode
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+  try {
+    if (registrationType === 'email') {
+      if (!email || !email.trim()) {
+        return res.status(400).json({ message: "Email address is required for email registration." });
+      }
+      if (!parentsPhoneNumber || !parentsPhoneNumber.trim()) {
+        return res.status(400).json({ message: "Parent's phone number is required." });
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const existingUser = await User.findOne({ email: normalizedEmail });
+      if (existingUser) {
+        return res.status(400).json({ message: "An account with this email already exists." });
+      }
+
+      // Remove old codes for this email
+      await VerificationCode.deleteMany({ identifier: normalizedEmail, purpose: 'registration' });
+
+      // Save verification code with payload
+      await VerificationCode.create({
+        identifier: normalizedEmail,
+        code,
+        purpose: 'registration',
+        channel: 'email',
+        payload: {
+          registrationType: 'email',
+          name: name ? name.trim() : '',
+          email: normalizedEmail,
+          password,
+          grade: grade.trim(),
+          parentsPhoneNumber: parentsPhoneNumber.trim(),
+          dateOfBirth,
+          nicNumber: nicNumber ? nicNumber.trim() : ''
+        }
+      });
+
+      // Dispatch Email Passcode
+      await sendPasscodeEmail(normalizedEmail, code, name || 'Student', 'Student Account Registration');
+
+      return res.json({
+        success: true,
+        channel: 'email',
+        identifier: normalizedEmail,
+        message: `A 6-digit verification passcode has been sent to ${normalizedEmail}.`
+      });
+
+    } else {
+      // Phone Number registration workflow
+      if (!rawPhone) {
+        return res.status(400).json({ message: "Phone number is required for mobile registration." });
+      }
+
+      // Remove old codes for this phone
+      await VerificationCode.deleteMany({ identifier: rawPhone.toLowerCase(), purpose: 'registration' });
+
+      // Save verification code with payload
+      await VerificationCode.create({
+        identifier: rawPhone.toLowerCase(),
+        code,
+        purpose: 'registration',
+        channel: 'phone',
+        payload: {
+          registrationType: 'phone',
+          name: name ? name.trim() : `Student ${rawPhone}`,
+          phoneNumber: rawPhone,
+          parentsPhoneNumber: rawPhone, // student phone is also considered parent's phone
+          password,
+          grade: grade.trim(),
+          dateOfBirth,
+          nicNumber: nicNumber ? nicNumber.trim() : ''
+        }
+      });
+
+      // Dispatch SMS OTP (mocked with clear console logging)
+      await sendVerificationOTP({
+        phone: rawPhone,
+        otpCode: code,
+        purpose: 'Student Registration',
+        studentName: name || 'Student'
+      });
+
+      return res.json({
+        success: true,
+        channel: 'phone',
+        identifier: rawPhone,
+        message: `A 6-digit verification OTP has been sent to ${rawPhone}. (Check backend terminal in development mode)`
+      });
+    }
+
+  } catch (err) {
+    console.error("Register Initiate Error:", err);
+    res.status(500).json({ message: "Failed to initiate registration verification." });
+  }
+});
+
+// --- STEP 2: VERIFY CODE & COMPLETE SELF-REGISTRATION ---
+router.post('/register-verify', async (req, res) => {
+  const { identifier, code, createParentAccount = true } = req.body;
+
+  if (!identifier || !code) {
+    return res.status(400).json({ message: "Identifier and verification code are required." });
+  }
+
+  const cleanedId = identifier.trim().toLowerCase();
+  const cleanedCode = code.trim();
+
+  try {
+    const record = await VerificationCode.findOne({
+      identifier: cleanedId,
+      code: cleanedCode,
+      purpose: 'registration'
+    });
+
+    if (!record) {
+      return res.status(400).json({ message: "Invalid or expired verification code. Please check or request a new code." });
+    }
+
+    const {
+      registrationType,
+      name,
+      email,
+      phoneNumber,
+      password,
+      grade,
+      parentsPhoneNumber,
+      dateOfBirth,
+      nicNumber
+    } = record.payload;
+
+    // Check duplicate
+    if (email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
+        return res.status(400).json({ message: "An account with this email already exists." });
+      }
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Derive name if empty
+    let finalName = name && name.trim() ? name.trim() : '';
+    if (!finalName) {
+      if (email) {
+        const usernamePart = email.split('@')[0];
+        finalName = usernamePart
+          .split(/[\._\-]/)
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(' ');
+      } else {
+        finalName = `Student ${phoneNumber || parentsPhoneNumber}`;
+      }
+    }
+
+    // Auto-generate Online Registration Number
+    const registrationNumber = await generateOnlineRegistrationNumber(grade, dateOfBirth);
+
+    const studentDoc = {
+      name: finalName,
+      password: hashedPassword,
+      grade: grade.trim(),
+      parentsPhoneNumber: parentsPhoneNumber ? parentsPhoneNumber.trim() : (phoneNumber ? phoneNumber.trim() : ''),
+      dateOfBirth: new Date(dateOfBirth),
+      nicNumber: nicNumber ? nicNumber.trim() : '',
+      registrationNumber,
+      role: 'student',
+      studentType: 'online',
+      mustChangePassword: false,
+      isEmailVerified: registrationType === 'email',
+      isPhoneVerified: registrationType === 'phone'
+    };
+
+    if (email && email.trim()) {
+      studentDoc.email = email.trim().toLowerCase();
+    }
+    if (phoneNumber && phoneNumber.trim()) {
+      studentDoc.phoneNumber = phoneNumber.trim();
+    }
+
+    const newUser = await User.create(studentDoc);
+
+    // Delete used verification code
+    await VerificationCode.findByIdAndDelete(record._id);
+
+    // Conditionally Link / Create Parent Account based on user confirmation
+    const parentPhone = newUser.parentsPhoneNumber;
+    if (createParentAccount && parentPhone) {
+      await ensureParentAccount(parentPhone, newUser._id, newUser.name);
+    }
+
+    // --- TRIGGER NOTIFICATIONS ---
+    try {
+      // 1. In-App Notification for Admins
+      await Notification.create({
+        recipientRole: 'admin',
+        type: 'REGISTRATION',
+        title: 'New Student Registration',
+        message: `${newUser.name} (${newUser.registrationNumber}, ${newUser.grade}) has registered as an online student.`,
+        link: '/manage-users',
+        metadata: { studentId: newUser._id }
+      });
+
+      // 2. Welcome Email to Student if email provided
+      if (newUser.email) {
+        sendRegistrationWelcomeEmail(newUser.email, newUser.name, newUser.registrationNumber);
+      }
+    } catch (notifErr) {
+      console.error('Registration notification trigger error:', notifErr.message);
+    }
+
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.status(201).json({
+      token,
+      message: `Registration successful! Your Online Registration ID is ${newUser.registrationNumber}`,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email || '',
+        role: newUser.role,
+        studentType: newUser.studentType,
+        grade: newUser.grade,
+        registrationNumber: newUser.registrationNumber,
+        parentsPhoneNumber: newUser.parentsPhoneNumber || '',
+        phoneNumber: newUser.phoneNumber || '',
+        dateOfBirth: newUser.dateOfBirth,
+        nicNumber: newUser.nicNumber,
+        mustChangePassword: newUser.mustChangePassword,
+        isEmailVerified: !!newUser.isEmailVerified,
+        isPhoneVerified: !!newUser.isPhoneVerified,
+        profilePicture: newUser.profilePicture || ''
+      }
+    });
+
+  } catch (err) {
+    console.error("Register Verify Error:", err);
+    res.status(500).json({ message: "Server error completing registration." });
+  }
+});
+
 
 // --- REGISTER ROUTE ---
 router.post('/register', async (req, res) => {
@@ -204,11 +639,11 @@ router.post('/register', async (req, res) => {
   }
 
   // Check if Grade is 10 or above
-  const digitsMatch = String(grade || '').match(/\d+/);
-  const gradeVal = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
-  if (gradeVal >= 10 && (!nicNumber || !nicNumber.trim())) {
-    return res.status(400).json({ message: "National ID / NIC number is required for students in Grade 10 or above." });
-  }
+  // const digitsMatch = String(grade || '').match(/\d+/);
+  // const gradeVal = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
+  // if (gradeVal >= 10 && (!nicNumber || !nicNumber.trim())) {
+  //   return res.status(400).json({ message: "National ID / NIC number is required for students in Grade 10 or above." });
+  // }
 
   const normalizedEmail = email.trim().toLowerCase();
 
@@ -306,11 +741,11 @@ router.post('/google-register', async (req, res) => {
   }
 
   // Check if Grade is 10 or above
-  const digitsMatch = String(grade || '').match(/\d+/);
-  const gradeVal = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
-  if (gradeVal >= 10 && (!nicNumber || !nicNumber.trim())) {
-    return res.status(400).json({ message: "National ID / NIC number is required for students in Grade 10 or above." });
-  }
+  // const digitsMatch = String(grade || '').match(/\d+/);
+  // const gradeVal = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
+  // if (gradeVal >= 10 && (!nicNumber || !nicNumber.trim())) {
+  //   return res.status(400).json({ message: "National ID / NIC number is required for students in Grade 10 or above." });
+  // }
 
   try {
     const ticket = await client.verifyIdToken({
@@ -494,7 +929,163 @@ router.post('/change-password', protect, async (req, res) => {
   }
 });
 
-// --- FORGOT PASSWORD ROUTE ---
+// --- FORGOT PASSWORD INITIATE (EMAIL / REG NO / PHONE) ---
+router.post('/forgot-password-initiate', async (req, res) => {
+  const { identifier } = req.body;
+  const input = (identifier || req.body.email || '').trim();
+
+  if (!input) {
+    return res.status(400).json({ message: "Email, registration number, or phone number is required." });
+  }
+
+  try {
+    const safeRegex = new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    const cleanedDigits = input.replace(/\D/g, '');
+
+    // Search user by email, registrationNumber, or phone
+    const user = await User.findOne({
+      $or: [
+        { email: input.toLowerCase() },
+        { registrationNumber: safeRegex },
+        { phoneNumber: input },
+        { parentsPhoneNumber: input },
+        ...(cleanedDigits.length >= 9 ? [
+          { phoneNumber: new RegExp(cleanedDigits.slice(-9) + '$') },
+          { parentsPhoneNumber: new RegExp(cleanedDigits.slice(-9) + '$') }
+        ] : [])
+      ]
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "No account found matching this identifier. Please verify your details." });
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Priority: If user has an email, send passcode to email. If only phone number exists, send SMS OTP.
+    if (user.email && user.email.trim()) {
+      const email = user.email.trim().toLowerCase();
+      await VerificationCode.deleteMany({ identifier: email, purpose: 'forgot_password' });
+
+      await VerificationCode.create({
+        identifier: email,
+        code,
+        purpose: 'forgot_password',
+        channel: 'email',
+        payload: { userId: user._id, email }
+      });
+
+      await sendPasscodeEmail(email, code, user.name, 'Password Reset');
+
+      // Mask email for UI display (e.g., k***@gmail.com)
+      const [userPart, domainPart] = email.split('@');
+      const maskedUser = userPart.length > 2 ? `${userPart[0]}***${userPart.slice(-1)}` : `${userPart[0]}***`;
+      const maskedEmail = `${maskedUser}@${domainPart}`;
+
+      return res.json({
+        success: true,
+        channel: 'email',
+        identifier: email,
+        maskedDestination: maskedEmail,
+        message: `A 6-digit password reset passcode has been sent to ${maskedEmail}.`
+      });
+
+    } else {
+      const phone = user.phoneNumber || user.parentsPhoneNumber;
+      if (!phone) {
+        return res.status(400).json({ message: "This account has no contact credentials linked. Please contact administration." });
+      }
+
+      await VerificationCode.deleteMany({ identifier: phone.toLowerCase(), purpose: 'forgot_password' });
+
+      await VerificationCode.create({
+        identifier: phone.toLowerCase(),
+        code,
+        purpose: 'forgot_password',
+        channel: 'phone',
+        payload: { userId: user._id, phone }
+      });
+
+      await sendVerificationOTP({
+        phone,
+        otpCode: code,
+        purpose: 'Password Reset',
+        studentName: user.name
+      });
+
+      const maskedPhone = maskPhoneNumber(phone);
+
+      return res.json({
+        success: true,
+        channel: 'phone',
+        identifier: phone,
+        maskedDestination: maskedPhone,
+        message: `A 6-digit password reset OTP has been sent to ${maskedPhone}. (Check backend terminal in development mode)`
+      });
+    }
+
+  } catch (err) {
+    console.error("Forgot Password Initiate Error:", err);
+    res.status(500).json({ message: "Server error initiating password reset." });
+  }
+});
+
+// --- FORGOT PASSWORD VERIFY & RESET ---
+router.post('/forgot-password-verify-reset', async (req, res) => {
+  const { identifier, code, newPassword } = req.body;
+
+  if (!identifier || !code || !newPassword) {
+    return res.status(400).json({ message: "Identifier, verification code, and new password are required." });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ message: "New password must be at least 6 characters long." });
+  }
+
+  const cleanedId = identifier.trim().toLowerCase();
+  const cleanedCode = code.trim();
+
+  try {
+    const record = await VerificationCode.findOne({
+      identifier: cleanedId,
+      code: cleanedCode,
+      purpose: 'forgot_password'
+    });
+
+    if (!record) {
+      return res.status(400).json({ message: "Invalid or expired reset code. Please request a new code." });
+    }
+
+    const userId = record.payload?.userId;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User account not found." });
+    }
+
+    // Hash and save new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.mustChangePassword = false;
+    user.resetPasswordToken = '';
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    // Remove verification code
+    await VerificationCode.findByIdAndDelete(record._id);
+
+    res.json({
+      success: true,
+      message: "Password reset successful! You can now log in with your new password."
+    });
+
+  } catch (err) {
+    console.error("Forgot Password Verify Reset Error:", err);
+    res.status(500).json({ message: "Server error resetting password." });
+  }
+});
+
+// --- LEGACY FORGOT PASSWORD ROUTE (FOR EMAIL LINKS) ---
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
 
@@ -526,7 +1117,7 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-// --- RESET PASSWORD ROUTE ---
+// --- LEGACY RESET PASSWORD ROUTE ---
 router.post('/reset-password/:token', async (req, res) => {
   const { newPassword } = req.body;
   const { token } = req.params;
@@ -565,6 +1156,110 @@ router.post('/reset-password/:token', async (req, res) => {
   }
 });
 
+// --- ADD & VERIFY EMAIL: STEP 1 (INITIATE) ---
+router.post('/add-email-initiate', protect, async (req, res) => {
+  const { email } = req.body;
+
+  if (!email || !email.trim()) {
+    return res.status(400).json({ message: "Email address is required." });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  try {
+    // Check if email already belongs to another user
+    const existing = await User.findOne({
+      email: normalizedEmail,
+      _id: { $ne: req.user._id }
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: "This email address is already linked to another account." });
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await VerificationCode.deleteMany({ identifier: normalizedEmail, purpose: 'add_email' });
+
+    await VerificationCode.create({
+      identifier: normalizedEmail,
+      code,
+      purpose: 'add_email',
+      channel: 'email',
+      payload: { userId: req.user._id, email: normalizedEmail }
+    });
+
+    await sendPasscodeEmail(normalizedEmail, code, req.user.name, 'Email Verification');
+
+    res.json({
+      success: true,
+      message: `A 6-digit verification code has been dispatched to ${normalizedEmail}.`
+    });
+
+  } catch (err) {
+    console.error("Add Email Initiate Error:", err);
+    res.status(500).json({ message: "Server error sending email verification code." });
+  }
+});
+
+// --- ADD & VERIFY EMAIL: STEP 2 (VERIFY) ---
+router.post('/add-email-verify', protect, async (req, res) => {
+  const { email, code } = req.body;
+
+  if (!email || !code) {
+    return res.status(400).json({ message: "Email and verification code are required." });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const cleanedCode = code.trim();
+
+  try {
+    const record = await VerificationCode.findOne({
+      identifier: normalizedEmail,
+      code: cleanedCode,
+      purpose: 'add_email'
+    });
+
+    if (!record) {
+      return res.status(400).json({ message: "Invalid or expired verification code." });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    user.email = normalizedEmail;
+    user.isEmailVerified = true;
+    await user.save();
+
+    await VerificationCode.findByIdAndDelete(record._id);
+
+    res.json({
+      success: true,
+      message: "Email address added and verified successfully!",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        studentType: user.studentType || 'physical',
+        grade: user.grade,
+        registrationNumber: user.registrationNumber,
+        parentsPhoneNumber: user.parentsPhoneNumber || '',
+        phoneNumber: user.phoneNumber || '',
+        isEmailVerified: true,
+        isPhoneVerified: !!user.isPhoneVerified,
+        profilePicture: user.profilePicture || ''
+      }
+    });
+
+  } catch (err) {
+    console.error("Add Email Verify Error:", err);
+    res.status(500).json({ message: "Server error verifying email." });
+  }
+});
+
 // --- UPDATE PROFILE ROUTE (Name and/or Password) ---
 router.put('/update-profile', protect, async (req, res) => {
   const { name, newPassword, profilePicture, coverPicture, bio, qualifications, department, phoneNumber } = req.body;
@@ -600,18 +1295,21 @@ router.put('/update-profile', protect, async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email,
+        email: user.email || '',
         role: user.role,
         studentType: user.studentType || 'physical',
         grade: user.grade,
         registrationNumber: user.registrationNumber,
+        parentsPhoneNumber: user.parentsPhoneNumber || '',
+        phoneNumber: user.phoneNumber || '',
         mustChangePassword: user.mustChangePassword,
+        isEmailVerified: !!user.isEmailVerified,
+        isPhoneVerified: !!user.isPhoneVerified,
         profilePicture: user.profilePicture || '',
         coverPicture: user.coverPicture || '',
         bio: user.bio || '',
         qualifications: user.qualifications || '',
-        department: user.department || 'Academic Faculty',
-        phoneNumber: user.phoneNumber || ''
+        department: user.department || 'Academic Faculty'
       }
     });
 
@@ -620,6 +1318,39 @@ router.put('/update-profile', protect, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// --- GET CURRENT USER (/me) ---
+router.get('/me', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email || '',
+      role: user.role,
+      studentType: user.studentType || 'physical',
+      grade: user.grade,
+      registrationNumber: user.registrationNumber,
+      parentsPhoneNumber: user.parentsPhoneNumber || '',
+      phoneNumber: user.phoneNumber || '',
+      mustChangePassword: !!user.mustChangePassword,
+      isEmailVerified: !!user.isEmailVerified,
+      isPhoneVerified: !!user.isPhoneVerified,
+      profilePicture: user.profilePicture || '',
+      coverPicture: user.coverPicture || '',
+      bio: user.bio || '',
+      qualifications: user.qualifications || '',
+      department: user.department || 'Academic Faculty',
+      linkedStudents: user.linkedStudents || []
+    });
+  } catch (err) {
+    console.error("Get Me Error:", err);
+    res.status(500).json({ message: "Server error fetching user details" });
+  }
+});
+
 
 // ==========================================
 //          ADMIN ONLY ROUTES
@@ -684,12 +1415,25 @@ router.get('/users', protect, async (req, res) => {
   }
 });
 
-// 3. CREATE USER
+// 3. CREATE USER (ADMIN MANUAL REGISTRATION)
 router.post('/users', protect, isAdmin, async (req, res) => {
-  const { name, email, registrationNumber, parentsPhoneNumber, temporaryPassword, role = 'student', grade } = req.body;
+  const {
+    name,
+    email,
+    registrationNumber,
+    parentsPhoneNumber,
+    temporaryPassword,
+    role = 'student',
+    grade,
+    studentType = 'physical',
+    dateOfBirth,
+    nicNumber,
+    createParentAccount = true
+  } = req.body;
+
   const normalizedName = name?.trim();
-  const normalizedEmail = email?.trim().toLowerCase();
-  const normalizedRegistrationNumber = registrationNumber?.trim();
+  const normalizedEmail = email?.trim() ? email.trim().toLowerCase() : undefined;
+  let normalizedRegistrationNumber = registrationNumber?.trim() || undefined;
   const allowedRoles = ['student', 'teacher', 'admin', 'counter_staff', 'parent'];
   const normalizedGrade = grade !== undefined ? String(grade).trim() : undefined;
 
@@ -697,65 +1441,92 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     return res.status(400).json({ message: "Invalid user role." });
   }
 
-  if (!normalizedName || !normalizedEmail || !temporaryPassword) {
-    return res.status(400).json({ message: "Name, email, and temporary password are required." });
+  if (!normalizedName || !temporaryPassword) {
+    return res.status(400).json({ message: "Name and temporary password are required." });
+  }
+
+  if (role !== 'student' && !normalizedEmail) {
+    return res.status(400).json({ message: "Email is required for staff, teachers, and admins." });
   }
 
   if (role === 'student') {
-    if (!normalizedRegistrationNumber) {
-      return res.status(400).json({ message: "Registration number is required for students." });
-    }
     if (!parentsPhoneNumber || !parentsPhoneNumber.trim()) {
-      return res.status(400).json({ message: "Parents phone number is required for students." });
+      return res.status(400).json({ message: "Parent's phone number is required for students." });
     }
     if (!normalizedGrade) {
       return res.status(400).json({ message: "A valid student grade is required." });
     }
+
+    // Auto-generate Registration Number if not provided by admin
+    if (!normalizedRegistrationNumber) {
+      if (studentType === 'online') {
+        normalizedRegistrationNumber = await generateOnlineRegistrationNumber(normalizedGrade, dateOfBirth);
+      } else {
+        normalizedRegistrationNumber = await generatePhysicalRegistrationNumber(normalizedGrade, dateOfBirth);
+      }
+    }
   }
 
   try {
-    const existingUser = await User.findOne({
-      $or: [
-        { email: normalizedEmail },
-        ...(normalizedRegistrationNumber ? [{ registrationNumber: normalizedRegistrationNumber }] : [])
-      ]
-    });
+    const duplicateChecks = [];
+    if (normalizedEmail) duplicateChecks.push({ email: normalizedEmail });
+    if (normalizedRegistrationNumber) duplicateChecks.push({ registrationNumber: normalizedRegistrationNumber });
 
-    if (existingUser) {
-      return res.status(400).json({
-        message: existingUser.email === normalizedEmail
-          ? "User with this email already exists."
-          : "User with this registration number already exists."
-      });
+    if (duplicateChecks.length > 0) {
+      const existingUser = await User.findOne({ $or: duplicateChecks });
+      if (existingUser) {
+        return res.status(400).json({
+          message: existingUser.email === normalizedEmail
+            ? "User with this email already exists."
+            : "User with this registration number already exists."
+        });
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(temporaryPassword, salt);
 
-    const user = await User.create({
+    // Admin created users are automatically verified (no OTP needed)
+    const userDoc = {
       name: normalizedName,
-      email: normalizedEmail,
-      registrationNumber: normalizedRegistrationNumber || undefined,
+      registrationNumber: normalizedRegistrationNumber,
       parentsPhoneNumber: role === 'student' ? parentsPhoneNumber.trim() : undefined,
       grade: role === 'student' ? normalizedGrade : undefined,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+      nicNumber: nicNumber ? nicNumber.trim() : '',
       password: hashedPassword,
       role,
-      studentType: role === 'student' ? 'physical' : undefined,
-      mustChangePassword: true
-    });
+      studentType: role === 'student' ? (studentType || 'physical') : undefined,
+      mustChangePassword: true,
+      isEmailVerified: !!normalizedEmail,
+      isPhoneVerified: true
+    };
+
+    if (normalizedEmail) {
+      userDoc.email = normalizedEmail;
+    }
+
+    const user = await User.create(userDoc);
 
     const createdUser = await User.findById(user._id).select('-password');
+
+    // Conditionally Link or Create Parent Account for student if requested
+    if (role === 'student' && user.parentsPhoneNumber && createParentAccount) {
+      await ensureParentAccount(user.parentsPhoneNumber, user._id, user.name);
+    }
 
     // --- TRIGGER NOTIFICATIONS ---
     try {
       if (role === 'student') {
-        sendRegistrationWelcomeEmail(user.email, user.name, user.registrationNumber);
+        if (user.email) {
+          sendRegistrationWelcomeEmail(user.email, user.name, user.registrationNumber);
+        }
 
         await Notification.create({
           recipient: user._id,
           type: 'REGISTRATION',
           title: 'Account Created',
-          message: `Welcome to LuminaLearn, ${user.name}! Your student account has been created by Administration.`,
+          message: `Welcome to LuminaLearn, ${user.name}! Your student account (${user.registrationNumber}) has been created by Administration.`,
           link: '/settings'
         });
       }
@@ -764,14 +1535,15 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     }
 
     res.status(201).json({
-      message: "User created successfully. Share the temporary password securely.",
+      message: "User created successfully. Temporary password assigned.",
       user: createdUser
     });
   } catch (err) {
     console.error("Create User Error:", err);
-    res.status(500).json({ message: "Failed to create user" });
+    res.status(500).json({ message: "Failed to create user." });
   }
 });
+
 
 // 3. UPDATE USER ROLE
 router.put('/users/:id/role', protect, async (req, res) => {
