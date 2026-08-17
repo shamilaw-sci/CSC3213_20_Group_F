@@ -485,9 +485,10 @@ const AdminDashboard = ({ user }) => {
                       <h4 className="text-sm font-bold text-slate-800">{sch.title}</h4>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-4xs text-slate-500 font-semibold mt-1">
                         <span>🕒 {sch.startTime} - {sch.endTime}</span>
-                        <span>🏫 {sch.className}</span>
                         <span>📍 {sch.room}</span>
-                        {sch.teacherId && <span>👨‍🏫 {sch.teacherId.name}</span>}
+                        {(sch.courseId?.instructor?.name || sch.teacherId?.name || sch.teacherName) && (
+                          <span>👨‍🏫 {sch.courseId?.instructor?.name || sch.teacherId?.name || sch.teacherName}</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1177,11 +1178,15 @@ const StudentDashboard = ({ user }) => {
                         </p>
                       </div>
                     </div>
-                    {sch.teacherId && (
-                      <span className="text-4xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
-                        👨‍🏫 {sch.teacherId.name}
-                      </span>
-                    )}
+                    {(() => {
+                      const teacherDisplayName = sch.courseId?.instructor?.name || sch.teacherId?.name || sch.teacherName;
+                      if (!teacherDisplayName) return null;
+                      return (
+                        <span className="text-4xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full shrink-0">
+                          👨‍🏫 {teacherDisplayName}
+                        </span>
+                      );
+                    })()}
                   </div>
                 ))
               ) : (

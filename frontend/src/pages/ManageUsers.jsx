@@ -17,6 +17,8 @@ import {
   FaChevronRight
 } from 'react-icons/fa';
 
+import StudentIdCard from '../components/StudentIdCard';
+
 const emptyStudentForm = {
   name: '',
   email: '',
@@ -61,6 +63,10 @@ const ManageUsers = () => {
   const [showConfirmBatchModal, setShowConfirmBatchModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+
+  // QR Code Pass Modal States
+  const [selectedQrStudent, setSelectedQrStudent] = useState(null);
+  const [showAllQrModal, setShowAllQrModal] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -306,6 +312,14 @@ const ManageUsers = () => {
           </button>
 
           <button
+            onClick={() => setShowAllQrModal(true)}
+            className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/80 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer shadow-2xs"
+          >
+            <FaQrcode className="text-emerald-700 text-xs" />
+            <span>View All Student QR Cards</span>
+          </button>
+
+          <button
             onClick={() => setShowAddStaffModal(true)}
             className="px-4 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200/80 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer"
           >
@@ -381,6 +395,7 @@ const ManageUsers = () => {
               <th className="p-3.5">Current Role</th>
               <th className="p-3.5">Password</th>
               <th className="p-3.5">Joined</th>
+              <th className="p-3.5 text-center">QR Pass</th>
               <th className="p-3.5 text-right pr-4">Actions</th>
             </tr>
           </thead>
@@ -478,6 +493,22 @@ const ManageUsers = () => {
                   {/* Joined Date */}
                   <td className="p-3.5 text-gray-500 text-xs">
                     {new Date(u.createdAt).toLocaleDateString()}
+                  </td>
+
+                  {/* QR Code Pass Button */}
+                  <td className="p-3.5 text-center">
+                    {u.role === 'student' ? (
+                      <button
+                        onClick={() => setSelectedQrStudent(u)}
+                        className="px-3 py-1 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200/80 font-bold text-[11px] rounded-lg transition flex items-center gap-1.5 mx-auto cursor-pointer shadow-2xs"
+                        title="View Official Student QR Pass"
+                      >
+                        <FaQrcode className="text-purple-700 text-xs" />
+                        <span>QR Pass</span>
+                      </button>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
                   </td>
 
                   {/* Actions */}
@@ -1006,6 +1037,60 @@ const ManageUsers = () => {
                   Yes, Delete User
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ========================================================================= */}
+      {selectedQrStudent && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-purple-100 relative">
+            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+              <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
+                <FaQrcode className="text-purple-700 text-lg" /> Student Official QR Pass Card
+              </h3>
+              <button
+                onClick={() => setSelectedQrStudent(null)}
+                className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:text-gray-900 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                <FaTimes className="text-xs" />
+              </button>
+            </div>
+
+            <div className="py-1">
+              <StudentIdCard user={selectedQrStudent} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* BATCH ALL STUDENTS QR CODE DIRECTORY MODAL */}
+      {/* ========================================================================= */}
+      {showAllQrModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 border border-purple-100 relative">
+            <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-black text-gray-900 text-xl flex items-center gap-2">
+                  <FaQrcode className="text-purple-700" /> Student QR Code Pass Directory
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">Overview of official QR code passes for all active institute students.</p>
+              </div>
+              <button
+                onClick={() => setShowAllQrModal(false)}
+                className="w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:text-gray-900 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {users.filter(u => u.role === 'student').map((student) => (
+                <div key={student._id} className="p-2 bg-gray-50/60 rounded-3xl border border-purple-100/80 shadow-xs">
+                  <StudentIdCard user={student} />
+                </div>
+              ))}
             </div>
           </div>
         </div>

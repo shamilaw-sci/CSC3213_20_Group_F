@@ -56,8 +56,15 @@ router.get('/', protect, async (req, res) => {
     // Admin sees all schedules (query = {})
 
     const schedules = await Schedule.find(query)
-      .populate('courseId', 'title')
-      .populate('teacherId', 'name email')
+      .populate({
+        path: 'courseId',
+        select: 'title instructor grade enrolledGrades',
+        populate: {
+          path: 'instructor',
+          select: 'name email profilePicture'
+        }
+      })
+      .populate('teacherId', 'name email profilePicture')
       .sort({ dayOfWeek: 1, startTime: 1 });
 
     res.json(schedules);
@@ -80,6 +87,14 @@ router.post('/', protect, async (req, res) => {
   }
 
   try {
+    let finalTeacherId = teacherId;
+    if (!finalTeacherId && courseId) {
+      const courseDoc = await Course.findById(courseId);
+      if (courseDoc && courseDoc.instructor) {
+        finalTeacherId = courseDoc.instructor;
+      }
+    }
+
     const schedule = await Schedule.create({
       title,
       courseId: courseId || undefined,
@@ -87,13 +102,20 @@ router.post('/', protect, async (req, res) => {
       dayOfWeek,
       startTime,
       endTime,
-      teacherId: teacherId || undefined,
+      teacherId: finalTeacherId || undefined,
       room: room || 'Main Hall'
     });
 
     const populatedSchedule = await Schedule.findById(schedule._id)
-      .populate('courseId', 'title')
-      .populate('teacherId', 'name email');
+      .populate({
+        path: 'courseId',
+        select: 'title instructor grade enrolledGrades',
+        populate: {
+          path: 'instructor',
+          select: 'name email profilePicture'
+        }
+      })
+      .populate('teacherId', 'name email profilePicture');
 
     // --- TRIGGER NOTIFICATIONS ---
     try {

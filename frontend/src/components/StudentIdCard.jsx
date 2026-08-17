@@ -73,6 +73,96 @@ const StudentIdCard = ({ user }) => {
     printWindow.document.close();
   };
 
+  const handleDownloadQrImage = () => {
+    if (!cardRef.current) return;
+    const svgElement = cardRef.current.querySelector('svg');
+    if (!svgElement) return;
+
+    try {
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const URL = window.URL || window.webkitURL || window;
+      const blobURL = URL.createObjectURL(svgBlob);
+
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = 740;
+        const ctx = canvas.getContext('2d');
+
+        // Dark Luxury Pass Background
+        const bgGradient = ctx.createLinearGradient(0, 0, 600, 740);
+        bgGradient.addColorStop(0, '#2d1b64');
+        bgGradient.addColorStop(0.5, '#1e1b4b');
+        bgGradient.addColorStop(1, '#0f172a');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Gold Accent Border
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(12, 12, 576, 716);
+
+        // Header Title
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 30px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('LuminaLearn', 300, 58);
+
+        ctx.fillStyle = '#c7d2fe';
+        ctx.font = 'extrabold 13px "Segoe UI", Arial, sans-serif';
+        ctx.fillText('OFFICIAL DIGITAL STUDENT QR PASS', 300, 84);
+
+        // White Container Box for QR Code
+        ctx.fillStyle = '#ffffff';
+        if (typeof ctx.roundRect === 'function') {
+          ctx.beginPath();
+          ctx.roundRect(60, 110, 480, 430, 24);
+          ctx.fill();
+        } else {
+          ctx.fillRect(60, 110, 480, 430);
+        }
+
+        // Draw QR Code Image inside white container
+        ctx.drawImage(image, 125, 125, 350, 350);
+
+        // Registration Number Box
+        ctx.fillStyle = '#1e1b4b';
+        ctx.font = 'bold 22px monospace';
+        ctx.fillText(regNo, 300, 515);
+
+        // Student Name Below White Container
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 32px "Segoe UI", Arial, sans-serif';
+        ctx.fillText(user.name || 'Student Name', 300, 595);
+
+        // Grade & Classroom Type
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'extrabold 20px "Segoe UI", Arial, sans-serif';
+        ctx.fillText(`${gradeStr}   •   ${user.studentType === 'physical' ? '🏫 Physical Class' : '💻 Online Student'}`, 300, 638);
+
+        // Footer Text
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '12px "Segoe UI", Arial, sans-serif';
+        ctx.fillText('Property of LuminaLearn Educational Institute • Non-Transferable', 300, 690);
+
+        const pngUrl = canvas.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        const sanitizedName = (user.name || 'Student').replace(/\s+/g, '_');
+        downloadLink.download = `Student_QR_Pass_${sanitizedName}_${regNo}.png`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(blobURL);
+      };
+      image.src = blobURL;
+    } catch (err) {
+      console.error("Failed to download QR code image", err);
+    }
+  };
+
   return (
     <div className="bg-gradient-to-br from-[#2d1b64] via-indigo-950 to-[#1e1b4b] p-6 rounded-3xl text-white shadow-xl border border-indigo-500/30 relative overflow-hidden space-y-5">
       
@@ -138,15 +228,27 @@ const StudentIdCard = ({ user }) => {
       </div>
 
       {/* Footer Actions */}
-      <div className="flex justify-between items-center pt-2">
+      <div className="flex justify-between items-center pt-2 flex-wrap gap-2">
         <span className="text-[10px] text-indigo-300 font-semibold">{studentTypeStr}</span>
-        <button
-          type="button"
-          onClick={handlePrintCard}
-          className="bg-amber-400 hover:bg-amber-500 text-purple-950 font-extrabold text-xs px-4 py-2 rounded-xl transition shadow-md cursor-pointer flex items-center gap-1.5"
-        >
-          <span>🖨️</span> Print / Save ID Card
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadQrImage}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl transition shadow-md cursor-pointer flex items-center gap-1.5"
+            title="Download crisp QR Code image (.png)"
+          >
+            <span>💾</span> Download QR (PNG)
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePrintCard}
+            className="bg-amber-400 hover:bg-amber-500 text-purple-950 font-extrabold text-xs px-3.5 py-2 rounded-xl transition shadow-md cursor-pointer flex items-center gap-1.5"
+            title="Print or save complete Student ID Pass"
+          >
+            <span>🖨️</span> Print Pass
+          </button>
+        </div>
       </div>
 
     </div>

@@ -30,6 +30,8 @@ const Courses = () => {
   const [selectedCourseForEnrollment, setSelectedCourseForEnrollment] = useState(null);
   const [selectedTeacherForModal, setSelectedTeacherForModal] = useState(null);
   const [confirmFullCourseModal, setConfirmFullCourseModal] = useState(null); // { courseId, title, isDeactive }
+  const [parentChildren, setParentChildren] = useState([]);
+  const [allSchedules, setAllSchedules] = useState([]);
   const navigate = useNavigate(); 
   const user = JSON.parse(localStorage.getItem('user'));
 
@@ -48,6 +50,17 @@ const Courses = () => {
   useEffect(() => {
     fetchCourses();
 
+    api.get('/schedules').then(res => {
+      setAllSchedules(res.data || []);
+    }).catch(() => {});
+
+    if (user?.role === 'parent') {
+      api.get('/auth/parent-summary').then(res => {
+        const cList = (res.data?.childrenData || []).map(cd => cd.child).filter(Boolean);
+        setParentChildren(cList);
+      }).catch(() => {});
+    }
+
     const handleUpdate = () => {
       fetchCourses();
     };
@@ -59,6 +72,36 @@ const Courses = () => {
       window.removeEventListener('storage', handleUpdate);
     };
   }, []);
+
+  const getCourseSchedules = (courseId) => {
+    return allSchedules.filter(s => {
+      const schCourseId = s.courseId?._id || s.courseId;
+      return String(schCourseId) === String(courseId);
+    });
+  };
+
+  const getLinkedChildEnrollment = (course) => {
+    if (!parentChildren.length) return null;
+    return parentChildren.find(child => {
+      const childId = (child._id || child.id || '').toString();
+      return course.enrolledStudents?.some(student => {
+        const sId = (student._id || student || '').toString();
+        return sId === childId;
+      });
+    });
+  };
+
+  const getGradesDisplay = (course) => {
+    // Students only see their own grade, not all grades the course is available for
+    if (user?.role === 'student' && user?.grade) {
+      const g = user.grade;
+      return g.toLowerCase().startsWith('grade') ? g : `Grade ${g}`;
+    }
+    if (course.enrolledGrades && course.enrolledGrades.length > 0) {
+      return course.enrolledGrades.map(g => g.gradeNumber || g.title).filter(Boolean).join(', ');
+    }
+    return course.grade || 'All Grades';
+  };
 
   const executeToggleFullCourseStatus = async (confirmObj) => {
     if (!confirmObj) return;
@@ -123,10 +166,10 @@ const Courses = () => {
     ? courses.filter(course => !isStudentEnrolled(course) && isGradeAllowed(course) && isStudentTypeCompatible(course) && matchesSearch(course))
     : [];
 
-  // Admin: all courses | Teacher: only their courses | Students use enrolledCourses + availableCourses
+  // Admin & Parent: all institute courses | Teacher: only their courses | Students use enrolledCourses + availableCourses
   const filteredCourses = user?.role === 'student'
     ? []
-    : (user?.role === 'admin'
+    : (user?.role === 'admin' || user?.role === 'parent'
       ? courses
       : courses.filter(course => course.instructor?._id?.toString() === user?.id?.toString())
     ).filter(course => matchesSearch(course));
@@ -148,6 +191,9 @@ const Courses = () => {
   };
 
   const handleCourseClick = (course) => {
+    if (user?.role === 'parent') {
+      return; // Parents cannot enter inner course workspace (read-only catalogue view)
+    }
     const isDeactive = course.status === 'deactive' || course.isActive === false;
     if (isDeactive) {
       if (user?.role === 'admin') {
@@ -183,13 +229,16 @@ const Courses = () => {
   const renderCourseCard = (course) => {
     const courseImg = getImageUrl(course.cardImage || course.banner);
     const isDeactive = course.status === 'deactive' || course.isActive === false;
+    const isParent = user?.role === 'parent';
 
     return (
       <div 
         key={course._id} 
         onClick={() => handleCourseClick(course)} 
-        className={`bg-white rounded-[32px] overflow-hidden shadow-sm border transition-all duration-300 group flex flex-col justify-between cursor-pointer transform hover:-translate-y-1 ${
-          isDeactive ? 'border-red-200/90 bg-red-50/20' : 'border-gray-200/80 hover:border-purple-300 hover:shadow-2xl'
+        className={`bg-white rounded-[32px] overflow-hidden shadow-sm border transition-all duration-300 group flex flex-col justify-between ${
+          isParent
+            ? 'cursor-default border-gray-200/90'
+            : 'cursor-pointer transform hover:-translate-y-1 ' + (isDeactive ? 'border-red-200/90 bg-red-50/20' : 'border-gray-200/80 hover:border-purple-300 hover:shadow-2xl')
         }`}
       >
         <div>
@@ -201,7 +250,7 @@ const Courses = () => {
                 alt={course.title}
                 loading="lazy"
                 decoding="async"
-                className="absolute inset-0 h-full w-full object-cover group-hover:scale-108 transition-transform duration-700"
+                className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 ${isParent ? '' : 'group-hover:scale-108'}`}
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
             ) : (
@@ -262,25 +311,33 @@ const Courses = () => {
                     Enrolled
                   </span>
                 )}
+                {user?.role === 'parent' && (() => {
+                  const linkedChild = getLinkedChildEnrollment(course);
+                  return linkedChild ? (
+                    <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[11px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 border border-emerald-400/40 shadow-md">
+                      ✓ Enrolled by {linkedChild.name} ({linkedChild.grade})
+                    </span>
+                  ) : null;
+                })()}
               </div>
 
               {/* Large High-Impact Course Title in Top Left Corner (Black Color with High-Contrast Text Shadow) */}
-              <h3 className="text-3xl sm:text-4xl font-black text-black tracking-tight leading-tight [text-shadow:_0_2px_8px_rgba(255,255,255,0.95)] group-hover:text-purple-900 transition-colors line-clamp-2">
+              <h3 className={`text-3xl sm:text-4xl font-black text-black tracking-tight leading-tight [text-shadow:_0_2px_8px_rgba(255,255,255,0.95)] transition-colors line-clamp-2 ${isParent ? '' : 'group-hover:text-purple-900'}`}>
                 {course.title}
               </h3>
             </div>
           </div>
         </div>
 
-        {/* Card Footer (Instructor Info) */}
-        <div className="flex items-center justify-between p-4 px-6 bg-white border-t border-gray-100 group/teacher transition-colors">
+        {/* Card Footer (Instructor Info & Grade Offerings) */}
+        <div className="flex items-center justify-between p-4 px-6 bg-white border-t border-gray-100 group/teacher transition-colors gap-2 flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-3.5">
             <div className="relative shrink-0">
               {course.instructor?.profilePicture ? (
                 <img
                   src={getImageUrl(course.instructor.profilePicture)}
                   alt={course.instructor.name || 'Instructor'}
-                  className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-600/30 group-hover/teacher:ring-purple-600 transition-all duration-300 shadow-md bg-white"
+                  className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-600/30 transition-all duration-300 shadow-md bg-white"
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               ) : (
@@ -293,12 +350,41 @@ const Courses = () => {
               <p className="text-[10px] text-purple-700 font-extrabold uppercase tracking-widest leading-none mb-1">
                 INSTRUCTOR
               </p>
-              <p className="text-slate-900 font-black text-sm group-hover/teacher:text-purple-900 transition-colors">
+              <p className="text-slate-900 font-black text-sm transition-colors">
                 {course.instructor ? course.instructor.name : 'Unassigned'}
               </p>
             </div>
           </div>
+
+          <div className="px-3.5 py-1.5 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-950 border border-purple-200/90 text-xs font-black rounded-xl shrink-0 shadow-2xs flex items-center gap-1.5 flex-wrap">
+            <span className="text-purple-900 font-extrabold">🎓 Grades:</span>
+            <span className="text-purple-950 font-black">{getGradesDisplay(course)}</span>
+          </div>
         </div>
+
+        {/* Live Timetables preview on the card for Parents / Catalogue */}
+        {(() => {
+          const cSchedules = getCourseSchedules(course._id);
+          if (cSchedules.length === 0) return null;
+          return (
+            <div className="p-4 px-6 bg-purple-50/60 border-t border-purple-100/80 space-y-2">
+              <p className="text-[10px] font-black text-purple-900 uppercase tracking-widest flex items-center gap-1">
+                <span>📅</span> Live Class Timetables:
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {cSchedules.map(sch => (
+                  <span key={sch._id} className="inline-flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-purple-200 text-[11px] font-extrabold text-slate-800 shadow-2xs">
+                    <span className="text-purple-950 font-black">🎓 {sch.className || sch.grade}</span>
+                    <span>•</span>
+                    <span className="text-amber-800 font-black">{sch.dayOfWeek}</span>
+                    <span className="text-slate-700 font-extrabold">{sch.startTime}-{sch.endTime}</span>
+                    <span className="text-purple-700 font-bold">({sch.room || 'Main Hall'})</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   };
@@ -421,10 +507,10 @@ const Courses = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
             <h2 className="text-3xl font-extrabold text-gray-800">
-              {user?.role === 'admin' ? 'All Courses' : user?.role === 'teacher' ? 'My Teaching Courses' : 'Courses'}
+              {user?.role === 'admin' ? 'All Courses' : user?.role === 'teacher' ? 'My Teaching Courses' : user?.role === 'parent' ? 'Institute Courses Catalogue' : 'Courses'}
             </h2>
             <p className="text-gray-500 mt-1">
-              {user?.role === 'admin' ? 'Manage all courses and educational content' : user?.role === 'teacher' ? 'View and manage your assigned courses' : 'Browse your enrolled and available courses'}
+              {user?.role === 'admin' ? 'Manage all courses and educational content' : user?.role === 'teacher' ? 'View and manage your assigned courses' : user?.role === 'parent' ? 'Browse all institute courses, assigned instructors, and grade offerings' : 'Browse your enrolled and available courses'}
             </p>
           </div>
         </div>
@@ -449,11 +535,11 @@ const Courses = () => {
               </h3>
               {enrolledCourses.length === 0 ? (
                 <div className="bg-white p-14 rounded-[30px] text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                  <FaBookOpen className="text-4xl text-purple-300 mb-3" />
+                  <FaBookOpen className="text-4xl text-[#2d1b64] mb-3" />
                   <p className="text-gray-500 text-lg">You haven't enrolled in any courses yet.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {enrolledCourses.map((course) => renderCourseCard(course))}
                 </div>
               )}
@@ -465,22 +551,150 @@ const Courses = () => {
                 <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                   <FaCompass className="text-[#2d1b64]" /> Available Courses
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {availableCourses.map((course) => renderAvailableCourseCard(course))}
                 </div>
               </div>
             )}
           </>
+        ) : user?.role === 'parent' ? (
+          /* Parent Role Table View */
+          <div className="bg-white rounded-[28px] border border-purple-200/80 shadow-md overflow-hidden">
+            <div className="p-6 bg-gradient-to-r from-purple-950 via-indigo-900 to-purple-900 text-white flex justify-between items-center flex-wrap gap-3">
+              <div>
+                <h3 className="text-xl font-black text-white flex items-center gap-2">
+                  <span>🏛️</span> Institute Courses Directory
+                </h3>
+                <p className="text-xs text-purple-200/90 mt-0.5">Overview of course offerings, assigned teachers, target grades, and class schedules.</p>
+              </div>
+              <span className="px-4 py-1.5 bg-amber-400 text-purple-950 font-black text-xs rounded-full shadow-sm">
+                {filteredCourses.length} Courses Available
+              </span>
+            </div>
+
+            {filteredCourses.length === 0 ? (
+              <div className="p-16 text-center text-gray-500">
+                <FaBookOpen className="text-5xl text-[#2d1b64] mx-auto mb-3" />
+                <p className="text-base font-semibold">No courses found matching your search criteria.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-purple-50/80 text-purple-950 text-xs font-black uppercase tracking-wider border-b border-purple-200/80">
+                      <th className="py-4 px-6">Course Name</th>
+                      <th className="py-4 px-6">Available Grades</th>
+                      <th className="py-4 px-6">Teacher / Instructor</th>
+                      <th className="py-4 px-6">Course Description</th>
+                      <th className="py-4 px-6">Class Timetables</th>
+                      <th className="py-4 px-6">Child Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-sm">
+                    {filteredCourses.map((course) => {
+                      const linkedChild = getLinkedChildEnrollment(course);
+                      const cSchedules = getCourseSchedules(course._id);
+                      return (
+                        <tr key={course._id} className="hover:bg-purple-50/30 transition-colors">
+                          {/* Course Name */}
+                          <td className="py-5 px-6 font-extrabold text-slate-900 align-top">
+                            <div className="space-y-1.5">
+                              <span className="text-base font-black text-purple-950 block">{course.title}</span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {course.studentType === 'online' ? (
+                                  <span className="bg-blue-100 text-blue-800 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-blue-200">
+                                    💻 Online
+                                  </span>
+                                ) : course.studentType === 'physical' ? (
+                                  <span className="bg-amber-100 text-amber-900 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-200">
+                                    🏫 Physical
+                                  </span>
+                                ) : (
+                                  <span className="bg-indigo-100 text-indigo-900 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-200">
+                                    🌐 Online & Physical
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Available Grades */}
+                          <td className="py-5 px-6 align-top">
+                            <span className="inline-block px-3.5 py-1.5 bg-purple-50 text-purple-950 border border-purple-200 text-xs font-black rounded-xl shadow-2xs">
+                              🎓 {getGradesDisplay(course)}
+                            </span>
+                          </td>
+
+                          {/* Teacher / Instructor */}
+                          <td className="py-5 px-6 align-top">
+                            <div className="flex items-center gap-3">
+                              {course.instructor?.profilePicture ? (
+                                <img
+                                  src={getImageUrl(course.instructor.profilePicture)}
+                                  alt={course.instructor.name || 'Teacher'}
+                                  className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-600/20 shadow-xs shrink-0 bg-white"
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              ) : (
+                                <div className="w-10 h-10 bg-purple-900 text-white rounded-full flex items-center justify-center font-extrabold text-sm ring-2 ring-purple-600/20 shrink-0">
+                                  {course.instructor ? course.instructor.name.charAt(0) : '?'}
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-extrabold text-slate-900 text-sm">{course.instructor ? course.instructor.name : 'Unassigned'}</p>
+                                <p className="text-[11px] text-purple-700 font-bold uppercase tracking-wider">Instructor</p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Course Description */}
+                          <td className="py-5 px-6 align-top text-gray-600 font-medium text-xs max-w-xs leading-relaxed">
+                            {course.description || 'No description provided.'}
+                          </td>
+
+                          {/* Class Timetables */}
+                          <td className="py-5 px-6 align-top">
+                            {cSchedules.length === 0 ? (
+                              <span className="text-xs text-gray-400 font-medium">No live timetable</span>
+                            ) : (
+                              <div className="space-y-1.5">
+                                {cSchedules.map((sch) => (
+                                  <div key={sch._id} className="text-xs font-bold text-slate-800 bg-purple-50/60 border border-purple-200/80 px-2.5 py-1 rounded-lg">
+                                    <span className="text-purple-950 font-black">🎓 {sch.className || sch.grade}</span>: <span className="text-amber-800 font-black">{sch.dayOfWeek}</span> ({sch.startTime}-{sch.endTime})
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Child Status */}
+                          <td className="py-5 px-6 align-top">
+                            {linkedChild ? (
+                              <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-black px-3 py-1 rounded-full inline-block shadow-2xs">
+                                ✓ Enrolled by {linkedChild.name} ({linkedChild.grade})
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-400 font-medium">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         ) : (
           <>
-            {/* Admin / Teacher View */}
+            {/* Admin / Teacher Catalogue View */}
             {filteredCourses.length === 0 ? (
               <div className="bg-white p-20 rounded-[30px] text-center shadow-sm flex flex-col items-center justify-center">
-                <FaBookOpen className="text-5xl text-purple-300 mb-4" />
+                <FaBookOpen className="text-5xl text-[#2d1b64] mb-4" />
                 <p className="text-gray-500 text-lg">No courses found matching your criteria.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {filteredCourses.map((course) => renderCourseCard(course))}
               </div>
             )}
