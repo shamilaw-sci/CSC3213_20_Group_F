@@ -243,50 +243,59 @@ const sendRegistrationWelcomeEmail = async (toEmail, userName, registrationNumbe
   }
 };
 
-/**
- * Sends Class Announcement / Postponement Email
- */
 const sendClassAnnouncementEmail = async (recipients = [], subject, messageText, classTitle = '') => {
-  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD || recipients.length === 0) return;
+  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD || !recipients || recipients.length === 0) return;
 
-  const mailOptions = {
-    from: `"LuminaLearn Announcements" <${process.env.SMTP_EMAIL}>`,
-    bcc: recipients, // send using bcc for privacy across recipients
-    subject: subject || `Important Announcement: ${classTitle}`,
-    html: `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; padding: 30px 15px;">
-        <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
-          <div style="background: linear-gradient(135deg, #e11d48, #be123c); padding: 25px; color: #ffffff; text-align: center;">
-            <h1 style="margin: 0; font-size: 20px; font-weight: 700;">Class Notice 📢</h1>
-            <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">${classTitle || 'LuminaLearn Announcement'}</p>
-          </div>
+  const validRecipients = [...new Set(recipients.filter(e => Boolean(e && String(e).trim())))];
+  if (validRecipients.length === 0) return;
 
-          <div style="padding: 25px; color: #334155;">
-            <div style="background-color: #fff1f2; border-left: 4px solid #e11d48; padding: 15px; border-radius: 4px; margin: 15px 0;">
-              <p style="margin: 0; font-size: 14px; color: #9f1239; line-height: 1.6;">${messageText}</p>
+  const batchSize = 40;
+  const results = [];
+
+  for (let i = 0; i < validRecipients.length; i += batchSize) {
+    const chunk = validRecipients.slice(i, i + batchSize);
+
+    const mailOptions = {
+      from: `"LuminaLearn Announcements" <${process.env.SMTP_EMAIL}>`,
+      bcc: chunk, // send using bcc for privacy across recipients
+      subject: subject || `Important Announcement: ${classTitle}`,
+      html: `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; padding: 30px 15px;">
+          <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+            <div style="background: linear-gradient(135deg, #e11d48, #be123c); padding: 25px; color: #ffffff; text-align: center;">
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700;">Class Notice 📢</h1>
+              <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">${classTitle || 'LuminaLearn Announcement'}</p>
             </div>
-            <p style="font-size: 13px; color: #64748b;">
-              Please check your student portal for any updated timetable or schedule adjustments.
-            </p>
-          </div>
 
-          <div style="background-color: #f8fafc; padding: 15px; text-align: center; border-top: 1px solid #f1f5f9;">
-            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-              © ${new Date().getFullYear()} LuminaLearn Smart Learning Platform.
-            </p>
+            <div style="padding: 25px; color: #334155;">
+              <div style="background-color: #fff1f2; border-left: 4px solid #e11d48; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                <p style="margin: 0; font-size: 14px; color: #9f1239; line-height: 1.6;">${messageText}</p>
+              </div>
+              <p style="font-size: 13px; color: #64748b;">
+                Please check your student portal for any updated timetable or schedule adjustments.
+              </p>
+            </div>
+
+            <div style="background-color: #f8fafc; padding: 15px; text-align: center; border-top: 1px solid #f1f5f9;">
+              <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                © ${new Date().getFullYear()} LuminaLearn Smart Learning Platform.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    `
-  };
+      `
+    };
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Class announcement email sent to ${recipients.length} recipients. ID: ${info.messageId}`);
-    return info;
-  } catch (error) {
-    console.error('❌ Failed to send announcement email:', error.message);
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`✅ Class announcement email chunk sent to ${chunk.length} recipients. ID: ${info.messageId}`);
+      results.push(info);
+    } catch (error) {
+      console.error('❌ Failed to send announcement email chunk:', error.message);
+    }
   }
+
+  return results;
 };
 
 /**

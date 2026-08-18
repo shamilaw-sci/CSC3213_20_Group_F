@@ -292,6 +292,20 @@ router.post('/unenroll', protect, isAdmin, async (req, res) => {
             course: courseId
         });
 
+        // Trigger Notification to Student
+        try {
+            await Notification.create({
+                recipient: studentId,
+                type: 'GENERAL',
+                title: 'Course Enrollment Update',
+                message: `You have been unenrolled from '${course.title}' (${className.trim()}) by Administration.`,
+                link: '/courses',
+                metadata: { courseId: course._id, className: className.trim() }
+            });
+        } catch (notifErr) {
+            console.error('Unenroll notification error:', notifErr.message);
+        }
+
         res.status(200).json({ message: "Student removed from class successfully." });
     } catch (err) {
         console.error("Unenroll student error:", err);
@@ -933,21 +947,33 @@ router.post('/:id/send-message', protect, async (req, res) => {
         grade.messages.push({ text, sender: req.user._id });
         await course.save();
 
-        // --- TRIGGER NOTIFICATIONS FOR GRADE STUDENTS ---
+        // --- TRIGGER NOTIFICATIONS FOR ENROLLED GRADE STUDENTS ---
         try {
             const targetGradeName = String(gradeNumber).trim();
-            const students = await User.find({ role: 'student', grade: new RegExp(targetGradeName, 'i') }).select('_id');
-            const notifDocs = students.map(st => ({
-                recipient: st._id,
-                sender: req.user._id,
-                type: 'GENERAL',
-                title: `New Message in ${course.title}`,
-                message: text,
-                link: '/courses',
-                metadata: { courseId: course._id, gradeNumber }
-            }));
-            if (notifDocs.length > 0) {
-                await Notification.insertMany(notifDocs);
+            const enrolledStudentIds = course.enrolledStudents || [];
+            
+            if (enrolledStudentIds.length > 0) {
+                const students = await User.find({ 
+                    _id: { $in: enrolledStudentIds }, 
+                    role: 'student', 
+                    grade: new RegExp(targetGradeName, 'i') 
+                }).select('_id');
+
+                const notifDocs = students
+                    .filter(st => st._id.toString() !== req.user._id.toString())
+                    .map(st => ({
+                        recipient: st._id,
+                        sender: req.user._id,
+                        type: 'GENERAL',
+                        title: `New Message in ${course.title}`,
+                        message: text,
+                        link: '/courses',
+                        metadata: { courseId: course._id, gradeNumber }
+                    }));
+
+                if (notifDocs.length > 0) {
+                    await Notification.insertMany(notifDocs);
+                }
             }
         } catch (notifErr) {
             console.error('Course message notification error:', notifErr.message);

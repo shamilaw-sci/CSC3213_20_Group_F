@@ -6,10 +6,13 @@ const formatSriLankaPhone = (phone) => {
   if (!phone) return '';
   let cleaned = String(phone).replace(/\D/g, '');
   if (cleaned.startsWith('94')) {
-    return `+${cleaned}`;
-  }
-  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(2);
+  } else if (cleaned.startsWith('0')) {
     cleaned = cleaned.substring(1);
+  }
+  // Sri Lankan mobile/landline numbers typically have 9 digits after 0/+94 (e.g. 71XXXXXXX)
+  if (cleaned.length < 8 || cleaned.length > 10) {
+    return '';
   }
   return `+94${cleaned}`;
 };
@@ -32,7 +35,7 @@ const sendSMS = async ({ phone, message, otpCode, studentName = 'Student' }) => 
   const formattedPhone = formatSriLankaPhone(phone);
 
   if (!formattedPhone) {
-    console.warn('⚠️ [SMS CANCELLED]: Invalid or missing phone number.');
+    console.warn('⚠️ [SMS CANCELLED]: Invalid or missing phone number:', phone);
     return { success: false, reason: 'Invalid phone number' };
   }
 
@@ -106,18 +109,21 @@ const sendPaymentSMS = async ({ parentPhone, studentName, courseTitle, amount, d
 };
 
 /**
- * Send Bulk Notification / Class Postponement SMS to multiple recipients
+ * Send Bulk Notification / Class Postponement SMS to multiple recipients in concurrent batches
  */
 const sendBulkSMS = async ({ phoneNumbers = [], message, classTitle = '' }) => {
-  const results = [];
   const fullMessage = classTitle ? `[LuminaLearn - ${classTitle}] ${message}` : `[LuminaLearn Notice] ${message}`;
-  
-  for (const phone of phoneNumbers) {
-    if (phone) {
-      const res = await sendSMS({ phone, message: fullMessage, studentName: 'Recipient' });
-      results.push(res);
-    }
+  const validPhones = [...new Set(phoneNumbers.filter(p => Boolean(p && String(p).trim())))];
+  const results = [];
+  const chunkSize = 10;
+
+  for (let i = 0; i < validPhones.length; i += chunkSize) {
+    const chunk = validPhones.slice(i, i + chunkSize);
+    const chunkPromises = chunk.map(phone => sendSMS({ phone, message: fullMessage, studentName: 'Recipient' }));
+    const chunkResults = await Promise.allSettled(chunkPromises);
+    results.push(...chunkResults.map(r => r.status === 'fulfilled' ? r.value : { success: false, error: r.reason?.message }));
   }
+
   return results;
 };
 

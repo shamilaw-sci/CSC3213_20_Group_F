@@ -21,6 +21,7 @@ const NotificationSchema = new mongoose.Schema({
     enum: [
       'PAYMENT',
       'REGISTRATION',
+      'ENROLLMENT',
       'ATTENDANCE',
       'COURSE_ADDED',
       'NEW_CONTENT',
@@ -64,5 +65,6 @@ const NotificationSchema = new mongoose.Schema({
 
 // Index for efficient querying by recipient and role
 NotificationSchema.index({ recipient: 1, recipientRole: 1, createdAt: -1 });
+NotificationSchema.index({ readBy: 1 });
 
 module.exports = mongoose.model('Notification', NotificationSchema);

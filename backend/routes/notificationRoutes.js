@@ -90,7 +90,8 @@ router.put('/:id/read', protect, async (req, res) => {
     if (notif.recipient && notif.recipient.toString() === userId.toString()) {
       notif.isRead = true;
     } else {
-      if (!notif.readBy.includes(userId)) {
+      const alreadyRead = notif.readBy && notif.readBy.some(id => id.toString() === userId.toString());
+      if (!alreadyRead) {
         notif.readBy.push(userId);
       }
     }
@@ -137,7 +138,7 @@ router.put('/read-all', protect, async (req, res) => {
 // 4. BROADCAST ANNOUNCEMENT (TEACHERS / ADMINS)
 // ==========================================
 router.post('/broadcast', protect, async (req, res) => {
-  const { role } = req.user;
+  const { role, _id: senderId } = req.user;
   if (role !== 'admin' && role !== 'teacher') {
     return res.status(403).json({ error: 'Access denied. Teachers and Admins only.' });
   }
@@ -158,17 +159,35 @@ router.post('/broadcast', protect, async (req, res) => {
   try {
     let studentQuery = { role: 'student' };
 
-    // Filter by targeted grade if specified
-    if (targetGrade) {
-      studentQuery.grade = new RegExp(targetGrade, 'i');
+    // Teacher Permission & Scope Check
+    if (role === 'teacher') {
+      if (courseId) {
+        const teacherCourse = await Course.findById(courseId);
+        if (!teacherCourse) {
+          return res.status(404).json({ error: 'Course not found.' });
+        }
+        if (!teacherCourse.instructor || teacherCourse.instructor.toString() !== senderId.toString()) {
+          return res.status(403).json({ error: 'You are only authorized to broadcast to courses you instruct.' });
+        }
+      } else if (!targetGrade) {
+        // Teacher must specify a course or target grade
+        return res.status(403).json({ error: 'Teachers must specify a targeted course or grade for announcements.' });
+      }
     }
 
     // Filter by course enrollment if specified
     if (courseId) {
       const course = await Course.findById(courseId);
-      if (course && course.enrolledStudents && course.enrolledStudents.length > 0) {
-        studentQuery._id = { $in: course.enrolledStudents };
+      if (!course) {
+        return res.status(404).json({ error: 'Course not found.' });
       }
+      const enrolledStudentIds = course.enrolledStudents || [];
+      studentQuery._id = { $in: enrolledStudentIds };
+    }
+
+    // Filter by targeted grade if specified
+    if (targetGrade) {
+      studentQuery.grade = new RegExp(targetGrade.trim(), 'i');
     }
 
     const targetStudents = await User.find(studentQuery).select('name email parentsPhoneNumber grade');
@@ -190,7 +209,7 @@ router.post('/broadcast', protect, async (req, res) => {
           await Notification.insertMany(notifDocs);
         }
       } else {
-        // Global student broadcast
+        // Global student broadcast (Admin only)
         await Notification.create({
           recipientRole: 'student',
           sender: req.user._id,
@@ -203,34 +222,34 @@ router.post('/broadcast', protect, async (req, res) => {
       }
     }
 
-    // 2. SMS Dispatch to Parents
+    // 2. SMS Dispatch to Parents (Async Background)
     if (channels.includes('sms')) {
       const parentPhones = targetStudents
         .map(s => s.parentsPhoneNumber)
         .filter(p => p && p.trim() !== '');
 
       if (parentPhones.length > 0) {
-        await sendBulkSMS({
+        sendBulkSMS({
           phoneNumbers: parentPhones,
           message: `${title}: ${message}`,
-          classTitle: targetGrade ? `Grade ${targetGrade}` : 'Class Alert'
-        });
+          classTitle: targetGrade ? `Grade ${targetGrade}` : (courseId ? 'Course Alert' : 'Class Alert')
+        }).catch(smsErr => console.error('Background Broadcast SMS Error:', smsErr));
       }
     }
 
-    // 3. Email Dispatch to Students
+    // 3. Email Dispatch to Students (Async Background)
     if (channels.includes('email')) {
       const studentEmails = targetStudents
         .map(s => s.email)
         .filter(e => e && e.trim() !== '');
 
       if (studentEmails.length > 0) {
-        await sendClassAnnouncementEmail(
+        sendClassAnnouncementEmail(
           studentEmails,
           `LuminaLearn Notice: ${title}`,
           message,
-          targetGrade ? `Grade ${targetGrade}` : 'General Notice'
-        );
+          targetGrade ? `Grade ${targetGrade}` : (courseId ? 'Course Notice' : 'General Notice')
+        ).catch(emailErr => console.error('Background Broadcast Email Error:', emailErr));
       }
     }
 

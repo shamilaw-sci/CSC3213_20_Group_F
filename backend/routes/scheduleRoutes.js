@@ -120,9 +120,9 @@ router.post('/', protect, async (req, res) => {
     // --- TRIGGER NOTIFICATIONS ---
     try {
       // 1. Notify Assigned Teacher
-      if (teacherId) {
+      if (finalTeacherId) {
         await Notification.create({
-          recipient: teacherId,
+          recipient: finalTeacherId,
           type: 'GENERAL',
           title: 'New Class Schedule Assigned',
           message: `You have been scheduled for '${title}' (${className}) on ${dayOfWeek} from ${startTime} to ${endTime}.`,
@@ -130,9 +130,17 @@ router.post('/', protect, async (req, res) => {
         });
       }
 
-      // 2. Notify Target Grade Students
+      // 2. Notify Targeted Students
       const targetGradeName = String(className).trim();
-      const students = await User.find({ role: 'student', grade: new RegExp(targetGradeName, 'i') }).select('_id');
+      let studentFilter = { role: 'student', grade: new RegExp(targetGradeName, 'i') };
+
+      if (courseId) {
+        const targetCourse = await Course.findById(courseId);
+        const enrolledStudentIds = targetCourse?.enrolledStudents || [];
+        studentFilter._id = { $in: enrolledStudentIds };
+      }
+
+      const students = await User.find(studentFilter).select('_id');
       const notifDocs = students.map(st => ({
         recipient: st._id,
         type: 'GENERAL',
@@ -140,6 +148,7 @@ router.post('/', protect, async (req, res) => {
         message: `'${title}' (${className}) has been scheduled for ${dayOfWeek} from ${startTime} to ${endTime} in ${room || 'Main Hall'}.`,
         link: '/dashboard'
       }));
+
       if (notifDocs.length > 0) {
         await Notification.insertMany(notifDocs);
       }
@@ -164,10 +173,52 @@ router.delete('/:id', protect, async (req, res) => {
   }
 
   try {
-    const schedule = await Schedule.findByIdAndDelete(req.params.id);
+    const schedule = await Schedule.findById(req.params.id)
+      .populate('courseId')
+      .populate('teacherId');
+
     if (!schedule) {
       return res.status(404).json({ message: "Schedule entry not found" });
     }
+
+    await Schedule.findByIdAndDelete(req.params.id);
+
+    // Notify affected teacher and students about schedule removal/cancellation
+    try {
+      if (schedule.teacherId) {
+        await Notification.create({
+          recipient: schedule.teacherId._id || schedule.teacherId,
+          type: 'CLASS_POSTPONED',
+          title: 'Class Schedule Cancelled',
+          message: `The schedule for '${schedule.title}' (${schedule.className}) on ${schedule.dayOfWeek} (${schedule.startTime} - ${schedule.endTime}) has been removed.`,
+          link: '/dashboard'
+        });
+      }
+
+      const targetGradeName = String(schedule.className).trim();
+      let studentFilter = { role: 'student', grade: new RegExp(targetGradeName, 'i') };
+
+      if (schedule.courseId) {
+        const enrolledStudentIds = schedule.courseId.enrolledStudents || [];
+        studentFilter._id = { $in: enrolledStudentIds };
+      }
+
+      const students = await User.find(studentFilter).select('_id');
+      const notifDocs = students.map(st => ({
+        recipient: st._id,
+        type: 'CLASS_POSTPONED',
+        title: 'Class Schedule Cancelled',
+        message: `'${schedule.title}' (${schedule.className}) on ${schedule.dayOfWeek} (${schedule.startTime} - ${schedule.endTime}) has been cancelled/removed from the timetable.`,
+        link: '/dashboard'
+      }));
+
+      if (notifDocs.length > 0) {
+        await Notification.insertMany(notifDocs);
+      }
+    } catch (notifErr) {
+      console.error('Schedule deletion notification error:', notifErr.message);
+    }
+
     res.json({ message: "Schedule entry deleted successfully" });
   } catch (err) {
     console.error("Delete Schedule Error:", err);

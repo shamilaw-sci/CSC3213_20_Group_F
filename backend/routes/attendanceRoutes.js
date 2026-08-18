@@ -102,6 +102,25 @@ router.post('/', protect, async (req, res) => {
         newAttendance.notificationSentParent = true;
       }
 
+      // 6c. In-App Notification for Linked Parents
+      const parents = await User.find({
+        role: 'parent',
+        $or: [
+          { linkedStudents: student._id },
+          ...(student.parentsPhoneNumber ? [{ parentsPhoneNumber: student.parentsPhoneNumber }, { phoneNumber: student.parentsPhoneNumber }] : [])
+        ]
+      });
+
+      for (const parentUser of parents) {
+        await Notification.create({
+          recipient: parentUser._id,
+          type: 'ATTENDANCE',
+          title: `Attendance Marked: ${student.name}`,
+          message: `${student.name} was marked '${status}' for ${classTitle} on ${formattedDate}.`,
+          link: '/parent-dashboard'
+        });
+      }
+
       await newAttendance.save();
     } catch (notifErr) {
       console.error('Attendance notification error:', notifErr.message);

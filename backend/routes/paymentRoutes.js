@@ -510,8 +510,9 @@ router.post('/submit-bank-slip', protect, async (req, res) => {
       paymentDate: new Date()
     });
 
-    // Notify Admins
+    // Notify Admins & Student
     try {
+      // 1. In-App Notification for Admin
       await Notification.create({
         recipientRole: 'admin',
         type: 'PAYMENT',
@@ -519,6 +520,16 @@ router.post('/submit-bank-slip', protect, async (req, res) => {
         message: `${student.name} uploaded a bank slip of LKR ${finalAmount.toLocaleString()} for '${course.title}'. Pending Approval.`,
         link: '/enrollments',
         metadata: { paymentId: newPayment._id, studentId, courseId, amount: finalAmount }
+      });
+
+      // 2. In-App Notification for Student
+      await Notification.create({
+        recipient: studentId,
+        type: 'PAYMENT',
+        title: 'Bank Slip Uploaded',
+        message: `Your bank deposit slip for '${course.title}' (LKR ${finalAmount.toLocaleString()}) has been uploaded and is pending Admin verification.`,
+        link: '/payments',
+        metadata: { paymentId: newPayment._id, courseId, amount: finalAmount }
       });
     } catch (notifErr) {
       console.error('Notification error:', notifErr.message);
@@ -640,6 +651,17 @@ router.put('/:id/approve-slip', protect, isAdmin, async (req, res) => {
             paymentMethod: 'Bank Slip Deposit (Approved)'
           });
         }
+
+        if (student.parentsPhoneNumber) {
+          sendPaymentSMS({
+            parentPhone: student.parentsPhoneNumber,
+            studentName: student.name,
+            courseTitle: course.title,
+            amount: payment.amount,
+            date: payment.paymentDate || new Date(),
+            transactionId: payment.transactionId
+          });
+        }
       } catch (notifErr) {
         console.error('Approve slip notification error:', notifErr.message);
       }
@@ -677,7 +699,7 @@ router.put('/:id/reject-slip', protect, isAdmin, async (req, res) => {
     payment.rejectionReason = rejectionReason || 'Bank deposit slip could not be verified by institute administration.';
     await payment.save();
 
-    // In-App Notification for Student
+    // Notifications for Student
     if (payment.student) {
       try {
         await Notification.create({
@@ -688,6 +710,15 @@ router.put('/:id/reject-slip', protect, isAdmin, async (req, res) => {
           link: '/courses',
           metadata: { paymentId: payment._id }
         });
+
+        if (payment.student.email) {
+          sendClassAnnouncementEmail(
+            [payment.student.email],
+            `LuminaLearn: Bank Slip Status Update`,
+            `Your bank deposit slip for course '${payment.course?.title || 'Course'}' was not approved. Reason: "${payment.rejectionReason}". Please log into your portal to upload a verified receipt.`,
+            'Payment Verification'
+          );
+        }
       } catch (notifErr) {
         console.error('Reject slip notification error:', notifErr.message);
       }
