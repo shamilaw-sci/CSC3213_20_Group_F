@@ -21,11 +21,14 @@ import StudentIdCard from '../components/StudentIdCard';
 
 const emptyStudentForm = {
   name: '',
+  hasEmail: true,
   email: '',
   registrationNumber: '',
   parentsPhoneNumber: '',
   grade: '',
-  temporaryPassword: ''
+  dateOfBirth: '',
+  studentType: 'physical',
+  temporaryPassword: 'Student@123'
 };
 
 const emptyAdminForm = {
@@ -58,6 +61,7 @@ const ManageUsers = () => {
 
   // Modal Visibility States
   const [showRegisterStudentModal, setShowRegisterStudentModal] = useState(false);
+  const [showParentPromptModal, setShowParentPromptModal] = useState(false);
   const [showBatchGradeModal, setShowBatchGradeModal] = useState(false);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [showConfirmBatchModal, setShowConfirmBatchModal] = useState(false);
@@ -95,25 +99,60 @@ const ManageUsers = () => {
     }));
   };
 
-  const handleCreateStudent = async (e) => {
+  const handleAutoGenerateRegNo = () => {
+    const digitsMatch = String(studentForm.grade || '').match(/\d+/);
+    const gradeNum = digitsMatch ? digitsMatch[0].padStart(2, '0') : '00';
+    const year = new Date().getFullYear();
+    const randomSeq = Math.floor(1000 + Math.random() * 9000);
+    const prefix = studentForm.studentType === 'online' ? 'OL' : 'REG';
+    const generated = `${prefix}-G${gradeNum}-${year}-${randomSeq}`;
+    handleStudentFieldChange('registrationNumber', generated);
+    toast.success(`Generated: ${generated}`);
+  };
+
+  // Called when Admin submits the registration form -> Opens Parent Account Prompt Modal
+  const handleOpenParentPrompt = (e) => {
     e.preventDefault();
+    if (!studentForm.name || !studentForm.parentsPhoneNumber || !studentForm.grade) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+    if (studentForm.hasEmail && !studentForm.email) {
+      toast.error("Please enter email address or select 'Phone Only'.");
+      return;
+    }
+    setShowParentPromptModal(true);
+  };
+
+  // Executes the creation with user's answer for Parent Account
+  const executeCreateStudent = async (createParentAccount) => {
     setCreating(true);
 
     try {
       const res = await api.post(
         '/auth/users',
         {
-          ...studentForm,
+          name: studentForm.name,
+          email: studentForm.hasEmail ? studentForm.email : undefined,
+          registrationNumber: studentForm.registrationNumber || undefined,
+          parentsPhoneNumber: studentForm.parentsPhoneNumber,
+          grade: studentForm.grade,
+          dateOfBirth: studentForm.dateOfBirth ? studentForm.dateOfBirth : undefined,
+          temporaryPassword: studentForm.temporaryPassword,
           role: 'student',
-          studentType: 'physical'
+          studentType: studentForm.studentType || 'physical',
+          createParentAccount
         }
       );
 
       setUsers((currentUsers) => [res.data.user, ...currentUsers]);
       setStudentForm(emptyStudentForm);
+      setShowParentPromptModal(false);
       setShowRegisterStudentModal(false);
       setActiveTab('student');
-      toast.success('Student account created. Temporary password change is required on first login.');
+      
+      const parentMsg = createParentAccount ? ' Parent account linked!' : ' (No parent account created).';
+      toast.success(`Student account created for ${res.data.user.name}.${parentMsg}`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create student');
     } finally {
@@ -127,6 +166,7 @@ const ManageUsers = () => {
       [field]: value
     }));
   };
+
 
   const handleCreateStaff = async (e) => {
     e.preventDefault();
@@ -599,14 +639,62 @@ const ManageUsers = () => {
                 <div>
                   <h3 className="text-xl font-extrabold tracking-tight">Register New Student</h3>
                   <p className="text-indigo-200 text-xs mt-0.5">
-                    Create student accounts after physical institute registration.
+                    Admin Manual Registration (Automatically Verified, Auto Parent Account Linking)
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleCreateStudent} className="p-6 md:p-8 space-y-5">
+            <form onSubmit={handleOpenParentPrompt} className="p-6 md:p-8 space-y-4">
+
+              {/* Registration Options Bar */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-purple-50/60 p-3 rounded-2xl border border-purple-100">
+                {/* Email Option Toggle */}
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950 mb-1">
+                    Email Account Option
+                  </label>
+                  <div className="flex bg-white p-1 rounded-xl border border-purple-200">
+                    <button
+                      type="button"
+                      onClick={() => handleStudentFieldChange('hasEmail', true)}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                        studentForm.hasEmail ? 'bg-purple-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      ✉️ With Email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleStudentFieldChange('hasEmail', false);
+                        handleStudentFieldChange('email', '');
+                      }}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                        !studentForm.hasEmail ? 'bg-purple-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      📱 Phone Only
+                    </button>
+                  </div>
+                </div>
+
+                {/* Student Type Selector */}
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950 mb-1">
+                    Student Type / Mode
+                  </label>
+                  <select
+                    value={studentForm.studentType}
+                    onChange={(e) => handleStudentFieldChange('studentType', e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-bold text-slate-800 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="physical">🏛️ Physical Classroom Student</option>
+                    <option value="online">💻 Online Student</option>
+                  </select>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -625,34 +713,57 @@ const ManageUsers = () => {
                   />
                 </div>
 
-                {/* Email Address */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="kasun@example.com"
-                    value={studentForm.email}
-                    onChange={(e) => handleStudentFieldChange('email', e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
-                    required
-                  />
-                </div>
+                {/* Email Address (Conditional) */}
+                {studentForm.hasEmail ? (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="kasun@example.com"
+                      value={studentForm.email}
+                      onChange={(e) => handleStudentFieldChange('email', e.target.value)}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                      Email Address (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      disabled
+                      placeholder="No email provided (Phone Registration)"
+                      className="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-xs text-gray-400 italic cursor-not-allowed"
+                    />
+                  </div>
+                )}
 
-                {/* Registration Number */}
+                {/* Registration Number with Auto-Generate */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Registration Number <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Registration Number
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleAutoGenerateRegNo}
+                      className="text-[10px] font-bold text-purple-700 hover:text-purple-900 bg-purple-100 hover:bg-purple-200 px-2 py-0.5 rounded-md transition cursor-pointer"
+                    >
+                      ⚡ Auto-Generate
+                    </button>
+                  </div>
                   <input
                     type="text"
-                    placeholder="e.g. REG-2026-0891"
+                    placeholder="e.g. REG-G10-2026-1234 or leave blank"
                     value={studentForm.registrationNumber}
                     onChange={(e) => handleStudentFieldChange('registrationNumber', e.target.value)}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-mono font-bold"
-                    required
                   />
+                  <p className="text-[10px] text-gray-400 mt-1">If left blank, system will auto-assign upon save.</p>
                 </div>
 
                 {/* Parent's Phone */}
@@ -688,14 +799,28 @@ const ManageUsers = () => {
                   </select>
                 </div>
 
+                {/* Date of Birth (Birthday) */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Date of Birth (Birthday)
+                  </label>
+                  <input
+                    type="date"
+                    max={new Date().toISOString().split('T')[0]}
+                    value={studentForm.dateOfBirth}
+                    onChange={(e) => handleStudentFieldChange('dateOfBirth', e.target.value)}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold cursor-pointer"
+                  />
+                </div>
+
                 {/* Temporary Password */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                     Temporary Password <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="password"
-                    placeholder="••••••••"
+                    type="text"
+                    placeholder="Student@123"
                     value={studentForm.temporaryPassword}
                     onChange={(e) => handleStudentFieldChange('temporaryPassword', e.target.value)}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
@@ -703,6 +828,17 @@ const ManageUsers = () => {
                   />
                 </div>
 
+              </div>
+
+              {/* Notice Box */}
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-900 text-xs flex gap-2 items-start">
+                <span className="text-base">👨‍👩‍👧</span>
+                <div>
+                  <p className="font-semibold text-amber-950">Parent Account Setup Option</p>
+                  <p className="text-[11px] text-amber-700 leading-relaxed mt-0.5">
+                    You will be prompted whether to create or link a parent account associated with this phone number after clicking the button below.
+                  </p>
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -719,20 +855,81 @@ const ManageUsers = () => {
                   disabled={creating}
                   className="px-6 py-2.5 bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  {creating ? (
-                    <>
-                      <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
-                      Creating Account...
-                    </>
-                  ) : (
-                    <>
-                      <FaCheckCircle className="text-amber-400" /> Create Student Account
-                    </>
-                  )}
+                  <FaCheckCircle className="text-amber-400" /> Continue to Register
                 </button>
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* POPUP MODAL 1.5: CONFIRM PARENT ACCOUNT CREATION */}
+      {/* ========================================================================= */}
+      {showParentPromptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white text-center relative">
+              <button
+                onClick={() => setShowParentPromptModal(false)}
+                className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition cursor-pointer"
+              >
+                <FaTimes />
+              </button>
+
+              <div className="w-14 h-14 rounded-2xl bg-white/10 mx-auto flex items-center justify-center mb-3 border border-white/20 shadow-inner">
+                <span className="text-2xl">👨‍👩‍👧</span>
+              </div>
+
+              <h3 className="text-xl font-extrabold tracking-tight">Parent Account Setup</h3>
+              <p className="text-indigo-200 text-xs mt-1">
+                Parent monitoring account configuration for {studentForm.name}
+              </p>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 md:p-8 space-y-5">
+              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 text-purple-950 text-xs leading-relaxed">
+                <p className="font-bold text-sm text-purple-900 mb-1">
+                  Create Parent Account for this student?
+                </p>
+                <p className="text-purple-800">
+                  Do you want to create or link a parent account associated with phone number <strong>{studentForm.parentsPhoneNumber}</strong>?
+                </p>
+                <div className="mt-2.5 pt-2 border-t border-purple-200/80 text-[11px] text-purple-700">
+                  🔑 Default temporary password: <strong className="font-mono text-purple-900">Parent@123</strong> (Mandatory password change on 1st login).
+                </div>
+              </div>
+
+              <div className="space-y-2.5 pt-1">
+                <button
+                  type="button"
+                  disabled={creating}
+                  onClick={() => executeCreateStudent(true)}
+                  className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {creating ? (
+                    <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                  ) : (
+                    <>
+                      <FaCheckCircle className="text-white text-sm" /> Yes, Create / Link Parent Account
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={creating}
+                  onClick={() => executeCreateStudent(false)}
+                  className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  No, Create Student Account Only
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

@@ -85,6 +85,22 @@ const startServer = async () => {
         });
         console.log("MongoDB Connected! 🚀");
 
+        // Ensure users collection email index is sparse to allow multiple email-less accounts
+        try {
+            const User = require('./models/User');
+            const indexes = await User.collection.indexes();
+            const emailIndex = indexes.find(idx => idx.name === 'email_1');
+            if (emailIndex && !emailIndex.sparse) {
+                console.log("🔄 Dropping outdated non-sparse email_1 index...");
+                await User.collection.dropIndex('email_1');
+                console.log("✨ Creating sparse unique index for email_1...");
+                await User.collection.createIndex({ email: 1 }, { unique: true, sparse: true });
+                console.log("✅ email_1 sparse index successfully synced!");
+            }
+        } catch (indexSyncErr) {
+            console.warn("Index check note:", indexSyncErr.message);
+        }
+
         // Run data migration (Base64 images to disk & Enrollments collection)
         try {
             const { migrateData } = require('./utils/migration');

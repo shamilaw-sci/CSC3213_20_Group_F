@@ -2,7 +2,22 @@ const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  email: { 
+    type: String, 
+    unique: true, 
+    sparse: true, 
+    lowercase: true, 
+    trim: true,
+    default: undefined 
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  isPhoneVerified: {
+    type: Boolean,
+    default: false
+  },
   registrationNumber: {
     type: String,
     unique: true,
@@ -15,9 +30,7 @@ const UserSchema = new mongoose.Schema({
   parentsPhoneNumber: {
     type: String,
     trim: true,
-    required: function () {
-      return this.role === 'student';
-    }
+    default: ''
   },
   grade: {
     type: String,
