@@ -180,6 +180,7 @@ const DashboardLayout = () => {
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/dashboard': return `Welcome back, ${userName}!`;
+      case '/parent-dashboard': return userName;
       case '/courses': return `${userName} - Courses`;
       case '/attendance': return `${userName} - Attendance`;
       case '/payments': return `${userName} - Payments`;

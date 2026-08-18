@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Settings from './pages/Settings';
 
@@ -32,24 +32,25 @@ import QuizSubmissions from './pages/QuizSubmissions';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
+  const location = useLocation();
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
 
   // 1. Not logged in? Kick back to login screen.
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
 
   // 2. Forced password change check.
-  if (user.mustChangePassword && window.location.pathname !== '/change-password') {
-    return <Navigate to="/change-password" />;
+  if (user.mustChangePassword && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
   }
 
   // 3. Counter staff auto-redirect to attendance kiosk
-  if (user.role === 'counter_staff' && window.location.pathname !== '/attendance' && window.location.pathname !== '/change-password') {
+  if (user.role === 'counter_staff' && location.pathname !== '/attendance' && location.pathname !== '/change-password') {
     return <Navigate to="/attendance" replace />;
   }
 
   // 4. Parent role auto-redirect to parent dashboard
-  if (user.role === 'parent' && window.location.pathname === '/dashboard') {
+  if (user.role === 'parent' && location.pathname === '/dashboard') {
     return <Navigate to="/parent-dashboard" replace />;
   }
 

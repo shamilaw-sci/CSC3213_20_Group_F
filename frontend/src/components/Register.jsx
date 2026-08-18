@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FaEnvelope, 
-  FaLock, 
-  FaArrowRight, 
-  FaPhone, 
-  FaGraduationCap, 
-  FaUser, 
-  FaCalendarAlt, 
-  FaTimes, 
-  FaShieldAlt, 
-  FaSyncAlt, 
+import {
+  FaEnvelope,
+  FaLock,
+  FaArrowRight,
+  FaPhone,
+  FaGraduationCap,
+  FaUser,
+  FaCalendarAlt,
+  FaTimes,
+  FaShieldAlt,
+  FaSyncAlt,
   FaCheckCircle,
   FaUserFriends
 } from 'react-icons/fa';
@@ -33,7 +33,7 @@ const Register = () => {
   const [grade, setGrade] = useState('');
   const [parentsPhoneNumber, setParentsPhoneNumber] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  
+
   // Verification & Parent Prompt Modal States
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [modalStep, setModalStep] = useState('verify'); // 'verify' | 'parentPrompt'
@@ -216,18 +216,18 @@ const Register = () => {
   const currentParentPhone = studentRegMethod === 'email' ? parentsPhoneNumber : phoneNumber;
 
   return (
-    <div 
+    <div
       className="flex min-h-screen font-sans text-slate-900 bg-cover bg-center overflow-y-auto"
       style={{ backgroundImage: "url('/assets/Login_screen_BG.png')" }}
     >
-      
+
       {/* Left Side - Welcome Text */}
       <div className="relative hidden w-full flex-col justify-start pt-5 px-12 lg:flex lg:w-[55%] xl:px-24">
         <div className="relative z-10 max-w-lg">
           <img
             src="/assets/LuminaLearn_Logo_banner.png"
             alt="LuminaLearn logo"
-            className="mb-2 h-30 w-auto object-contain" 
+            className="mb-2 h-30 w-auto object-contain"
           />
           <h1 className="text-5xl font-bold tracking-tight text-white xl:text-6xl">
             Join LuminaLearn!
@@ -242,7 +242,7 @@ const Register = () => {
       {/* Right Side - White Register Panel */}
       <div className="flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto min-h-screen">
         <div className="w-full max-w-md py-4">
-          
+
           {/* Header */}
           <div className="mb-5">
             <h2 className="text-4xl font-bold text-[#1e1e38]">Online Student Register</h2>
@@ -255,22 +255,20 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => setStudentRegMethod('email')}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                  studentRegMethod === 'email'
+                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${studentRegMethod === 'email'
                     ? 'bg-purple-900 text-white shadow-md'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <FaEnvelope className="text-xs" /> Register with Email
               </button>
               <button
                 type="button"
                 onClick={() => setStudentRegMethod('phone')}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                  studentRegMethod === 'phone'
+                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${studentRegMethod === 'phone'
                     ? 'bg-purple-900 text-white shadow-md'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <FaPhone className="text-xs" /> Register with Phone No
               </button>
@@ -283,7 +281,7 @@ const Register = () => {
             <div>
               <h4 className="font-semibold text-amber-900">Security Verification Required</h4>
               <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700">
-                {studentRegMethod === 'email' 
+                {studentRegMethod === 'email'
                   ? "A 6-digit passcode will be emailed to you to verify your identity before registration is finalized."
                   : "A 6-digit OTP will be sent to your mobile phone (logged in dev console) for verification."}
               </p>
@@ -291,7 +289,7 @@ const Register = () => {
           </div>
 
           <form onSubmit={handleInitiateRegister} className="space-y-3">
-            
+
             {/* Full Name Input */}
             <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
               <FaUser className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
@@ -326,7 +324,7 @@ const Register = () => {
                 <FaPhone className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
                 <input
                   type="tel"
-                  placeholder="Student mobile phone (e.g. 0771234567)"
+                  placeholder="Mobile phone (e.g. 0771234567)"
                   className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500 font-medium"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
@@ -465,7 +463,7 @@ const Register = () => {
       {showVerifyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100">
-            
+
             {/* Header */}
             <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white text-center relative">
               <button
@@ -487,10 +485,10 @@ const Register = () => {
                 {modalStep === 'verify' ? 'Security Verification' : 'Parent Account Setup'}
               </h3>
               <p className="text-indigo-200 text-xs mt-1">
-                {modalStep === 'verify' 
-                  ? (verifyChannel === 'email' 
-                      ? `Enter the 6-digit passcode sent to ${verifyIdentifier}`
-                      : `Enter the 6-digit OTP sent to ${verifyIdentifier}`)
+                {modalStep === 'verify'
+                  ? (verifyChannel === 'email'
+                    ? `Enter the 6-digit passcode sent to ${verifyIdentifier}`
+                    : `Enter the 6-digit OTP sent to ${verifyIdentifier}`)
                   : 'Configure parental monitoring access for this student'
                 }
               </p>

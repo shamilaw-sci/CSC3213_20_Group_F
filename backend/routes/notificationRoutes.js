@@ -27,6 +27,17 @@ router.get('/', protect, async (req, res) => {
     const userId = req.user._id;
     const userRole = req.user.role;
 
+    // If parent, fetch their linked students to verify child-specific alerts
+    let linkedStudentIds = [];
+    let linkedStudentNames = [];
+    if (userRole === 'parent') {
+      const parentUser = await User.findById(userId).populate('linkedStudents', 'name');
+      if (parentUser && Array.isArray(parentUser.linkedStudents)) {
+        linkedStudentIds = parentUser.linkedStudents.map(s => s._id ? s._id.toString() : s.toString());
+        linkedStudentNames = parentUser.linkedStudents.map(s => s.name ? s.name.toLowerCase().trim() : '').filter(Boolean);
+      }
+    }
+
     // Find notifications sent directly to user OR targeting their role or 'all'
     const notifications = await Notification.find({
       $or: [
@@ -36,10 +47,29 @@ router.get('/', protect, async (req, res) => {
     })
       .populate('sender', 'name role')
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(60);
+
+    // Filter notifications for parents: child-specific notifications (attendance/arrival) must belong only to linked children
+    const filteredNotifications = notifications.filter(notif => {
+      if (userRole === 'parent') {
+        // If metadata has studentId, it must belong to parent's linked students
+        if (notif.metadata && notif.metadata.studentId) {
+          return linkedStudentIds.includes(notif.metadata.studentId.toString());
+        }
+
+        // If it's an ATTENDANCE notification without metadata
+        if (notif.type === 'ATTENDANCE') {
+          if (linkedStudentNames.length === 0) return false;
+          const text = `${notif.title || ''} ${notif.message || ''}`.toLowerCase();
+          // Keep only if it mentions any linked child's name
+          return linkedStudentNames.some(childName => text.includes(childName));
+        }
+      }
+      return true;
+    });
 
     // Format output & determine read status for each notification
-    const formatted = notifications.map(notif => {
+    const formatted = filteredNotifications.map(notif => {
       let isReadForUser = false;
 
       if (notif.recipient && notif.recipient.toString() === userId.toString()) {

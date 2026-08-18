@@ -19,16 +19,25 @@ const ChangePassword = () => {
     try {
       await api.post('/auth/change-password', { newPassword });
 
-      const user = JSON.parse(localStorage.getItem('user'));
+      const storedUser = localStorage.getItem('user');
+      let user = storedUser ? JSON.parse(storedUser) : null;
       if (user) {
         user.mustChangePassword = false;
         localStorage.setItem('user', JSON.stringify(user));
+        window.dispatchEvent(new Event('userUpdated'));
       }
 
       toast.success("Security updated! Redirecting...");
-      setTimeout(() => navigate('/dashboard'), 1500);
+      
+      const targetPath = user?.role === 'parent'
+        ? '/parent-dashboard'
+        : user?.role === 'counter_staff'
+        ? '/attendance'
+        : '/dashboard';
+
+      setTimeout(() => navigate(targetPath), 1200);
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to update password");
+      toast.error(err.response?.data?.message || err.response?.data?.error || "Failed to update password");
     } finally {
       setIsLoading(false);
     }
