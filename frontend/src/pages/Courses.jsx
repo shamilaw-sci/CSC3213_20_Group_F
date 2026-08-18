@@ -243,7 +243,7 @@ const Courses = () => {
       >
         <div>
           {/* Card Hero Box (Card Picture in 100% Pure Original Color) */}
-          <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-gray-100">
+          <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-gray-100">
             {courseImg ? (
               <img
                 src={courseImg}
@@ -255,12 +255,12 @@ const Courses = () => {
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-purple-700 via-indigo-900 to-[#2d1b64] flex items-center justify-center">
-                <FaBookOpen className="text-6xl text-purple-300/40" />
+                <FaBookOpen className="text-5xl text-purple-300/40" />
               </div>
             )}
 
-            {/* TOP LEFT CORNER: Badges & Large Bold Course Title */}
-            <div className="absolute inset-0 p-6 flex flex-col justify-start items-start z-10 space-y-2.5">
+            {/* TOP LEFT CORNER: Badges & Course Title */}
+            <div className="absolute inset-0 p-5 flex flex-col justify-start items-start z-10 space-y-2">
               {/* Badges Row */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 {user?.role === 'admin' ? (
@@ -321,16 +321,16 @@ const Courses = () => {
                 })()}
               </div>
 
-              {/* Large High-Impact Course Title in Top Left Corner (Black Color with High-Contrast Text Shadow) */}
-              <h3 className={`text-3xl sm:text-4xl font-black text-black tracking-tight leading-tight [text-shadow:_0_2px_8px_rgba(255,255,255,0.95)] transition-colors line-clamp-2 ${isParent ? '' : 'group-hover:text-purple-900'}`}>
+              {/* Course Title */}
+              <h3 className={`text-2xl sm:text-3xl font-black text-black tracking-tight leading-tight [text-shadow:_0_2px_8px_rgba(255,255,255,0.95)] transition-colors line-clamp-2 ${isParent ? '' : 'group-hover:text-purple-900'}`}>
                 {course.title}
               </h3>
             </div>
           </div>
         </div>
 
-        {/* Card Footer (Instructor Info & Grade Offerings) */}
-        <div className="flex items-center justify-between p-4 px-6 bg-white border-t border-gray-100 group/teacher transition-colors gap-2 flex-wrap sm:flex-nowrap">
+        {/* Card Footer (Instructor Info) */}
+        <div className="flex items-center justify-between p-4 px-6 bg-white border-t border-gray-100 group/teacher transition-colors">
           <div className="flex items-center gap-3.5">
             <div className="relative shrink-0">
               {course.instructor?.profilePicture ? (
@@ -355,36 +355,7 @@ const Courses = () => {
               </p>
             </div>
           </div>
-
-          <div className="px-3.5 py-1.5 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-950 border border-purple-200/90 text-xs font-black rounded-xl shrink-0 shadow-2xs flex items-center gap-1.5 flex-wrap">
-            <span className="text-purple-900 font-extrabold">🎓 Grades:</span>
-            <span className="text-purple-950 font-black">{getGradesDisplay(course)}</span>
-          </div>
         </div>
-
-        {/* Live Timetables preview on the card for Parents / Catalogue */}
-        {(() => {
-          const cSchedules = getCourseSchedules(course._id);
-          if (cSchedules.length === 0) return null;
-          return (
-            <div className="p-4 px-6 bg-purple-50/60 border-t border-purple-100/80 space-y-2">
-              <p className="text-[10px] font-black text-purple-900 uppercase tracking-widest flex items-center gap-1">
-                <span>📅</span> Live Class Timetables:
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {cSchedules.map(sch => (
-                  <span key={sch._id} className="inline-flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-purple-200 text-[11px] font-extrabold text-slate-800 shadow-2xs">
-                    <span className="text-purple-950 font-black">🎓 {sch.className || sch.grade}</span>
-                    <span>•</span>
-                    <span className="text-amber-800 font-black">{sch.dayOfWeek}</span>
-                    <span className="text-slate-700 font-extrabold">{sch.startTime}-{sch.endTime}</span>
-                    <span className="text-purple-700 font-bold">({sch.room || 'Main Hall'})</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
       </div>
     );
   };
@@ -400,7 +371,7 @@ const Courses = () => {
       >
         <div>
           {/* Card Hero Box (Card Picture in 100% Pure Original Color) */}
-          <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-gray-100">
+          <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-gray-100">
             {courseImg ? (
               <img
                 src={courseImg}
@@ -412,12 +383,12 @@ const Courses = () => {
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-purple-700 via-indigo-900 to-[#2d1b64] flex items-center justify-center">
-                <FaBookOpen className="text-6xl text-purple-300/40" />
+                <FaBookOpen className="text-5xl text-purple-300/40" />
               </div>
             )}
 
-            {/* TOP LEFT CORNER: Badges & Large Bold Course Title */}
-            <div className="absolute inset-0 p-6 flex flex-col justify-start items-start z-10 space-y-2.5">
+            {/* TOP LEFT CORNER: Badges & Course Title */}
+            <div className="absolute inset-0 p-5 flex flex-col justify-start items-start z-10 space-y-2">
               {/* Badges Row */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="bg-purple-600/90 backdrop-blur-md text-white text-[11px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md">
@@ -438,8 +409,8 @@ const Courses = () => {
                 )}
               </div>
 
-              {/* Large High-Impact Course Title in Top Left Corner (Black Color with High-Contrast Text Shadow) */}
-              <h3 className="text-3xl sm:text-4xl font-black text-black tracking-tight leading-tight [text-shadow:_0_2px_8px_rgba(255,255,255,0.95)] group-hover:text-purple-900 transition-colors line-clamp-2">
+              {/* Course Title */}
+              <h3 className="text-2xl sm:text-3xl font-black text-black tracking-tight leading-tight [text-shadow:_0_2px_8px_rgba(255,255,255,0.95)] group-hover:text-purple-900 transition-colors line-clamp-2">
                 {course.title}
               </h3>
             </div>
@@ -539,7 +510,7 @@ const Courses = () => {
                   <p className="text-gray-500 text-lg">You haven't enrolled in any courses yet.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {enrolledCourses.map((course) => renderCourseCard(course))}
                 </div>
               )}
@@ -551,7 +522,7 @@ const Courses = () => {
                 <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                   <FaCompass className="text-[#2d1b64]" /> Available Courses
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {availableCourses.map((course) => renderAvailableCourseCard(course))}
                 </div>
               </div>
@@ -694,7 +665,7 @@ const Courses = () => {
                 <p className="text-gray-500 text-lg">No courses found matching your criteria.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredCourses.map((course) => renderCourseCard(course))}
               </div>
             )}

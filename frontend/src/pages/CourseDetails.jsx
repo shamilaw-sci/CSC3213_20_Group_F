@@ -5,7 +5,8 @@ import { toast } from 'react-hot-toast';
 import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import TeacherModal from '../components/TeacherModal';
 import PdfReaderModal from '../components/PdfReaderModal';
-import { FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen } from 'react-icons/fa';
+import LiveStreamPlayer from '../components/LiveStreamPlayer';
+import { FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube, FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt } from 'react-icons/fa';
 
 const getImageUrl = (url) => {
   if (!url) return '';
@@ -119,6 +120,7 @@ const CourseDetails = () => {
 
   // Timetables and Role Helpers
   const [courseSchedules, setCourseSchedules] = useState([]);
+  const [showSchedule, setShowSchedule] = useState(false);
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
   const isParent = user?.role === 'parent';
 
@@ -759,6 +761,13 @@ const CourseDetails = () => {
     }
   };
 
+  // Live Streaming States
+  const [showLiveModal, setShowLiveModal] = useState(false);
+  const [liveStreamTitle, setLiveStreamTitle] = useState('');
+  const [liveYoutubeUrl, setLiveYoutubeUrl] = useState('');
+  const [saveLiveAsVideo, setSaveLiveAsVideo] = useState(true);
+  const [isPublishingLive, setIsPublishingLive] = useState(false);
+
   const handleDeletePdf = async (pdfId) => {
     const currentLesson = lessons.find(l => l.grade === selectedGrade);
     if (!currentLesson) return;
@@ -850,6 +859,54 @@ const CourseDetails = () => {
       await fetchCourseDetails();
     } catch (err) {
       toast.error("Failed to remove default PDF.");
+    }
+  };
+
+  const handleStartLiveStream = async (e) => {
+    e.preventDefault();
+    const currentLesson = lessons.find(l => l.grade === selectedGrade);
+    if (!currentLesson) {
+      toast.error("Please select a class workspace first.");
+      return;
+    }
+
+    if (!liveYoutubeUrl.trim()) {
+      toast.error("Please enter a YouTube Live link or Video ID.");
+      return;
+    }
+
+    try {
+      setIsPublishingLive(true);
+      const res = await api.post(`/lessons/${currentLesson._id}/live-stream`, {
+        youtubeUrl: liveYoutubeUrl.trim(),
+        title: liveStreamTitle.trim()
+      });
+      toast.success(res.data.message || "Live Class published successfully!");
+      setShowLiveModal(false);
+      setLiveYoutubeUrl('');
+      setLiveStreamTitle('');
+      await fetchCourseDetails();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to publish live class.");
+    } finally {
+      setIsPublishingLive(false);
+    }
+  };
+
+  const handleEndLiveStream = async (shouldSaveVideo = true) => {
+    const currentLesson = lessons.find(l => l.grade === selectedGrade);
+    if (!currentLesson) return;
+    if (!window.confirm("Are you sure you want to end this Live Class?")) return;
+
+    try {
+      const res = await api.delete(`/lessons/${currentLesson._id}/live-stream`, {
+        data: { saveAsVideo: shouldSaveVideo }
+      });
+      toast.success(res.data.message || "Live Class ended!");
+      setShowLiveModal(false);
+      await fetchCourseDetails();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to end live stream.");
     }
   };
 
@@ -969,97 +1026,162 @@ const CourseDetails = () => {
             <p className="text-gray-600 text-base leading-relaxed font-medium">{course?.description}</p>
           </div>
 
-          {/* Class Timetables & Schedule Card (Visible for Parents and All Visitors) */}
-          <div className="mt-8 pt-6 border-t border-gray-100 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <h3 className="text-xl font-black text-purple-950 flex items-center gap-2">
-                  <span>📅</span> Class Timetables & Weekly Schedule
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">Live class session times, scheduled days, and venue locations for enrolled grades.</p>
-              </div>
-              <span className="bg-purple-100 text-purple-900 text-xs font-extrabold px-3 py-1 rounded-xl border border-purple-200">
-                {courseSchedules.length} Timetable Sessions
-              </span>
+          {/* Class Timetables & Schedule Toggle Section */}
+          <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setShowSchedule(!showSchedule)}
+                className={`px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${
+                  showSchedule
+                    ? 'bg-gradient-to-r from-purple-800 via-indigo-900 to-slate-900 text-white border-purple-400/60 shadow-purple-900/30 ring-2 ring-purple-400/30'
+                    : 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-900 hover:from-purple-800 hover:to-indigo-950 text-white border-purple-400/50 shadow-purple-600/30 ring-2 ring-purple-300/40'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <FaCalendarAlt className="text-xl sm:text-2xl text-amber-300 drop-shadow-xs" />
+                  <span className="flex h-2.5 w-2.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-90"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400"></span>
+                  </span>
+                </div>
+                <span className="tracking-tight">
+                  {showSchedule ? 'Hide Class Schedule' : 'View Class Timetables'}
+                </span>
+                <span className="ml-1 text-xs bg-white/20 px-2.5 py-0.5 rounded-full font-extrabold backdrop-blur-xs">
+                  {courseSchedules.length} Sessions
+                </span>
+                {showSchedule ? <FaChevronUp className="text-xs text-amber-300" /> : <FaChevronDown className="text-xs text-amber-300" />}
+              </button>
+
+              {user?.role === 'student' && (
+                <>
+                  {user?.grade && (
+                    <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/80 px-4 py-2.5 rounded-2xl shadow-sm">
+                      <div className="w-9 h-9 rounded-xl bg-[#2d1b64] text-white flex items-center justify-center font-bold text-base shadow-sm">
+                        🎓
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-purple-600/80 uppercase tracking-widest block leading-none">Your Grade</span>
+                        <span className="text-sm font-extrabold text-gray-900">{user.grade}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!alreadyEnrolled ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowEnrollModal(true)}
+                      className="rounded-2xl bg-gradient-to-r from-purple-600 to-[#2d1b64] text-white px-7 py-3 text-sm font-extrabold hover:from-purple-700 hover:to-purple-900 transition-all shadow-md hover:shadow-xl cursor-pointer flex items-center gap-2"
+                    >
+                      <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span>Enroll & Pay Online 💳</span>
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-sm">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Enrolled Student
+                    </span>
+                  )}
+                </>
+              )}
             </div>
 
-            {courseSchedules.length === 0 ? (
-              <div className="p-5 bg-purple-50/40 rounded-2xl border border-purple-100 text-center text-xs font-semibold text-purple-900">
-                No specific live timetable schedules registered for this course yet.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {courseSchedules.map((sch) => (
-                  <div key={sch._id} className="p-4 bg-gradient-to-br from-purple-50 via-white to-indigo-50/40 rounded-2xl border border-purple-200/80 shadow-xs space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="px-2.5 py-0.5 bg-purple-900 text-amber-300 font-black text-[11px] rounded-md uppercase tracking-wider">
-                        🎓 {sch.className || sch.grade || 'All Grades'}
-                      </span>
-                      <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 font-black text-[11px] rounded-md border border-amber-200 uppercase">
-                        🗓️ {sch.dayOfWeek}
-                      </span>
-                    </div>
-                    <h5 className="font-extrabold text-slate-900 text-sm line-clamp-1">{sch.title}</h5>
-                    <div className="text-xs text-purple-900 font-extrabold flex items-center gap-2 flex-wrap">
-                      <span>⏰ {sch.startTime} - {sch.endTime}</span>
-                      <span>•</span>
-                      <span>📍 Room: {sch.room || 'Main Hall'}</span>
-                    </div>
+            {/* Collapsible Schedule Section */}
+            {showSchedule && (
+              <div className="mt-3 p-6 bg-gradient-to-br from-purple-900/5 via-indigo-900/5 to-purple-950/10 rounded-3xl border border-purple-200/90 shadow-lg space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-purple-200/60">
+                  <div>
+                    <h3 className="text-lg font-black text-purple-950 flex items-center gap-2">
+                      <span>📅</span> Class Timetables & Weekly Schedule
+                    </h3>
+                    <p className="text-xs text-purple-800/80 font-medium">Live class session times, scheduled days, and venue locations for enrolled grades.</p>
                   </div>
-                ))}
+                  <span className="bg-purple-950 text-amber-300 text-xs font-black px-3.5 py-1 rounded-xl shadow-xs border border-purple-800">
+                    {courseSchedules.length} Timetable Sessions
+                  </span>
+                </div>
+
+                {courseSchedules.length === 0 ? (
+                  <div className="p-6 bg-white/80 rounded-2xl border border-purple-100 text-center text-xs font-semibold text-purple-900 shadow-2xs">
+                    No specific live timetable schedules registered for this course yet.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {courseSchedules.map((sch) => (
+                      <div key={sch._id} className="p-4.5 bg-white rounded-2xl border border-purple-200/90 shadow-sm hover:shadow-md transform hover:-translate-y-1 hover:border-purple-300 transition-all duration-300 space-y-3 group cursor-pointer">
+                        <div className="flex justify-between items-center gap-1.5 flex-wrap">
+                          <span className="px-3 py-1 bg-gradient-to-r from-purple-900 to-indigo-950 text-amber-300 font-black text-[11px] rounded-xl uppercase tracking-wider shadow-xs">
+                            🎓 {sch.className || sch.grade || 'All Grades'}
+                          </span>
+                          <span className="px-3 py-1 bg-amber-100 text-amber-950 font-black text-[11px] rounded-xl border border-amber-300 uppercase shadow-2xs">
+                            🗓️ {sch.dayOfWeek}
+                          </span>
+                        </div>
+                        <h5 className="font-extrabold text-slate-900 text-sm group-hover:text-purple-950 transition-colors line-clamp-2">
+                          {sch.title}
+                        </h5>
+                        <div className="pt-2 border-t border-purple-100 text-xs font-extrabold text-purple-950 flex items-center justify-between gap-2 flex-wrap">
+                          <span className="inline-flex items-center gap-1.5 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200 text-purple-900">
+                            <FaClock className="text-purple-600" /> {sch.startTime} - {sch.endTime}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 text-indigo-950">
+                            <FaMapMarkerAlt className="text-indigo-600" /> {sch.room || 'Main Hall'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
-
-
-
-          {/* Student Grade Badge & Enroll Action */}
-          {user?.role === 'student' && (
-            <div className="mt-5 flex flex-wrap items-center gap-4">
-              {user?.grade && (
-                <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/80 px-4 py-2.5 rounded-2xl shadow-sm">
-                  <div className="w-9 h-9 rounded-xl bg-[#2d1b64] text-white flex items-center justify-center font-bold text-base shadow-sm">
-                    🎓
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-purple-600/80 uppercase tracking-widest block leading-none">Your Grade</span>
-                    <span className="text-sm font-extrabold text-gray-900">{user.grade}</span>
-                  </div>
-                </div>
-              )}
-
-              {!alreadyEnrolled ? (
-                <button
-                  type="button"
-                  onClick={() => setShowEnrollModal(true)}
-                  className="rounded-2xl bg-gradient-to-r from-purple-600 to-[#2d1b64] text-white px-7 py-3 text-sm font-extrabold hover:from-purple-700 hover:to-purple-900 transition-all shadow-md hover:shadow-xl cursor-pointer flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  <span>Enroll & Pay Online 💳</span>
-                </button>
-              ) : (
-                <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-sm">
-                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Enrolled Student
-                </span>
-              )}
-            </div>
-          )}
         </div>
       ) : (
-        <div className="mb-8">
-          <button
-            onClick={() => setSelectedGrade(null)}
-            className="mb-4 flex items-center gap-2 text-[#2d1b64] hover:underline font-bold transition cursor-pointer"
-          >
-            ← Back to Classes
-          </button>
-          <h1 className="text-3xl font-extrabold text-gray-800 mb-1">{course?.title}</h1>
-          <p className="text-purple-600 font-bold text-lg">{selectedGrade} Workspace</p>
+        <div className="mb-8 flex justify-between items-center flex-wrap gap-4">
+          <div>
+            <button
+              onClick={() => setSelectedGrade(null)}
+              className="mb-2 flex items-center gap-2 text-[#2d1b64] hover:underline font-bold transition cursor-pointer"
+            >
+              ← Back to Classes
+            </button>
+            <h1 className="text-3xl font-extrabold text-gray-800 mb-1">{course?.title}</h1>
+            <p className="text-purple-600 font-bold text-lg">{selectedGrade} Workspace</p>
+          </div>
+
+          {(user?.role === 'admin' || user?.role === 'teacher') && (
+            <button
+              type="button"
+              onClick={() => {
+                if (currentLesson?.liveStream?.isLive) {
+                  setLiveStreamTitle(currentLesson.liveStream.title || '');
+                  setLiveYoutubeUrl(currentLesson.liveStream.youtubeUrl || '');
+                }
+                setShowLiveModal(true);
+              }}
+              className={`px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${
+                currentLesson?.liveStream?.isLive
+                  ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white border-red-400 shadow-red-500/30 ring-2 ring-red-300'
+                  : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white border-red-500/40 shadow-red-600/30'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FaYoutube className="text-2xl sm:text-3xl text-white drop-shadow-sm" />
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                </span>
+              </div>
+              <span className="tracking-tight">
+                {currentLesson?.liveStream?.isLive ? 'Manage Live Class' : 'Start YouTube Live Class'}
+              </span>
+            </button>
+          )}
         </div>
       )}
 
@@ -1329,6 +1451,15 @@ const CourseDetails = () => {
       {/* VIEW 2: CLASS WORKSPACE CONTENT PANEL (Shown when a class is clicked) */}
       {selectedGrade !== null && (
         <div className="space-y-6">
+
+          {/* Active YouTube Live Stream Player */}
+          {currentLesson?.liveStream?.isLive && (
+            <LiveStreamPlayer
+              liveStream={currentLesson.liveStream}
+              isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
+              onEndStream={() => handleEndLiveStream(saveLiveAsVideo)}
+            />
+          )}
 
           {/* Month Selector Bar */}
           <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
@@ -2835,6 +2966,106 @@ const CourseDetails = () => {
                 >
                   Save Grade Assignment
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Live Stream Setup & Management Modal */}
+      {showLiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#FF0000] to-[#CC0000] text-white flex items-center justify-center shadow-md shadow-red-500/20 shrink-0">
+                  <FaYoutube className="text-2xl" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-gray-900">
+                    {currentLesson?.liveStream?.isLive ? 'Manage Active Live Class' : 'Start YouTube Live Class'}
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium">Grade: {selectedGrade} • {course?.title}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLiveModal(false)}
+                className="rounded-xl p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleStartLiveStream} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Live Class Title (Optional)</label>
+                <input
+                  type="text"
+                  value={liveStreamTitle}
+                  onChange={(e) => setLiveStreamTitle(e.target.value)}
+                  placeholder="e.g. Unit 4 Live Revision Class"
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center justify-between">
+                  <span>YouTube Live Stream Link or Video ID <span className="text-red-500">*</span></span>
+                  <span className="text-[10px] text-red-600 font-extrabold uppercase">Required</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={liveYoutubeUrl}
+                    onChange={(e) => setLiveYoutubeUrl(e.target.value)}
+                    placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                    className="w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 font-medium"
+                    required
+                  />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-red-600">
+                    <FaYoutube className="text-lg" />
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+                  💡 Tip: Set your YouTube Live Stream to <strong>Unlisted</strong> on YouTube Studio so only enrolled students inside LuminaLearn can access it.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
+                {currentLesson?.liveStream?.isLive ? (
+                  <button
+                    type="button"
+                    onClick={() => handleEndLiveStream(saveLiveAsVideo)}
+                    className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-2xl transition shadow-sm cursor-pointer flex items-center gap-1.5"
+                  >
+                    ⏹️ End Live Class
+                  </button>
+                ) : (
+                  <div></div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLiveModal(false)}
+                    className="rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isPublishingLive}
+                    className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white font-extrabold text-xs sm:text-sm transition-all duration-300 shadow-md shadow-red-600/30 cursor-pointer disabled:opacity-50 flex items-center gap-2 border border-red-500/30 transform hover:-translate-y-0.5 active:scale-95"
+                  >
+                    <FaYoutube className="text-xl text-white" />
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    <span>{isPublishingLive ? 'Publishing...' : currentLesson?.liveStream?.isLive ? 'Update Live Stream' : 'Publish Live Class'}</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>
