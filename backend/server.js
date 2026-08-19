@@ -15,6 +15,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const progressRoutes = require('./routes/progressRoutes');
 const quizRoutes = require('./routes/quizRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 const app = express();
 
@@ -49,6 +50,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/quizzes', quizRoutes);
+app.use('/api/messages', messageRoutes);
+
 
 // --- GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {
@@ -81,6 +84,22 @@ const startServer = async () => {
             retryWrites: true
         });
         console.log("MongoDB Connected! 🚀");
+
+        // Ensure users collection email index is sparse to allow multiple email-less accounts
+        try {
+            const User = require('./models/User');
+            const indexes = await User.collection.indexes();
+            const emailIndex = indexes.find(idx => idx.name === 'email_1');
+            if (emailIndex && !emailIndex.sparse) {
+                console.log("🔄 Dropping outdated non-sparse email_1 index...");
+                await User.collection.dropIndex('email_1');
+                console.log("✨ Creating sparse unique index for email_1...");
+                await User.collection.createIndex({ email: 1 }, { unique: true, sparse: true });
+                console.log("✅ email_1 sparse index successfully synced!");
+            }
+        } catch (indexSyncErr) {
+            console.warn("Index check note:", indexSyncErr.message);
+        }
 
         // Run data migration (Base64 images to disk & Enrollments collection)
         try {

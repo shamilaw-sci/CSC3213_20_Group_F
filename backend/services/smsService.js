@@ -121,11 +121,30 @@ const sendBulkSMS = async ({ phoneNumbers = [], message, classTitle = '' }) => {
   return results;
 };
 
+/**
+ * Send Verification OTP SMS (Mocked with clear console logging in development)
+ */
+const sendVerificationOTP = async ({ phone, otpCode, purpose = 'Verification', studentName = 'Student' }) => {
+  const formattedPhone = formatSriLankaPhone(phone);
+  const message = `[LuminaLearn] Your ${purpose} OTP code is: ${otpCode}. Valid for 10 minutes. Do not share this code with anyone.`;
+  
+  console.log('\n====================================================');
+  console.log(`📱 [SMS OTP MOCK] Dispatched to Phone: ${formattedPhone} (${studentName})`);
+  console.log(`🔑 Passcode / OTP : [ ${otpCode} ]`);
+  console.log(`📌 Purpose        : ${purpose}`);
+  console.log(`💬 Full Message   : "${message}"`);
+  console.log('====================================================\n');
+
+  return await sendSMS({ phone, message, otpCode, studentName });
+};
+
 module.exports = {
   formatSriLankaPhone,
   maskPhoneNumber,
   sendSMS,
   sendAttendanceSMS,
   sendPaymentSMS,
-  sendBulkSMS
+  sendBulkSMS,
+  sendVerificationOTP
 };
+

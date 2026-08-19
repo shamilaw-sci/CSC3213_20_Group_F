@@ -162,7 +162,8 @@ router.get('/enrollments/all', protect, isAdmin, async (req, res) => {
 
         const dbEnrollments = await Enrollment.find({})
             .populate('student', 'name email registrationNumber grade parentsPhoneNumber')
-            .populate('course', 'title grade');
+            .populate('course', 'title grade')
+            .sort({ createdAt: -1, _id: -1 });
 
         const enrollments = dbEnrollments
             .filter(e => e.student && e.course)
@@ -176,7 +177,8 @@ router.get('/enrollments/all', protect, isAdmin, async (req, res) => {
                 studentEmail: e.student.email,
                 studentRegNo: e.student.registrationNumber || 'N/A',
                 studentGrade: e.student.grade || 'Grade Active',
-                studentPhone: e.student.parentsPhoneNumber || 'N/A'
+                studentPhone: e.student.parentsPhoneNumber || 'N/A',
+                createdAt: e.createdAt || e.enrollmentDate || null
             }));
 
         res.json(enrollments);

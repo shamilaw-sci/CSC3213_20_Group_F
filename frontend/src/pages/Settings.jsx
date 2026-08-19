@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { 
@@ -8,36 +8,84 @@ import {
   FaLock, 
   FaEnvelope, 
   FaUserShield, 
-  FaSave
+  FaSave,
+  FaCopy,
+  FaCheck,
+  FaPhone,
+  FaIdCard,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaTimes,
+  FaShieldAlt,
+  FaSyncAlt,
+  FaPlus
 } from 'react-icons/fa';
 
 const Settings = () => {
   // Grab current user from local storage
-  const storedUser = JSON.parse(localStorage.getItem('user'));
+  const [currentUser, setCurrentUser] = useState(() => {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  });
 
   // State for the form
-  const [name, setName] = useState(storedUser?.name || '');
-  const [email] = useState(storedUser?.email || 'Not Available');
-  const [profilePicture, setProfilePicture] = useState(storedUser?.profilePicture || '');
+  const [name, setName] = useState(currentUser?.name || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [profilePicture, setProfilePicture] = useState(currentUser?.profilePicture || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [copiedRegNo, setCopiedRegNo] = useState(false);
+
+  // Add Email Modal States
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailStep, setEmailStep] = useState(1); // 1: Input email, 2: Input code
+  const [newEmailInput, setNewEmailInput] = useState('');
+  const [emailCodeInput, setEmailCodeInput] = useState('');
+  const [sendingEmailCode, setSendingEmailCode] = useState(false);
+  const [verifyingEmailCode, setVerifyingEmailCode] = useState(false);
 
   const fileInputRef = useRef(null);
+
+  // Sync state if user changes
+  useEffect(() => {
+    const fetchLatestUser = async () => {
+      try {
+        const res = await api.get('/auth/me');
+        if (res.data) {
+          setCurrentUser(res.data);
+          localStorage.setItem('user', JSON.stringify(res.data));
+          setName(res.data.name || '');
+          setEmail(res.data.email || '');
+          setProfilePicture(res.data.profilePicture || '');
+        }
+      } catch (err) {
+        console.warn('Could not refresh user profile:', err);
+      }
+    };
+    fetchLatestUser();
+  }, []);
+
+  // Handle Copy Reg No
+  const handleCopyRegNo = () => {
+    if (!currentUser?.registrationNumber) return;
+    navigator.clipboard.writeText(currentUser.registrationNumber);
+    setCopiedRegNo(true);
+    toast.success('Registration number copied to clipboard!');
+    setTimeout(() => setCopiedRegNo(false), 2500);
+  };
 
   // Handle file select and size check
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate size (1MB limit = 1048576 bytes)
     if (file.size > 1024 * 1024) {
       toast.error("Profile picture size cannot exceed 1MB!");
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    // Validate type
     if (!file.type.startsWith('image/')) {
       toast.error("Please upload an image file (PNG, JPG, JPEG, GIF)!");
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -46,7 +94,7 @@ const Settings = () => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setProfilePicture(reader.result); // Base64 Data URL
+      setProfilePicture(reader.result);
     };
     reader.readAsDataURL(file);
   };
@@ -61,9 +109,12 @@ const Settings = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
 
-    // Password validation
     if (newPassword && newPassword !== confirmPassword) {
       return toast.error("Passwords do not match!");
+    }
+
+    if (newPassword && newPassword.length < 6) {
+      return toast.error("New password must be at least 6 characters long!");
     }
 
     setIsSaving(true);
@@ -72,15 +123,15 @@ const Settings = () => {
         { name, newPassword, profilePicture }
       );
 
-      // Update local storage with the new user details so the UI updates instantly
-      localStorage.setItem('user', JSON.stringify(res.data.user));
+      const updated = res.data.user;
+      setCurrentUser(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
       
-      toast.success(res.data.message);
+      toast.success(res.data.message || 'Profile updated successfully!');
       setNewPassword('');
       setConfirmPassword('');
       
-      // Force a tiny reload so the header picks up the new details
-      window.dispatchEvent(new Event('storage')); 
+      window.dispatchEvent(new Event('userUpdated')); 
 
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to update profile");
@@ -95,14 +146,122 @@ const Settings = () => {
     }
   };
 
+  // Add & Verify Email Step 1: Send Code
+  const handleSendEmailCode = async (e) => {
+    e.preventDefault();
+    if (!newEmailInput || !newEmailInput.trim()) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+
+    setSendingEmailCode(true);
+    try {
+      const res = await api.post('/auth/add-email-initiate', { email: newEmailInput.trim() });
+      toast.success(res.data.message || 'Verification passcode sent to email!');
+      setEmailStep(2);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send verification passcode.');
+    } finally {
+      setSendingEmailCode(false);
+    }
+  };
+
+  // Add & Verify Email Step 2: Verify Code
+  const handleVerifyEmailCode = async (e) => {
+    e.preventDefault();
+    if (!emailCodeInput || emailCodeInput.trim().length !== 6) {
+      toast.error('Please enter the 6-digit code.');
+      return;
+    }
+
+    setVerifyingEmailCode(true);
+    try {
+      const res = await api.post('/auth/add-email-verify', {
+        email: newEmailInput.trim(),
+        code: emailCodeInput.trim()
+      });
+
+      const updated = res.data.user;
+      setCurrentUser(updated);
+      setEmail(updated.email);
+      localStorage.setItem('user', JSON.stringify(updated));
+
+      toast.success(res.data.message || 'Email verified and added successfully!');
+      setShowEmailModal(false);
+      setEmailStep(1);
+      setNewEmailInput('');
+      setEmailCodeInput('');
+
+      window.dispatchEvent(new Event('userUpdated'));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to verify email code.');
+    } finally {
+      setVerifyingEmailCode(false);
+    }
+  };
+
+  const isStudent = currentUser?.role === 'student';
+  const hasVerifiedEmail = !!currentUser?.isEmailVerified && !!currentUser?.email;
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      
+      {/* Email Verification Reminder Banner for unverified users */}
+      {!hasVerifiedEmail && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl shadow-md p-4 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 bg-white/20 rounded-xl text-xl">⚠️</span>
+            <div>
+              <h3 className="text-sm font-extrabold tracking-tight">Complete Your Profile: Add Email Address</h3>
+              <p className="text-xs text-amber-100 mt-0.5">
+                Without a verified email, you will miss important class announcements, reminders, and payment receipts.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setEmailStep(1);
+              setShowEmailModal(true);
+            }}
+            className="px-4 py-2 bg-white text-amber-900 font-bold text-xs rounded-xl shadow hover:bg-amber-50 transition cursor-pointer shrink-0 flex items-center gap-1.5"
+          >
+            <FaPlus className="text-[10px]" /> Add & Verify Email
+          </button>
+        </div>
+      )}
+
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-2xl shadow-xl p-8 text-white relative overflow-hidden">
         <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full blur-3xl transform translate-x-20 -translate-y-20"></div>
-        <div className="relative z-10">
-          <h1 className="text-3xl font-extrabold tracking-tight">Account Settings</h1>
-          <p className="text-purple-200 text-sm mt-2">Manage your profile image, account name, security preferences, and system credentials.</p>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-extrabold tracking-tight">Account Settings</h1>
+              {hasVerifiedEmail && (
+                <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[11px] font-bold px-2.5 py-1 rounded-full shadow-xs">
+                  <FaCheckCircle className="text-emerald-400" /> Verified Account
+                </span>
+              )}
+            </div>
+            <p className="text-purple-200 text-xs mt-2">Manage your profile image, account name, security preferences, and system credentials.</p>
+          </div>
+
+          {isStudent && currentUser?.registrationNumber && (
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 px-4 flex items-center gap-3 self-start md:self-auto">
+              <div>
+                <span className="block text-[10px] font-bold text-purple-200 uppercase tracking-wider">Registration Index</span>
+                <span className="font-mono font-black text-sm text-white tracking-wide">{currentUser.registrationNumber}</span>
+              </div>
+              <button
+                onClick={handleCopyRegNo}
+                title="Copy Registration Number"
+                className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition cursor-pointer flex items-center justify-center"
+              >
+                {copiedRegNo ? <FaCheck className="text-emerald-400 text-xs" /> : <FaCopy className="text-xs" />}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -116,7 +275,7 @@ const Settings = () => {
 
           <div className="relative group cursor-pointer mb-4" onClick={handleAvatarClick}>
             {/* Avatar Circle */}
-            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-purple-100 shadow-inner flex items-center justify-center bg-purple-50 transition-transform duration-300 group-hover:scale-[1.02]">
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-purple-100 shadow-inner flex items-center justify-center bg-purple-50 transition-transform duration-300 group-hover:scale-[1.02] relative">
               {profilePicture ? (
                 <img 
                   src={profilePicture} 
@@ -130,6 +289,16 @@ const Settings = () => {
                 </div>
               )}
             </div>
+
+            {/* Verified Badge on Avatar */}
+            {hasVerifiedEmail && (
+              <div 
+                className="absolute bottom-1 right-1 bg-emerald-500 text-white w-7 h-7 rounded-full border-2 border-white flex items-center justify-center shadow-md"
+                title="Email Verified User"
+              >
+                <FaCheckCircle className="text-xs" />
+              </div>
+            )}
 
             {/* Hover Camera Overlay */}
             <div className="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -181,23 +350,46 @@ const Settings = () => {
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Readonly: Email */}
+                
+                {/* Email Field with Verified Status & Add Button */}
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Email Address</label>
+                  <div className="flex justify-between items-center">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Email Address</label>
+                    {hasVerifiedEmail ? (
+                      <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                        <FaCheckCircle /> Verified
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmailStep(1);
+                          setShowEmailModal(true);
+                        }}
+                        className="text-[10px] font-bold text-purple-700 hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <FaPlus className="text-[9px]" /> {email ? 'Verify Email' : 'Add Email'}
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
                       <FaEnvelope />
                     </span>
                     <input 
                       type="text" 
-                      value={email} 
+                      value={email || '(No email linked)'} 
                       disabled 
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 text-gray-500 border border-gray-200 rounded-xl cursor-not-allowed text-sm font-medium focus:outline-none" 
+                      className={`w-full pl-10 pr-4 py-3 border rounded-xl cursor-not-allowed text-xs font-medium focus:outline-none ${
+                        hasVerifiedEmail 
+                          ? 'bg-gray-50 text-gray-700 border-gray-200' 
+                          : 'bg-amber-50/60 text-amber-900 border-amber-200 italic'
+                      }`} 
                     />
                   </div>
                 </div>
 
-                {/* Readonly: Role */}
+                {/* System Role */}
                 <div className="space-y-1">
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">System Role</label>
                   <div className="relative">
@@ -206,12 +398,59 @@ const Settings = () => {
                     </span>
                     <input 
                       type="text" 
-                      value={storedUser?.role?.toUpperCase() || ''} 
+                      value={currentUser?.role?.toUpperCase() || ''} 
                       disabled 
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 text-gray-500 border border-gray-200 rounded-xl cursor-not-allowed text-sm font-semibold tracking-wide focus:outline-none" 
+                      className="w-full pl-10 pr-4 py-3 bg-gray-50 text-gray-500 border border-gray-200 rounded-xl cursor-not-allowed text-xs font-semibold tracking-wide focus:outline-none" 
                     />
                   </div>
                 </div>
+
+                {/* Student Registration Number (Student Only) */}
+                {isStudent && (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Registration Number</label>
+                    <div className="relative flex items-center">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-purple-700">
+                        <FaIdCard />
+                      </span>
+                      <input 
+                        type="text" 
+                        value={currentUser?.registrationNumber || 'Not Assigned'} 
+                        disabled 
+                        className="w-full pl-10 pr-12 py-3 bg-purple-50/50 text-purple-950 font-mono font-bold border border-purple-200 rounded-xl cursor-not-allowed text-xs focus:outline-none" 
+                      />
+                      {currentUser?.registrationNumber && (
+                        <button
+                          type="button"
+                          onClick={handleCopyRegNo}
+                          className="absolute right-2.5 px-2 py-1 bg-white hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-lg text-[10px] font-bold transition cursor-pointer flex items-center gap-1"
+                        >
+                          {copiedRegNo ? <FaCheck className="text-emerald-600" /> : <FaCopy />}
+                          <span>{copiedRegNo ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Parent's Phone Number (Student Only) */}
+                {isStudent && (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Parent's Phone Number</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
+                        <FaPhone />
+                      </span>
+                      <input 
+                        type="text" 
+                        value={currentUser?.parentsPhoneNumber || currentUser?.phoneNumber || 'Not Available'} 
+                        disabled 
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 text-gray-600 border border-gray-200 rounded-xl cursor-not-allowed text-xs font-medium focus:outline-none" 
+                      />
+                    </div>
+                  </div>
+                )}
+
               </div>
 
               {/* Editable: Full Name */}
@@ -225,7 +464,7 @@ const Settings = () => {
                     type="text" 
                     value={name} 
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-sm transition-all shadow-sm"
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-xs transition-all shadow-sm font-semibold text-slate-800"
                     placeholder="Enter your name"
                     required
                   />
@@ -252,7 +491,7 @@ const Settings = () => {
                       value={newPassword} 
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-sm transition-all shadow-sm"
+                      className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-xs transition-all shadow-sm"
                     />
                   </div>
                 </div>
@@ -269,7 +508,7 @@ const Settings = () => {
                       value={confirmPassword} 
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-sm transition-all shadow-sm"
+                      className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-xs transition-all shadow-sm"
                     />
                   </div>
                 </div>
@@ -282,7 +521,7 @@ const Settings = () => {
               <button 
                 type="submit" 
                 disabled={isSaving}
-                className="w-full bg-lumina-purple hover:bg-purple-800 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-purple-900/10 hover:shadow-purple-900/20 hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-lumina-purple hover:bg-purple-800 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-purple-900/10 hover:shadow-purple-900/20 hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs"
               >
                 <FaSave />
                 {isSaving ? 'Saving Changes...' : 'Save All Changes'}
@@ -293,6 +532,117 @@ const Settings = () => {
         </div>
 
       </div>
+
+      {/* ========================================================================= */}
+      {/* ADD / VERIFY EMAIL POPUP MODAL */}
+      {/* ========================================================================= */}
+      {showEmailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100">
+            
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white text-center relative">
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition cursor-pointer"
+              >
+                <FaTimes />
+              </button>
+
+              <div className="w-12 h-12 rounded-2xl bg-white/10 mx-auto flex items-center justify-center mb-2.5 border border-white/20 shadow-inner">
+                <FaEnvelope className="text-xl text-amber-400" />
+              </div>
+
+              <h3 className="text-lg font-extrabold tracking-tight">Add & Verify Email</h3>
+              <p className="text-indigo-200 text-xs mt-0.5">
+                {emailStep === 1 
+                  ? "Enter the email address you wish to link to your account" 
+                  : `Enter the 6-digit passcode sent to ${newEmailInput}`}
+              </p>
+            </div>
+
+            {/* Modal Body */}
+            {emailStep === 1 ? (
+              <form onSubmit={handleSendEmailCode} className="p-6 md:p-8 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Email Address
+                  </label>
+                  <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+                    <FaEnvelope className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                    <input
+                      type="email"
+                      placeholder="student@example.com"
+                      value={newEmailInput}
+                      onChange={(e) => setNewEmailInput(e.target.value)}
+                      className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none font-medium"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailModal(false)}
+                    className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendingEmailCode}
+                    className="flex-1 py-3 bg-lumina-purple hover:bg-purple-800 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {sendingEmailCode ? 'Sending...' : 'Send Passcode'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyEmailCode} className="p-6 md:p-8 space-y-5">
+                <div>
+                  <label className="block text-center text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
+                    Enter 6-Digit Passcode
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={emailCodeInput}
+                    onChange={(e) => setEmailCodeInput(e.target.value.replace(/\D/g, ''))}
+                    placeholder="••••••"
+                    className="w-full text-center tracking-[12px] text-2xl font-mono font-black py-3 bg-purple-50 border-2 border-purple-200 focus:border-purple-600 rounded-2xl outline-none text-purple-950 transition-all shadow-inner"
+                    autoFocus
+                    required
+                  />
+                  <p className="text-[11px] text-gray-400 text-center mt-2">
+                    Check your inbox (and spam folder) for the 6-digit code.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={verifyingEmailCode || emailCodeInput.length !== 6}
+                    className="w-full py-3 bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {verifyingEmailCode ? 'Verifying...' : 'Verify & Save Email'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEmailStep(1)}
+                    className="text-xs text-gray-500 hover:text-gray-800 transition text-center mt-1 cursor-pointer"
+                  >
+                    ← Change Email Address
+                  </button>
+                </div>
+              </form>
+            )}
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

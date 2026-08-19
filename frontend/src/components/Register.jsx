@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaArrowRight, FaPhone, FaGraduationCap, FaUser, FaCalendarAlt, FaIdCard } from 'react-icons/fa';
+import { 
+  FaEnvelope, 
+  FaLock, 
+  FaArrowRight, 
+  FaPhone, 
+  FaGraduationCap, 
+  FaUser, 
+  FaCalendarAlt, 
+  FaTimes, 
+  FaShieldAlt, 
+  FaSyncAlt, 
+  FaCheckCircle,
+  FaUserFriends
+} from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
 
@@ -12,55 +25,30 @@ const gradeOptions = [
 ];
 
 const Register = () => {
-  const [accountType, setAccountType] = useState('student'); // 'student' | 'parent'
+  const [studentRegMethod, setStudentRegMethod] = useState('email'); // 'email' | 'phone'
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [grade, setGrade] = useState('');
   const [parentsPhoneNumber, setParentsPhoneNumber] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [nicNumber, setNicNumber] = useState('');
-  const [childRegNo, setChildRegNo] = useState('');
+  
+  // Verification & Parent Prompt Modal States
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [modalStep, setModalStep] = useState('verify'); // 'verify' | 'parentPrompt'
+  const [verifyIdentifier, setVerifyIdentifier] = useState('');
+  const [verifyChannel, setVerifyChannel] = useState('email');
+  const [verifyCode, setVerifyCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+
   const navigate = useNavigate();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-  const isGrade10OrAbove = (selectedGrade) => {
-    if (!selectedGrade) return false;
-    const digitsMatch = String(selectedGrade).match(/\d+/);
-    const val = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
-    return val >= 10;
-  };
-
-  const requiresNic = isGrade10OrAbove(grade);
-
-  const handleRegister = async (e) => {
+  const handleInitiateRegister = async (e) => {
     e.preventDefault();
-
-    if (accountType === 'parent') {
-      if (!name || !email || !password || !parentsPhoneNumber) {
-        toast.error("Please fill in name, email, password, and mobile phone number.");
-        return;
-      }
-      try {
-        const res = await api.post('/auth/register', {
-          role: 'parent',
-          name,
-          email,
-          password,
-          parentsPhoneNumber,
-          childRegNo
-        });
-
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-
-        toast.success(res.data.message || 'Parent account created successfully!');
-        navigate('/parent-dashboard');
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Parent registration failed!');
-      }
-      return;
-    }
 
     if (!dateOfBirth) {
       toast.error('Please select your Date of Birth (Birthday).');
@@ -72,34 +60,112 @@ const Register = () => {
       return;
     }
 
-    if (!parentsPhoneNumber) {
-      toast.error("Please enter parent's phone number.");
+    if (studentRegMethod === 'email') {
+      if (!email) {
+        toast.error('Please enter your email address.');
+        return;
+      }
+      if (!parentsPhoneNumber) {
+        toast.error("Please enter parent's mobile phone number.");
+        return;
+      }
+    } else {
+      if (!phoneNumber) {
+        toast.error('Please enter your mobile phone number.');
+        return;
+      }
+    }
+
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long.");
       return;
     }
 
-    if (requiresNic && (!nicNumber || !nicNumber.trim())) {
-      toast.error("National ID / NIC Number is required for Grade 10 or above students.");
-      return;
-    }
+    setLoading(true);
 
     try {
-      const res = await api.post('/auth/register', { 
+      const payload = {
+        registrationType: studentRegMethod,
         name,
-        email, 
         password,
         grade,
-        parentsPhoneNumber,
         dateOfBirth,
-        nicNumber
+        email: studentRegMethod === 'email' ? email : undefined,
+        parentsPhoneNumber: studentRegMethod === 'email' ? parentsPhoneNumber : phoneNumber,
+        phoneNumber: studentRegMethod === 'phone' ? phoneNumber : undefined
+      };
+
+      const res = await api.post('/auth/register-initiate', payload);
+
+      setVerifyIdentifier(res.data.identifier);
+      setVerifyChannel(res.data.channel);
+      setVerifyCode('');
+      setModalStep('verify');
+      setShowVerifyModal(true);
+
+      toast.success(res.data.message || 'Verification code sent!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to initiate registration.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 1 in modal: Check code format and open parent creation prompt
+  const handleProceedToParentPrompt = (e) => {
+    e.preventDefault();
+    if (!verifyCode || verifyCode.trim().length !== 6) {
+      toast.error('Please enter the full 6-digit verification code.');
+      return;
+    }
+    setModalStep('parentPrompt');
+  };
+
+  // Step 2 in modal: Submit registration with parent creation decision
+  const executeCompleteRegistration = async (createParentAccount) => {
+    setVerifying(true);
+    try {
+      const res = await api.post('/auth/register-verify', {
+        identifier: verifyIdentifier,
+        code: verifyCode.trim(),
+        createParentAccount
       });
 
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
 
-      toast.success(`Registration successful! Your Online Registration ID is ${res.data.user.registrationNumber}`);
+      setShowVerifyModal(false);
+      toast.success(res.data.message || `Registration complete! Your ID is ${res.data.user.registrationNumber}`);
+      window.dispatchEvent(new Event('userUpdated'));
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed!');
+      toast.error(err.response?.data?.message || 'Verification failed. Please check the code.');
+      setModalStep('verify');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setResending(true);
+    try {
+      const payload = {
+        registrationType: studentRegMethod,
+        name,
+        password,
+        grade,
+        dateOfBirth,
+        email: studentRegMethod === 'email' ? email : undefined,
+        parentsPhoneNumber: studentRegMethod === 'email' ? parentsPhoneNumber : phoneNumber,
+        phoneNumber: studentRegMethod === 'phone' ? phoneNumber : undefined
+      };
+
+      const res = await api.post('/auth/register-initiate', payload);
+      toast.success('A new verification code has been dispatched!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to resend verification code.');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -119,11 +185,6 @@ const Register = () => {
       return;
     }
 
-    if (requiresNic && (!nicNumber || !nicNumber.trim())) {
-      toast.error("Please enter your National ID / NIC Number first before registering with Google.");
-      return;
-    }
-
     try {
       const credential = credentialResponse?.credential;
       if (!credential) {
@@ -134,14 +195,14 @@ const Register = () => {
         credential,
         grade,
         parentsPhoneNumber,
-        dateOfBirth,
-        nicNumber
+        dateOfBirth
       });
 
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
 
       toast.success(`Successfully registered with Google! Your Registration ID is ${res.data.user.registrationNumber}`);
+      window.dispatchEvent(new Event('userUpdated'));
       navigate('/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Google registration failed.');
@@ -151,6 +212,8 @@ const Register = () => {
   const handleGoogleError = () => {
     toast.error('Google registration was cancelled or failed.');
   };
+
+  const currentParentPhone = studentRegMethod === 'email' ? parentsPhoneNumber : phoneNumber;
 
   return (
     <div 
@@ -170,7 +233,7 @@ const Register = () => {
             Join LuminaLearn!
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-slate-200">
-            Begin your learning journey with <br />
+            Begin your online learning journey with <br />
             <span className="font-medium text-[#00e5ff]">LuminaLearn</span> Smart Learning Platform.
           </p>
         </div>
@@ -180,211 +243,190 @@ const Register = () => {
       <div className="flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto min-h-screen">
         <div className="w-full max-w-md py-4">
           
-          {/* Header & Account Type Selector */}
-          <div className="mb-6">
-            <h2 className="text-4xl font-bold text-[#1e1e38]">Register</h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Create an online student or parent monitoring account
+          {/* Header */}
+          <div className="mb-5">
+            <h2 className="text-4xl font-bold text-[#1e1e38]">Online Student Register</h2>
+            <p className="mt-1.5 text-xs text-slate-500">
+              Create your online student account with instant verification
             </p>
 
-            {/* Account Type Tabs */}
-            <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-2 mt-4">
+            {/* Registration Method Switcher */}
+            <div className="flex bg-slate-100 p-1 rounded-2xl gap-1.5 mt-4">
               <button
                 type="button"
-                onClick={() => setAccountType('student')}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                  accountType === 'student'
+                onClick={() => setStudentRegMethod('email')}
+                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  studentRegMethod === 'email'
                     ? 'bg-purple-900 text-white shadow-md'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                🎓 Online Student
+                <FaEnvelope className="text-xs" /> Register with Email
               </button>
               <button
                 type="button"
-                onClick={() => setAccountType('parent')}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                  accountType === 'parent'
+                onClick={() => setStudentRegMethod('phone')}
+                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  studentRegMethod === 'phone'
                     ? 'bg-purple-900 text-white shadow-md'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                👨‍👩‍👧 Parent Account
+                <FaPhone className="text-xs" /> Register with Phone No
               </button>
             </div>
           </div>
 
-          {/* Warning/Reminder Alert Banner */}
-          {accountType === 'student' ? (
-            <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4 text-amber-800 text-sm flex gap-3 items-start shadow-sm">
-              <span className="text-lg leading-none mt-0.5">⚠️</span>
-              <div>
-                <h4 className="font-semibold text-amber-900">Online Student Account Self-Registration</h4>
-                <p className="mt-1 text-xs leading-relaxed text-amber-700">
-                  Registering will automatically assign your unique Online Student Registration ID (e.g. <strong>OL-G06-2012-XXXX</strong>) based on your grade and birth year.
-                </p>
-              </div>
+          {/* Verification Notice Banner */}
+          <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3 text-amber-800 text-xs flex gap-2.5 items-start shadow-xs">
+            <span className="text-base leading-none mt-0.5">⚠️</span>
+            <div>
+              <h4 className="font-semibold text-amber-900">Security Verification Required</h4>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700">
+                {studentRegMethod === 'email' 
+                  ? "A 6-digit passcode will be emailed to you to verify your identity before registration is finalized."
+                  : "A 6-digit OTP will be sent to your mobile phone (logged in dev console) for verification."}
+              </p>
             </div>
-          ) : (
-            <div className="mb-6 rounded-xl bg-purple-50 border border-purple-200 p-4 text-purple-900 text-sm flex gap-3 items-start shadow-sm">
-              <span className="text-lg leading-none mt-0.5">👨‍👩‍👧</span>
-              <div>
-                <h4 className="font-semibold text-purple-950">Parent Portal Registration</h4>
-                <p className="mt-1 text-xs leading-relaxed text-purple-700">
-                  Register with your mobile phone number to monitor your children's live classroom attendance, payment receipts, and course progress online.
-                </p>
-              </div>
-            </div>
-          )}
+          </div>
 
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleInitiateRegister} className="space-y-3">
+            
             {/* Full Name Input */}
-            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-              <FaUser className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+              <FaUser className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
               <input
                 type="text"
-                placeholder={accountType === 'parent' ? "Enter parent full name" : "Enter your full name"}
-                className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500 font-medium"
+                placeholder="Enter student full name"
+                className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500 font-medium"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
 
-            {/* Email Input */}
-            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-              <FaEnvelope className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="email"
-                placeholder="Enter email address"
-                className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+            {/* Email Input (If Email Method) */}
+            {studentRegMethod === 'email' && (
+              <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+                <FaEnvelope className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                <input
+                  type="email"
+                  placeholder="Enter student email address"
+                  className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
+            {/* Phone Number Input (If Phone Method) */}
+            {studentRegMethod === 'phone' && (
+              <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+                <FaPhone className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                <input
+                  type="tel"
+                  placeholder="Student mobile phone (e.g. 0771234567)"
+                  className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500 font-medium"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
+            {/* Parent's Phone Number (If Email Method) */}
+            {studentRegMethod === 'email' && (
+              <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+                <FaPhone className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                <input
+                  type="tel"
+                  placeholder="Parent's mobile phone (e.g. 0771234567)"
+                  className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500"
+                  value={parentsPhoneNumber}
+                  onChange={(e) => setParentsPhoneNumber(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
             {/* Password Input */}
-            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-              <FaLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+              <FaLock className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
               <input
                 type="password"
-                placeholder="Set password"
-                className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500"
+                placeholder="Set password (min 6 chars)"
+                className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
 
-            {/* Mobile Phone Input */}
-            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-              <FaPhone className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="tel"
-                placeholder={accountType === 'parent' ? "Parent mobile phone number (e.g. 077XXXXXXX)" : "Parent's phone number (e.g. 077XXXXXXX)"}
-                className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500"
-                value={parentsPhoneNumber}
-                onChange={(e) => setParentsPhoneNumber(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* If Parent Account: Child Reg No Input (Optional) */}
-            {accountType === 'parent' && (
-              <div className="relative rounded-xl bg-purple-50 p-3.5 border border-purple-200 focus-within:border-purple-500 focus-within:bg-white transition-colors">
-                <FaIdCard className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600" />
+            {/* Date of Birth Input */}
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950 mb-1">
+                Student Date of Birth (Birthday) <span className="text-red-500">*</span>
+              </label>
+              <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+                <FaCalendarAlt className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
                 <input
-                  type="text"
-                  placeholder="Child's Registration No (Optional, e.g. OL-G06-2012-4829)"
-                  className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-purple-400 font-mono font-medium"
-                  value={childRegNo}
-                  onChange={(e) => setChildRegNo(e.target.value)}
+                  type="date"
+                  max={new Date().toISOString().split('T')[0]}
+                  className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none cursor-pointer"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  required
                 />
               </div>
-            )}
+            </div>
 
-            {/* Student Specific Fields */}
-            {accountType === 'student' && (
-              <>
-                {/* Date of Birth (Birthday) */}
-                <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 mb-1">
-                    Student Date of Birth (Birthday) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex items-center">
-                    <FaCalendarAlt className="pointer-events-none text-slate-400 mr-3" />
-                    <input
-                      type="date"
-                      className="w-full bg-transparent text-sm text-slate-900 outline-none font-medium"
-                      value={dateOfBirth}
-                      onChange={(e) => setDateOfBirth(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
+            {/* Grade Selection */}
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950 mb-1">
+                Select Current Grade <span className="text-red-500">*</span>
+              </label>
+              <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+                <FaGraduationCap className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                <select
+                  className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none cursor-pointer"
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                  required
+                >
+                  <option value="">-- Choose Grade --</option>
+                  {gradeOptions.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-                {/* Grade Selector */}
-                <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-                  <FaGraduationCap className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <select
-                    className="w-full bg-transparent pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-500 cursor-pointer font-medium"
-                    value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                    required
-                  >
-                    <option value="" disabled>Select your Grade</option>
-                    {gradeOptions.map(g => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Conditional NIC Input Field */}
-                {requiresNic && (
-                  <div className="relative rounded-xl p-3.5 border transition-all bg-purple-50/90 border-purple-300 ring-2 ring-purple-100 shadow-xs animate-fadeIn">
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950">
-                        National ID / NIC Number <span className="text-red-500">*</span>
-                      </label>
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-200 text-purple-950">
-                        Required for {grade}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <FaIdCard className="pointer-events-none text-purple-600 mr-3" />
-                      <input
-                        type="text"
-                        placeholder="Enter NIC Number (e.g. 200412304928 / 987654321V)"
-                        className="w-full bg-transparent text-sm text-slate-900 outline-none font-mono uppercase font-semibold"
-                        value={nicNumber}
-                        onChange={(e) => setNicNumber(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Register Button */}
+            {/* Submit Button */}
             <button
               type="submit"
-              className="group relative flex w-full items-center justify-center rounded-xl bg-lumina-purple px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-purple-800 shadow-lg shadow-purple-900/20 cursor-pointer mt-6"
+              disabled={loading}
+              className="group relative flex w-full items-center justify-center rounded-xl bg-lumina-purple px-6 py-4 text-xs font-bold text-white transition-all hover:bg-purple-800 shadow-lg shadow-purple-900/20 cursor-pointer disabled:opacity-50 mt-2"
             >
-              {accountType === 'parent' ? 'Create Parent Account' : 'Register Student Account'}
-              <span className="absolute right-5 transition-transform group-hover:translate-x-1">
-                <FaArrowRight />
-              </span>
-            </button> 
+              {loading ? (
+                <span>Sending Verification Code...</span>
+              ) : (
+                <>
+                  Continue to Verification
+                  <span className="absolute right-5 transition-transform group-hover:translate-x-1">
+                    <FaArrowRight />
+                  </span>
+                </>
+              )}
+            </button>
           </form>
 
-          {/* Google Sign In Divider (Students only) */}
-          {accountType === 'student' && googleClientId && (
-            <div className="mt-6">
-              <div className="relative mb-4">
+          {/* Google Sign In Divider (Students with email method only) */}
+          {studentRegMethod === 'email' && googleClientId && (
+            <div className="mt-5">
+              <div className="relative mb-3">
                 <div className="absolute inset-x-0 top-1/2 h-px bg-slate-200" />
-                <div className="relative mx-auto w-max bg-white px-4 text-sm text-slate-400">
+                <div className="relative mx-auto w-max bg-white px-3 text-xs text-slate-400">
                   Or register with
                 </div>
               </div>
@@ -402,11 +444,11 @@ const Register = () => {
           )}
 
           {/* Footer Text */}
-          <div className="mt-8 text-center text-sm text-slate-500">
+          <div className="mt-6 text-center text-xs text-slate-500">
             <p>
               Already have an account?{' '}
               <button
-                className="font-medium text-[#3a1c8a] hover:underline cursor-pointer"
+                className="font-semibold text-[#3a1c8a] hover:underline cursor-pointer"
                 onClick={() => navigate('/login')}
               >
                 Sign in here.
@@ -416,6 +458,140 @@ const Register = () => {
 
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* VERIFICATION & PARENT PROMPT POPUP MODAL */}
+      {/* ========================================================================= */}
+      {showVerifyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100">
+            
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white text-center relative">
+              <button
+                onClick={() => setShowVerifyModal(false)}
+                className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition cursor-pointer"
+              >
+                <FaTimes />
+              </button>
+
+              <div className="w-14 h-14 rounded-2xl bg-white/10 mx-auto flex items-center justify-center mb-3 border border-white/20 shadow-inner">
+                {modalStep === 'verify' ? (
+                  <FaShieldAlt className="text-2xl text-amber-400" />
+                ) : (
+                  <FaUserFriends className="text-2xl text-emerald-400" />
+                )}
+              </div>
+
+              <h3 className="text-xl font-extrabold tracking-tight">
+                {modalStep === 'verify' ? 'Security Verification' : 'Parent Account Setup'}
+              </h3>
+              <p className="text-indigo-200 text-xs mt-1">
+                {modalStep === 'verify' 
+                  ? (verifyChannel === 'email' 
+                      ? `Enter the 6-digit passcode sent to ${verifyIdentifier}`
+                      : `Enter the 6-digit OTP sent to ${verifyIdentifier}`)
+                  : 'Configure parental monitoring access for this student'
+                }
+              </p>
+            </div>
+
+            {/* Modal Body: STEP 1 - Enter 6-digit Code */}
+            {modalStep === 'verify' && (
+              <form onSubmit={handleProceedToParentPrompt} className="p-6 md:p-8 space-y-6">
+                <div>
+                  <label className="block text-center text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
+                    Enter 6-Digit Passcode
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={verifyCode}
+                    onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="••••••"
+                    className="w-full text-center tracking-[12px] text-2xl font-mono font-black py-3.5 bg-purple-50/60 border-2 border-purple-200 focus:border-purple-600 rounded-2xl outline-none text-purple-950 transition-all shadow-inner"
+                    autoFocus
+                    required
+                  />
+                  <p className="text-[11px] text-gray-400 text-center mt-2">
+                    Valid for 10 minutes.
+                    {verifyChannel === 'phone' && (
+                      <span className="block text-amber-700 font-semibold mt-0.5">
+                        (Development Mode: OTP logged in backend server terminal)
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2.5">
+                  <button
+                    type="submit"
+                    disabled={verifyCode.length !== 6}
+                    className="w-full py-3.5 bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <FaCheckCircle className="text-amber-400 text-sm" /> Verify & Continue
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResendCode}
+                    disabled={resending}
+                    className="w-full py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <FaSyncAlt className={`text-xs text-purple-700 ${resending ? 'animate-spin' : ''}`} />
+                    {resending ? 'Resending Code...' : 'Resend Code'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Modal Body: STEP 2 - Ask to Create Parent Account */}
+            {modalStep === 'parentPrompt' && (
+              <div className="p-6 md:p-8 space-y-5 animate-fadeIn">
+                <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 text-purple-950 text-xs leading-relaxed">
+                  <p className="font-bold text-sm text-purple-900 mb-1">
+                    Would you like to create a Parent Account?
+                  </p>
+                  <p className="text-purple-800">
+                    A parent account associated with phone number <strong>{currentParentPhone}</strong> allows parents to monitor attendance, fee payments, and exam reports online.
+                  </p>
+                  <div className="mt-2.5 pt-2 border-t border-purple-200/80 text-[11px] text-purple-700">
+                    🔑 Default password on 1st login: <strong className="font-mono text-purple-900">Parent@123</strong> (Mandatory password change enforced on first login).
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 pt-1">
+                  <button
+                    type="button"
+                    disabled={verifying}
+                    onClick={() => executeCompleteRegistration(true)}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {verifying ? (
+                      <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                    ) : (
+                      <>
+                        <FaCheckCircle className="text-white text-sm" /> Yes, Create Parent Account
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={verifying}
+                    onClick={() => executeCompleteRegistration(false)}
+                    className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    No, Skip & Create Student Only
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
