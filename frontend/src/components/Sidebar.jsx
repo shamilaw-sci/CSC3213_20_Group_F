@@ -39,10 +39,13 @@ const Sidebar = () => {
           <>
             <div className="bg-purple-800/60 p-3 rounded-xl mb-4 border border-purple-600/40">
               <span className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block">Staff Account</span>
-              <span className="text-xs font-bold text-white block">Attendance Counter Kiosk</span>
+              <span className="text-xs font-bold text-white block">Attendance & Payments Portal</span>
             </div>
             <Link to="/attendance" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/attendance')}`}>
-              <FaCalendarCheck /> Live QR Kiosk
+              <FaCalendarCheck /> Attendance
+            </Link>
+            <Link to="/payments" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/payments')}`}>
+              <FaCreditCard /> Payments
             </Link>
           </>
         ) : role === 'parent' ? (
