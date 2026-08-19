@@ -18,7 +18,13 @@ const ReadingProgress = require('../models/ReadingProgress');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail, sendPasscodeEmail } = require('../utils/emailService');
-const { sendVerificationOTP, formatSriLankaPhone, maskPhoneNumber } = require('../services/smsService');
+const { 
+  sendVerificationOTP, 
+  formatSriLankaPhone, 
+  maskPhoneNumber,
+  sendCredentialSMS,
+  sendParentCredentialSMS 
+} = require('../services/smsService');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Helper to generate Online Student Registration Number (e.g. OL-G06-2012-4829)
@@ -101,10 +107,11 @@ const ensureParentAccount = async (parentPhone, studentId, studentName = 'Studen
       } else {
         console.log(`ℹ️ Student ${studentName} already linked to parent ${parent.name} (${cleanedPhone})`);
       }
-      return parent;
+      return { parent, isNew: false, phone: cleanedPhone };
     } else {
+      const defaultPassword = 'Parent@123';
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('Parent@123', salt);
+      const hashedPassword = await bcrypt.hash(defaultPassword, salt);
 
       const parentData = {
         name: `Parent of ${studentName}`,
@@ -118,8 +125,8 @@ const ensureParentAccount = async (parentPhone, studentId, studentName = 'Studen
       };
 
       parent = await User.create(parentData);
-      console.log(`👨‍👩‍👧 Created new parent account for ${cleanedPhone} with default password (Parent@123)`);
-      return parent;
+      console.log(`👨‍👩‍👧 Created new parent account for ${cleanedPhone} with default password (${defaultPassword})`);
+      return { parent, isNew: true, defaultPassword, phone: cleanedPhone };
     }
   } catch (err) {
     console.error('Error in ensureParentAccount:', err.message);
@@ -503,7 +510,15 @@ router.post('/register-verify', async (req, res) => {
     // Conditionally Link / Create Parent Account based on user confirmation
     const parentPhone = newUser.parentsPhoneNumber;
     if (createParentAccount && parentPhone) {
-      await ensureParentAccount(parentPhone, newUser._id, newUser.name);
+      const parentResult = await ensureParentAccount(parentPhone, newUser._id, newUser.name);
+      // Scenario 2: Send credentials SMS if a brand-new parent account was created
+      if (parentResult && parentResult.isNew) {
+        sendParentCredentialSMS({
+          parentPhone,
+          studentName: newUser.name,
+          defaultPassword: parentResult.defaultPassword || 'Parent@123'
+        }).catch(smsErr => console.error('Parent Credential SMS error:', smsErr));
+      }
     }
 
     // --- TRIGGER NOTIFICATIONS ---
@@ -1490,11 +1505,12 @@ router.post('/users', protect, isAdmin, async (req, res) => {
     const createdUser = await User.findById(user._id).select('-password');
 
     // Conditionally Link or Create Parent Account for student if requested
+    let parentResult = null;
     if (role === 'student' && user.parentsPhoneNumber && createParentAccount) {
-      await ensureParentAccount(user.parentsPhoneNumber, user._id, user.name);
+      parentResult = await ensureParentAccount(user.parentsPhoneNumber, user._id, user.name);
     }
 
-    // --- TRIGGER NOTIFICATIONS ---
+    // --- TRIGGER NOTIFICATIONS & CREDENTIAL SMS ---
     try {
       if (role === 'student') {
         if (user.email) {
@@ -1508,6 +1524,50 @@ router.post('/users', protect, isAdmin, async (req, res) => {
           message: `Welcome to LuminaLearn, ${user.name}! Your student account (${user.registrationNumber}) has been created by Administration.`,
           link: '/settings'
         });
+
+        // Scenario 1: Send Student Credential SMS
+        const studentPhone = user.phoneNumber || user.parentsPhoneNumber;
+        if (studentPhone) {
+          sendCredentialSMS({
+            phone: studentPhone,
+            name: user.name,
+            loginIdentifier: user.registrationNumber || user.email || studentPhone,
+            password: temporaryPassword,
+            role: 'student'
+          }).catch(smsErr => console.error('Student Credential SMS Error:', smsErr));
+        }
+
+        // Scenario 1: Send Parent Credential SMS if new parent account was generated
+        if (parentResult && parentResult.isNew && user.parentsPhoneNumber) {
+          sendParentCredentialSMS({
+            parentPhone: user.parentsPhoneNumber,
+            studentName: user.name,
+            defaultPassword: parentResult.defaultPassword || 'Parent@123'
+          }).catch(smsErr => console.error('Parent Credential SMS Error:', smsErr));
+        }
+      } else if (role === 'parent') {
+        // Scenario 1: Parent created directly by admin
+        const parentPhone = user.phoneNumber || user.parentsPhoneNumber;
+        if (parentPhone) {
+          sendCredentialSMS({
+            phone: parentPhone,
+            name: user.name,
+            loginIdentifier: user.email || parentPhone,
+            password: temporaryPassword,
+            role: 'parent'
+          }).catch(smsErr => console.error('Parent Credential SMS Error:', smsErr));
+        }
+      } else {
+        // Staff, Teacher, Admin created by admin
+        if (user.phoneNumber) {
+          sendCredentialSMS({
+            phone: user.phoneNumber,
+            name: user.name,
+            loginIdentifier: user.email || user.phoneNumber,
+            password: temporaryPassword,
+            role: user.role
+          }).catch(smsErr => console.error('Staff Credential SMS Error:', smsErr));
+        }
       }
     } catch (notifErr) {
       console.error('Admin create user notification error:', notifErr.message);

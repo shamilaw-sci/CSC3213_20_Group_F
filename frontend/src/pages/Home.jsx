@@ -544,6 +544,7 @@ const Home = () => {
                     <th className="py-3.5 px-6">Instructor</th>
                     <th className="py-3.5 px-6">Day</th>
                     <th className="py-3.5 px-6">Time Slot</th>
+                    <th className="py-3.5 px-6 text-right">Class Fees</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y ${isDarkMode ? 'divide-slate-800 text-slate-300' : 'divide-purple-100 text-slate-800'}`}>
@@ -583,6 +584,12 @@ const Home = () => {
                         </span>
                       </td>
                       <td className="py-3.5 px-6 font-semibold">{item.time}</td>
+                      <td className="py-3.5 px-6 text-right font-mono text-[11px]">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${isDarkMode ? 'bg-slate-950 border-slate-800 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-800'
+                          }`}>
+                          {item.fees}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

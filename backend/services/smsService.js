@@ -329,6 +329,25 @@ const sendVerificationOTP = async ({ phone, otpCode, purpose = 'Verification', s
   return await sendSMS({ phone: recipientPhone, message, otpCode, studentName });
 };
 
+/**
+ * Send Account Credentials SMS to newly registered user (Admin manual creation)
+ */
+const sendCredentialSMS = async ({ phone, name, loginIdentifier, password, role = 'student', portalUrl = 'www.luminalearn.edu.lk' }) => {
+  const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ');
+  const message = `LuminaLearn: Welcome ${name}! Your ${roleDisplay} account has been created at ${portalUrl}. Login ID: ${loginIdentifier}, Default Password: ${password}. Please log in and change your password.`;
+  
+  return await sendSMS({ phone, message, studentName: name });
+};
+
+/**
+ * Send Parent Account Credentials SMS (Auto-generated or Admin-created parent account)
+ */
+const sendParentCredentialSMS = async ({ parentPhone, studentName, defaultPassword = 'Parent@123', portalUrl = 'www.luminalearn.edu.lk' }) => {
+  const message = `LuminaLearn: Your parent account for student ${studentName} has been created at ${portalUrl}. Username/Phone: ${parentPhone}, Default Password: ${defaultPassword}. Please log in and change your password.`;
+  
+  return await sendSMS({ phone: parentPhone, message, studentName: `Parent of ${studentName}` });
+};
+
 module.exports = {
   normalizeSriLankaPhone,
   formatTextLkPhone,
@@ -341,6 +360,8 @@ module.exports = {
   sendAttendanceSMS,
   sendPaymentSMS,
   sendBulkSMS,
-  sendVerificationOTP
+  sendVerificationOTP,
+  sendCredentialSMS,
+  sendParentCredentialSMS
 };
 

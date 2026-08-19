@@ -20,9 +20,9 @@ const Login = () => {
 
     try {
       if (portalType === 'parent') {
-        const res = await api.post('/auth/parent-login', { 
-          phoneNumber: parentPhone, 
-          password 
+        const res = await api.post('/auth/parent-login', {
+          phoneNumber: parentPhone,
+          password
         });
 
         localStorage.setItem('token', res.data.token);
@@ -45,9 +45,9 @@ const Login = () => {
         navigate(targetPath);
 
       } else {
-        const res = await api.post('/auth/login', { 
-          email: emailOrReg, 
-          password 
+        const res = await api.post('/auth/login', {
+          email: emailOrReg,
+          password
         });
 
         localStorage.setItem('token', res.data.token);
@@ -58,10 +58,10 @@ const Login = () => {
         const targetPath = res.data.user.mustChangePassword
           ? '/change-password'
           : res.data.user.role === 'parent'
-          ? '/parent-dashboard'
-          : res.data.user.role === 'counter_staff'
-          ? '/attendance'
-          : '/dashboard';
+            ? '/parent-dashboard'
+            : res.data.user.role === 'counter_staff'
+              ? '/attendance'
+              : '/dashboard';
 
         window.dispatchEvent(new Event('userUpdated'));
         navigate(targetPath);
@@ -92,10 +92,10 @@ const Login = () => {
       const targetPath = res.data.user.mustChangePassword
         ? '/change-password'
         : res.data.user.role === 'parent'
-        ? '/parent-dashboard'
-        : res.data.user.role === 'counter_staff'
-        ? '/attendance'
-        : '/dashboard';
+          ? '/parent-dashboard'
+          : res.data.user.role === 'counter_staff'
+            ? '/attendance'
+            : '/dashboard';
 
       window.dispatchEvent(new Event('userUpdated'));
       navigate(targetPath);
@@ -148,22 +148,20 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setPortalType('student')}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${
-                  portalType === 'student'
+                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${portalType === 'student'
                     ? 'bg-purple-900 text-white shadow-md'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <FaUserGraduate /> Student & Staff
               </button>
               <button
                 type="button"
                 onClick={() => setPortalType('parent')}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${
-                  portalType === 'parent'
+                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${portalType === 'parent'
                     ? 'bg-purple-900 text-white shadow-md'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <FaUserFriends /> Parent Portal
               </button>
@@ -177,7 +175,7 @@ const Login = () => {
               <div>
                 <h4 className="font-semibold text-purple-900">Parent Access Portal</h4>
                 <p className="mt-0.5 text-[11px] text-purple-700 leading-relaxed">
-                  Log in using your registered mobile phone number. If this is your first time, use your default password (e.g. <strong>Parent@123</strong>).
+                  Log in using your registered mobile phone number. If this is your first time, use your default password.
                 </p>
               </div>
             </div>
@@ -194,7 +192,7 @@ const Login = () => {
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
-            
+
             {/* Student/Staff: Email or Registration Number Input */}
             {portalType === 'student' ? (
               <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
