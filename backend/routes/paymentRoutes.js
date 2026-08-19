@@ -7,7 +7,7 @@ const Course = require('../models/Course');
 const User = require('../models/User');
 const OTP = require('../models/OTP');
 const Notification = require('../models/Notification');
-const { protect, isAdmin } = require('../middleware/authMiddleware');
+const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authMiddleware');
 const { sendSMS, maskPhoneNumber, sendPaymentSMS } = require('../services/smsService');
 const { sendPaymentReceiptEmail } = require('../utils/emailService');
 
@@ -269,9 +269,9 @@ router.get('/my-payments', protect, async (req, res) => {
 });
 
 // @route   GET /api/payments/all
-// @desc    Admin retrieves all payment transactions
-// @access  Private (Admin)
-router.get('/all', protect, isAdmin, async (req, res) => {
+// @desc    Admin / Counter Staff retrieves all payment transactions
+// @access  Private (Admin, Counter Staff)
+router.get('/all', protect, isCounterStaffOrAdmin, async (req, res) => {
   try {
     const payments = await Payment.find()
       .populate('student', 'name email registrationNumber grade studentType')
@@ -285,9 +285,9 @@ router.get('/all', protect, isAdmin, async (req, res) => {
 });
 
 // @route   GET /api/payments/student/:studentId
-// @desc    Admin retrieves payments history for a specific student
-// @access  Private (Admin)
-router.get('/student/:studentId', protect, isAdmin, async (req, res) => {
+// @desc    Admin / Counter Staff retrieves payments history for a specific student
+// @access  Private (Admin, Counter Staff)
+router.get('/student/:studentId', protect, isCounterStaffOrAdmin, async (req, res) => {
   try {
     const payments = await Payment.find({ student: req.params.studentId })
       .populate('student', 'name email registrationNumber grade studentType')
@@ -301,9 +301,9 @@ router.get('/student/:studentId', protect, isAdmin, async (req, res) => {
 });
 
 // @route   POST /api/payments/record-physical-payment
-// @desc    Admin records physical counter payment for student & enrolls them in course
-// @access  Private (Admin)
-router.post('/record-physical-payment', protect, isAdmin, async (req, res) => {
+// @desc    Admin / Counter Staff records physical counter payment for student & enrolls them in course
+// @access  Private (Admin, Counter Staff)
+router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (req, res) => {
   try {
     const { studentId, courseId, amount, paymentMethod, receiptNumber, remarks, paymentDate } = req.body;
 
@@ -548,6 +548,9 @@ router.post('/submit-bank-slip', protect, async (req, res) => {
 });
 
 // ==========================================
+// 7. GET PENDING BANK SLIPS (ADMIN / COUNTER STAFF)
+// ==========================================
+router.get('/pending-slips', protect, isCounterStaffOrAdmin, async (req, res) => {
 // ==========================================
 // 7. GET BANK SLIPS (ADMIN) - PENDING, APPROVED, REJECTED OR ALL
 // ==========================================
@@ -587,9 +590,9 @@ router.get('/bank-slips', protect, isAdmin, getBankSlipsHandler);
 
 
 // ==========================================
-// 8. APPROVE BANK SLIP (ADMIN)
+// 8. APPROVE BANK SLIP (ADMIN / COUNTER STAFF)
 // ==========================================
-router.put('/:id/approve-slip', protect, isAdmin, async (req, res) => {
+router.put('/:id/approve-slip', protect, isCounterStaffOrAdmin, async (req, res) => {
   try {
     const paymentId = req.params.id;
 
@@ -680,9 +683,9 @@ router.put('/:id/approve-slip', protect, isAdmin, async (req, res) => {
 });
 
 // ==========================================
-// 9. REJECT BANK SLIP (ADMIN)
+// 9. REJECT BANK SLIP (ADMIN / COUNTER STAFF)
 // ==========================================
-router.put('/:id/reject-slip', protect, isAdmin, async (req, res) => {
+router.put('/:id/reject-slip', protect, isCounterStaffOrAdmin, async (req, res) => {
   try {
     const paymentId = req.params.id;
     const { rejectionReason } = req.body;

@@ -25,6 +25,7 @@ const NotificationSchema = new mongoose.Schema({
       'ATTENDANCE',
       'COURSE_ADDED',
       'NEW_CONTENT',
+      'LIVE_CLASS',
       'CLASS_POSTPONED',
       'GENERAL'
     ],

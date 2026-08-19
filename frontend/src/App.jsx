@@ -44,8 +44,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/change-password" replace />;
   }
 
-  // 3. Counter staff auto-redirect to attendance kiosk
-  if (user.role === 'counter_staff' && location.pathname !== '/attendance' && location.pathname !== '/change-password') {
+  // 3. Counter staff auto-redirect to attendance & payments
+  if (user.role === 'counter_staff' && window.location.pathname !== '/attendance' && window.location.pathname !== '/payments' && window.location.pathname !== '/change-password') {
     return <Navigate to="/attendance" replace />;
   }
 

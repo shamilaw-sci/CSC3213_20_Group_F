@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { FaUserGraduate, FaBookOpen, FaMoneyBillWave, FaReceipt, FaBuilding, FaSearch, FaCheckCircle, FaTimes } from 'react-icons/fa';
 
-const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess }) => {
+const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudentId = '' }) => {
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,25 +22,25 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess }) => {
   useEffect(() => {
     if (isOpen) {
       fetchSupportingData();
+      if (initialStudentId) {
+        setSelectedStudentId(initialStudentId);
+      }
       // Generate default counter receipt ID
       const defaultReceipt = `REC-PHYS-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
       setReceiptNumber(defaultReceipt);
     }
-  }, [isOpen]);
+  }, [isOpen, initialStudentId]);
 
   const fetchSupportingData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
-
       // 1. Fetch Students
-      const usersRes = await axios.get('http://localhost:5000/api/auth/users', { headers });
+      const usersRes = await api.get('/auth/users');
       const studentUsers = usersRes.data.filter(u => u.role === 'student');
       setStudents(studentUsers);
 
       // 2. Fetch Courses
-      const coursesRes = await axios.get('http://localhost:5000/api/courses', { headers });
+      const coursesRes = await api.get('/courses');
       setCourses(coursesRes.data || []);
     } catch (err) {
       console.error('Error fetching supporting data for payment modal:', err);
@@ -77,20 +77,15 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess }) => {
 
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        'http://localhost:5000/api/payments/record-physical-payment',
-        {
-          studentId: selectedStudentId,
-          courseId: selectedCourseId,
-          amount: Number(amount),
-          paymentMethod,
-          receiptNumber: receiptNumber.trim(),
-          paymentDate,
-          remarks: remarks.trim()
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.post('/payments/record-physical-payment', {
+        studentId: selectedStudentId,
+        courseId: selectedCourseId,
+        amount: Number(amount),
+        paymentMethod,
+        receiptNumber: receiptNumber.trim(),
+        paymentDate,
+        remarks: remarks.trim()
+      });
 
       toast.success(res.data.message || 'Counter payment recorded successfully!');
       if (onSuccess) {

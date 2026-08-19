@@ -1378,8 +1378,8 @@ router.get('/users/search-students', protect, async (req, res) => {
 
 // 2. GET ALL USERS
 router.get('/users', protect, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: "Access Denied: Admins only." });
+  if (req.user.role !== 'admin' && req.user.role !== 'counter_staff') {
+    return res.status(403).json({ message: "Access Denied: Admins and Staff only." });
   }
 
   try {

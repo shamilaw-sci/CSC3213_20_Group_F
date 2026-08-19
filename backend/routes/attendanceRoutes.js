@@ -463,7 +463,7 @@ router.get('/weekly-status/:courseId', protect, async (req, res) => {
 // ==========================================
 //   ADMIN DAILY & ALL-TIME ATTENDANCE LOGS
 // ==========================================
-router.get('/admin/all-logs', protect, isAdmin, async (req, res) => {
+router.get('/admin/all-logs', protect, isCounterStaffOrAdmin, async (req, res) => {
   try {
     const { date, courseId, grade, search } = req.query;
     let filter = {};
@@ -506,6 +506,83 @@ router.get('/admin/all-logs', protect, isAdmin, async (req, res) => {
   } catch (err) {
     console.error("Admin fetch attendance logs error:", err);
     res.status(500).json({ message: "Server error fetching attendance logs" });
+  }
+});
+
+// ==========================================
+//   7. GET TODAY'S REAL-TIME CHECK-INS FEED
+// ==========================================
+router.get('/today-scans', protect, isCounterStaffOrAdmin, async (req, res) => {
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const logs = await Attendance.find({
+      date: { $gte: todayStart, $lte: todayEnd }
+    })
+      .populate('studentId', 'name email registrationNumber grade profilePicture studentType')
+      .populate('courseId', 'title grade category')
+      .populate('scheduleId', 'title startTime endTime room className')
+      .sort({ date: -1, createdAt: -1 });
+
+    const validLogs = logs.filter(l => l.studentId);
+
+    // Fetch payments/enrollments to resolve paymentStatus
+    const studentIds = validLogs.map(l => l.studentId._id);
+    const Payment = require('../models/Payment');
+    const Enrollment = require('../models/Enrollment');
+
+    const payments = await Payment.find({
+      student: { $in: studentIds },
+      status: 'COMPLETED'
+    });
+    const enrollments = await Enrollment.find({
+      student: { $in: studentIds },
+      paymentStatus: { $in: ['PAID', 'COMPLETED', 'APPROVED'] }
+    });
+
+    const paymentMap = new Map();
+    payments.forEach(p => {
+      paymentMap.set(`${p.student.toString()}_${p.course ? p.course.toString() : 'ALL'}`, true);
+      paymentMap.set(`${p.student.toString()}_ALL`, true);
+    });
+    enrollments.forEach(e => {
+      paymentMap.set(`${e.student.toString()}_${e.course ? e.course.toString() : 'ALL'}`, true);
+    });
+
+    const formattedFeed = validLogs.map(log => {
+      const sId = log.studentId._id.toString();
+      const cId = log.courseId ? log.courseId._id.toString() : '';
+      const isPaid = paymentMap.get(`${sId}_${cId}`) || paymentMap.get(`${sId}_ALL`) || false;
+
+      return {
+        _id: log._id,
+        attendance: log,
+        student: {
+          id: log.studentId._id,
+          _id: log.studentId._id,
+          name: log.studentId.name,
+          email: log.studentId.email,
+          registrationNumber: log.studentId.registrationNumber,
+          grade: log.studentId.grade,
+          studentType: log.studentId.studentType,
+          profilePicture: log.studentId.profilePicture
+        },
+        targetCourseTitle: log.scheduleId?.title || log.courseId?.title || log.remarks || 'Class Check-in',
+        scheduleTitle: log.scheduleId?.title || log.courseId?.title || log.remarks,
+        timeRange: log.scheduleId ? `${log.scheduleId.startTime} - ${log.scheduleId.endTime}` : '',
+        room: log.scheduleId?.room || '',
+        paymentStatus: isPaid ? 'PAID' : 'UNSETTLED',
+        scanTime: log.date || log.createdAt
+      };
+    });
+
+    res.json(formattedFeed);
+  } catch (err) {
+    console.error("Fetch today scans error:", err);
+    res.status(500).json({ message: "Server error fetching today's scans" });
   }
 });
 
@@ -566,7 +643,7 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
         className: student.grade
       }).populate('courseId');
 
-      // Sort candidate schedules: prioritize schedules matching student's enrolled courses
+      // Sort candidate schedules by start time (earliest first), then enrolled-courses first
       candidateSchedules.sort((a, b) => {
         const aCourseId = a.courseId ? (a.courseId._id ? a.courseId._id.toString() : a.courseId.toString()) : '';
         const bCourseId = b.courseId ? (b.courseId._id ? b.courseId._id.toString() : b.courseId.toString()) : '';
@@ -574,8 +651,22 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
         const bEnrolled = enrolledCourseIdsSet.has(bCourseId);
         if (aEnrolled && !bEnrolled) return -1;
         if (!aEnrolled && bEnrolled) return 1;
-        return 0;
+        // Secondary sort by start time (earlier class first)
+        const [aH, aM] = (a.startTime || '00:00').split(':').map(Number);
+        const [bH, bM] = (b.startTime || '00:00').split(':').map(Number);
+        return (aH * 60 + aM) - (bH * 60 + bM);
       });
+
+      // Get all schedules already attended by this student today — skip them so
+      // a second QR scan correctly picks up the NEXT class, not the already-logged one
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+      const attendedToday = await Attendance.find({
+        studentId: student._id,
+        date: { $gte: todayStart, $lte: todayEnd },
+        scheduleId: { $exists: true, $ne: null }
+      }).select('scheduleId');
+      const attendedScheduleIds = new Set(attendedToday.map(a => a.scheduleId.toString()));
 
       for (const sch of candidateSchedules) {
         if (sch.startTime && sch.endTime) {
@@ -587,7 +678,13 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
           if (endMin < startMin) endMin += 24 * 60;
 
           // Match if current time is within schedule window (or up to 45 mins before class start)
-          if (currentMinutes >= (startMin - 45) && currentMinutes <= (endMin + 30)) {
+          // Detection window: 30 min before class START to 30 min after class START
+          // e.g. a 5:00 PM class accepts scans from 4:30 PM to 5:30 PM
+          if (currentMinutes >= (startMin - 30) && currentMinutes <= (startMin + 30)) {
+            // Skip this schedule if student already attended it today — move on to next class
+            if (attendedScheduleIds.has(sch._id.toString())) {
+              continue;
+            }
             resolvedScheduleId = sch._id;
             resolvedCourseId = sch.courseId ? sch.courseId._id : sch.courseId;
             targetCourseTitle = sch.title;
@@ -651,6 +748,8 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
     todayEnd.setHours(23, 59, 59, 999);
 
     // Prevent duplicate scans within the same day for the SAME class schedule/course
+    // If no schedule was resolved (student has already attended all classes today),
+    // check if they have ANY attendance today to return the correct message.
     let scanFilter = {
       studentId: student._id,
       date: { $gte: todayStart, $lte: todayEnd }
@@ -660,11 +759,16 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
     } else if (resolvedCourseId) {
       scanFilter.courseId = resolvedCourseId;
     }
+    // If neither scheduleId nor courseId resolved, and we couldn't find an unattended
+    // class, it means student is done for the day — don't create a new record
+    const noMoreClasses = !resolvedScheduleId && !resolvedCourseId;
 
-    const existingScan = await Attendance.findOne(scanFilter);
+    const existingScan = noMoreClasses
+      ? await Attendance.findOne({ studentId: student._id, date: { $gte: todayStart, $lte: todayEnd } })
+      : await Attendance.findOne(scanFilter);
 
     let newScanRecord;
-    if (!existingScan) {
+    if (!existingScan && !noMoreClasses) {
       const scanDate = new Date();
       const dayOfMonth = scanDate.getDate();
       let calculatedWeek = 1;
@@ -745,12 +849,27 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
       newScanRecord = existingScan;
     }
 
+    // Build appropriate message
+    let responseMessage;
+    let isAlreadyScanned;
+    if (!existingScan && !noMoreClasses) {
+      responseMessage = `Check-in successful for ${student.name}!`;
+      isAlreadyScanned = false;
+    } else if (noMoreClasses) {
+      responseMessage = `${student.name} has already attended all scheduled classes today!`;
+      isAlreadyScanned = true;
+    } else {
+      responseMessage = `Attendance already logged for ${student.name} in this class today!`;
+      isAlreadyScanned = true;
+    }
+
     res.status(200).json({
       success: true,
-      alreadyScannedToday: !!existingScan,
-      message: existingScan ? `Attendance already logged for ${student.name} today!` : `Check-in successful for ${student.name}!`,
+      alreadyScannedToday: isAlreadyScanned,
+      message: responseMessage,
       student: {
         id: student._id,
+        _id: student._id,
         name: student.name,
         email: student.email,
         registrationNumber: student.registrationNumber,
@@ -759,8 +878,12 @@ router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
         studentType: student.studentType,
         profilePicture: student.profilePicture
       },
+      targetCourseTitle: targetScheduleDetails?.title || targetCourseTitle || 'Class Check-in',
+      scheduleTitle: targetScheduleDetails?.title || targetCourseTitle,
+      timeRange: targetScheduleDetails ? `${targetScheduleDetails.startTime} - ${targetScheduleDetails.endTime}` : '',
+      room: targetScheduleDetails?.room || '',
       paymentStatus,
-      scanTime: new Date(),
+      scanTime: newScanRecord?.date || new Date(),
       attendance: newScanRecord
     });
 
