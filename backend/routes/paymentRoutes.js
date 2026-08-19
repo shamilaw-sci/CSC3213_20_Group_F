@@ -11,6 +11,18 @@ const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authM
 const { sendSMS, maskPhoneNumber, sendPaymentSMS } = require('../services/smsService');
 const { sendPaymentReceiptEmail } = require('../utils/emailService');
 
+const isStaffTeacherOrAdmin = (req, res, next) => {
+  if (
+    req.user &&
+    (req.user.role === 'admin' ||
+     req.user.role === 'counter_staff' ||
+     req.user.role === 'teacher')
+  ) {
+    return next();
+  }
+  return res.status(403).json({ message: "Access denied. Admin, Staff, or Teacher role required." });
+};
+
 const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
 
 // @route   POST /api/payments/send-otp
@@ -269,11 +281,20 @@ router.get('/my-payments', protect, async (req, res) => {
 });
 
 // @route   GET /api/payments/all
-// @desc    Admin / Counter Staff retrieves all payment transactions
-// @access  Private (Admin, Counter Staff)
-router.get('/all', protect, isCounterStaffOrAdmin, async (req, res) => {
+// @desc    Admin / Counter Staff / Teacher retrieves payment transactions
+// @access  Private (Admin, Counter Staff, Teacher)
+router.get('/all', protect, isStaffTeacherOrAdmin, async (req, res) => {
   try {
-    const payments = await Payment.find()
+    let filter = {};
+
+    // IF TEACHER: Strictly scope to payments made for courses taught by this teacher
+    if (req.user.role === 'teacher') {
+      const teacherCourses = await Course.find({ instructor: req.user._id }).select('_id');
+      const teacherCourseIds = teacherCourses.map(c => c._id);
+      filter.course = { $in: teacherCourseIds };
+    }
+
+    const payments = await Payment.find(filter)
       .populate('student', 'name email registrationNumber grade studentType')
       .populate('course', 'title price')
       .sort({ createdAt: -1 });
@@ -285,11 +306,19 @@ router.get('/all', protect, isCounterStaffOrAdmin, async (req, res) => {
 });
 
 // @route   GET /api/payments/student/:studentId
-// @desc    Admin / Counter Staff retrieves payments history for a specific student
-// @access  Private (Admin, Counter Staff)
-router.get('/student/:studentId', protect, isCounterStaffOrAdmin, async (req, res) => {
+// @desc    Admin / Counter Staff / Teacher retrieves payments history for a specific student
+// @access  Private (Admin, Counter Staff, Teacher)
+router.get('/student/:studentId', protect, isStaffTeacherOrAdmin, async (req, res) => {
   try {
-    const payments = await Payment.find({ student: req.params.studentId })
+    let filter = { student: req.params.studentId };
+
+    if (req.user.role === 'teacher') {
+      const teacherCourses = await Course.find({ instructor: req.user._id }).select('_id');
+      const teacherCourseIds = teacherCourses.map(c => c._id);
+      filter.course = { $in: teacherCourseIds };
+    }
+
+    const payments = await Payment.find(filter)
       .populate('student', 'name email registrationNumber grade studentType')
       .populate('course', 'title price')
       .sort({ createdAt: -1 });
