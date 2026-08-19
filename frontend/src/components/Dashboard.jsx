@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   FaUsers,
@@ -1344,6 +1344,14 @@ const StudentDashboard = ({ user }) => {
 const Dashboard = () => {
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : { name: 'Guest', role: 'student' };
+
+  if (user.role === 'parent') {
+    return <Navigate to="/parent-dashboard" replace />;
+  }
+
+  if (user.role === 'counter_staff') {
+    return <Navigate to="/attendance" replace />;
+  }
 
   return (
     <div className="w-full">

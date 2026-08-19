@@ -11,10 +11,12 @@ import {
   FaSquare
 } from 'react-icons/fa';
 
-const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
+const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = '' }) => {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [targetGrade, setTargetGrade] = useState(defaultGrade);
+  const [targetCourseId, setTargetCourseId] = useState(defaultCourseId);
+  const [courses, setCourses] = useState([]);
   const [type, setType] = useState('CLASS_POSTPONED');
   const [channels, setChannels] = useState(['in_app', 'sms', 'email']);
   const [loading, setLoading] = useState(false);
@@ -34,6 +36,21 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
   useEffect(() => {
     if (defaultGrade) setTargetGrade(defaultGrade);
   }, [defaultGrade]);
+
+  useEffect(() => {
+    if (defaultCourseId) setTargetCourseId(defaultCourseId);
+  }, [defaultCourseId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      api.get('/courses')
+        .then(res => {
+          const list = Array.isArray(res.data) ? res.data : (res.data?.courses || []);
+          setCourses(list);
+        })
+        .catch(err => console.error('Error fetching courses in broadcast modal:', err));
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -60,6 +77,7 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
       const res = await api.post('/notifications/broadcast', {
         title,
         message,
+        courseId: targetCourseId || undefined,
         targetGrade,
         type,
         channels
@@ -74,6 +92,7 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
       setTimeout(() => {
         setTitle('');
         setMessage('');
+        setTargetCourseId('');
         setFeedback(null);
         onClose();
       }, 1800);
@@ -123,14 +142,14 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
             </div>
           )}
 
-          {/* Announcement Type & Target Grade */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Announcement Type, Target Course & Target Grade */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Category</label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-sm font-medium text-gray-800 outline-none transition-all cursor-pointer"
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-xs font-medium text-gray-800 outline-none transition-all cursor-pointer"
               >
                 <option value="CLASS_POSTPONED">Class Postponed / Rescheduled</option>
                 <option value="NEW_CONTENT">New Content / Material Alert</option>
@@ -140,13 +159,29 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '' }) => {
             </div>
 
             <div>
+              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Target Course (Optional)</label>
+              <select
+                value={targetCourseId}
+                onChange={(e) => setTargetCourseId(e.target.value)}
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-xs font-medium text-gray-800 outline-none transition-all cursor-pointer truncate"
+              >
+                <option value="">All / Any Course</option>
+                {courses.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.title} {c.grade ? `(${c.grade})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Target Grade (Optional)</label>
               <select
                 value={targetGrade}
                 onChange={(e) => setTargetGrade(e.target.value)}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-sm font-medium text-gray-800 outline-none transition-all cursor-pointer"
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-xs font-medium text-gray-800 outline-none transition-all cursor-pointer"
               >
-                <option value="">All Grades (Broadcast to All)</option>
+                <option value="">All Grades</option>
                 {availableGrades.map((g) => (
                   <option key={g} value={g}>
                     {g}

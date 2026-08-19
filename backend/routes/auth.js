@@ -310,13 +310,6 @@ router.post('/register-initiate', async (req, res) => {
     return res.status(400).json({ message: "Password must be at least 6 characters long." });
   }
 
-  // Check if Grade is 10 or above
-  // const digitsMatch = String(grade || '').match(/\d+/);
-  // const gradeVal = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
-  // if (gradeVal >= 10 && (!nicNumber || !nicNumber.trim())) {
-  //   return res.status(400).json({ message: "National ID / NIC number is required for students in Grade 10 or above." });
-  // }
-
   const rawPhone = (phoneNumber || phone || '').trim();
 
   // Generate 6-digit random passcode
@@ -638,13 +631,6 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ message: "Date of Birth (Birthday) is required for student registration." });
   }
 
-  // Check if Grade is 10 or above
-  // const digitsMatch = String(grade || '').match(/\d+/);
-  // const gradeVal = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
-  // if (gradeVal >= 10 && (!nicNumber || !nicNumber.trim())) {
-  //   return res.status(400).json({ message: "National ID / NIC number is required for students in Grade 10 or above." });
-  // }
-
   const normalizedEmail = email.trim().toLowerCase();
 
   try {
@@ -739,13 +725,6 @@ router.post('/google-register', async (req, res) => {
   if (!dateOfBirth) {
     return res.status(400).json({ message: "Date of Birth (Birthday) is required for student registration." });
   }
-
-  // Check if Grade is 10 or above
-  // const digitsMatch = String(grade || '').match(/\d+/);
-  // const gradeVal = digitsMatch ? parseInt(digitsMatch[0], 10) : 0;
-  // if (gradeVal >= 10 && (!nicNumber || !nicNumber.trim())) {
-  //   return res.status(400).json({ message: "National ID / NIC number is required for students in Grade 10 or above." });
-  // }
 
   try {
     const ticket = await client.verifyIdToken({
@@ -2039,7 +2018,7 @@ router.get('/student-stats', protect, async (req, res) => {
     const announcements = await Notification.find({
       $or: [
         { recipient: studentId },
-        { recipient: null }
+        { recipientRole: { $in: ['all', 'student'] } }
       ]
     }).sort({ createdAt: -1 }).limit(5).lean();
 

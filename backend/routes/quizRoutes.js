@@ -3,6 +3,8 @@ const router = express.Router();
 const Quiz = require('../models/Quiz');
 const QuizSubmission = require('../models/QuizSubmission');
 const Course = require('../models/Course');
+const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { protect, isTeacherOrAdmin } = require('../middleware/authMiddleware');
 
 // @route   POST /api/quizzes
@@ -42,6 +44,35 @@ router.post('/', protect, isTeacherOrAdmin, async (req, res) => {
     });
 
     await quiz.save();
+
+    // Trigger Notification for enrolled students
+    try {
+      const targetGradeStr = String(grade).trim();
+      const enrolledStudentIds = courseExists.enrolledStudents || [];
+      if (enrolledStudentIds.length > 0) {
+        const students = await User.find({
+          _id: { $in: enrolledStudentIds },
+          role: 'student',
+          grade: new RegExp(targetGradeStr, 'i')
+        }).select('_id');
+
+        const notifDocs = students.map(st => ({
+          recipient: st._id,
+          type: 'NEW_CONTENT',
+          title: `New Quiz Available: ${title}`,
+          message: `A new quiz '${title}' is now active for ${courseExists.title} (${grade}).`,
+          link: `/courses`,
+          metadata: { courseId: courseExists._id, quizId: quiz._id }
+        }));
+
+        if (notifDocs.length > 0) {
+          await Notification.insertMany(notifDocs);
+        }
+      }
+    } catch (notifErr) {
+      console.error('Quiz creation notification error:', notifErr.message);
+    }
+
     res.status(201).json(quiz);
   } catch (error) {
     console.error("Error creating quiz:", error);
@@ -179,6 +210,22 @@ router.post('/:quizId/submit', protect, async (req, res) => {
     });
 
     await submission.save();
+
+    // Trigger Notification to Quiz Teacher / Admin
+    try {
+      if (quiz.teacher && quiz.teacher.toString() !== req.user._id.toString()) {
+        await Notification.create({
+          recipient: quiz.teacher,
+          type: 'GENERAL',
+          title: `Quiz Submitted: ${quiz.title}`,
+          message: `${req.user.name || 'A student'} submitted '${quiz.title}' with score ${score}/${totalPoints}.`,
+          link: `/courses`,
+          metadata: { quizId: quiz._id, studentId: req.user._id, score }
+        });
+      }
+    } catch (notifErr) {
+      console.error('Quiz submission notification error:', notifErr.message);
+    }
 
     res.status(201).json({
       message: "Quiz submitted successfully.",

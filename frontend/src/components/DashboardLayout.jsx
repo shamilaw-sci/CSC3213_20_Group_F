@@ -141,9 +141,10 @@ const DashboardLayout = () => {
 
   const handleNotificationClick = async (notif) => {
     try {
-      if (!notif.isRead) {
-        await api.put(`/notifications/${notif.id || notif._id}/read`);
-        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+      const targetId = notif.id || notif._id;
+      if (!notif.isRead && targetId) {
+        await api.put(`/notifications/${targetId}/read`);
+        setNotifications(prev => prev.map(n => (n.id || n._id) === targetId ? { ...n, isRead: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (err) {
@@ -162,6 +163,8 @@ const DashboardLayout = () => {
         return <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg"><FaMoneyBillWave className="text-base" /></div>;
       case 'REGISTRATION':
         return <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><FaUserPlus className="text-base" /></div>;
+      case 'ENROLLMENT':
+        return <div className="p-2 bg-teal-100 text-teal-600 rounded-lg"><FaCheckDouble className="text-base" /></div>;
       case 'ATTENDANCE':
         return <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><FaCalendarCheck className="text-base" /></div>;
       case 'COURSE_ADDED':
@@ -177,6 +180,7 @@ const DashboardLayout = () => {
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/dashboard': return `Welcome back, ${userName}!`;
+      case '/parent-dashboard': return userName;
       case '/courses': return `${userName} - Courses`;
       case '/attendance': return `${userName} - Attendance`;
       case '/payments': return `${userName} - Payments`;

@@ -85,22 +85,32 @@ router.patch('/update-message/:lessonId', protect, isTeacherOrAdmin, async (req,
         lesson.teacherMessage = teacherMessage;
         await lesson.save();
 
-        // --- TRIGGER NOTIFICATIONS FOR CLASS STUDENTS ---
+        // --- TRIGGER NOTIFICATIONS FOR ENROLLED CLASS STUDENTS ---
         try {
             const course = await Course.findById(lesson.course);
             const classGrade = String(lesson.grade).trim();
-            const students = await User.find({ role: 'student', grade: new RegExp(classGrade, 'i') }).select('_id');
-            const notifDocs = students.map(st => ({
-                recipient: st._id,
-                sender: req.user._id,
-                type: 'NEW_CONTENT',
-                title: `Teacher Notice: Grade ${lesson.grade}`,
-                message: teacherMessage,
-                link: '/courses',
-                metadata: { courseId: lesson.course, lessonId: lesson._id }
-            }));
-            if (notifDocs.length > 0) {
-                await Notification.insertMany(notifDocs);
+            const enrolledStudentIds = course?.enrolledStudents || [];
+
+            if (enrolledStudentIds.length > 0) {
+                const students = await User.find({
+                    _id: { $in: enrolledStudentIds },
+                    role: 'student',
+                    grade: new RegExp(classGrade, 'i')
+                }).select('_id');
+
+                const notifDocs = students.map(st => ({
+                    recipient: st._id,
+                    sender: req.user._id,
+                    type: 'NEW_CONTENT',
+                    title: `Teacher Notice: Grade ${lesson.grade}`,
+                    message: teacherMessage,
+                    link: '/courses',
+                    metadata: { courseId: lesson.course, lessonId: lesson._id }
+                }));
+
+                if (notifDocs.length > 0) {
+                    await Notification.insertMany(notifDocs);
+                }
             }
         } catch (notifErr) {
             console.error('Lesson message notification error:', notifErr.message);
@@ -188,9 +198,14 @@ router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, as
         // --- TRIGGER NOTIFICATIONS FOR ENROLLED STUDENTS ---
         try {
             const course = await Course.findById(lesson.course);
+            const classGrade = String(lesson.grade).trim();
             if (course && course.enrolledStudents && course.enrolledStudents.length > 0) {
-                const enrolledUsers = await User.find({ _id: { $in: course.enrolledStudents } });
-
+                const enrolledUsers = await User.find({
+                    _id: { $in: course.enrolledStudents },
+                    role: 'student',
+                    grade: new RegExp(classGrade, 'i')
+                });
+                
                 const notifDocs = enrolledUsers.map(st => ({
                     recipient: st._id,
                     type: 'NEW_CONTENT',
@@ -287,9 +302,14 @@ router.post('/:lessonId/assignment', protect, isTeacherOrAdmin, uploadPdfMiddlew
         // --- TRIGGER NOTIFICATIONS FOR ENROLLED STUDENTS ---
         try {
             const course = await Course.findById(lesson.course);
+            const classGrade = String(lesson.grade).trim();
             if (course && course.enrolledStudents && course.enrolledStudents.length > 0) {
-                const enrolledUsers = await User.find({ _id: { $in: course.enrolledStudents } });
-
+                const enrolledUsers = await User.find({
+                    _id: { $in: course.enrolledStudents },
+                    role: 'student',
+                    grade: new RegExp(classGrade, 'i')
+                });
+                
                 const notifDocs = enrolledUsers.map(st => ({
                     recipient: st._id,
                     type: 'NEW_CONTENT',
