@@ -16,7 +16,7 @@ const Payments = () => {
 
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'counter_staff';
 
   useEffect(() => {
     fetchPayments();
