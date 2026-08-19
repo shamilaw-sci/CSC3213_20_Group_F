@@ -548,11 +548,7 @@ router.post('/submit-bank-slip', protect, async (req, res) => {
 });
 
 // ==========================================
-// 7. GET PENDING BANK SLIPS (ADMIN / COUNTER STAFF)
-// ==========================================
-router.get('/pending-slips', protect, isCounterStaffOrAdmin, async (req, res) => {
-// ==========================================
-// 7. GET BANK SLIPS (ADMIN) - PENDING, APPROVED, REJECTED OR ALL
+// 7. GET BANK SLIPS (ADMIN / COUNTER STAFF) - PENDING, APPROVED, REJECTED OR ALL
 // ==========================================
 const getBankSlipsHandler = async (req, res) => {
   try {
@@ -585,8 +581,8 @@ const getBankSlipsHandler = async (req, res) => {
   }
 };
 
-router.get('/pending-slips', protect, isAdmin, getBankSlipsHandler);
-router.get('/bank-slips', protect, isAdmin, getBankSlipsHandler);
+router.get('/pending-slips', protect, isCounterStaffOrAdmin, getBankSlipsHandler);
+router.get('/bank-slips', protect, isCounterStaffOrAdmin, getBankSlipsHandler);
 
 
 // ==========================================
