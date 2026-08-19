@@ -8,7 +8,8 @@ import {
   FaEnvelope, 
   FaBell, 
   FaCheckSquare,
-  FaSquare
+  FaSquare,
+  FaBan
 } from 'react-icons/fa';
 
 const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = '' }) => {
@@ -19,6 +20,7 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
   const [courses, setCourses] = useState([]);
   const [type, setType] = useState('CLASS_POSTPONED');
   const [channels, setChannels] = useState(['in_app', 'sms', 'email']);
+  const [smsEnabled, setSmsEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
@@ -49,12 +51,25 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
           setCourses(list);
         })
         .catch(err => console.error('Error fetching courses in broadcast modal:', err));
+
+      api.get('/settings/sms-status')
+        .then(res => {
+          const isEnabled = res.data?.smsEnabled !== false;
+          setSmsEnabled(isEnabled);
+          if (!isEnabled) {
+            setChannels(prev => prev.filter(c => c !== 'sms'));
+          }
+        })
+        .catch(err => {
+          console.warn('Could not fetch SMS status:', err);
+        });
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const toggleChannel = (ch) => {
+    if (ch === 'sms' && !smsEnabled) return;
     if (channels.includes(ch)) {
       if (channels.length === 1) return; // keep at least 1 channel selected
       setChannels(channels.filter(c => c !== ch));
@@ -244,20 +259,36 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
 
               {/* SMS Checkbox Button */}
               <div
-                onClick={() => toggleChannel('sms')}
-                className={`p-3 rounded-xl border font-semibold text-xs flex items-center gap-3 transition-all cursor-pointer select-none ${
-                  channels.includes('sms')
-                    ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm'
-                    : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
+                onClick={() => smsEnabled && toggleChannel('sms')}
+                title={!smsEnabled ? 'SMS Service is currently turned OFF in Admin Settings' : 'Toggle Parent SMS'}
+                className={`p-3 rounded-xl border font-semibold text-xs flex items-center justify-between transition-all select-none ${
+                  !smsEnabled
+                    ? 'bg-gray-100/90 border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                    : channels.includes('sms')
+                    ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm cursor-pointer'
+                    : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100 cursor-pointer'
                 }`}
               >
-                <div className="text-base text-emerald-600">
-                  {channels.includes('sms') ? <FaCheckSquare className="text-emerald-600 text-lg" /> : <FaSquare className="text-gray-300 text-lg" />}
+                <div className="flex items-center gap-3">
+                  <div className="text-base">
+                    {!smsEnabled ? (
+                      <FaBan className="text-gray-400 text-lg" />
+                    ) : channels.includes('sms') ? (
+                      <FaCheckSquare className="text-emerald-600 text-lg" />
+                    ) : (
+                      <FaSquare className="text-gray-300 text-lg" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <FaSms className={`text-sm ${!smsEnabled ? 'text-gray-400' : channels.includes('sms') ? 'text-emerald-600' : 'text-gray-400'}`} />
+                    <span>Parent SMS</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <FaSms className={`text-sm ${channels.includes('sms') ? 'text-emerald-600' : 'text-gray-400'}`} />
-                  <span>Parent SMS</span>
-                </div>
+                {!smsEnabled && (
+                  <span className="text-[9px] font-extrabold uppercase bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-md">
+                    OFF
+                  </span>
+                )}
               </div>
 
               {/* Email Checkbox Button */}

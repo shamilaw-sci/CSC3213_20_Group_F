@@ -1,91 +1,276 @@
 /**
- * Format Sri Lanka Phone Numbers to International +94 Standard
- * Examples: '0719673030' -> '+94719673030', '719673030' -> '+94719673030'
+ * SMS Service - Text.lk Gateway Integration
+ * Supports automated phone normalization for Sri Lanka numbers,
+ * text.lk REST API v3 dispatch, and development simulation fallback.
  */
-const formatSriLankaPhone = (phone) => {
+
+/**
+ * Extracts clean 9-digit Sri Lankan subscriber number
+ * Handles: '0771234567', '+94771234567', '94771234567', '771234567', '077-123 4567'
+ * Returns: '771234567' (or '' if invalid)
+ */
+const normalizeSriLankaPhone = (phone) => {
   if (!phone) return '';
   let cleaned = String(phone).replace(/\D/g, '');
+
   if (cleaned.startsWith('94')) {
     cleaned = cleaned.substring(2);
   } else if (cleaned.startsWith('0')) {
     cleaned = cleaned.substring(1);
   }
-  // Sri Lankan mobile/landline numbers typically have 9 digits after 0/+94 (e.g. 71XXXXXXX)
-  if (cleaned.length < 8 || cleaned.length > 10) {
+
+  // Valid Sri Lankan phone subscriber numbers are 9 digits (e.g., 7XXXXXXXX, 11XXXXXXX)
+  if (cleaned.length !== 9) {
     return '';
   }
-  return `+94${cleaned}`;
+
+  return cleaned;
 };
 
 /**
- * Mask Phone Number for Privacy (e.g., '+94719673030' -> '+94 71 *** *030')
+ * Format phone number specifically for text.lk Gateway ('947XXXXXXXX' - 11 digits, no '+')
+ */
+const formatTextLkPhone = (phone) => {
+  const normalized = normalizeSriLankaPhone(phone);
+  if (!normalized) return '';
+  return `94${normalized}`;
+};
+
+/**
+ * Format Sri Lanka Phone Numbers to International +94 Standard ('+947XXXXXXXX')
+ */
+const formatSriLankaPhone = (phone) => {
+  const normalized = normalizeSriLankaPhone(phone);
+  if (!normalized) return '';
+  return `+94${normalized}`;
+};
+
+/**
+ * Mask Phone Number for Privacy Display (e.g., '0719673030' -> '+94 71 *** *030')
  */
 const maskPhoneNumber = (phone) => {
-  const formatted = formatSriLankaPhone(phone);
-  if (formatted.length < 10) return formatted;
-  const prefix = formatted.slice(0, 6); // e.g., '+9471'
-  const suffix = formatted.slice(-3);   // e.g., '030'
-  return `${prefix.slice(0, 3)} ${prefix.slice(3)} *** *${suffix}`;
+  const textLkPhone = formatTextLkPhone(phone);
+  if (!textLkPhone || textLkPhone.length < 11) {
+    return phone ? String(phone) : '';
+  }
+  const prefix = textLkPhone.slice(2, 4); // e.g. '71'
+  const suffix = textLkPhone.slice(-3);   // e.g. '030'
+  return `+94 ${prefix} *** *${suffix}`;
+};
+
+const SystemSetting = require('../models/SystemSetting');
+
+/**
+ * Check if SMS notification service is globally enabled in Admin Settings
+ */
+const isSmsServiceEnabled = async () => {
+  try {
+    const setting = await SystemSetting.findOne({ key: 'sms_settings' });
+    if (!setting) return true; // Default to true if not yet explicitly saved
+    return setting.smsEnabled !== false;
+  } catch (err) {
+    console.warn('⚠️ Could not check SMS system setting, defaulting to enabled:', err.message);
+    return true;
+  }
 };
 
 /**
- * Send SMS via Gateway (Notify.lk / Twilio) or Console Simulator
+ * Fetch live SMS units balance from text.lk Gateway
  */
-const sendSMS = async ({ phone, message, otpCode, studentName = 'Student' }) => {
-  const formattedPhone = formatSriLankaPhone(phone);
+const getTextLkBalance = async () => {
+  const rawToken = process.env.TEXTLK_API_TOKEN;
+  if (!rawToken || !rawToken.trim()) {
+    return { success: false, error: 'TEXTLK_API_TOKEN is not configured in .env' };
+  }
+  const cleanToken = rawToken.trim().replace(/^Bearer\s+/i, '').replace(/^["']|["']$/g, '');
 
-  if (!formattedPhone) {
+  // Try 1: v3 REST API Balance Endpoint
+  try {
+    const res = await fetch('https://app.text.lk/api/v3/balance', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${cleanToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    const data = await res.json();
+    if (res.ok && (data.status === 'success' || data.success)) {
+      return { success: true, mode: 'v3', data: data.data || data };
+    }
+  } catch (err) {
+    console.warn('Text.lk v3 balance check network error, falling back to HTTP endpoint:', err.message);
+  }
+
+  // Try 2: HTTP API Balance Endpoint Fallback
+  try {
+    const res = await fetch('https://app.text.lk/api/http/balance', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ api_token: cleanToken })
+    });
+    const data = await res.json();
+    if (res.ok && (data.status === 'success' || data.success)) {
+      return { success: true, mode: 'http', data: data.data || data };
+    }
+    return { success: false, error: data.message || 'Failed to fetch balance from Text.lk' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Fetch account profile status from text.lk Gateway
+ */
+const getTextLkProfile = async () => {
+  const rawToken = process.env.TEXTLK_API_TOKEN;
+  if (!rawToken || !rawToken.trim()) {
+    return { success: false, error: 'TEXTLK_API_TOKEN is not configured in .env' };
+  }
+  const cleanToken = rawToken.trim().replace(/^Bearer\s+/i, '').replace(/^["']|["']$/g, '');
+
+  // Try 1: v3 REST API Profile Endpoint
+  try {
+    const res = await fetch('https://app.text.lk/api/v3/me', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${cleanToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    const data = await res.json();
+    if (res.ok && (data.status === 'success' || data.success)) {
+      return { success: true, mode: 'v3', data: data.data || data };
+    }
+  } catch (err) {
+    console.warn('Text.lk v3 profile check error, falling back to HTTP endpoint:', err.message);
+  }
+
+  // Try 2: HTTP API Profile Endpoint Fallback
+  try {
+    const res = await fetch('https://app.text.lk/api/http/me', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ api_token: cleanToken })
+    });
+    const data = await res.json();
+    if (res.ok && (data.status === 'success' || data.success)) {
+      return { success: true, mode: 'http', data: data.data || data };
+    }
+    return { success: false, error: data.message || 'Failed to fetch profile from Text.lk' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Send SMS via text.lk Gateway (v3 REST API) or Development Simulator
+ */
+const sendSMS = async ({ phone, message, otpCode, studentName = 'Student', bypassMasterSwitch = false }) => {
+  // Check Master SMS Switch (unless explicitly bypassed for test dispatches)
+  if (!bypassMasterSwitch) {
+    const isEnabled = await isSmsServiceEnabled();
+    if (!isEnabled) {
+      console.log(`⚠️ [SMS DISABLED IN SETTINGS]: Skipped SMS to ${phone} ("${message.slice(0, 40)}...")`);
+      return { 
+        success: false, 
+        reason: 'SMS notification service is currently turned OFF by the administrator.', 
+        disabled: true 
+      };
+    }
+  }
+
+  const recipientPhone = formatTextLkPhone(phone);
+
+  if (!recipientPhone) {
     console.warn('⚠️ [SMS CANCELLED]: Invalid or missing phone number:', phone);
     return { success: false, reason: 'Invalid phone number' };
   }
 
-  // 1. Notify.lk Sri Lanka Gateway Integration (Using native fetch)
-  if (process.env.NOTIFY_USER_ID && process.env.NOTIFY_API_KEY) {
+  // 1. Text.lk SMS Gateway Integration (Supports v3 REST API & HTTP API fallback)
+  const rawToken = process.env.TEXTLK_API_TOKEN;
+  if (rawToken && rawToken.trim()) {
+    const cleanToken = rawToken.trim().replace(/^Bearer\s+/i, '').replace(/^["']|["']$/g, '');
+    const senderId = (process.env.TEXTLK_SENDER_ID || 'TextLKDemo').trim().replace(/^["']|["']$/g, '');
+
+    // Payload formatted as per text.lk documentation
+    const payload = {
+      api_token: cleanToken,
+      recipient: recipientPhone,
+      sender_id: senderId,
+      type: 'plain',
+      message: message
+    };
+
+    // Try 1: Text.lk v3 REST API
     try {
-      const response = await fetch('https://app.notify.lk/api/v1/send', {
+      const v3Response = await fetch('https://app.text.lk/api/v3/sms/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: process.env.NOTIFY_USER_ID,
-          api_key: process.env.NOTIFY_API_KEY,
-          sender_id: process.env.NOTIFY_SENDER_ID || 'NotifyDEMO',
-          to: formattedPhone,
-          message: message
-        })
+        headers: {
+          'Authorization': `Bearer ${cleanToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
       });
-      const data = await response.json();
-      console.log(`✅ [NOTIFY.LK SMS SENT] To: ${formattedPhone}`, data);
-      return { success: true, mode: 'notify.lk' };
-    } catch (err) {
-      console.error('❌ [NOTIFY.LK SMS ERROR]:', err.message);
-    }
-  }
 
-  // 2. Twilio Gateway Integration
-  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      const data = await v3Response.json();
+
+      if (v3Response.ok && (data.status === 'success' || data.status === 'queued' || data.success)) {
+        console.log(`✅ [TEXT.LK SMS SENT (v3)] To: ${recipientPhone} (${studentName}) | Sender: ${senderId}`, data);
+        return { success: true, mode: 'text.lk-v3', data };
+      }
+
+      // If v3 returns 401 or error, attempt fallback to HTTP API endpoint
+      console.warn(`⚠️ [TEXT.LK v3 API ${v3Response.status}]: ${data.message || 'Retrying via HTTP API...'}`);
+    } catch (v3Err) {
+      console.warn(`⚠️ [TEXT.LK v3 Network Error]: ${v3Err.message}. Retrying via HTTP API...`);
+    }
+
+    // Try 2: Text.lk HTTP API Endpoint Fallback
     try {
-      const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-      await twilio.messages.create({
-        body: message,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: formattedPhone
+      const httpResponse = await fetch('https://app.text.lk/api/http/sms/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
       });
-      console.log(`✅ [TWILIO SMS SENT] To: ${formattedPhone}`);
-      return { success: true, mode: 'twilio' };
-    } catch (err) {
-      console.error('❌ [TWILIO SMS ERROR]:', err.message);
+
+      const httpData = await httpResponse.json();
+
+      if (httpResponse.ok && (httpData.status === 'success' || httpData.status === 'queued' || httpData.success)) {
+        console.log(`✅ [TEXT.LK SMS SENT (HTTP)] To: ${recipientPhone} (${studentName}) | Sender: ${senderId}`, httpData);
+        return { success: true, mode: 'text.lk-http', data: httpData };
+      } else {
+        console.error(`❌ [TEXT.LK SMS ERROR] Status ${httpResponse.status}:`, httpData);
+        return { success: false, mode: 'text.lk', error: httpData.message || httpData };
+      }
+    } catch (httpErr) {
+      console.error('❌ [TEXT.LK SMS NETWORK ERROR]:', httpErr.message);
+      return { success: false, mode: 'text.lk', error: httpErr.message };
     }
   }
 
-  // 3. Fallback: Development & Demo Simulator Console Output
+  // 2. Fallback: Development & Demo Simulator Console Output (when TEXTLK_API_TOKEN is not configured)
   console.log('\n====================================================');
-  console.log('📱 [SMS SIMULATOR] Dispatching Short Message');
-  console.log(`Recipient: ${studentName} (${formattedPhone})`);
+  console.log('📱 [SMS SIMULATOR] Text.lk Dispatch Simulation');
+  console.log(`Recipient: ${studentName} (${recipientPhone} / ${formatSriLankaPhone(phone)})`);
+  console.log(`Sender ID: ${process.env.TEXTLK_SENDER_ID || 'TextLKDemo (Default)'}`);
   console.log(`Message  : "${message}"`);
   if (otpCode) console.log(`OTP Code : [ ${otpCode} ]`);
+  console.log('💡 Tip: Set TEXTLK_API_TOKEN in backend .env to send real SMS via text.lk');
   console.log('====================================================\n');
 
-  return { success: true, mode: 'simulator' };
+  return { success: true, mode: 'simulator', recipient: recipientPhone };
 };
 
 /**
@@ -113,7 +298,14 @@ const sendPaymentSMS = async ({ parentPhone, studentName, courseTitle, amount, d
  */
 const sendBulkSMS = async ({ phoneNumbers = [], message, classTitle = '' }) => {
   const fullMessage = classTitle ? `[LuminaLearn - ${classTitle}] ${message}` : `[LuminaLearn Notice] ${message}`;
-  const validPhones = [...new Set(phoneNumbers.filter(p => Boolean(p && String(p).trim())))];
+  
+  // Normalize and deduplicate recipient phone numbers
+  const validPhones = [...new Set(
+    phoneNumbers
+      .map(p => formatTextLkPhone(p))
+      .filter(p => Boolean(p))
+  )];
+
   const results = [];
   const chunkSize = 10;
 
@@ -128,25 +320,23 @@ const sendBulkSMS = async ({ phoneNumbers = [], message, classTitle = '' }) => {
 };
 
 /**
- * Send Verification OTP SMS (Mocked with clear console logging in development)
+ * Send Verification OTP SMS
  */
 const sendVerificationOTP = async ({ phone, otpCode, purpose = 'Verification', studentName = 'Student' }) => {
-  const formattedPhone = formatSriLankaPhone(phone);
+  const recipientPhone = formatTextLkPhone(phone);
   const message = `[LuminaLearn] Your ${purpose} OTP code is: ${otpCode}. Valid for 10 minutes. Do not share this code with anyone.`;
   
-  console.log('\n====================================================');
-  console.log(`📱 [SMS OTP MOCK] Dispatched to Phone: ${formattedPhone} (${studentName})`);
-  console.log(`🔑 Passcode / OTP : [ ${otpCode} ]`);
-  console.log(`📌 Purpose        : ${purpose}`);
-  console.log(`💬 Full Message   : "${message}"`);
-  console.log('====================================================\n');
-
-  return await sendSMS({ phone, message, otpCode, studentName });
+  return await sendSMS({ phone: recipientPhone, message, otpCode, studentName });
 };
 
 module.exports = {
+  normalizeSriLankaPhone,
+  formatTextLkPhone,
   formatSriLankaPhone,
   maskPhoneNumber,
+  isSmsServiceEnabled,
+  getTextLkBalance,
+  getTextLkProfile,
   sendSMS,
   sendAttendanceSMS,
   sendPaymentSMS,
