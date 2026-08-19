@@ -18,6 +18,13 @@ const lessonSchema = new mongoose.Schema({
     trim: true,
     default: "මෙම ශ්‍රේණිය සඳහා ගුරුවරයාගෙන් පණිවිඩයක් නැත."
   },
+  liveStream: {
+    isLive: { type: Boolean, default: false },
+    title: { type: String, default: '' },
+    youtubeUrl: { type: String, default: '' },
+    startedAt: { type: Date },
+    endedAt: { type: Date }
+  },
   videoLessons: [{
     title: String,
     url: String,

@@ -48,9 +48,9 @@ router.post('/add-grade', protect, isAdmin, async (req, res) => {
         }
 
         const isCourseDeactive = course.status === 'deactive' || course.isActive === false;
-        course.enrolledGrades.push({ 
-            gradeNumber: gradeVal, 
-            title: gradeTitle, 
+        course.enrolledGrades.push({
+            gradeNumber: gradeVal,
+            title: gradeTitle,
             messages: [],
             status: isCourseDeactive ? 'deactive' : 'active',
             isActive: !isCourseDeactive,
@@ -190,7 +190,7 @@ router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, as
             const course = await Course.findById(lesson.course);
             if (course && course.enrolledStudents && course.enrolledStudents.length > 0) {
                 const enrolledUsers = await User.find({ _id: { $in: course.enrolledStudents } });
-                
+
                 const notifDocs = enrolledUsers.map(st => ({
                     recipient: st._id,
                     type: 'NEW_CONTENT',
@@ -289,7 +289,7 @@ router.post('/:lessonId/assignment', protect, isTeacherOrAdmin, uploadPdfMiddlew
             const course = await Course.findById(lesson.course);
             if (course && course.enrolledStudents && course.enrolledStudents.length > 0) {
                 const enrolledUsers = await User.find({ _id: { $in: course.enrolledStudents } });
-                
+
                 const notifDocs = enrolledUsers.map(st => ({
                     recipient: st._id,
                     type: 'NEW_CONTENT',
@@ -353,6 +353,111 @@ router.delete('/:lessonId/assignment/:pdfId', protect, isTeacherOrAdmin, async (
         res.json({ message: "Assignment PDF removed successfully!", lesson });
     } catch (err) {
         res.status(500).json({ error: "Failed to delete Assignment PDF: " + err.message });
+    }
+});
+
+// @route   POST /api/lessons/:lessonId/live-stream
+// @desc    Start or Update YouTube Live Stream for a class (Admin / Teacher)
+router.post('/:lessonId/live-stream', protect, isTeacherOrAdmin, async (req, res) => {
+    try {
+        const { youtubeUrl, title } = req.body;
+        if (!youtubeUrl || !String(youtubeUrl).trim()) {
+            return res.status(400).json({ error: "YouTube Live Link or Video ID is required." });
+        }
+
+        const lesson = await Lesson.findById(req.params.lessonId);
+        if (!lesson) {
+            return res.status(404).json({ error: "Class not found." });
+        }
+
+        const streamTitle = (title && String(title).trim()) ? String(title).trim() : `Grade ${lesson.grade} Live Class`;
+
+        lesson.liveStream = {
+            isLive: true,
+            title: streamTitle,
+            youtubeUrl: String(youtubeUrl).trim(),
+            startedAt: new Date()
+        };
+
+        await lesson.save();
+
+        // Send Notification to enrolled students
+        try {
+            const course = await Course.findById(lesson.course);
+            if (course) {
+                const enrolledStudents = await User.find({
+                    role: 'student',
+                    $or: [
+                        { _id: { $in: course.enrolledStudents || [] } },
+                        { grade: lesson.grade }
+                    ]
+                }).select('_id email name');
+
+                const notifDocs = enrolledStudents.map(st => ({
+                    recipient: st._id,
+                    type: 'LIVE_CLASS',
+                    title: `🔴 LIVE NOW: ${course.title}`,
+                    message: `Live class "${streamTitle}" has started for Grade ${lesson.grade}! Click to join now.`,
+                    link: `/courses`,
+                    metadata: { courseId: course._id, lessonId: lesson._id }
+                }));
+
+                if (notifDocs.length > 0) {
+                    await Notification.insertMany(notifDocs);
+                }
+
+                enrolledStudents.forEach(st => {
+                    if (st.email) {
+                        sendCourseUpdateEmail(
+                            st.email,
+                            st.name,
+                            course.title,
+                            `🔴 LIVE CLASS: ${streamTitle}`,
+                            `Grade ${lesson.grade} live streaming session is live now on LuminaLearn!`
+                        );
+                    }
+                });
+            }
+        } catch (notifErr) {
+            console.error('Live stream notification error:', notifErr.message);
+        }
+
+        res.json({ message: "Live Class published successfully!", lesson });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to start live stream: " + err.message });
+    }
+});
+
+// @route   DELETE /api/lessons/:lessonId/live-stream
+// @desc    End YouTube Live Stream for a class (Admin / Teacher)
+router.delete('/:lessonId/live-stream', protect, isTeacherOrAdmin, async (req, res) => {
+    try {
+        const { saveAsVideo } = req.body;
+        const lesson = await Lesson.findById(req.params.lessonId);
+        if (!lesson) {
+            return res.status(404).json({ error: "Class not found." });
+        }
+
+        if (saveAsVideo && lesson.liveStream?.youtubeUrl) {
+            lesson.videoLessons.push({
+                title: lesson.liveStream.title || `Recorded Live Session - Grade ${lesson.grade}`,
+                url: lesson.liveStream.youtubeUrl,
+                weekNumber: 1
+            });
+        }
+
+        lesson.liveStream = {
+            isLive: false,
+            title: '',
+            youtubeUrl: '',
+            endedAt: new Date()
+        };
+
+        await lesson.save();
+
+        res.json({ message: "Live Class ended successfully!", lesson });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to end live stream: " + err.message });
     }
 });
 
