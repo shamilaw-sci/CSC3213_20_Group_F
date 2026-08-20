@@ -269,7 +269,7 @@ const Attendance = () => {
               { facingMode: "user" },
               config,
               (decodedText) => processQrCheckIn(decodedText),
-              () => {}
+              () => { }
             );
           } catch (e1) {
             const cameras = await Html5Qrcode.getCameras();
@@ -278,7 +278,7 @@ const Attendance = () => {
                 cameras[0].id,
                 config,
                 (decodedText) => processQrCheckIn(decodedText),
-                () => {}
+                () => { }
               );
             }
           }
@@ -431,7 +431,7 @@ const Attendance = () => {
             <div id="qr-reader" className="w-full max-w-md mx-auto rounded-2xl overflow-hidden shadow-inner border border-purple-200"></div>
           </div>
 
-          <form 
+          <form
             onSubmit={(e) => {
               e.preventDefault();
               if (manualQrCode) processQrCheckIn(manualQrCode);
@@ -440,7 +440,7 @@ const Attendance = () => {
           >
             <input
               type="text"
-              placeholder="Enter Student Reg No manually (e.g. STU-2026-G06-0042)..."
+              placeholder="Enter Student Reg No..."
               value={manualQrCode}
               onChange={(e) => setManualQrCode(e.target.value)}
               className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs font-mono font-bold"
@@ -616,11 +616,11 @@ const Attendance = () => {
       {/* Selected Student Complete Profile & Attendance Workspace */}
       {selectedStudent && (
         <div className="bg-white rounded-3xl border border-purple-200 shadow-md overflow-hidden space-y-6">
-          
+
           {/* 1. Rich Student Profile Header & Contact Details Card */}
           <div className="bg-gradient-to-br from-slate-900 via-purple-950 to-indigo-950 p-6 text-white relative overflow-hidden">
             <div className="absolute right-0 top-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl transform translate-x-20 -translate-y-20"></div>
-            
+
             <div className="relative z-10 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -645,11 +645,10 @@ const Attendance = () => {
                 </div>
 
                 <div className="flex items-center gap-2 self-start sm:self-center">
-                  <span className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border ${
-                    studentPayments.some(p => p.status === 'COMPLETED' || p.status === 'PAID')
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40'
-                      : 'bg-amber-500/20 text-amber-300 border-amber-400/40'
-                  }`}>
+                  <span className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border ${studentPayments.some(p => p.status === 'COMPLETED' || p.status === 'PAID')
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-400/40'
+                    }`}>
                     {studentPayments.some(p => p.status === 'COMPLETED' || p.status === 'PAID') ? 'Monthly Fees: Paid ✓' : 'Fee Unsettled ⚠️'}
                   </span>
                 </div>
@@ -750,22 +749,20 @@ const Attendance = () => {
                     <button
                       type="button"
                       onClick={() => setAttendanceStatus('Present')}
-                      className={`flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                        attendanceStatus === 'Present'
-                          ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400'
-                          : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-50'
-                      }`}
+                      className={`flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${attendanceStatus === 'Present'
+                        ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400'
+                        : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-50'
+                        }`}
                     >
                       <FaCheckCircle className="text-xs" /> Present ✓
                     </button>
                     <button
                       type="button"
                       onClick={() => setAttendanceStatus('Absent')}
-                      className={`flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                        attendanceStatus === 'Absent'
-                          ? 'bg-red-600 text-white shadow-md ring-2 ring-red-400'
-                          : 'bg-white text-red-800 border border-red-300 hover:bg-red-50'
-                      }`}
+                      className={`flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${attendanceStatus === 'Absent'
+                        ? 'bg-red-600 text-white shadow-md ring-2 ring-red-400'
+                        : 'bg-white text-red-800 border border-red-300 hover:bg-red-50'
+                        }`}
                     >
                       <FaTimesCircle className="text-xs" /> Absent ✗
                     </button>
@@ -792,11 +789,10 @@ const Attendance = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab('attendance')}
-                    className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
-                      activeTab === 'attendance' || activeTab === 'mark'
-                        ? 'bg-purple-700 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-900'
-                    }`}
+                    className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'attendance' || activeTab === 'mark'
+                      ? 'bg-purple-700 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-900'
+                      }`}
                   >
                     <FaCalendarAlt /> Attendance History ({attendanceHistory.length})
                   </button>
@@ -804,11 +800,10 @@ const Attendance = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab('payments')}
-                    className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
-                      activeTab === 'payments'
-                        ? 'bg-purple-700 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-900'
-                    }`}
+                    className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'payments'
+                      ? 'bg-purple-700 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-900'
+                      }`}
                   >
                     <FaCreditCard /> Payment Records ({studentPayments.length})
                   </button>
@@ -851,11 +846,10 @@ const Attendance = () => {
                             <span className="text-[9px] font-bold text-gray-500 uppercase bg-gray-100 px-2 py-0.5 rounded-md">
                               {rec.mode || 'PHYSICAL_QR'}
                             </span>
-                            <span className={`px-2.5 py-1 rounded-full font-extrabold text-[10px] flex items-center gap-1 ${
-                              rec.status === 'Present'
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : 'bg-red-100 text-red-800 border border-red-200'
-                            }`}>
+                            <span className={`px-2.5 py-1 rounded-full font-extrabold text-[10px] flex items-center gap-1 ${rec.status === 'Present'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : 'bg-red-100 text-red-800 border border-red-200'
+                              }`}>
                               {rec.status === 'Present' ? <FaCheckCircle className="text-[10px]" /> : <FaTimesCircle className="text-[10px]" />}
                               {rec.status}
                             </span>
@@ -953,11 +947,10 @@ const Attendance = () => {
               <button
                 type="button"
                 onClick={() => setAdminMode('manual')}
-                className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  adminMode === 'manual'
-                    ? 'bg-purple-700 text-white shadow-md'
-                    : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
-                }`}
+                className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${adminMode === 'manual'
+                  ? 'bg-purple-700 text-white shadow-md'
+                  : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+                  }`}
               >
                 <FaEdit className="text-base" /> Mark Student Daily Attendance
               </button>
@@ -966,11 +959,10 @@ const Attendance = () => {
               <button
                 type="button"
                 onClick={() => setAdminMode('qr')}
-                className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  adminMode === 'qr'
-                    ? 'bg-purple-700 text-white shadow-md'
-                    : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
-                }`}
+                className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${adminMode === 'qr'
+                  ? 'bg-purple-700 text-white shadow-md'
+                  : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+                  }`}
               >
                 <FaCamera className="text-base" /> Live QR Scanning
               </button>
@@ -981,11 +973,10 @@ const Attendance = () => {
           <button
             type="button"
             onClick={() => setAdminMode('daily')}
-            className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              adminMode === 'daily'
-                ? 'bg-purple-700 text-white shadow-md'
-                : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
-            }`}
+            className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${adminMode === 'daily'
+              ? 'bg-purple-700 text-white shadow-md'
+              : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+              }`}
           >
             <FaCalendarDay className="text-base" /> {isTeacher ? "Daily Class Attendance (By Date)" : "Daily Attendance Log (By Date)"}
           </button>
@@ -994,11 +985,10 @@ const Attendance = () => {
           <button
             type="button"
             onClick={() => setAdminMode('history')}
-            className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              adminMode === 'history'
-                ? 'bg-purple-700 text-white shadow-md'
-                : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
-            }`}
+            className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${adminMode === 'history'
+              ? 'bg-purple-700 text-white shadow-md'
+              : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+              }`}
           >
             <FaHistory className="text-base" /> {isTeacher ? "All-Time Class Attendance History" : "All-Time Attendance History"}
           </button>
@@ -1010,12 +1000,12 @@ const Attendance = () => {
         {/* 2. DAILY ATTENDANCE LOG & ALL-TIME HISTORY */}
         {(adminMode === 'daily' || adminMode === 'history') && (
           <div className="space-y-6">
-            
+
             {/* Filter Control Bar */}
             <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
-                  <FaFilter className="text-purple-600" /> 
+                  <FaFilter className="text-purple-600" />
                   {adminMode === 'daily' ? 'Select Date & Filter Daily Roster' : 'Search & Filter All-Time Master History'}
                 </h3>
                 <span className="text-xs text-purple-700 font-bold bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
@@ -1180,11 +1170,10 @@ const Attendance = () => {
                                     </span>
                                   </td>
                                   <td className="p-3.5">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                      log.mode === 'PHYSICAL_QR' 
-                                        ? 'bg-amber-100 text-amber-900 border border-amber-200' 
-                                        : 'bg-blue-100 text-blue-900 border border-blue-200'
-                                    }`}>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${log.mode === 'PHYSICAL_QR'
+                                      ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                                      : 'bg-blue-100 text-blue-900 border border-blue-200'
+                                      }`}>
                                       {log.mode || 'PHYSICAL_QR'}
                                     </span>
                                   </td>
@@ -1223,11 +1212,10 @@ const Attendance = () => {
                                 type="button"
                                 key={pageNum}
                                 onClick={() => setCurrentPage(pageNum)}
-                                className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${
-                                  currentPage === pageNum
-                                    ? 'bg-purple-900 text-white shadow-sm'
-                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
-                                }`}
+                                className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${currentPage === pageNum
+                                  ? 'bg-purple-900 text-white shadow-sm'
+                                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                                  }`}
                               >
                                 {pageNum}
                               </button>
