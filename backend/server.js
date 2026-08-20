@@ -16,6 +16,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const progressRoutes = require('./routes/progressRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const settingRoutes = require('./routes/settingRoutes');
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/settings', settingRoutes);
 
 
 // --- GLOBAL ERROR HANDLER ---

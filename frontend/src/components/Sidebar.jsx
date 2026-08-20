@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaHome, FaBook, FaCalendarCheck, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt, FaUserPlus } from 'react-icons/fa';
+import { FaHome, FaBook, FaCalendarCheck, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt, FaUserPlus, FaSms } from 'react-icons/fa';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -82,6 +82,7 @@ const Sidebar = () => {
                 </div>
                 <Link to="/manage-users" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/manage-users')}`}><FaUsers /> Manage Users</Link>
                 <Link to="/enrollments" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/enrollments')}`}><FaUserPlus /> Enrollments</Link>
+                <Link to="/sms-settings" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/sms-settings')}`}><FaSms /> SMS Settings</Link>
               </>
             )}
           </>

@@ -84,8 +84,8 @@ const Instructors = () => {
 
       {/* Background Dot Texture */}
       <div className={`absolute inset-0 pointer-events-none -z-10 ${isDarkMode
-          ? 'bg-[radial-gradient(#8b5cf6_1px,transparent_1px)] [background-size:28px_28px] opacity-[0.07]'
-          : 'bg-[radial-gradient(#2d1b64_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.08]'
+        ? 'bg-[radial-gradient(#8b5cf6_1px,transparent_1px)] [background-size:28px_28px] opacity-[0.07]'
+        : 'bg-[radial-gradient(#2d1b64_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.08]'
         }`} />
 
       {/* Ambient Glows */}
@@ -195,8 +195,8 @@ const Instructors = () => {
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${selectedCategory === cat
-                      ? (isDarkMode ? 'bg-purple-600 text-white shadow-md' : 'bg-purple-950 text-white shadow-md')
-                      : (isDarkMode ? 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800' : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200')
+                    ? (isDarkMode ? 'bg-purple-600 text-white shadow-md' : 'bg-purple-950 text-white shadow-md')
+                    : (isDarkMode ? 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800' : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200')
                     }`}
                 >
                   {cat}
@@ -212,8 +212,8 @@ const Instructors = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`w-full pl-9 pr-4 py-2 text-xs rounded-xl border focus:outline-none transition-all ${isDarkMode
-                    ? 'bg-slate-950 border-slate-800 text-white focus:border-purple-500'
-                    : 'bg-gray-50 border-purple-200 text-slate-800 focus:border-purple-600 focus:bg-white'
+                  ? 'bg-slate-950 border-slate-800 text-white focus:border-purple-500'
+                  : 'bg-gray-50 border-purple-200 text-slate-800 focus:border-purple-600 focus:bg-white'
                   }`}
               />
             </div>
@@ -227,8 +227,8 @@ const Instructors = () => {
                 <div
                   key={inst.id}
                   className={`rounded-3xl border overflow-hidden transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 ${isDarkMode
-                      ? 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 hover:border-purple-500/50 shadow-xl'
-                      : 'bg-white border-purple-200/90 hover:border-purple-400 shadow-lg hover:shadow-2xl'
+                    ? 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 hover:border-purple-500/50 shadow-xl'
+                    : 'bg-white border-purple-200/90 hover:border-purple-400 shadow-lg hover:shadow-2xl'
                     }`}
                 >
                   {/* Card Header with CIRCULAR Avatar Frame */}
@@ -356,7 +356,7 @@ const Instructors = () => {
               Institute Timetable
             </h2>
             <p className={`mt-2 text-sm sm:text-base ${isDarkMode ? 'text-slate-300' : 'text-slate-700 font-medium'}`}>
-              Comprehensive schedule for Kirula Education Center classes (Saturday & Sunday sessions)
+              Schedule for Kirula Education Center classes
             </p>
           </div>
 
@@ -370,8 +370,8 @@ const Instructors = () => {
                   key={day}
                   onClick={() => setTimetableDay(day)}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${timetableDay === day
-                      ? (isDarkMode ? 'bg-cyan-500 text-slate-950 shadow-md' : 'bg-purple-900 text-white shadow-md')
-                      : (isDarkMode ? 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800' : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200')
+                    ? (isDarkMode ? 'bg-cyan-500 text-slate-950 shadow-md' : 'bg-purple-900 text-white shadow-md')
+                    : (isDarkMode ? 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800' : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200')
                     }`}
                 >
                   {day === 'All' ? 'All Days' : day}
@@ -387,8 +387,8 @@ const Instructors = () => {
                 value={timetableSearch}
                 onChange={(e) => setTimetableSearch(e.target.value)}
                 className={`w-full pl-9 pr-4 py-2 text-xs rounded-xl border focus:outline-none ${isDarkMode
-                    ? 'bg-slate-900 border-slate-800 text-white focus:border-cyan-500'
-                    : 'bg-gray-50 border-purple-200 text-slate-800 focus:border-purple-600 focus:bg-white'
+                  ? 'bg-slate-900 border-slate-800 text-white focus:border-cyan-500'
+                  : 'bg-gray-50 border-purple-200 text-slate-800 focus:border-purple-600 focus:bg-white'
                   }`}
               />
             </div>
@@ -420,9 +420,9 @@ const Instructors = () => {
                       >
                         <td className="py-4 px-6 font-bold flex items-center gap-2">
                           <span className={`w-2.5 h-2.5 rounded-full ${row.subject.includes('Science') ? 'bg-cyan-400' :
-                              row.subject.includes('Math') ? 'bg-purple-500' :
-                                row.subject.includes('English') ? 'bg-emerald-400' :
-                                  row.subject.includes('Sinhala') ? 'bg-amber-400' : 'bg-pink-400'
+                            row.subject.includes('Math') ? 'bg-purple-500' :
+                              row.subject.includes('English') ? 'bg-emerald-400' :
+                                row.subject.includes('Sinhala') ? 'bg-amber-400' : 'bg-pink-400'
                             }`} />
                           {row.subject}
                         </td>
@@ -448,8 +448,8 @@ const Instructors = () => {
                         </td>
                         <td className="py-4 px-6">
                           <span className={`font-bold px-2.5 py-1 rounded-md text-[11px] ${row.day === 'Saturday'
-                              ? (isDarkMode ? 'bg-purple-950/80 text-purple-300 border border-purple-800' : 'bg-purple-100 text-purple-900 font-extrabold')
-                              : (isDarkMode ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800' : 'bg-indigo-100 text-indigo-900 font-extrabold')
+                            ? (isDarkMode ? 'bg-purple-950/80 text-purple-300 border border-purple-800' : 'bg-purple-100 text-purple-900 font-extrabold')
+                            : (isDarkMode ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800' : 'bg-indigo-100 text-indigo-900 font-extrabold')
                             }`}>
                             {row.day}
                           </span>

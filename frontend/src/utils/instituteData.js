@@ -48,15 +48,16 @@ export const INSTRUCTORS = [
     singleLineSummary: "Grade 6 - 11 (Saturday & Sunday)",
     photo: "/assets/pathum_gunawardhana.png",
     defaultPhoto: "/assets/default_instructor_icon.png",
-    fees: "Will_be_updated_soon",
+    fees: "Rs. 1000 - 1500/month",
+    feeBreakdown: "Grade 6 - 9: Rs. 1000 | Grade 10: Rs. 1200 | Grade 11: Rs. 1500",
     bio: "Experienced Science lecturer focusing on conceptual clarity, practical understanding, and O/L paper preparation.",
     schedules: [
-      { grade: "Grade 6", day: "Saturday", time: "9.30 AM - 11.30 AM" },
-      { grade: "Grade 7", day: "Saturday", time: "7.30 AM - 9.30 AM" },
-      { grade: "Grade 8", day: "Saturday", time: "11.30 AM - 1.30 PM" },
-      { grade: "Grade 9", day: "Saturday", time: "1.30 PM - 3.30 PM" },
-      { grade: "Grade 10 (O/L)", day: "Saturday", time: "3.30 PM - 5.30 PM" },
-      { grade: "Grade 11 (O/L)", day: "Sunday", time: "8.30 AM - 12.30 PM" }
+      { grade: "Grade 6", day: "Saturday", time: "9.30 AM - 11.30 AM", fee: "Rs. 1000/month" },
+      { grade: "Grade 7", day: "Saturday", time: "7.30 AM - 9.30 AM", fee: "Rs. 1000/month" },
+      { grade: "Grade 8", day: "Saturday", time: "11.30 AM - 1.30 PM", fee: "Rs. 1000/month" },
+      { grade: "Grade 9", day: "Saturday", time: "1.30 PM - 3.30 PM", fee: "Rs. 1000/month" },
+      { grade: "Grade 10 (O/L)", day: "Saturday", time: "3.30 PM - 5.30 PM", fee: "Rs. 1200/month" },
+      { grade: "Grade 11 (O/L)", day: "Sunday", time: "8.30 AM - 12.30 PM", fee: "Rs. 1500/month" }
     ]
   },
   {
@@ -68,11 +69,12 @@ export const INSTRUCTORS = [
     singleLineSummary: "Grade 2 - 5 (Sunday)",
     photo: "/assets/sankha_dissanayake.png",
     defaultPhoto: "/assets/default_instructor_icon.png",
-    fees: "Will_be_updated_soon",
+    fees: "Rs. 1200/month",
+    feeBreakdown: "Grade 2 - 5: Rs. 1200/month",
     bio: "Specialist Grade 5 Scholarship examination mentor empowering young minds with problem-solving and speed techniques.",
     schedules: [
-      { grade: "Grade 2 & Grade 3", day: "Sunday", time: "1.00 PM - 3.00 PM" },
-      { grade: "Grade 4 & Grade 5", day: "Sunday", time: "3.00 PM - 5.00 PM" }
+      { grade: "Grade 2 & Grade 3", day: "Sunday", time: "1.00 PM - 3.00 PM", fee: "Rs. 1200/month" },
+      { grade: "Grade 4 & Grade 5", day: "Sunday", time: "3.00 PM - 5.00 PM", fee: "Rs. 1200/month" }
     ]
   },
   {
@@ -84,15 +86,16 @@ export const INSTRUCTORS = [
     singleLineSummary: "Grade 6 - 11 (Saturday & Sunday)",
     photo: "/assets/lasantha_wedagedara.png",
     defaultPhoto: "/assets/default_instructor_icon.png",
-    fees: "Will_be_updated_soon",
+    fees: "Rs. 1000 - 1500/month",
+    feeBreakdown: "Grade 6 - 9: Rs. 1000 | Grade 10: Rs. 1200 | Grade 11: Rs. 1500",
     bio: "Renowned Mathematics instructor dedicated to building strong logical foundation and exam mastery.",
     schedules: [
-      { grade: "Grade 6", day: "Saturday", time: "11.30 AM - 1.30 PM" },
-      { grade: "Grade 7", day: "Saturday", time: "9.30 AM - 11.30 AM" },
-      { grade: "Grade 8", day: "Saturday", time: "7.30 AM - 9.30 AM" },
-      { grade: "Grade 9", day: "Sunday", time: "1.30 PM - 3.30 PM" },
-      { grade: "Grade 10 (O/L)", day: "Sunday", time: "3.30 PM - 5.30 PM" },
-      { grade: "Grade 11 (O/L)", day: "Saturday", time: "1.30 PM - 5.30 PM" }
+      { grade: "Grade 6", day: "Saturday", time: "11.30 AM - 1.30 PM", fee: "Rs. 1000/month" },
+      { grade: "Grade 7", day: "Saturday", time: "9.30 AM - 11.30 AM", fee: "Rs. 1000/month" },
+      { grade: "Grade 8", day: "Saturday", time: "7.30 AM - 9.30 AM", fee: "Rs. 1000/month" },
+      { grade: "Grade 9", day: "Sunday", time: "1.30 PM - 3.30 PM", fee: "Rs. 1000/month" },
+      { grade: "Grade 10 (O/L)", day: "Sunday", time: "3.30 PM - 5.30 PM", fee: "Rs. 1200/month" },
+      { grade: "Grade 11 (O/L)", day: "Saturday", time: "1.30 PM - 5.30 PM", fee: "Rs. 1500/month" }
     ]
   },
   {
@@ -104,11 +107,12 @@ export const INSTRUCTORS = [
     singleLineSummary: "Grade 10 & 11 O/L (Sunday)",
     photo: "/assets/founder_photo.png",
     defaultPhoto: "/assets/founder_photo.png",
-    fees: "Will_be_updated_soon",
+    fees: "Rs. 1200/month",
+    feeBreakdown: "Grade 10 & Grade 11: Rs. 1200/month",
     bio: "Founder of Kirula Education Center and expert Sinhala language lecturer specializing in O/L literature, grammar, and essay writing.",
     schedules: [
-      { grade: "Grade 10 (O/L)", day: "Sunday", time: "3.30 PM - 5.30 PM" },
-      { grade: "Grade 11 (O/L)", day: "Sunday", time: "1.30 PM - 3.30 PM" }
+      { grade: "Grade 10 (O/L)", day: "Sunday", time: "3.30 PM - 5.30 PM", fee: "Rs. 1200/month" },
+      { grade: "Grade 11 (O/L)", day: "Sunday", time: "1.30 PM - 3.30 PM", fee: "Rs. 1200/month" }
     ]
   },
   {
@@ -120,15 +124,16 @@ export const INSTRUCTORS = [
     singleLineSummary: "Grade 6 - 11 (Saturday)",
     photo: "/assets/kevin_daraniyagala.png",
     defaultPhoto: "/assets/default_instructor_icon.png",
-    fees: "Will_be_updated_soon",
+    fees: "Rs. 1000 - 1500/month",
+    feeBreakdown: "Grade 6 - 9: Rs. 1000 | Grade 10: Rs. 1200 | Grade 11: Rs. 1500",
     bio: "Dynamic English educator boosting student confidence in grammar, comprehension, vocabulary, and O/L paper structure.",
     schedules: [
-      { grade: "Grade 6", day: "Saturday", time: "7.30 AM - 9.30 AM" },
-      { grade: "Grade 7", day: "Saturday", time: "11.30 AM - 1.30 PM" },
-      { grade: "Grade 8", day: "Saturday", time: "9.30 AM - 11.30 AM" },
-      { grade: "Grade 9", day: "Saturday", time: "3.30 PM - 5.30 PM" },
-      { grade: "Grade 10 (O/L)", day: "Saturday", time: "1.30 PM - 3.30 PM" },
-      { grade: "Grade 11 (O/L)", day: "Saturday", time: "5.30 PM - 7.30 PM" }
+      { grade: "Grade 6", day: "Saturday", time: "7.30 AM - 9.30 AM", fee: "Rs. 1000/month" },
+      { grade: "Grade 7", day: "Saturday", time: "11.30 AM - 1.30 PM", fee: "Rs. 1000/month" },
+      { grade: "Grade 8", day: "Saturday", time: "9.30 AM - 11.30 AM", fee: "Rs. 1000/month" },
+      { grade: "Grade 9", day: "Saturday", time: "3.30 PM - 5.30 PM", fee: "Rs. 1000/month" },
+      { grade: "Grade 10 (O/L)", day: "Saturday", time: "1.30 PM - 3.30 PM", fee: "Rs. 1200/month" },
+      { grade: "Grade 11 (O/L)", day: "Saturday", time: "5.30 PM - 7.30 PM", fee: "Rs. 1500/month" }
     ]
   },
   {
@@ -140,11 +145,12 @@ export const INSTRUCTORS = [
     singleLineSummary: "Grade 1 - 5 (Saturday & Sunday)",
     photo: "/assets/rashmi_gunawardhana.png",
     defaultPhoto: "/assets/default_instructor_icon.png",
-    fees: "Will_be_updated_soon",
+    fees: "Rs. 1000/month",
+    feeBreakdown: "Grade 1 - 5: Rs. 1000/month",
     bio: "Engaging primary English mentor creating a fun, interactive learning environment for foundation students.",
     schedules: [
-      { grade: "Group 1", day: "Saturday", time: "11.30 AM - 1.30 PM" },
-      { grade: "Group 2", day: "Sunday", time: "3.30 PM - 5.30 PM" }
+      { grade: "Group 1", day: "Saturday", time: "11.30 AM - 1.30 PM", fee: "Rs. 1000/month" },
+      { grade: "Group 2", day: "Sunday", time: "3.30 PM - 5.30 PM", fee: "Rs. 1000/month" }
     ]
   }
 ];
@@ -161,7 +167,7 @@ export const GET_MASTER_TIMETABLE = () => {
         grade: sched.grade,
         day: sched.day,
         time: sched.time,
-        fees: inst.fees,
+        fees: sched.fee || inst.fees,
         instructorPhoto: inst.photo,
         defaultPhoto: inst.defaultPhoto
       });
@@ -184,7 +190,7 @@ export const GET_DIVERSE_TIMETABLE_PREVIEW = () => {
         grade: sched.grade,
         day: sched.day,
         time: sched.time,
-        fees: inst.fees,
+        fees: sched.fee || inst.fees,
         instructorPhoto: inst.photo,
         defaultPhoto: inst.defaultPhoto
       });

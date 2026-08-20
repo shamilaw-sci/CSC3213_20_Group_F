@@ -29,6 +29,7 @@ import ParentDashboard from './pages/ParentDashboard';
 import CreateQuiz from './pages/CreateQuiz';
 import TakeQuiz from './pages/TakeQuiz';
 import QuizSubmissions from './pages/QuizSubmissions';
+import SmsSettings from './pages/SmsSettings';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -142,6 +143,12 @@ function App() {
           <Route path="/parent-dashboard" element={
             <ProtectedRoute allowedRoles={['parent', 'admin']}>
               <ParentDashboard />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/sms-settings" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <SmsSettings />
             </ProtectedRoute>
           } />
 
