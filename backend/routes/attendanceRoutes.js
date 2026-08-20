@@ -10,6 +10,18 @@ const Payment = require('../models/Payment');
 const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authMiddleware');
 const { sendAttendanceSMS } = require('../services/smsService');
 
+const isStaffTeacherOrAdmin = (req, res, next) => {
+  if (
+    req.user &&
+    (req.user.role === 'admin' ||
+     req.user.role === 'counter_staff' ||
+     req.user.role === 'teacher')
+  ) {
+    return next();
+  }
+  return res.status(403).json({ message: "Access denied. Admin, Staff, or Teacher role required." });
+};
+
 // --- HELPER: Normalize date to Midnight UTC/Local (YYYY-MM-DD) ---
 const normalizeDate = (dateVal) => {
   const d = dateVal ? new Date(dateVal) : new Date();
@@ -18,12 +30,12 @@ const normalizeDate = (dateVal) => {
 };
 
 // ==========================================
-//          1. MARK ATTENDANCE (ADMIN ONLY)
+//          1. MARK ATTENDANCE (ADMIN & TEACHER)
 // ==========================================
 router.post('/', protect, async (req, res) => {
-  // Only admin is allowed to mark attendance
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: "Access Denied: Admins only." });
+  // Allow admin, counter_staff, and teacher
+  if (req.user.role !== 'admin' && req.user.role !== 'counter_staff' && req.user.role !== 'teacher') {
+    return res.status(403).json({ message: "Access Denied: Authorized personnel only." });
   }
 
   const { studentId, scheduleId, status = 'Present', date } = req.body;
@@ -226,7 +238,24 @@ router.get('/student/:studentId', protect, async (req, res) => {
   }
 
   try {
-    const history = await Attendance.find({ studentId })
+    let filter = { studentId };
+
+    // If requester is a teacher, only show records for that teacher's courses/schedules
+    if (req.user.role === 'teacher') {
+      const teacherCourses = await Course.find({ instructor: userId }).select('_id');
+      const teacherCourseIds = teacherCourses.map(c => c._id);
+      const teacherSchedules = await Schedule.find({
+        $or: [{ teacherId: userId }, { courseId: { $in: teacherCourseIds } }]
+      }).select('_id');
+      const teacherScheduleIds = teacherSchedules.map(s => s._id);
+
+      filter.$or = [
+        { courseId: { $in: teacherCourseIds } },
+        { scheduleId: { $in: teacherScheduleIds } }
+      ];
+    }
+
+    const history = await Attendance.find(filter)
       .populate('scheduleId', 'title startTime endTime room className')
       .populate('courseId', 'title')
       .populate('markedBy', 'name')
@@ -461,12 +490,37 @@ router.get('/weekly-status/:courseId', protect, async (req, res) => {
 });
 
 // ==========================================
-//   ADMIN DAILY & ALL-TIME ATTENDANCE LOGS
+//   ADMIN & TEACHER DAILY & ALL-TIME ATTENDANCE LOGS
 // ==========================================
-router.get('/admin/all-logs', protect, isCounterStaffOrAdmin, async (req, res) => {
+router.get('/admin/all-logs', protect, isStaffTeacherOrAdmin, async (req, res) => {
   try {
     const { date, courseId, grade, search } = req.query;
     let filter = {};
+
+    // IF REQUESTER IS A TEACHER: STRICTLY SCOPE TO TEACHER'S CLASSES
+    if (req.user.role === 'teacher') {
+      const teacherCourses = await Course.find({ instructor: req.user._id }).select('_id');
+      const teacherCourseIds = teacherCourses.map(c => c._id);
+      const teacherSchedules = await Schedule.find({
+        $or: [{ teacherId: req.user._id }, { courseId: { $in: teacherCourseIds } }]
+      }).select('_id');
+      const teacherScheduleIds = teacherSchedules.map(s => s._id);
+
+      if (courseId) {
+        if (teacherCourseIds.some(id => id.toString() === courseId)) {
+          filter.courseId = courseId;
+        } else {
+          return res.json([]);
+        }
+      } else {
+        filter.$or = [
+          { courseId: { $in: teacherCourseIds } },
+          { scheduleId: { $in: teacherScheduleIds } }
+        ];
+      }
+    } else if (courseId) {
+      filter.courseId = courseId;
+    }
 
     if (date) {
       const startOfDay = new Date(date);
@@ -474,10 +528,6 @@ router.get('/admin/all-logs', protect, isCounterStaffOrAdmin, async (req, res) =
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
       filter.date = { $gte: startOfDay, $lte: endOfDay };
-    }
-
-    if (courseId) {
-      filter.courseId = courseId;
     }
 
     let studentMatch = {};
@@ -504,7 +554,7 @@ router.get('/admin/all-logs', protect, isCounterStaffOrAdmin, async (req, res) =
     const filteredLogs = logs.filter(item => item.studentId !== null);
     res.json(filteredLogs);
   } catch (err) {
-    console.error("Admin fetch attendance logs error:", err);
+    console.error("Fetch attendance logs error:", err);
     res.status(500).json({ message: "Server error fetching attendance logs" });
   }
 });
@@ -512,16 +562,33 @@ router.get('/admin/all-logs', protect, isCounterStaffOrAdmin, async (req, res) =
 // ==========================================
 //   7. GET TODAY'S REAL-TIME CHECK-INS FEED
 // ==========================================
-router.get('/today-scans', protect, isCounterStaffOrAdmin, async (req, res) => {
+router.get('/today-scans', protect, isStaffTeacherOrAdmin, async (req, res) => {
   try {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const logs = await Attendance.find({
+    let filter = {
       date: { $gte: todayStart, $lte: todayEnd }
-    })
+    };
+
+    // IF TEACHER: Strictly scope to teacher's courses & schedules
+    if (req.user.role === 'teacher') {
+      const teacherCourses = await Course.find({ instructor: req.user._id }).select('_id');
+      const teacherCourseIds = teacherCourses.map(c => c._id);
+      const teacherSchedules = await Schedule.find({
+        $or: [{ teacherId: req.user._id }, { courseId: { $in: teacherCourseIds } }]
+      }).select('_id');
+      const teacherScheduleIds = teacherSchedules.map(s => s._id);
+
+      filter.$or = [
+        { courseId: { $in: teacherCourseIds } },
+        { scheduleId: { $in: teacherScheduleIds } }
+      ];
+    }
+
+    const logs = await Attendance.find(filter)
       .populate('studentId', 'name email registrationNumber grade profilePicture studentType')
       .populate('courseId', 'title grade category')
       .populate('scheduleId', 'title startTime endTime room className')
@@ -587,9 +654,9 @@ router.get('/today-scans', protect, isCounterStaffOrAdmin, async (req, res) => {
 });
 
 // ==========================================
-//     8. LIVE QR CODE ATTENDANCE SCANNER (ADMIN)
+//     8. LIVE QR CODE ATTENDANCE SCANNER (ADMIN & TEACHER)
 // ==========================================
-router.post('/scan-qr', protect, isCounterStaffOrAdmin, async (req, res) => {
+router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
   try {
     const { registrationNumber, studentId, courseId: reqCourseId, scheduleId: reqScheduleId } = req.body;
     const adminId = req.user._id || req.user.id;

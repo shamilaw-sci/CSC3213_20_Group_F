@@ -11,41 +11,78 @@ import {
   FaGlobe, 
   FaSchool, 
   FaCheckCircle, 
-  FaTrophy,
-  FaFilter,
-  FaChartPie,
-  FaBookOpen,
-  FaArrowRight
+  FaTrophy, 
+  FaFilter, 
+  FaChartPie, 
+  FaBookOpen, 
+  FaArrowRight,
+  FaSearch,
+  FaArrowLeft,
+  FaUserGraduate,
+  FaEye,
+  FaReceipt
 } from 'react-icons/fa';
 
 const Analytics = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [studentTypeFilter, setStudentTypeFilter] = useState('all'); // Admin filter
+  const [studentTypeFilter, setStudentTypeFilter] = useState('all'); // Admin & Teacher filter
   const [chartStyle, setChartStyle] = useState('bars'); // 'bars' | 'area' | 'lines'
+  const [modeSortBy, setModeSortBy] = useState('grade'); // 'grade' | 'count' | 'online'
+  const [selectedTier, setSelectedTier] = useState('all'); // 'all' | 'junior' | 'ol' | 'al'
+  const [selectedChildId, setSelectedChildId] = useState('');
+  const [selectedTeacherStudentId, setSelectedTeacherStudentId] = useState('');
+  const [selectedCourseId, setSelectedCourseId] = useState('all');
+  const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [studentGradeFilter, setStudentGradeFilter] = useState('all');
 
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
   const isStudent = user?.role?.toLowerCase() === 'student';
+  const isParent = user?.role?.toLowerCase() === 'parent';
+  const isTeacher = user?.role?.toLowerCase() === 'teacher';
 
   useEffect(() => {
-    fetchAnalytics(studentTypeFilter);
-  }, [studentTypeFilter]);
+    const targetStudentId = isParent ? selectedChildId : selectedTeacherStudentId;
+    fetchAnalytics(studentTypeFilter, targetStudentId, selectedCourseId);
+  }, [studentTypeFilter, selectedChildId, selectedTeacherStudentId, selectedCourseId]);
 
-  const fetchAnalytics = async (typeFilter) => {
+  const fetchAnalytics = async (typeFilter = 'all', childOrStudentId = '', courseId = 'all') => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/auth/analytics-summary?studentType=${typeFilter}`, {
+      let url = `http://localhost:5000/api/auth/analytics-summary?studentType=${typeFilter}`;
+      if (childOrStudentId) {
+        url += `&studentId=${childOrStudentId}`;
+      }
+      if (courseId && courseId !== 'all') {
+        url += `&courseId=${courseId}`;
+      }
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setData(res.data);
+      if (res.data?.selectedStudentId && !selectedChildId && isParent) {
+        setSelectedChildId(res.data.selectedStudentId);
+      }
     } catch (err) {
       console.error('Error fetching analytics:', err);
       toast.error('Failed to load platform analytics.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChildSelect = (childId) => {
+    setSelectedChildId(childId);
+  };
+
+  const handleTeacherSelectStudent = (studentId) => {
+    setSelectedTeacherStudentId(studentId);
+  };
+
+  const handleTeacherBackToOverview = () => {
+    setSelectedTeacherStudentId('');
   };
 
   if (loading) {
@@ -57,9 +94,9 @@ const Analytics = () => {
   }
 
   // ==========================================
-  // RENDER STUDENT VIEW IF USER IS A STUDENT
+  // RENDER STUDENT / PARENT / TEACHER-STUDENT-DETAIL VIEW
   // ==========================================
-  if (data?.isStudentView || isStudent) {
+  if (isStudent || isParent || (isTeacher && data?.isStudentDetail) || (data?.isStudentView && !data?.isTeacherView)) {
     const { studentMetrics, attendanceBreakdown, enrolledCoursesList = [], studentPayments = [] } = data || {};
     
     const presentCount = attendanceBreakdown?.present || 0;
@@ -73,17 +110,115 @@ const Analytics = () => {
 
     return (
       <div className="min-h-screen bg-[#f1f5f9] p-4 md:p-10 font-sans text-gray-800 space-y-10">
-        <div className="max-w-7xl mx-auto space-y-10">
+        <div className="max-w-7xl mx-auto space-y-8">
           
-          {/* Header Section for Student */}
+          {/* TEACHER VIEW: Selected Student Header / Back button */}
+          {isTeacher && data?.isStudentDetail && (
+            <div className="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={handleTeacherBackToOverview}
+                  className="px-4 py-2.5 bg-[#2d1b64] hover:bg-purple-900 text-white font-extrabold text-xs rounded-2xl transition flex items-center gap-2 cursor-pointer shadow-md hover:scale-105"
+                >
+                  <FaArrowLeft /> Back to Class Roster
+                </button>
+                <div>
+                  <span className="text-[10px] font-black text-purple-700 uppercase tracking-wider block">Inspecting Class Student</span>
+                  <h3 className="text-lg font-black text-gray-900">{data?.selectedStudent?.name}</h3>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-mono font-bold bg-purple-50 text-purple-900 px-3 py-1.5 rounded-xl border border-purple-200">
+                  {data?.selectedStudent?.registrationNumber || data?.selectedStudent?.email || 'No Reg #'}
+                </span>
+                <span className="text-xs font-bold bg-amber-400 text-purple-950 px-3 py-1.5 rounded-xl shadow-xs">
+                  {data?.selectedStudent?.grade || 'Grade'}
+                </span>
+                <span className="text-xs font-bold bg-indigo-900 text-white px-3 py-1.5 rounded-xl">
+                  {data?.selectedStudent?.studentType === 'online' ? '💻 Online Student' : '🏫 Physical Student'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* PARENT VIEW: Child Selection Navigation Bar */}
+          {isParent && (
+            <div className="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm space-y-3.5">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-black uppercase tracking-wider text-purple-950 flex items-center gap-2">
+                  <span>🧒</span> Select Child to Monitor:
+                </span>
+                <span className="text-xs text-purple-700 font-bold bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+                  {data?.parentChildren?.length || 0} Registered Children
+                </span>
+              </div>
+
+              {data?.parentChildren?.length === 0 ? (
+                <div className="p-5 bg-purple-50 rounded-2xl text-center text-xs text-purple-900 font-semibold">
+                  No linked student profiles found for your parent account. Please verify with institute management.
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-3">
+                  {data?.parentChildren?.map(child => {
+                    const isSelected = (selectedChildId === child._id) || (!selectedChildId && data?.selectedStudentId === child._id);
+                    return (
+                      <button
+                        key={child._id}
+                        type="button"
+                        onClick={() => handleChildSelect(child._id)}
+                        className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-3 cursor-pointer border ${
+                          isSelected
+                            ? 'bg-purple-900 text-white border-purple-950 shadow-md ring-2 ring-amber-400 scale-[1.02]'
+                            : 'bg-purple-50/60 hover:bg-purple-100 text-purple-950 border-purple-100'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 ${
+                          isSelected ? 'bg-amber-400 text-purple-950' : 'bg-purple-200 text-purple-900'
+                        }`}>
+                          {child.name ? child.name.charAt(0).toUpperCase() : 'S'}
+                        </div>
+                        <div className="text-left">
+                          <span className="block leading-tight text-sm">{child.name}</span>
+                          <span className={`text-[10px] font-semibold block ${isSelected ? 'text-purple-200' : 'text-purple-600'}`}>
+                            {child.grade || 'Grade'} • {child.studentType === 'online' ? 'Online' : 'Physical'}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <span className="bg-amber-400 text-purple-950 text-[10px] font-black px-2 py-0.5 rounded-full ml-1 shadow-2xs">
+                            Active
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Header Section for Student, Parent & Teacher Drill-Down */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-8 rounded-[30px] text-white shadow-xl">
             <div>
               <div className="flex items-center gap-3">
-                <span className="p-3 bg-white/10 rounded-2xl text-amber-400 text-2xl">🎓</span>
+                <span className="p-3 bg-white/10 rounded-2xl text-amber-400 text-2xl">
+                  {isTeacher ? '🧑‍🎓' : isParent ? '👨‍👩‍👧‍👦' : '🎓'}
+                </span>
                 <div>
-                  <h2 className="text-3xl font-extrabold tracking-tight">My Personal Learning Analytics</h2>
+                  <h2 className="text-3xl font-extrabold tracking-tight">
+                    {isTeacher && data?.isStudentDetail
+                      ? `${data?.selectedStudent?.name || studentMetrics?.studentName || 'Student'}'s Class Performance`
+                      : isParent 
+                      ? `${studentMetrics?.studentName ? `${studentMetrics.studentName}'s` : 'Child'} Learning Analytics` 
+                      : 'My Personal Learning Analytics'}
+                  </h2>
                   <p className="text-indigo-200 text-sm mt-1">
-                    Track your course progress, attendance records, and settled payment history.
+                    {isTeacher && data?.isStudentDetail
+                      ? 'Detailed breakdown of course attendance compliance and fee settlements for your class.'
+                      : isParent
+                      ? 'Monitor your child\'s course progress, weekly attendance compliance, and settled payment receipts in real-time.'
+                      : 'Track your course progress, attendance records, and settled payment history.'}
                   </p>
                 </div>
               </div>
@@ -385,7 +520,608 @@ const Analytics = () => {
   }
 
   // ==========================================
-  // RENDER ADMIN / TEACHER VIEW
+  // RENDER TEACHER CLASS OVERVIEW
+  // ==========================================
+  if (isTeacher || data?.isTeacherView) {
+    const { metrics, studentsList = [], gradeDistribution = [], topCourses = [], teacherCourses = [] } = data || {};
+
+    const onlineCount = metrics?.onlineStudents || 0;
+    const physicalCount = metrics?.physicalStudents || 0;
+    const totalCount = metrics?.totalStudents || (onlineCount + physicalCount);
+
+    const onlinePercent = totalCount > 0 ? Math.round((onlineCount / totalCount) * 100) : 0;
+    const physicalPercent = 100 - onlinePercent;
+
+    // Filter students list based on search and grade
+    const filteredClassStudents = studentsList.filter(s => {
+      const matchSearch = !studentSearchTerm || 
+        s.name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+        (s.registrationNumber && s.registrationNumber.toLowerCase().includes(studentSearchTerm.toLowerCase())) ||
+        (s.email && s.email.toLowerCase().includes(studentSearchTerm.toLowerCase()));
+
+      const matchGrade = studentGradeFilter === 'all' || s.grade === studentGradeFilter;
+
+      return matchSearch && matchGrade;
+    });
+
+    const uniqueGrades = Array.from(new Set(studentsList.map(s => s.grade).filter(Boolean)));
+
+    return (
+      <div className="min-h-screen bg-[#f1f5f9] p-4 md:p-10 font-sans text-gray-800 space-y-10">
+        <div className="max-w-7xl mx-auto space-y-8">
+
+          {/* Teacher Header Banner */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-8 rounded-[30px] text-white shadow-xl">
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="p-3 bg-white/10 rounded-2xl text-amber-400 text-2xl">👨‍🏫</span>
+                <div>
+                  <h2 className="text-3xl font-extrabold tracking-tight">Faculty Analytics & Class Insights</h2>
+                  <p className="text-indigo-200 text-sm mt-1">
+                    Monitor enrolled students, class attendance compliance, and fee settlements for your assigned courses.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Student Mode Filter Control */}
+            <div className="bg-white/10 backdrop-blur-md p-1.5 rounded-2xl border border-white/20 flex items-center gap-1">
+              <span className="text-xs text-indigo-200 px-3 font-semibold flex items-center gap-1">
+                <FaFilter className="text-amber-400" /> Mode:
+              </span>
+              <button
+                type="button"
+                onClick={() => setStudentTypeFilter('all')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
+                  studentTypeFilter === 'all' 
+                    ? 'bg-amber-400 text-purple-950 shadow-md scale-105' 
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                🌐 All
+              </button>
+              <button
+                type="button"
+                onClick={() => setStudentTypeFilter('online')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
+                  studentTypeFilter === 'online' 
+                    ? 'bg-red-500 text-white shadow-md scale-105' 
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                💻 Online
+              </button>
+              <button
+                type="button"
+                onClick={() => setStudentTypeFilter('physical')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
+                  studentTypeFilter === 'physical' 
+                    ? 'bg-blue-600 text-white shadow-md scale-105' 
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                🏫 Physical
+              </button>
+            </div>
+          </div>
+
+          {/* Teacher Class / Course Selector Bar */}
+          <div className="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-black uppercase tracking-wider text-purple-950 flex items-center gap-2">
+                <span>📚</span> Filter by Assigned Class / Course:
+              </span>
+              <span className="text-xs text-purple-700 font-bold bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+                {teacherCourses.length} Assigned Course{teacherCourses.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setSelectedCourseId('all')}
+                className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer border ${
+                  selectedCourseId === 'all'
+                    ? 'bg-purple-900 text-white border-purple-950 shadow-md ring-2 ring-amber-400 scale-[1.02]'
+                    : 'bg-purple-50/60 hover:bg-purple-100 text-purple-950 border-purple-100'
+                }`}
+              >
+                <span>🌐 All My Classes</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  selectedCourseId === 'all' ? 'bg-amber-400 text-purple-950' : 'bg-purple-200 text-purple-900'
+                }`}>
+                  {studentsList.length} Students
+                </span>
+              </button>
+
+              {teacherCourses.map(course => {
+                const isSelected = selectedCourseId === course._id;
+                return (
+                  <button
+                    key={course._id}
+                    type="button"
+                    onClick={() => setSelectedCourseId(course._id)}
+                    className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer border ${
+                      isSelected
+                        ? 'bg-purple-900 text-white border-purple-950 shadow-md ring-2 ring-amber-400 scale-[1.02]'
+                        : 'bg-purple-50/60 hover:bg-purple-100 text-purple-950 border-purple-100'
+                    }`}
+                  >
+                    <span>📖 {course.title}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                      isSelected ? 'bg-amber-400 text-purple-950' : 'bg-purple-200 text-purple-900'
+                    }`}>
+                      {course.enrolledCount} Enrolled
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4 Executive Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-purple-50/90 p-6 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs text-purple-600 font-bold uppercase tracking-wider">My Enrolled Students</p>
+                  <h3 className="text-3xl font-extrabold text-purple-950 mt-1">{totalCount}</h3>
+                </div>
+                <div className="w-12 h-12 bg-purple-200/60 text-[#2d1b64] rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                  <FaUsers />
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-purple-100 flex items-center justify-between text-xs font-bold text-purple-900">
+                <span>{onlineCount} Online ({onlinePercent}%)</span>
+                <span>{physicalCount} Physical ({physicalPercent}%)</span>
+              </div>
+            </div>
+
+            <div className="bg-indigo-50/90 p-6 rounded-3xl border border-indigo-100 shadow-sm hover:shadow-md transition">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Assigned Classes</p>
+                  <h3 className="text-3xl font-extrabold text-indigo-950 mt-1">{metrics?.totalCourses || teacherCourses.length}</h3>
+                </div>
+                <div className="w-12 h-12 bg-indigo-200/60 text-indigo-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                  <FaBookOpen />
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-indigo-100 flex items-center justify-between text-xs font-bold text-indigo-900">
+                <span>Active Syllabus Curriculums</span>
+                <span className="text-indigo-700 font-extrabold">{studentsList.length} Learners</span>
+              </div>
+            </div>
+
+            <div className="bg-emerald-50/90 p-6 rounded-3xl border border-emerald-100 shadow-sm hover:shadow-md transition">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs text-emerald-700 font-bold uppercase tracking-wider">Revenue Generated</p>
+                  <h3 className="text-3xl font-extrabold text-emerald-800 mt-1">
+                    LKR {(metrics?.totalRevenue || 0).toLocaleString()}
+                  </h3>
+                </div>
+                <div className="w-12 h-12 bg-emerald-200/60 text-emerald-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                  <FaMoneyBillWave />
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-emerald-100 flex items-center justify-between text-xs font-bold text-emerald-950">
+                <span>Direct Course Fees Settled</span>
+                <span className="text-emerald-700 font-extrabold">Verified ✓</span>
+              </div>
+            </div>
+
+            <div className="bg-blue-50/90 p-6 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs text-blue-700 font-bold uppercase tracking-wider">Average Attendance</p>
+                  <h3 className="text-3xl font-extrabold text-blue-900 mt-1">{metrics?.attendanceRate || 100}%</h3>
+                </div>
+                <div className="w-12 h-12 bg-blue-200/60 text-blue-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                  <FaCheckCircle />
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-blue-100 flex items-center justify-between text-xs font-bold text-blue-900">
+                <span>Logged Class Sessions:</span>
+                <span className="text-blue-700 font-extrabold">{metrics?.attendanceBreakdown?.total || 0} Records</span>
+              </div>
+            </div>
+          </div>
+
+          {/* CLASS STUDENT ROSTER & INDIVIDUAL ANALYTICS SELECTOR */}
+          <div className="bg-white p-6 sm:p-8 rounded-[30px] border border-purple-200/80 shadow-md space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-purple-100 pb-5">
+              <div>
+                <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
+                  <FaUsers className="text-purple-600" /> Class Student Roster & Individual Analytics
+                </h3>
+                <p className="text-xs text-purple-600/80 mt-0.5">
+                  All students registered in your class sessions. Select any student to inspect their detailed attendance, enrollment & fee settlement analytics.
+                </p>
+              </div>
+              <span className="px-4 py-1.5 bg-amber-400 text-purple-950 font-black text-xs rounded-full shadow-xs">
+                {filteredClassStudents.length} of {studentsList.length} Students
+              </span>
+            </div>
+
+            {/* Search and Filters Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-100">
+              <div className="relative w-full sm:w-80">
+                <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400 text-xs" />
+                <input
+                  type="text"
+                  placeholder="Search by student name, reg # or email..."
+                  value={studentSearchTerm}
+                  onChange={(e) => setStudentSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-purple-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-xs font-bold text-purple-900 whitespace-nowrap">Grade Filter:</span>
+                <select
+                  value={studentGradeFilter}
+                  onChange={(e) => setStudentGradeFilter(e.target.value)}
+                  className="px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
+                >
+                  <option value="all">All Grades</option>
+                  {uniqueGrades.map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Students Table */}
+            {filteredClassStudents.length === 0 ? (
+              <div className="py-12 text-center text-gray-400 space-y-2">
+                <p className="text-sm font-semibold">No students found matching your search criteria.</p>
+                <button
+                  type="button"
+                  onClick={() => { setStudentSearchTerm(''); setStudentGradeFilter('all'); }}
+                  className="text-xs text-purple-700 underline font-bold cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-semibold">
+                  <thead className="bg-purple-900 text-white uppercase text-[10px] tracking-wider rounded-xl">
+                    <tr>
+                      <th className="p-4 rounded-l-2xl">Student Profile</th>
+                      <th className="p-4">Grade & Mode</th>
+                      <th className="p-4">Enrolled Classes</th>
+                      <th className="p-4 text-center">Class Attendance</th>
+                      <th className="p-4 text-right">Total Paid</th>
+                      <th className="p-4 text-center rounded-r-2xl">Individual Analytics</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-purple-100">
+                    {filteredClassStudents.map(student => (
+                      <tr key={student._id} className="hover:bg-purple-50/50 transition">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-purple-200 text-purple-900 font-black flex items-center justify-center text-xs shrink-0 shadow-inner">
+                              {student.name ? student.name.charAt(0).toUpperCase() : 'S'}
+                            </div>
+                            <div>
+                              <span className="font-extrabold text-gray-900 block text-sm">{student.name}</span>
+                              <span className="text-[10px] text-purple-700 font-mono block">{student.registrationNumber || student.email}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="p-4">
+                          <div className="space-y-1">
+                            <span className="font-bold text-gray-800 block">{student.grade}</span>
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block ${
+                              student.studentType === 'online' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {student.studentType === 'online' ? '💻 Online' : '🏫 Physical'}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="p-4">
+                          <div className="flex flex-wrap gap-1">
+                            {student.enrolledCourses.map((cTitle, i) => (
+                              <span key={i} className="text-[10px] font-bold bg-purple-100 text-purple-900 px-2 py-0.5 rounded-md">
+                                {cTitle}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+
+                        <td className="p-4 text-center">
+                          <div className="inline-block space-y-1">
+                            <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
+                              student.attendanceRate >= 75 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {student.attendanceRate}% Compliance
+                            </span>
+                            <span className="text-[10px] text-gray-500 block font-semibold">
+                              {student.attendanceCount} Session{student.attendanceCount !== 1 ? 's' : ''} Logged
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="p-4 text-right">
+                          <span className="font-extrabold text-emerald-800 text-sm">
+                            LKR {(student.totalPaid || 0).toLocaleString()}
+                          </span>
+                        </td>
+
+                        <td className="p-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleTeacherSelectStudent(student._id)}
+                            className="px-3.5 py-2 bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-800 text-white font-extrabold text-xs rounded-xl shadow-xs hover:shadow-md transition cursor-pointer hover:scale-105 flex items-center gap-1.5 mx-auto"
+                          >
+                            <FaEye className="text-amber-400" /> View Student Analytics
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Section: Academic Stage Donut & Comparative Mode Split for Teacher Classes */}
+          {(() => {
+            const categorizeGrade = (gradeStr = '') => {
+              const g = String(gradeStr).toLowerCase();
+              if (g.includes('grade 6') || g.includes('grade 7') || g.includes('grade 8') || g.includes('grade 9')) return 'junior';
+              if (g.includes('grade 10') || g.includes('grade 11')) return 'ol';
+              if (g.includes('grade 12') || g.includes('grade 13') || g.includes('a/l') || g.includes('al')) return 'al';
+              return 'other';
+            };
+
+            const tierMeta = {
+              junior: { label: 'Junior Secondary', subtitle: 'Grades 6 – 9', color: '#6366f1', lightBg: 'bg-indigo-50/80', text: 'text-indigo-900', border: 'border-indigo-200' },
+              ol: { label: 'O/L Candidates', subtitle: 'Grades 10 – 11', color: '#f59e0b', lightBg: 'bg-amber-50/80', text: 'text-amber-900', border: 'border-amber-200' },
+              al: { label: 'A/L Academic Streams', subtitle: 'Grades 12 – 13', color: '#0d9488', lightBg: 'bg-teal-50/80', text: 'text-teal-900', border: 'border-teal-200' },
+              other: { label: 'Other Active Tracks', subtitle: 'Specialized', color: '#8b5cf6', lightBg: 'bg-purple-50/80', text: 'text-purple-900', border: 'border-purple-200' }
+            };
+
+            const tierTotals = {
+              junior: { count: 0, online: 0, physical: 0, grades: [] },
+              ol: { count: 0, online: 0, physical: 0, grades: [] },
+              al: { count: 0, online: 0, physical: 0, grades: [] },
+              other: { count: 0, online: 0, physical: 0, grades: [] }
+            };
+
+            gradeDistribution.forEach(g => {
+              const tier = categorizeGrade(g.grade);
+              if (tierTotals[tier]) {
+                tierTotals[tier].count += (g.count || 0);
+                tierTotals[tier].online += (g.online || 0);
+                tierTotals[tier].physical += (g.physical || 0);
+                tierTotals[tier].grades.push(g.grade);
+              }
+            });
+
+            const totalTierStudents = (tierTotals.junior.count + tierTotals.ol.count + tierTotals.al.count + tierTotals.other.count) || 1;
+
+            const C = 2 * Math.PI * 65;
+            let accumulatedOffset = 0;
+            const donutSegments = [
+              { key: 'junior', name: 'Junior (Grades 6–9)', count: tierTotals.junior.count, color: '#6366f1' },
+              { key: 'ol', name: 'O/L (Grades 10–11)', count: tierTotals.ol.count, color: '#f59e0b' },
+              { key: 'al', name: 'A/L Streams (12–13)', count: tierTotals.al.count, color: '#0d9488' },
+              ...(tierTotals.other.count > 0 ? [{ key: 'other', name: 'Other Levels', count: tierTotals.other.count, color: '#8b5cf6' }] : [])
+            ].map(seg => {
+              const ratio = seg.count / totalTierStudents;
+              const strokeDasharray = `${ratio * C} ${C}`;
+              const strokeDashoffset = -accumulatedOffset * C;
+              accumulatedOffset += ratio;
+              return {
+                ...seg,
+                percent: Math.round(ratio * 100),
+                strokeDasharray,
+                strokeDashoffset
+              };
+            });
+
+            const filteredGrades = gradeDistribution.filter(g => {
+              if (selectedTier === 'all') return true;
+              return categorizeGrade(g.grade) === selectedTier;
+            });
+
+            const sortedGrades = [...filteredGrades].sort((a, b) => {
+              if (modeSortBy === 'count') return (b.count || 0) - (a.count || 0);
+              if (modeSortBy === 'online') {
+                const rA = a.count ? (a.online / a.count) : 0;
+                const rB = b.count ? (b.online / b.count) : 0;
+                return rB - rA;
+              }
+              const getNum = (s = '') => {
+                const m = s.match(/\d+/);
+                return m ? parseInt(m[0], 10) : 99;
+              };
+              const diff = getNum(a.grade) - getNum(b.grade);
+              if (diff !== 0) return diff;
+              return (a.grade || '').localeCompare(b.grade || '');
+            });
+
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left Donut */}
+                <div className="bg-[#fcfaff] p-6 sm:p-8 rounded-[30px] border border-purple-100/90 shadow-sm space-y-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-center border-b border-purple-100 pb-3">
+                      <div>
+                        <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
+                          <FaGraduationCap className="text-purple-600" /> Class Academic Tiers
+                        </h3>
+                        <p className="text-xs text-purple-600/80 mt-0.5">Enrolled student distribution across academic levels</p>
+                      </div>
+                      <span className="text-xs bg-purple-100 text-purple-900 font-extrabold px-3 py-1 rounded-full border border-purple-200">
+                        {gradeDistribution.length} Active Grades
+                      </span>
+                    </div>
+
+                    {gradeDistribution.length === 0 ? (
+                      <p className="text-sm text-gray-400 py-12 text-center">No student grade data recorded yet.</p>
+                    ) : (
+                      <div className="pt-4 space-y-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 bg-white p-5 rounded-2xl border border-purple-100/80 shadow-2xs">
+                          <div className="relative w-44 h-44 flex items-center justify-center shrink-0">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
+                              <circle cx="80" cy="80" r="65" fill="transparent" stroke="#f1f5f9" strokeWidth="20" />
+                              {donutSegments.map(seg => (
+                                <circle
+                                  key={seg.key}
+                                  cx="80"
+                                  cy="80"
+                                  r="65"
+                                  fill="transparent"
+                                  stroke={seg.color}
+                                  strokeWidth={selectedTier === seg.key ? "24" : "20"}
+                                  strokeDasharray={seg.strokeDasharray}
+                                  strokeDashoffset={seg.strokeDashoffset}
+                                  strokeLinecap="butt"
+                                  className="transition-all duration-500 cursor-pointer hover:opacity-90"
+                                  onClick={() => setSelectedTier(prev => prev === seg.key ? 'all' : seg.key)}
+                                />
+                              ))}
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                              <span className="text-3xl font-black text-purple-950 tracking-tight leading-none">{totalCount}</span>
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-600 mt-1">Students</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 flex-1 w-full text-xs">
+                            {donutSegments.map(seg => {
+                              const isSelected = selectedTier === seg.key;
+                              return (
+                                <div
+                                  key={seg.key}
+                                  onClick={() => setSelectedTier(prev => prev === seg.key ? 'all' : seg.key)}
+                                  className={`p-2.5 rounded-xl border transition flex items-center justify-between cursor-pointer ${
+                                    isSelected 
+                                      ? 'bg-purple-900 text-white border-purple-900 shadow-sm' 
+                                      : 'bg-purple-50/50 hover:bg-purple-100/70 border-purple-100 text-purple-950'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: seg.color }}></span>
+                                    <span className="font-extrabold">{seg.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 font-black">
+                                    <span>{seg.count} Students</span>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
+                                      isSelected ? 'bg-white/20 text-white' : 'bg-white text-purple-900 border border-purple-200'
+                                    }`}>
+                                      {seg.percent}%
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Mode Split */}
+                <div className="bg-[#f7f9ff] p-6 sm:p-8 rounded-[30px] border border-blue-100/90 shadow-sm space-y-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-100 pb-3">
+                      <div>
+                        <h3 className="text-xl font-bold text-indigo-950 flex items-center gap-2">
+                          <FaGlobe className="text-indigo-600" /> Mode Split in Your Classes
+                        </h3>
+                        <p className="text-xs text-indigo-500 mt-0.5">Online vs physical student ratio per grade level</p>
+                      </div>
+
+                      <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-blue-100 self-start sm:self-auto text-xs font-bold shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => setModeSortBy('grade')}
+                          className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-[11px] ${
+                            modeSortBy === 'grade' ? 'bg-indigo-900 text-white' : 'text-indigo-900 hover:bg-blue-50'
+                          }`}
+                        >
+                          Grade
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setModeSortBy('count')}
+                          className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-[11px] ${
+                            modeSortBy === 'count' ? 'bg-indigo-900 text-white' : 'text-indigo-900 hover:bg-blue-50'
+                          }`}
+                        >
+                          Volume
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-blue-100 shadow-2xs my-4 text-xs font-extrabold">
+                      <span className="text-gray-500 uppercase text-[10px] tracking-wider">Class Mode Ratio:</span>
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1.5 text-red-600">
+                          <span className="w-3 h-3 bg-red-500 rounded-md inline-block"></span>
+                          💻 Online ({onlinePercent}%)
+                        </span>
+                        <span className="flex items-center gap-1.5 text-indigo-900">
+                          <span className="w-3 h-3 bg-indigo-900 rounded-md inline-block"></span>
+                          🏫 Physical ({physicalPercent}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    {sortedGrades.length === 0 ? (
+                      <p className="text-sm text-gray-400 py-12 text-center">No grades recorded in your classes.</p>
+                    ) : (
+                      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                        {sortedGrades.map((g) => {
+                          const totalInGrade = g.count || 1;
+                          const onlineRatio = Math.round((g.online / totalInGrade) * 100);
+                          const physicalRatio = 100 - onlineRatio;
+
+                          return (
+                            <div key={g.grade} className="bg-white p-3.5 rounded-2xl border border-blue-100/80 shadow-2xs space-y-2">
+                              <div className="flex justify-between items-center text-xs font-bold">
+                                <span className="text-indigo-950 font-black">🎓 {g.grade}</span>
+                                <span className="text-[11px] font-extrabold text-gray-600">{g.count} Students ({g.online} On / {g.physical} Phys)</span>
+                              </div>
+
+                              <div className="w-full bg-indigo-950 h-5 rounded-xl overflow-hidden flex shadow-inner text-[10px] font-black text-white leading-5 text-center">
+                                {onlineRatio > 0 && (
+                                  <div style={{ width: `${onlineRatio}%` }} className="bg-gradient-to-r from-red-600 to-red-500 h-full flex items-center justify-center transition-all duration-500">
+                                    {onlineRatio >= 15 && <span>{onlineRatio}%</span>}
+                                  </div>
+                                )}
+                                {physicalRatio > 0 && (
+                                  <div style={{ width: `${physicalRatio}%` }} className="bg-gradient-to-r from-indigo-900 to-indigo-950 h-full flex items-center justify-center transition-all duration-500">
+                                    {physicalRatio >= 15 && <span>{physicalRatio}%</span>}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // RENDER ADMIN VIEW
   // ==========================================
   const { metrics, gradeDistribution = [], topCourses = [], courseRevenueList = [], weeklyStudentTrend = [] } = data || {};
 
@@ -934,98 +1670,369 @@ const Analytics = () => {
 
         </div>
 
-        {/* Section 2: Grade Concentration & Demographics (2-Column Compact Grid) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          <div className="bg-[#f5f3ff] p-6 sm:p-8 rounded-[30px] border border-indigo-100 shadow-sm space-y-6">
-            <div className="flex justify-between items-center border-b border-indigo-100/60 pb-3">
-              <div>
-                <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
-                  <FaGraduationCap className="text-purple-600" /> Grade Concentration
-                </h3>
-                <p className="text-xs text-purple-400 mt-0.5">Which student grades are most represented on the platform</p>
-              </div>
-              <span className="text-xs bg-purple-200/60 text-purple-900 font-bold px-3 py-1 rounded-full">
-                {gradeDistribution.length} Grades Active
-              </span>
-            </div>
+        {/* Section 2: Option 2 - Academic Level Donut & Stream Breakdown + Comparative Mode Split */}
+        {(() => {
+          // Categorization helpers
+          const categorizeGrade = (gradeStr = '') => {
+            const g = String(gradeStr).toLowerCase();
+            if (g.includes('grade 6') || g.includes('grade 7') || g.includes('grade 8') || g.includes('grade 9')) return 'junior';
+            if (g.includes('grade 10') || g.includes('grade 11')) return 'ol';
+            if (g.includes('grade 12') || g.includes('grade 13') || g.includes('a/l') || g.includes('al')) return 'al';
+            return 'other';
+          };
 
-            {gradeDistribution.length === 0 ? (
-              <p className="text-sm text-gray-400 py-8 text-center">No student grade data recorded yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 pt-1">
-                {gradeDistribution.map((g) => {
-                  const percentage = Math.round((g.count / maxGradeCount) * 100);
-                  return (
-                    <div key={g.grade} className="bg-white/80 p-3 rounded-2xl border border-purple-100/70 space-y-1 shadow-2xs hover:shadow-xs transition">
-                      <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-purple-950 truncate max-w-[120px]">{g.grade}</span>
-                        <span className="text-purple-900 font-extrabold">{g.count} Students</span>
+          const tierMeta = {
+            junior: { label: 'Junior Secondary', subtitle: 'Grades 6 – 9', color: '#6366f1', lightBg: 'bg-indigo-50/80', text: 'text-indigo-900', border: 'border-indigo-200' },
+            ol: { label: 'O/L Candidates', subtitle: 'Grades 10 – 11', color: '#f59e0b', lightBg: 'bg-amber-50/80', text: 'text-amber-900', border: 'border-amber-200' },
+            al: { label: 'A/L Academic Streams', subtitle: 'Grades 12 – 13', color: '#0d9488', lightBg: 'bg-teal-50/80', text: 'text-teal-900', border: 'border-teal-200' },
+            other: { label: 'Other Active Tracks', subtitle: 'Specialized', color: '#8b5cf6', lightBg: 'bg-purple-50/80', text: 'text-purple-900', border: 'border-purple-200' }
+          };
+
+          const tierTotals = {
+            junior: { count: 0, online: 0, physical: 0, grades: [] },
+            ol: { count: 0, online: 0, physical: 0, grades: [] },
+            al: { count: 0, online: 0, physical: 0, grades: [] },
+            other: { count: 0, online: 0, physical: 0, grades: [] }
+          };
+
+          gradeDistribution.forEach(g => {
+            const tier = categorizeGrade(g.grade);
+            if (tierTotals[tier]) {
+              tierTotals[tier].count += (g.count || 0);
+              tierTotals[tier].online += (g.online || 0);
+              tierTotals[tier].physical += (g.physical || 0);
+              tierTotals[tier].grades.push(g.grade);
+            }
+          });
+
+          const totalTierStudents = (tierTotals.junior.count + tierTotals.ol.count + tierTotals.al.count + tierTotals.other.count) || 1;
+
+          // Donut SVG circumference calculation (r = 65, C = 2 * PI * 65 = 408.407)
+          const C = 2 * Math.PI * 65;
+          let accumulatedOffset = 0;
+          const donutSegments = [
+            { key: 'junior', name: 'Junior (Grades 6–9)', count: tierTotals.junior.count, color: '#6366f1' },
+            { key: 'ol', name: 'O/L (Grades 10–11)', count: tierTotals.ol.count, color: '#f59e0b' },
+            { key: 'al', name: 'A/L Streams (12–13)', count: tierTotals.al.count, color: '#0d9488' },
+            ...(tierTotals.other.count > 0 ? [{ key: 'other', name: 'Other Levels', count: tierTotals.other.count, color: '#8b5cf6' }] : [])
+          ].map(seg => {
+            const ratio = seg.count / totalTierStudents;
+            const strokeDasharray = `${ratio * C} ${C}`;
+            const strokeDashoffset = -accumulatedOffset * C;
+            accumulatedOffset += ratio;
+            return {
+              ...seg,
+              percent: Math.round(ratio * 100),
+              strokeDasharray,
+              strokeDashoffset
+            };
+          });
+
+          // Sorting & filtering for right side Mode Split
+          const filteredGrades = gradeDistribution.filter(g => {
+            if (selectedTier === 'all') return true;
+            return categorizeGrade(g.grade) === selectedTier;
+          });
+
+          const sortedGrades = [...filteredGrades].sort((a, b) => {
+            if (modeSortBy === 'count') return (b.count || 0) - (a.count || 0);
+            if (modeSortBy === 'online') {
+              const rA = a.count ? (a.online / a.count) : 0;
+              const rB = b.count ? (b.online / b.count) : 0;
+              return rB - rA;
+            }
+            const getNum = (s = '') => {
+              const m = s.match(/\d+/);
+              return m ? parseInt(m[0], 10) : 99;
+            };
+            const diff = getNum(a.grade) - getNum(b.grade);
+            if (diff !== 0) return diff;
+            return (a.grade || '').localeCompare(b.grade || '');
+          });
+
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* LEFT CHART: Academic Level Donut & Stream Breakdown */}
+              <div className="bg-[#fcfaff] p-6 sm:p-8 rounded-[30px] border border-purple-100/90 shadow-sm space-y-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center border-b border-purple-100 pb-3">
+                    <div>
+                      <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
+                        <FaGraduationCap className="text-purple-600" /> Academic Level Distribution
+                      </h3>
+                      <p className="text-xs text-purple-600/80 mt-0.5">Student population grouped by academic stage (Junior, O/L & A/L)</p>
+                    </div>
+                    <span className="text-xs bg-purple-100 text-purple-900 font-extrabold px-3 py-1 rounded-full border border-purple-200">
+                      {gradeDistribution.length} Active Grades
+                    </span>
+                  </div>
+
+                  {gradeDistribution.length === 0 ? (
+                    <p className="text-sm text-gray-400 py-12 text-center">No student grade data recorded yet.</p>
+                  ) : (
+                    <div className="pt-4 space-y-6">
+                      
+                      {/* Donut Graphic & Center Metric */}
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-6 bg-white p-5 rounded-2xl border border-purple-100/80 shadow-2xs">
+                        <div className="relative w-44 h-44 flex items-center justify-center shrink-0">
+                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
+                            {/* Background Track Circle */}
+                            <circle
+                              cx="80"
+                              cy="80"
+                              r="65"
+                              fill="transparent"
+                              stroke="#f1f5f9"
+                              strokeWidth="20"
+                            />
+                            {/* SVG Donut Segments */}
+                            {donutSegments.map(seg => (
+                              <circle
+                                key={seg.key}
+                                cx="80"
+                                cy="80"
+                                r="65"
+                                fill="transparent"
+                                stroke={seg.color}
+                                strokeWidth={selectedTier === seg.key ? "24" : "20"}
+                                strokeDasharray={seg.strokeDasharray}
+                                strokeDashoffset={seg.strokeDashoffset}
+                                strokeLinecap="butt"
+                                className="transition-all duration-500 cursor-pointer hover:opacity-90"
+                                onClick={() => setSelectedTier(prev => prev === seg.key ? 'all' : seg.key)}
+                              />
+                            ))}
+                          </svg>
+
+                          {/* Center Donut Hole Content */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                            <span className="text-3xl font-black text-purple-950 tracking-tight leading-none">
+                              {totalCount}
+                            </span>
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-600 mt-1">
+                              Students
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Donut Quick Legend */}
+                        <div className="space-y-2 flex-1 w-full text-xs">
+                          {donutSegments.map(seg => {
+                            const isSelected = selectedTier === seg.key;
+                            return (
+                              <div
+                                key={seg.key}
+                                onClick={() => setSelectedTier(prev => prev === seg.key ? 'all' : seg.key)}
+                                className={`p-2.5 rounded-xl border transition flex items-center justify-between cursor-pointer ${
+                                  isSelected 
+                                    ? 'bg-purple-900 text-white border-purple-900 shadow-sm' 
+                                    : 'bg-purple-50/50 hover:bg-purple-100/70 border-purple-100 text-purple-950'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: seg.color }}></span>
+                                  <span className="font-extrabold">{seg.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 font-black">
+                                  <span>{seg.count} Students</span>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
+                                    isSelected ? 'bg-white/20 text-white' : 'bg-white text-purple-900 border border-purple-200'
+                                  }`}>
+                                    {seg.percent}%
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="w-full bg-purple-100/70 h-2.5 rounded-full overflow-hidden flex">
-                        <div 
-                          className="bg-gradient-to-r from-purple-600 to-indigo-600 h-full rounded-full transition-all duration-500" 
-                          style={{ width: `${percentage}%` }}
-                        ></div>
+
+                      {/* Academic Tier Stage Summary Cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {['junior', 'ol', 'al'].map(key => {
+                          const meta = tierMeta[key];
+                          const totals = tierTotals[key];
+                          const percent = Math.round((totals.count / totalTierStudents) * 100) || 0;
+                          const isSelected = selectedTier === key;
+
+                          return (
+                            <div
+                              key={key}
+                              onClick={() => setSelectedTier(prev => prev === key ? 'all' : key)}
+                              className={`p-3.5 rounded-2xl border transition flex flex-col justify-between cursor-pointer space-y-2 ${
+                                isSelected
+                                  ? 'bg-purple-900 text-white border-purple-900 shadow-md ring-2 ring-purple-400'
+                                  : `${meta.lightBg} ${meta.border} hover:shadow-xs`
+                              }`}
+                            >
+                              <div>
+                                <div className="flex justify-between items-start">
+                                  <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-amber-300' : 'text-gray-500'}`}>
+                                    {meta.subtitle}
+                                  </span>
+                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                    isSelected ? 'bg-white/20 text-white' : 'bg-white text-purple-900 border border-purple-200'
+                                  }`}>
+                                    {percent}%
+                                  </span>
+                                </div>
+                                <h4 className={`text-xs font-black mt-1 ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                                  {meta.label}
+                                </h4>
+                              </div>
+
+                              <div className="pt-2 border-t border-black/5">
+                                <div className={`text-base font-extrabold ${isSelected ? 'text-amber-300' : 'text-purple-950'}`}>
+                                  {totals.count} <span className="text-[10px] font-bold">Students</span>
+                                </div>
+                                <div className={`text-[10px] font-semibold mt-0.5 ${isSelected ? 'text-purple-200' : 'text-purple-700'}`}>
+                                  {totals.online} Online • {totals.physical} Physical
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <span className="text-[10px] text-purple-700 block text-right font-medium">
-                        {g.online} Online / {g.physical} Physical
+
+                    </div>
+                  )}
+                </div>
+
+                {selectedTier !== 'all' && (
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTier('all')}
+                      className="text-xs text-purple-700 underline font-extrabold hover:text-purple-950 cursor-pointer"
+                    >
+                      Clear Tier Filter (Show All Grades)
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT CHART: Mode Split Comparative Stream Bars */}
+              <div className="bg-[#f7f9ff] p-6 sm:p-8 rounded-[30px] border border-blue-100/90 shadow-sm space-y-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-100 pb-3">
+                    <div>
+                      <h3 className="text-xl font-bold text-indigo-950 flex items-center gap-2">
+                        <FaGlobe className="text-indigo-600" /> Mode Split per Grade
+                      </h3>
+                      <p className="text-xs text-indigo-500 mt-0.5">Ratio of online vs physical learners across each grade stream</p>
+                    </div>
+
+                    {/* Sort Controls */}
+                    <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-blue-100 self-start sm:self-auto text-xs font-bold shadow-2xs">
+                      <span className="text-[10px] text-gray-400 font-extrabold uppercase px-1.5">Sort:</span>
+                      <button
+                        type="button"
+                        onClick={() => setModeSortBy('grade')}
+                        className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-[11px] ${
+                          modeSortBy === 'grade' ? 'bg-indigo-900 text-white' : 'text-indigo-900 hover:bg-blue-50'
+                        }`}
+                      >
+                        Grade
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModeSortBy('count')}
+                        className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-[11px] ${
+                          modeSortBy === 'count' ? 'bg-indigo-900 text-white' : 'text-indigo-900 hover:bg-blue-50'
+                        }`}
+                      >
+                        Volume
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModeSortBy('online')}
+                        className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-[11px] ${
+                          modeSortBy === 'online' ? 'bg-indigo-900 text-white' : 'text-indigo-900 hover:bg-blue-50'
+                        }`}
+                      >
+                        Online %
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mode Legend */}
+                  <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-blue-100 shadow-2xs my-4 text-xs font-extrabold">
+                    <span className="text-gray-500 uppercase text-[10px] tracking-wider">Mode Proportion:</span>
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center gap-1.5 text-red-600">
+                        <span className="w-3 h-3 bg-red-500 rounded-md inline-block"></span>
+                        💻 Online ({onlinePercent}%)
+                      </span>
+                      <span className="flex items-center gap-1.5 text-indigo-900">
+                        <span className="w-3 h-3 bg-indigo-900 rounded-md inline-block"></span>
+                        🏫 Physical ({physicalPercent}%)
                       </span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                  </div>
 
-          <div className="bg-[#eef2ff] p-6 sm:p-8 rounded-[30px] border border-indigo-100 shadow-sm space-y-6">
-            <div className="flex justify-between items-center border-b border-indigo-100/60 pb-3">
-              <div>
-                <h3 className="text-xl font-bold text-indigo-950 flex items-center gap-2">
-                  <FaGlobe className="text-indigo-600" /> Mode Split per Grade
-                </h3>
-                <p className="text-xs text-indigo-400 mt-0.5">Ratio of online to physical students per grade level</p>
-              </div>
-              <div className="flex gap-2 text-xs font-bold">
-                <span className="px-2 py-0.5 bg-red-500 text-white rounded-md text-[10px]">Online</span>
-                <span className="px-2 py-0.5 bg-indigo-900 text-white rounded-md text-[10px]">Physical</span>
-              </div>
-            </div>
+                  {sortedGrades.length === 0 ? (
+                    <p className="text-sm text-gray-400 py-12 text-center">No grades match the selected filter.</p>
+                  ) : (
+                    <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                      {sortedGrades.map((g) => {
+                        const totalInGrade = g.count || 1;
+                        const onlineRatio = Math.round((g.online / totalInGrade) * 100);
+                        const physicalRatio = 100 - onlineRatio;
 
-            {gradeDistribution.length === 0 ? (
-              <p className="text-sm text-gray-400 py-8 text-center">No grade mode data available.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 pt-1">
-                {gradeDistribution.map((g) => {
-                  const totalInGrade = g.count || 1;
-                  const onlineRatio = Math.round((g.online / totalInGrade) * 100);
-                  const physicalRatio = 100 - onlineRatio;
-                  return (
-                    <div key={g.grade} className="bg-white/80 p-3 rounded-2xl border border-indigo-100/70 space-y-1 shadow-2xs hover:shadow-xs transition">
-                      <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-indigo-950 truncate max-w-[120px]">{g.grade}</span>
-                        <span className="text-[10px] text-indigo-700 font-extrabold">{onlineRatio}% Online / {physicalRatio}% Physical</span>
-                      </div>
-                      <div className="w-full bg-indigo-900 h-3 rounded-full overflow-hidden flex shadow-inner">
-                        <div 
-                          className="bg-red-500 h-full transition-all duration-500"
-                          style={{ width: `${onlineRatio}%` }}
-                          title={`${onlineRatio}% Online`}
-                        ></div>
-                        <div 
-                          className="bg-indigo-900 h-full transition-all duration-500"
-                          style={{ width: `${physicalRatio}%` }}
-                          title={`${physicalRatio}% Physical`}
-                        ></div>
-                      </div>
+                        return (
+                          <div key={g.grade} className="bg-white p-3.5 rounded-2xl border border-blue-100/80 shadow-2xs hover:shadow-xs transition space-y-2">
+                            <div className="flex justify-between items-center text-xs font-bold">
+                              <span className="text-indigo-950 font-black flex items-center gap-1.5">
+                                🎓 {g.grade}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-extrabold text-gray-600">
+                                  {g.count} Students
+                                </span>
+                                <span className="text-[10px] text-indigo-900 font-bold bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md">
+                                  {g.online} Online • {g.physical} Physical
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Full-width Stacked Dual-Colored Bar */}
+                            <div className="w-full bg-indigo-950 h-5 rounded-xl overflow-hidden flex shadow-inner text-[10px] font-black text-white leading-5 text-center">
+                              {onlineRatio > 0 && (
+                                <div
+                                  style={{ width: `${onlineRatio}%` }}
+                                  className="bg-gradient-to-r from-red-600 to-red-500 h-full flex items-center justify-center transition-all duration-500 overflow-hidden"
+                                  title={`${g.grade}: ${onlineRatio}% Online (${g.online} students)`}
+                                >
+                                  {onlineRatio >= 14 && <span>{onlineRatio}%</span>}
+                                </div>
+                              )}
+                              {physicalRatio > 0 && (
+                                <div
+                                  style={{ width: `${physicalRatio}%` }}
+                                  className="bg-gradient-to-r from-indigo-900 to-indigo-950 h-full flex items-center justify-center transition-all duration-500 overflow-hidden"
+                                  title={`${g.grade}: ${physicalRatio}% Physical (${g.physical} students)`}
+                                >
+                                  {physicalRatio >= 14 && <span>{physicalRatio}%</span>}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                  )}
+                </div>
 
-        </div>
+                <div className="pt-2 flex items-center justify-between text-[11px] text-gray-500 font-semibold border-t border-blue-100">
+                  <span>Showing {sortedGrades.length} of {gradeDistribution.length} Grades</span>
+                  <span>Interactive Real-time Breakdown</span>
+                </div>
+              </div>
+
+            </div>
+          );
+        })()}
 
         {/* Section 3: Most Taken Courses Leaderboard */}
         <div className="bg-[#fffdf7] p-8 rounded-[30px] border border-amber-200/80 shadow-sm space-y-6">

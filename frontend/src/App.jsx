@@ -134,7 +134,7 @@ function App() {
           } />
 
           <Route path="/attendance" element={
-            <ProtectedRoute allowedRoles={['admin', 'counter_staff']}>
+            <ProtectedRoute allowedRoles={['admin', 'counter_staff', 'teacher']}>
               <Attendance />
             </ProtectedRoute>
           } />

@@ -3,7 +3,20 @@ import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
-import { FaGraduationCap, FaCompass, FaBookOpen, FaLock, FaLockOpen } from 'react-icons/fa';
+import { 
+  FaGraduationCap, 
+  FaCompass, 
+  FaBookOpen, 
+  FaLock, 
+  FaLockOpen,
+  FaChevronDown,
+  FaChevronUp,
+  FaClock,
+  FaCalendarAlt,
+  FaCheckCircle,
+  FaMoneyBillWave,
+  FaInfoCircle
+} from 'react-icons/fa';
 import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import TeacherModal from '../components/TeacherModal';
 
@@ -32,8 +45,16 @@ const Courses = () => {
   const [confirmFullCourseModal, setConfirmFullCourseModal] = useState(null); // { courseId, title, isDeactive }
   const [parentChildren, setParentChildren] = useState([]);
   const [allSchedules, setAllSchedules] = useState([]);
+  const [expandedCourseIds, setExpandedCourseIds] = useState({});
   const navigate = useNavigate(); 
   const user = JSON.parse(localStorage.getItem('user'));
+
+  const toggleCourseExpand = (courseId) => {
+    setExpandedCourseIds(prev => ({
+      ...prev,
+      [courseId]: !prev[courseId]
+    }));
+  };
 
   const fetchCourses = async () => {
     try {
@@ -556,99 +577,213 @@ const Courses = () => {
                       <th className="py-4 px-6">Course Name</th>
                       <th className="py-4 px-6">Available Grades</th>
                       <th className="py-4 px-6">Teacher / Instructor</th>
-                      <th className="py-4 px-6">Course Description</th>
-                      <th className="py-4 px-6">Class Timetables</th>
                       <th className="py-4 px-6">Child Status</th>
+                      <th className="py-4 px-6 text-center">Course Details</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-sm">
                     {filteredCourses.map((course) => {
                       const linkedChild = getLinkedChildEnrollment(course);
                       const cSchedules = getCourseSchedules(course._id);
+                      const isExpanded = !!expandedCourseIds[course._id];
+
                       return (
-                        <tr key={course._id} className="hover:bg-purple-50/30 transition-colors">
-                          {/* Course Name */}
-                          <td className="py-5 px-6 font-extrabold text-slate-900 align-top">
-                            <div className="space-y-1.5">
-                              <span className="text-base font-black text-purple-950 block">{course.title}</span>
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                {course.studentType === 'online' ? (
-                                  <span className="bg-blue-100 text-blue-800 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-blue-200">
-                                    💻 Online
-                                  </span>
-                                ) : course.studentType === 'physical' ? (
-                                  <span className="bg-amber-100 text-amber-900 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-200">
-                                    🏫 Physical
-                                  </span>
-                                ) : (
-                                  <span className="bg-indigo-100 text-indigo-900 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-200">
-                                    🌐 Online & Physical
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Available Grades */}
-                          <td className="py-5 px-6 align-top">
-                            <span className="inline-block px-3.5 py-1.5 bg-purple-50 text-purple-950 border border-purple-200 text-xs font-black rounded-xl shadow-2xs">
-                              🎓 {getGradesDisplay(course)}
-                            </span>
-                          </td>
-
-                          {/* Teacher / Instructor */}
-                          <td className="py-5 px-6 align-top">
-                            <div className="flex items-center gap-3">
-                              {course.instructor?.profilePicture ? (
-                                <img
-                                  src={getImageUrl(course.instructor.profilePicture)}
-                                  alt={course.instructor.name || 'Teacher'}
-                                  className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-600/20 shadow-xs shrink-0 bg-white"
-                                  onError={(e) => { e.target.style.display = 'none'; }}
-                                />
-                              ) : (
-                                <div className="w-10 h-10 bg-purple-900 text-white rounded-full flex items-center justify-center font-extrabold text-sm ring-2 ring-purple-600/20 shrink-0">
-                                  {course.instructor ? course.instructor.name.charAt(0) : '?'}
+                        <React.Fragment key={course._id}>
+                          {/* Main Summary Row */}
+                          <tr 
+                            onClick={() => toggleCourseExpand(course._id)}
+                            className={`transition-colors cursor-pointer ${
+                              isExpanded ? 'bg-purple-50/60' : 'hover:bg-purple-50/30'
+                            }`}
+                          >
+                            {/* Course Name */}
+                            <td className="py-4 px-6 font-extrabold text-slate-900 align-middle">
+                              <div className="space-y-1">
+                                <span className="text-base font-black text-purple-950 block">{course.title}</span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {course.studentType === 'online' ? (
+                                    <span className="bg-blue-100 text-blue-800 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-blue-200">
+                                      💻 Online
+                                    </span>
+                                  ) : course.studentType === 'physical' ? (
+                                    <span className="bg-amber-100 text-amber-900 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-200">
+                                      🏫 Physical
+                                    </span>
+                                  ) : (
+                                    <span className="bg-indigo-100 text-indigo-900 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-200">
+                                      🌐 Online & Physical
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                              <div>
-                                <p className="font-extrabold text-slate-900 text-sm">{course.instructor ? course.instructor.name : 'Unassigned'}</p>
-                                <p className="text-[11px] text-purple-700 font-bold uppercase tracking-wider">Instructor</p>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          {/* Course Description */}
-                          <td className="py-5 px-6 align-top text-gray-600 font-medium text-xs max-w-xs leading-relaxed">
-                            {course.description || 'No description provided.'}
-                          </td>
-
-                          {/* Class Timetables */}
-                          <td className="py-5 px-6 align-top">
-                            {cSchedules.length === 0 ? (
-                              <span className="text-xs text-gray-400 font-medium">No live timetable</span>
-                            ) : (
-                              <div className="space-y-1.5">
-                                {cSchedules.map((sch) => (
-                                  <div key={sch._id} className="text-xs font-bold text-slate-800 bg-purple-50/60 border border-purple-200/80 px-2.5 py-1 rounded-lg">
-                                    <span className="text-purple-950 font-black">🎓 {sch.className || sch.grade}</span>: <span className="text-amber-800 font-black">{sch.dayOfWeek}</span> ({sch.startTime}-{sch.endTime})
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Child Status */}
-                          <td className="py-5 px-6 align-top">
-                            {linkedChild ? (
-                              <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-black px-3 py-1 rounded-full inline-block shadow-2xs">
-                                ✓ Enrolled by {linkedChild.name} ({linkedChild.grade})
+                            {/* Available Grades */}
+                            <td className="py-4 px-6 align-middle">
+                              <span className="inline-block px-3.5 py-1.5 bg-purple-50 text-purple-950 border border-purple-200 text-xs font-black rounded-xl shadow-2xs">
+                                🎓 {getGradesDisplay(course)}
                               </span>
-                            ) : (
-                              <span className="text-xs text-gray-400 font-medium">—</span>
-                            )}
-                          </td>
-                        </tr>
+                            </td>
+
+                            {/* Teacher / Instructor */}
+                            <td className="py-4 px-6 align-middle">
+                              <div className="flex items-center gap-3">
+                                {course.instructor?.profilePicture ? (
+                                  <img
+                                    src={getImageUrl(course.instructor.profilePicture)}
+                                    alt={course.instructor.name || 'Teacher'}
+                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-600/20 shadow-xs shrink-0 bg-white"
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 bg-purple-900 text-white rounded-full flex items-center justify-center font-extrabold text-sm ring-2 ring-purple-600/20 shrink-0">
+                                    {course.instructor ? course.instructor.name.charAt(0) : '?'}
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="font-extrabold text-slate-900 text-sm">{course.instructor ? course.instructor.name : 'Unassigned'}</p>
+                                  <p className="text-[11px] text-purple-700 font-bold uppercase tracking-wider">Instructor</p>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Child Status */}
+                            <td className="py-4 px-6 align-middle">
+                              {linkedChild ? (
+                                <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-black px-3 py-1 rounded-full inline-block shadow-2xs">
+                                  ✓ Enrolled by {linkedChild.name} ({linkedChild.grade})
+                                </span>
+                              ) : (
+                                <span className="bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1 rounded-full inline-block">
+                                  Not Enrolled
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Action / Arrow Expand Button */}
+                            <td className="py-4 px-6 align-middle text-center">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleCourseExpand(course._id);
+                                }}
+                                className={`px-3.5 py-1.5 rounded-xl font-black text-xs transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                                  isExpanded
+                                    ? 'bg-purple-700 text-white shadow-purple-200'
+                                    : 'bg-purple-100/90 text-purple-950 hover:bg-purple-200'
+                                }`}
+                              >
+                                <span>{isExpanded ? 'Hide Details' : 'View Details'}</span>
+                                <FaChevronDown className={`text-xs transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                              </button>
+                            </td>
+                          </tr>
+
+                          {/* Collapsible Details Row */}
+                          {isExpanded && (
+                            <tr className="bg-purple-50/40 border-b-2 border-purple-200">
+                              <td colSpan="5" className="p-4 md:p-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 bg-white p-5 rounded-2xl border border-purple-100 shadow-sm">
+                                  
+                                  {/* Card 1: Course Overview & Description */}
+                                  <div className="space-y-3 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-purple-100 pb-4 lg:pb-0 lg:pr-5">
+                                    <div className="flex items-center gap-2 text-purple-900 font-extrabold text-xs uppercase tracking-wider">
+                                      <FaBookOpen className="text-purple-700 text-sm" /> Course Overview & Description
+                                    </div>
+                                    <p className="text-xs text-gray-700 leading-relaxed font-medium whitespace-pre-line">
+                                      {course.description || 'No detailed syllabus or description provided.'}
+                                    </p>
+                                    <div className="pt-2 flex flex-wrap gap-2 text-xs">
+                                      <div className="bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-200 text-purple-950 font-bold flex items-center gap-1.5">
+                                        <FaMoneyBillWave className="text-amber-600" /> Monthly Fee: <span className="font-extrabold text-amber-700">LKR {course.price?.toLocaleString() || '2,500'}</span>
+                                      </div>
+                                      <div className="bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-200 text-indigo-900 font-bold flex items-center gap-1.5">
+                                        <FaGraduationCap className="text-indigo-600" /> Target Grades: <span className="font-extrabold">{getGradesDisplay(course)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Card 2: Class Timetables & Schedules */}
+                                  <div className="space-y-3 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-purple-100 pb-4 lg:pb-0 lg:pr-5">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2 text-purple-900 font-extrabold text-xs uppercase tracking-wider">
+                                        <FaClock className="text-purple-700 text-sm" /> Class Timetables & Schedules
+                                      </div>
+                                      <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                                        {cSchedules.length} Sessions
+                                      </span>
+                                    </div>
+                                    {cSchedules.length === 0 ? (
+                                      <p className="text-xs text-gray-400 italic py-2">No active class timetables published for this course yet.</p>
+                                    ) : (
+                                      <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                                        {cSchedules.map((sch) => (
+                                          <div key={sch._id} className="text-xs font-semibold text-gray-800 bg-purple-50/70 border border-purple-200/90 p-2.5 rounded-xl flex items-center justify-between gap-2 hover:bg-purple-100/70 transition">
+                                            <div>
+                                              <span className="font-extrabold text-purple-950 block">🎓 {sch.className || sch.grade}</span>
+                                              <span className="text-[11px] text-gray-600">⏱️ {sch.startTime} - {sch.endTime}</span>
+                                            </div>
+                                            <span className="bg-amber-100 text-amber-900 font-extrabold text-[11px] px-2.5 py-1 rounded-lg border border-amber-200 whitespace-nowrap">
+                                              📅 {sch.dayOfWeek}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Card 3: Child Enrollment & Instructor Details */}
+                                  <div className="space-y-3 lg:col-span-1">
+                                    <div className="flex items-center gap-2 text-purple-900 font-extrabold text-xs uppercase tracking-wider">
+                                      <FaCheckCircle className="text-emerald-600 text-sm" /> Child Enrollment Status
+                                    </div>
+                                    {linkedChild ? (
+                                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-1.5">
+                                        <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                                          Active Student Enrollment
+                                        </span>
+                                        <p className="text-xs text-emerald-800 font-medium leading-relaxed">
+                                          Your child <strong className="text-emerald-950 font-black">{linkedChild.name}</strong> is enrolled in this course for <strong className="text-emerald-950">{linkedChild.grade}</strong>.
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                                        <p className="text-xs text-gray-500 font-medium">
+                                          None of your registered children are currently enrolled in this course.
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    <div className="pt-2 border-t border-purple-50">
+                                      <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Teaching Faculty</span>
+                                      <div className="flex items-center gap-2.5">
+                                        {course.instructor?.profilePicture ? (
+                                          <img
+                                            src={getImageUrl(course.instructor.profilePicture)}
+                                            alt={course.instructor.name || 'Instructor'}
+                                            className="w-9 h-9 rounded-full object-cover border border-purple-200 shrink-0"
+                                            onError={(e) => { e.target.style.display = 'none'; }}
+                                          />
+                                        ) : (
+                                          <div className="w-9 h-9 rounded-full bg-purple-900 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                                            {course.instructor?.name ? course.instructor.name.charAt(0) : 'T'}
+                                          </div>
+                                        )}
+                                        <div>
+                                          <p className="text-xs font-bold text-gray-900">{course.instructor?.name || 'Assigned Instructor'}</p>
+                                          <p className="text-[10px] text-purple-700 font-semibold">{course.instructor?.email || 'Institute Teacher'}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>

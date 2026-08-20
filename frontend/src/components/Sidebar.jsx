@@ -60,6 +60,9 @@ const Sidebar = () => {
             <Link to="/courses" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/courses')}`}>
               <FaBook /> Institute Courses
             </Link>
+            <Link to="/analytics" className={`flex items-center gap-3 p-3 rounded-lg transition-all ${isActive('/analytics')}`}>
+              <FaChartBar /> Analytics
+            </Link>
           </>
         ) : (
           <>

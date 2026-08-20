@@ -33,9 +33,10 @@ import RecordPhysicalPaymentModal from '../components/RecordPhysicalPaymentModal
 const Attendance = () => {
   const storedUser = JSON.parse(localStorage.getItem('user')) || {};
   const isStaffOrAdmin = storedUser.role === 'admin' || storedUser.role === 'counter_staff';
+  const isTeacher = storedUser.role === 'teacher';
 
-  // Admin / Staff View State
-  const [adminMode, setAdminMode] = useState('manual'); // 'manual' | 'qr' | 'daily' | 'history'
+  // Admin / Staff / Teacher View State
+  const [adminMode, setAdminMode] = useState(isTeacher ? 'daily' : 'manual'); // 'manual' | 'qr' | 'daily' | 'history'
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [adminLogs, setAdminLogs] = useState([]);
   const [loadingAdminLogs, setLoadingAdminLogs] = useState(false);
@@ -99,7 +100,15 @@ const Attendance = () => {
   const fetchCourses = async () => {
     try {
       const res = await api.get('/courses');
-      setCoursesList(res.data.courses || res.data || []);
+      let courses = res.data.courses || res.data || [];
+      if (isTeacher) {
+        const teacherId = (storedUser._id || storedUser.id)?.toString();
+        courses = courses.filter(c => {
+          const instId = (c.instructor?._id || c.instructor)?.toString();
+          return instId === teacherId;
+        });
+      }
+      setCoursesList(courses);
     } catch (e) {
       console.error(e);
     }
@@ -109,6 +118,15 @@ const Attendance = () => {
     try {
       const res = await api.get('/schedule');
       let sortedSchedules = res.data || [];
+      if (isTeacher) {
+        const teacherId = (storedUser._id || storedUser.id)?.toString();
+        sortedSchedules = sortedSchedules.filter(s => {
+          const tId = (s.teacherId?._id || s.teacherId)?.toString();
+          const isMyTeacher = tId === teacherId;
+          const isMyCourse = s.courseId && coursesList.some(c => c._id?.toString() === s.courseId?.toString());
+          return isMyTeacher || isMyCourse;
+        });
+      }
       if (studentGrade) {
         sortedSchedules = [...sortedSchedules].sort((a, b) => {
           if (a.className === studentGrade && b.className !== studentGrade) return -1;
@@ -909,10 +927,12 @@ const Attendance = () => {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight">
-              Attendance Reports & Management Workspace
+              {isTeacher ? "My Class Attendance & Roster Workspace" : "Attendance Reports & Management Workspace"}
             </h1>
             <p className="text-purple-200 text-sm mt-1">
-              Audit daily classroom attendance, query all-time attendance history by date, and mark student daily attendance.
+              {isTeacher
+                ? "Audit daily classroom attendance, view live check-ins, and mark attendance strictly for your assigned classes."
+                : "Audit daily classroom attendance, query all-time attendance history by date, and mark student daily attendance."}
             </p>
           </div>
           <div className="bg-white/10 border border-white/20 px-4 py-2 rounded-xl flex items-center gap-3 self-start md:self-center">
@@ -926,31 +946,36 @@ const Attendance = () => {
       <div className="space-y-6">
         {/* Navigation Tabs */}
         <div className="flex bg-white p-2 rounded-2xl border border-gray-200 shadow-sm gap-2">
-          {/* 1st Tab: MARK STUDENT DAILY ATTENDANCE */}
-          <button
-            type="button"
-            onClick={() => setAdminMode('manual')}
-            className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              adminMode === 'manual'
-                ? 'bg-purple-700 text-white shadow-md'
-                : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
-            }`}
-          >
-            <FaEdit className="text-base" /> Mark Student Daily Attendance
-          </button>
+          {/* Admin & Counter Staff Only: Manual Marking & QR Kiosk */}
+          {!isTeacher && (
+            <>
+              {/* 1st Tab: MARK STUDENT DAILY ATTENDANCE */}
+              <button
+                type="button"
+                onClick={() => setAdminMode('manual')}
+                className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  adminMode === 'manual'
+                    ? 'bg-purple-700 text-white shadow-md'
+                    : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+                }`}
+              >
+                <FaEdit className="text-base" /> Mark Student Daily Attendance
+              </button>
 
-          {/* 2nd Tab: LIVE QR SCANNING */}
-          <button
-            type="button"
-            onClick={() => setAdminMode('qr')}
-            className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              adminMode === 'qr'
-                ? 'bg-purple-700 text-white shadow-md'
-                : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
-            }`}
-          >
-            <FaCamera className="text-base" /> Live QR Scanning
-          </button>
+              {/* 2nd Tab: LIVE QR SCANNING */}
+              <button
+                type="button"
+                onClick={() => setAdminMode('qr')}
+                className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  adminMode === 'qr'
+                    ? 'bg-purple-700 text-white shadow-md'
+                    : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+                }`}
+              >
+                <FaCamera className="text-base" /> Live QR Scanning
+              </button>
+            </>
+          )}
 
           {/* 3rd Tab: DAILY ATTENDANCE */}
           <button
@@ -962,7 +987,7 @@ const Attendance = () => {
                 : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
             }`}
           >
-            <FaCalendarDay className="text-base" /> Daily Attendance Log (By Date)
+            <FaCalendarDay className="text-base" /> {isTeacher ? "Daily Class Attendance (By Date)" : "Daily Attendance Log (By Date)"}
           </button>
 
           {/* 4th Tab: ALL-TIME ATTENDANCE HISTORY */}
@@ -975,7 +1000,7 @@ const Attendance = () => {
                 : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
             }`}
           >
-            <FaHistory className="text-base" /> All-Time Attendance History
+            <FaHistory className="text-base" /> {isTeacher ? "All-Time Class Attendance History" : "All-Time Attendance History"}
           </button>
         </div>
 
