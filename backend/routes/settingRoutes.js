@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const SystemSetting = require('../models/SystemSetting');
 const { protect } = require('../middleware/authMiddleware');
-const { 
-  getTextLkBalance, 
-  getTextLkProfile, 
-  sendSMS, 
-  formatTextLkPhone, 
+const {
+  getTextLkBalance,
+  getTextLkProfile,
+  sendSMS,
+  formatTextLkPhone,
   formatSriLankaPhone,
   maskPhoneNumber,
-  isSmsServiceEnabled 
+  isSmsServiceEnabled
 } = require('../services/smsService');
 
 // Middleware to ensure Admin role
@@ -34,7 +34,7 @@ router.get('/sms', protect, adminOnly, async (req, res) => {
     }
 
     const isConfigured = Boolean(process.env.TEXTLK_API_TOKEN && process.env.TEXTLK_API_TOKEN.trim());
-    const senderId = process.env.TEXTLK_SENDER_ID || 'TextLKDemo';
+    const senderId = process.env.TEXTLK_SENDER_ID || 'Kirula Edu';
 
     // Fetch live Text.lk balance & profile if token is configured
     let balanceInfo = null;

@@ -26,7 +26,7 @@ const SmsSettings = () => {
   const [settings, setSettings] = useState({
     smsEnabled: true,
     isConfigured: false,
-    senderId: 'TextLKDemo',
+    senderId: 'Kirula Edu',
     gateway: 'simulator',
     balance: null,
     profile: null,
@@ -315,7 +315,7 @@ const SmsSettings = () => {
                   </label>
                   <input
                     type="text"
-                    value={settings.senderId || 'TextLKDemo'}
+                    value={settings.senderId || 'Kirula Edu'}
                     disabled
                     className="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 cursor-not-allowed"
                   />
@@ -392,7 +392,7 @@ const SmsSettings = () => {
               <div className="flex justify-between py-2 border-b border-gray-50">
                 <span className="text-gray-500 font-medium">Sender ID</span>
                 <span className="font-bold text-purple-700 font-mono bg-purple-50 px-2 py-0.5 rounded-lg">
-                  {settings.senderId || 'TextLKDemo'}
+                  {settings.senderId || 'Kirula Edu'}
                 </span>
               </div>
               {getExpiryDate() && (
