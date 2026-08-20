@@ -324,7 +324,7 @@ const sendBulkSMS = async ({ phoneNumbers = [], message, classTitle = '' }) => {
  */
 const sendVerificationOTP = async ({ phone, otpCode, purpose = 'Verification', studentName = 'Student' }) => {
   const recipientPhone = formatTextLkPhone(phone);
-  const message = `[LuminaLearn] Your ${purpose} OTP code is: ${otpCode}. Valid for 10 minutes. Do not share this code with anyone.`;
+  const message = `Your LuminaLearn ${purpose} OTP code is: ${otpCode}. Valid for 10 minutes. Do not share this code with anyone.`;
 
   return await sendSMS({ phone: recipientPhone, message, otpCode, studentName });
 };

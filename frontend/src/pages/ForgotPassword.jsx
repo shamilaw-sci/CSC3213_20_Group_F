@@ -113,13 +113,13 @@ const ForgotPassword = () => {
       {/* Right Side - Form Panel */}
       <div className="flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto">
         <div className="w-full max-w-md py-4">
-          
+
           {/* Header */}
           <div className="mb-8">
             <h2 className="text-4xl font-bold text-[#1e1e38]">Forgot Password</h2>
             <p className="mt-2 text-xs text-slate-500">
-              {step === 1 
-                ? "Enter your credentials to receive a verification passcode" 
+              {step === 1
+                ? "Enter your credentials to receive a verification passcode"
                 : `Enter the 6-digit code sent to ${maskedDestination}`}
             </p>
           </div>
@@ -161,12 +161,12 @@ const ForgotPassword = () => {
           ) : (
             /* STEP 2: Enter Code & New Password */
             <form onSubmit={handleVerifyAndReset} className="space-y-4">
-              
+
               <div className="bg-purple-50/90 border border-purple-200 p-3.5 rounded-2xl text-xs text-purple-950">
                 <p className="font-semibold">Code sent to: {maskedDestination}</p>
                 {channel === 'phone' && (
                   <p className="text-[11px] text-purple-700 mt-0.5">
-                    (Development Mode: OTP logged in backend server terminal)
+                    (Check your mobile for OTP)
                   </p>
                 )}
               </div>
