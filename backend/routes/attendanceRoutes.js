@@ -29,6 +29,21 @@ const normalizeDate = (dateVal) => {
   return d;
 };
 
+// --- HELPER: Robust Time String to Minutes Converter (handles 24h and 12h AM/PM) ---
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const str = String(timeStr).trim();
+  const isPM = /pm/i.test(str);
+  const isAM = /am/i.test(str);
+  const clean = str.replace(/(am|pm)/i, '').trim();
+  const [hStr, mStr] = clean.split(':');
+  let hours = parseInt(hStr, 10) || 0;
+  const minutes = parseInt(mStr, 10) || 0;
+  if (isPM && hours < 12) hours += 12;
+  if (isAM && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+};
+
 // ==========================================
 //          1. MARK ATTENDANCE (ADMIN & TEACHER)
 // ==========================================
@@ -719,9 +734,9 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
         if (aEnrolled && !bEnrolled) return -1;
         if (!aEnrolled && bEnrolled) return 1;
         // Secondary sort by start time (earlier class first)
-        const [aH, aM] = (a.startTime || '00:00').split(':').map(Number);
-        const [bH, bM] = (b.startTime || '00:00').split(':').map(Number);
-        return (aH * 60 + aM) - (bH * 60 + bM);
+        const aStartMin = parseTimeToMinutes(a.startTime);
+        const bStartMin = parseTimeToMinutes(b.startTime);
+        return aStartMin - bStartMin;
       });
 
       // Get all schedules already attended by this student today — skip them so
@@ -736,24 +751,21 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
       const attendedScheduleIds = new Set(attendedToday.map(a => a.scheduleId.toString()));
 
       for (const sch of candidateSchedules) {
-        if (sch.startTime && sch.endTime) {
-          const [sH, sM] = sch.startTime.split(':').map(Number);
-          const [eH, eM] = sch.endTime.split(':').map(Number);
-          const startMin = sH * 60 + sM;
-          let endMin = eH * 60 + eM;
+        if (sch.startTime) {
+          const startMin = parseTimeToMinutes(sch.startTime);
+          let endMin = sch.endTime ? parseTimeToMinutes(sch.endTime) : (startMin + 120);
           // Handle overnight classes (e.g. 22:30 to 00:30)
           if (endMin < startMin) endMin += 24 * 60;
 
-          // Match if current time is within schedule window (or up to 45 mins before class start)
-          // Detection window: 30 min before class START to 30 min after class START
-          // e.g. a 5:00 PM class accepts scans from 4:30 PM to 5:30 PM
-          if (currentMinutes >= (startMin - 30) && currentMinutes <= (startMin + 30)) {
+          // Match if current time is within schedule window (30 min before class START through class duration + 15 min buffer)
+          // e.g. a 1:30 PM to 3:30 PM class accepts scans from 1:00 PM (13:00) to 3:45 PM (15:45)
+          if (currentMinutes >= (startMin - 30) && currentMinutes <= (endMin + 15)) {
             // Skip this schedule if student already attended it today — move on to next class
             if (attendedScheduleIds.has(sch._id.toString())) {
               continue;
             }
             resolvedScheduleId = sch._id;
-            resolvedCourseId = sch.courseId ? sch.courseId._id : sch.courseId;
+            resolvedCourseId = sch.courseId ? (sch.courseId._id ? sch.courseId._id : sch.courseId) : null;
             targetCourseTitle = sch.title;
             targetScheduleDetails = {
               title: sch.title,
