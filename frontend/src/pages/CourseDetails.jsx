@@ -2145,18 +2145,31 @@ const CourseDetails = () => {
             </div>
 
             <div className="space-y-3">
-              {quizzes.filter(q => q.grade === selectedGrade).length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No quizzes available for this grade yet.</p>
+              {quizzes.filter(q => {
+                const matchesGrade = q.grade === selectedGrade;
+                const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
+                return matchesGrade && matchesMonth;
+              }).length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No quizzes available for {selectedGrade} ({selectedMonth}) yet.</p>
               ) : (
-                quizzes.filter(q => q.grade === selectedGrade).map((quiz) => {
+                quizzes.filter(q => {
+                  const matchesGrade = q.grade === selectedGrade;
+                  const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
+                  return matchesGrade && matchesMonth;
+                }).map((quiz) => {
                   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
                   return (
                     <div key={quiz._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all gap-4">
                       <div className="flex items-center gap-3">
                         <div className="text-yellow-500 text-2xl">📝</div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-extrabold text-gray-900 text-sm">{quiz.title}</p>
+                            {quiz.weekNumber !== undefined && quiz.weekNumber > 0 && (
+                              <span className="bg-purple-50 text-purple-700 text-[10px] font-extrabold px-2 py-0.5 rounded border border-purple-200">
+                                Week {quiz.weekNumber}
+                              </span>
+                            )}
                             {!quiz.isActive && (
                               <span className="bg-gray-100 text-gray-600 text-[10px] font-extrabold px-2 py-0.5 rounded border border-gray-200">
                                 Inactive
@@ -2164,12 +2177,12 @@ const CourseDetails = () => {
                             )}
                           </div>
                           <p className="text-xs text-gray-500 mt-1">
-                            Questions: {quiz.questions?.length} · Time: {quiz.timeLimit > 0 ? `${quiz.timeLimit} mins` : 'No limit'}
+                            Questions: {quiz.questions?.length} · Time: {quiz.timeLimit > 0 ? `${quiz.timeLimit} mins` : 'No limit'} · Pass Mark: {quiz.passingPercentage || 50}%
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
                         {isTeacher ? (
                           <>
                             <button
@@ -2181,6 +2194,12 @@ const CourseDetails = () => {
                               }`}
                             >
                               {quiz.isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button
+                              onClick={() => navigate(`/course/${courseId}/quiz/${quiz._id}/edit`)}
+                              className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
+                            >
+                              Edit
                             </button>
                             <button
                               onClick={() => navigate(`/quiz/${quiz._id}/submissions`)}

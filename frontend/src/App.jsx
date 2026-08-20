@@ -97,9 +97,15 @@ function App() {
               <CreateQuiz />
             </ProtectedRoute>
           } />
+
+          <Route path="/course/:courseId/quiz/:quizId/edit" element={
+            <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+              <CreateQuiz />
+            </ProtectedRoute>
+          } />
           
           <Route path="/quiz/:quizId/take" element={
-            <ProtectedRoute allowedRoles={['student']}>
+            <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
               <TakeQuiz />
             </ProtectedRoute>
           } />

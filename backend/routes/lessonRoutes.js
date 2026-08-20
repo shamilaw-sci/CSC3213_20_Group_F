@@ -9,6 +9,7 @@ const Notification = require('../models/Notification');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const uploadPdfMiddleware = require('../middleware/pdfUpload');
 const { sendCourseUpdateEmail } = require('../utils/emailService');
+const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
 
 // Middleware to authorize teachers and admins
 const isTeacherOrAdmin = (req, res, next) => {
@@ -88,17 +89,10 @@ router.patch('/update-message/:lessonId', protect, isTeacherOrAdmin, async (req,
         // --- TRIGGER NOTIFICATIONS FOR ENROLLED CLASS STUDENTS ---
         try {
             const course = await Course.findById(lesson.course);
-            const classGrade = String(lesson.grade).trim();
-            const enrolledStudentIds = course?.enrolledStudents || [];
+            const enrolledStudents = await getClassEnrolledStudents(lesson.course, lesson.grade);
 
-            if (enrolledStudentIds.length > 0) {
-                const students = await User.find({
-                    _id: { $in: enrolledStudentIds },
-                    role: 'student',
-                    grade: new RegExp(classGrade, 'i')
-                }).select('_id');
-
-                const notifDocs = students.map(st => ({
+            if (enrolledStudents.length > 0) {
+                const notifDocs = enrolledStudents.map(st => ({
                     recipient: st._id,
                     sender: req.user._id,
                     type: 'NEW_CONTENT',
@@ -108,9 +102,7 @@ router.patch('/update-message/:lessonId', protect, isTeacherOrAdmin, async (req,
                     metadata: { courseId: lesson.course, lessonId: lesson._id }
                 }));
 
-                if (notifDocs.length > 0) {
-                    await Notification.insertMany(notifDocs);
-                }
+                await Notification.insertMany(notifDocs);
             }
         } catch (notifErr) {
             console.error('Lesson message notification error:', notifErr.message);
@@ -144,6 +136,8 @@ router.put('/:lessonId', protect, isTeacherOrAdmin, async (req, res) => {
             return res.status(404).json({ error: "Class not found." });
         }
 
+        const isNewVideoAdded = videoLessons && Array.isArray(videoLessons) && videoLessons.length > (lesson.videoLessons?.length || 0);
+
         if (teacherMessage !== undefined) {
             lesson.teacherMessage = teacherMessage;
         }
@@ -158,6 +152,45 @@ router.put('/:lessonId', protect, isTeacherOrAdmin, async (req, res) => {
         }
 
         await lesson.save();
+
+        // Notify enrolled class students if new video lessons were added
+        if (isNewVideoAdded) {
+            try {
+                const course = await Course.findById(lesson.course);
+                const enrolledStudents = await getClassEnrolledStudents(lesson.course, lesson.grade);
+
+                if (enrolledStudents.length > 0) {
+                    const latestVideo = videoLessons[videoLessons.length - 1];
+                    const videoTitle = latestVideo?.title || 'New Video Lesson';
+
+                    const notifDocs = enrolledStudents.map(st => ({
+                        recipient: st._id,
+                        type: 'NEW_CONTENT',
+                        title: `New Video in ${course?.title || 'Course'}`,
+                        message: `New video lesson "${videoTitle}" is now available for Grade ${lesson.grade}.`,
+                        link: '/courses',
+                        metadata: { courseId: lesson.course, lessonId: lesson._id }
+                    }));
+
+                    await Notification.insertMany(notifDocs);
+
+                    enrolledStudents.forEach(st => {
+                        if (st.email) {
+                            sendCourseUpdateEmail(
+                                st.email,
+                                st.name,
+                                course?.title || 'Your Course',
+                                `New Video Lesson: ${videoTitle}`,
+                                `A new video lesson has been uploaded for Grade ${lesson.grade}.`
+                            );
+                        }
+                    });
+                }
+            } catch (notifErr) {
+                console.error('Video upload notification error:', notifErr.message);
+            }
+        }
+
         res.json({ message: "Lesson details updated successfully!", lesson });
     } catch (err) {
         res.status(500).json({ error: "Failed to update lesson details: " + err.message });
@@ -195,34 +228,27 @@ router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, as
 
         await lesson.save();
 
-        // --- TRIGGER NOTIFICATIONS FOR ENROLLED STUDENTS ---
+        // --- TRIGGER NOTIFICATIONS FOR ENROLLED CLASS STUDENTS ---
         try {
             const course = await Course.findById(lesson.course);
-            const classGrade = String(lesson.grade).trim();
-            if (course && course.enrolledStudents && course.enrolledStudents.length > 0) {
-                const enrolledUsers = await User.find({
-                    _id: { $in: course.enrolledStudents },
-                    role: 'student',
-                    grade: new RegExp(classGrade, 'i')
-                });
-                
+            const enrolledUsers = await getClassEnrolledStudents(lesson.course, lesson.grade);
+            
+            if (enrolledUsers.length > 0) {
                 const notifDocs = enrolledUsers.map(st => ({
                     recipient: st._id,
                     type: 'NEW_CONTENT',
-                    title: `New Material in ${course.title}`,
+                    title: `New Material in ${course?.title || 'Course'}`,
                     message: `New PDF note "${title}" has been uploaded for Grade ${lesson.grade}.`,
                     link: `/courses`,
-                    metadata: { courseId: course._id, lessonId: lesson._id }
+                    metadata: { courseId: course?._id || lesson.course, lessonId: lesson._id }
                 }));
 
-                if (notifDocs.length > 0) {
-                    await Notification.insertMany(notifDocs);
-                }
+                await Notification.insertMany(notifDocs);
 
-                // Email notification to enrolled students
+                // Email notification to enrolled students of this class
                 enrolledUsers.forEach(st => {
                     if (st.email) {
-                        sendCourseUpdateEmail(st.email, st.name, course.title, `New PDF Material: ${title}`, `A new study material "${title}" has been published for Grade ${lesson.grade}.`);
+                        sendCourseUpdateEmail(st.email, st.name, course?.title || 'Your Course', `New PDF Material: ${title}`, `A new study material "${title}" has been published for Grade ${lesson.grade}.`);
                     }
                 });
             }
@@ -299,34 +325,27 @@ router.post('/:lessonId/assignment', protect, isTeacherOrAdmin, uploadPdfMiddlew
 
         await lesson.save();
 
-        // --- TRIGGER NOTIFICATIONS FOR ENROLLED STUDENTS ---
+        // --- TRIGGER NOTIFICATIONS FOR ENROLLED CLASS STUDENTS ---
         try {
             const course = await Course.findById(lesson.course);
-            const classGrade = String(lesson.grade).trim();
-            if (course && course.enrolledStudents && course.enrolledStudents.length > 0) {
-                const enrolledUsers = await User.find({
-                    _id: { $in: course.enrolledStudents },
-                    role: 'student',
-                    grade: new RegExp(classGrade, 'i')
-                });
-                
+            const enrolledUsers = await getClassEnrolledStudents(lesson.course, lesson.grade);
+            
+            if (enrolledUsers.length > 0) {
                 const notifDocs = enrolledUsers.map(st => ({
                     recipient: st._id,
                     type: 'NEW_CONTENT',
-                    title: `New Assignment in ${course.title}`,
+                    title: `New Assignment in ${course?.title || 'Course'}`,
                     message: `New Assignment PDF "${title}" has been uploaded for Grade ${lesson.grade}.`,
                     link: `/courses`,
-                    metadata: { courseId: course._id, lessonId: lesson._id }
+                    metadata: { courseId: course?._id || lesson.course, lessonId: lesson._id }
                 }));
 
-                if (notifDocs.length > 0) {
-                    await Notification.insertMany(notifDocs);
-                }
+                await Notification.insertMany(notifDocs);
 
-                // Email notification to enrolled students
+                // Email notification to enrolled students of this class
                 enrolledUsers.forEach(st => {
                     if (st.email) {
-                        sendCourseUpdateEmail(st.email, st.name, course.title, `New Assignment: ${title}`, `A new assignment "${title}" has been published for Grade ${lesson.grade}.`);
+                        sendCourseUpdateEmail(st.email, st.name, course?.title || 'Your Course', `New Assignment: ${title}`, `A new assignment "${title}" has been published for Grade ${lesson.grade}.`);
                     }
                 });
             }
@@ -401,37 +420,29 @@ router.post('/:lessonId/live-stream', protect, isTeacherOrAdmin, async (req, res
 
         await lesson.save();
 
-        // Send Notification to enrolled students
+        // Send Notification strictly to students enrolled in this course & class
         try {
             const course = await Course.findById(lesson.course);
-            if (course) {
-                const enrolledStudents = await User.find({
-                    role: 'student',
-                    $or: [
-                        { _id: { $in: course.enrolledStudents || [] } },
-                        { grade: lesson.grade }
-                    ]
-                }).select('_id email name');
+            const enrolledStudents = await getClassEnrolledStudents(lesson.course, lesson.grade);
 
+            if (enrolledStudents.length > 0) {
                 const notifDocs = enrolledStudents.map(st => ({
                     recipient: st._id,
                     type: 'LIVE_CLASS',
-                    title: `🔴 LIVE NOW: ${course.title}`,
+                    title: `🔴 LIVE NOW: ${course?.title || 'Course'}`,
                     message: `Live class "${streamTitle}" has started for Grade ${lesson.grade}! Click to join now.`,
                     link: `/courses`,
-                    metadata: { courseId: course._id, lessonId: lesson._id }
+                    metadata: { courseId: course?._id || lesson.course, lessonId: lesson._id }
                 }));
 
-                if (notifDocs.length > 0) {
-                    await Notification.insertMany(notifDocs);
-                }
+                await Notification.insertMany(notifDocs);
 
                 enrolledStudents.forEach(st => {
                     if (st.email) {
                         sendCourseUpdateEmail(
                             st.email,
                             st.name,
-                            course.title,
+                            course?.title || 'Your Course',
                             `🔴 LIVE CLASS: ${streamTitle}`,
                             `Grade ${lesson.grade} live streaming session is live now on LuminaLearn!`
                         );

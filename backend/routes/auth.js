@@ -15,6 +15,8 @@ const Attendance = require('../models/Attendance');
 const Schedule = require('../models/Schedule');
 const Notification = require('../models/Notification');
 const ReadingProgress = require('../models/ReadingProgress');
+const Quiz = require('../models/Quiz');
+const QuizSubmission = require('../models/QuizSubmission');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail, sendPasscodeEmail } = require('../utils/emailService');
@@ -2188,6 +2190,21 @@ const getStudentAnalyticsPayload = async (studentUser) => {
 
   const totalPaidAmount = studentPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
 
+  // Student Quiz Performance Metrics
+  const quizSubmissions = await QuizSubmission.find({ student: studentId })
+    .populate({
+      path: 'quiz',
+      select: 'title grade month weekNumber passingPercentage course',
+      populate: { path: 'course', select: 'title' }
+    })
+    .sort({ completedAt: -1 })
+    .lean();
+
+  const totalQuizzesAttempted = quizSubmissions.length;
+  const avgQuizScorePercent = totalQuizzesAttempted > 0
+    ? Math.round(quizSubmissions.reduce((sum, s) => sum + (s.totalPoints > 0 ? (s.score / s.totalPoints) * 100 : 0), 0) / totalQuizzesAttempted)
+    : 0;
+
   return {
     studentMetrics: {
       studentName: studentUser.name,
@@ -2197,6 +2214,8 @@ const getStudentAnalyticsPayload = async (studentUser) => {
       totalAvailableWeeks,
       totalPaymentsCount: studentPayments.length,
       totalPaidAmount,
+      totalQuizzesAttempted,
+      avgQuizScorePercent,
       userGrade: studentUser.grade || 'Unassigned',
       userType: studentUser.studentType || 'online'
     },
@@ -2210,7 +2229,13 @@ const getStudentAnalyticsPayload = async (studentUser) => {
     },
     weeklyRecords,
     enrolledCoursesList,
-    studentPayments
+    studentPayments,
+    quizSubmissions,
+    quizMetrics: {
+      totalQuizzesAttempted,
+      avgQuizScorePercent,
+      quizSubmissions
+    }
   };
 };
 
@@ -2821,6 +2846,29 @@ router.get('/parent-summary', protect, async (req, res) => {
           .populate('course', 'title')
           .sort({ lastReadAt: -1 });
 
+        // 5. Quiz Assessment Submissions & Performance
+        const quizSubmissions = await QuizSubmission.find({ student: childId })
+          .populate({
+            path: 'quiz',
+            select: 'title grade month weekNumber passingPercentage course timeLimit',
+            populate: { path: 'course', select: 'title' }
+          })
+          .sort({ completedAt: -1 })
+          .lean();
+
+        const totalQuizzes = quizSubmissions.length;
+        const totalQuizScoreSum = quizSubmissions.reduce((sum, s) => sum + (s.score || 0), 0);
+        const totalQuizPointsSum = quizSubmissions.reduce((sum, s) => sum + (s.totalPoints || 0), 0);
+        const averageQuizPercent = totalQuizPointsSum > 0
+          ? Math.round((totalQuizScoreSum / totalQuizPointsSum) * 100)
+          : (totalQuizzes > 0 ? Math.round(quizSubmissions.reduce((sum, s) => sum + ((s.score / (s.totalPoints || 1)) * 100), 0) / totalQuizzes) : 0);
+
+        const passedQuizzesCount = quizSubmissions.filter(s => {
+          const passPct = s.quiz?.passingPercentage || 50;
+          const scorePct = s.totalPoints > 0 ? (s.score / s.totalPoints) * 100 : 0;
+          return scorePct >= passPct;
+        }).length;
+
         return {
           child: {
             _id: child._id,
@@ -2851,7 +2899,14 @@ router.get('/parent-summary', protect, async (req, res) => {
           attendanceLogs,
           payments,
           totalPaidAmount,
-          readingProgress
+          readingProgress,
+          quizSubmissions,
+          quizMetrics: {
+            totalQuizzes,
+            averageQuizPercent,
+            passedQuizzesCount,
+            passRate: totalQuizzes > 0 ? Math.round((passedQuizzesCount / totalQuizzes) * 100) : 0
+          }
         };
       })
     );

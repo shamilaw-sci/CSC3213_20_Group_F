@@ -20,7 +20,8 @@ import {
   FaArrowLeft,
   FaUserGraduate,
   FaEye,
-  FaReceipt
+  FaReceipt,
+  FaClipboardList
 } from 'react-icons/fa';
 
 const Analytics = () => {
@@ -97,7 +98,7 @@ const Analytics = () => {
   // RENDER STUDENT / PARENT / TEACHER-STUDENT-DETAIL VIEW
   // ==========================================
   if (isStudent || isParent || (isTeacher && data?.isStudentDetail) || (data?.isStudentView && !data?.isTeacherView)) {
-    const { studentMetrics, attendanceBreakdown, enrolledCoursesList = [], studentPayments = [] } = data || {};
+    const { studentMetrics, attendanceBreakdown, enrolledCoursesList = [], studentPayments = [], quizSubmissions = [], quizMetrics = {} } = data || {};
     
     const presentCount = attendanceBreakdown?.present || 0;
     const absentCount = attendanceBreakdown?.absent || 0;
@@ -508,6 +509,88 @@ const Analytics = () => {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Academic Quiz & Assessment Performance */}
+          <div className="bg-[#fffdf7] p-8 rounded-[30px] border border-amber-200/80 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-amber-950 flex items-center gap-2">
+                  <FaClipboardList className="text-amber-500" /> Academic Quiz & Assessment Performance
+                </h3>
+                <p className="text-xs text-amber-700/80 mt-0.5">Summary of marks and grades achieved across course assessments</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-black bg-amber-200 text-amber-950 px-3.5 py-1 rounded-full border border-amber-300">
+                  Avg Score: {studentMetrics?.avgQuizScorePercent || 0}%
+                </span>
+                <span className="text-xs font-black bg-purple-100 text-purple-900 px-3.5 py-1 rounded-full border border-purple-200">
+                  {studentMetrics?.totalQuizzesAttempted || quizSubmissions.length} Attempted
+                </span>
+              </div>
+            </div>
+
+            {quizSubmissions.length === 0 ? (
+              <div className="py-12 text-center space-y-2">
+                <p className="text-sm text-gray-500 font-semibold">No quiz assessments completed yet.</p>
+                <Link to="/courses" className="text-xs font-extrabold text-purple-700 underline hover:text-purple-900">
+                  Go to Courses to attempt weekly quizzes →
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-x-auto pt-1">
+                <table className="w-full text-left text-xs font-semibold text-gray-700">
+                  <thead className="bg-amber-100/70 text-amber-950 uppercase text-[10px] tracking-wider">
+                    <tr>
+                      <th className="p-3.5 rounded-l-xl">Quiz Assessment</th>
+                      <th className="p-3.5">Course</th>
+                      <th className="p-3.5">Completion Date</th>
+                      <th className="p-3.5">Score / Total</th>
+                      <th className="p-3.5">Score %</th>
+                      <th className="p-3.5 rounded-r-xl">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-100/80">
+                    {quizSubmissions.map(sub => {
+                      const pct = sub.totalPoints > 0 ? Math.round((sub.score / sub.totalPoints) * 100) : 0;
+                      const passThreshold = sub.quiz?.passingPercentage || 50;
+                      const isPassed = pct >= passThreshold;
+                      const dateStr = sub.completedAt ? new Date(sub.completedAt).toLocaleDateString() : 'N/A';
+
+                      return (
+                        <tr key={sub._id} className="hover:bg-white/80 transition">
+                          <td className="p-3.5 font-bold text-gray-900">
+                            <div>{sub.quiz?.title || 'Course Quiz'}</div>
+                            {sub.quiz?.month && (
+                              <span className="text-[10px] text-amber-700 font-bold">
+                                {sub.quiz.month} {sub.quiz.weekNumber > 0 && `(Week ${sub.quiz.weekNumber})`}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3.5 font-semibold text-purple-900">
+                            {sub.quiz?.course?.title || 'Enrolled Course'}
+                          </td>
+                          <td className="p-3.5 text-gray-600 font-mono text-[11px]">{dateStr}</td>
+                          <td className="p-3.5 font-extrabold text-gray-900">
+                            <span className="text-purple-700">{sub.score}</span> / {sub.totalPoints}
+                          </td>
+                          <td className="p-3.5 font-black text-gray-800">
+                            <span className={isPassed ? 'text-emerald-700' : 'text-red-600'}>{pct}%</span>
+                          </td>
+                          <td className="p-3.5">
+                            <span className={`px-2.5 py-0.5 rounded-full font-extrabold text-[10px] ${
+                              isPassed ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {isPassed ? 'PASSED ✓' : 'NEEDS WORK'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

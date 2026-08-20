@@ -12,6 +12,7 @@ const Notification = require('../models/Notification');
 const { protect, isAdmin, isTeacherOrAdmin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 const { getClassNameFromGrade } = require('../utils/migration');
+const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
 
 // Extract the raw filename if a full path is stored, and build a dynamic URL based on the request host
 // Also verifies the file actually exists on disk so images work across team members' machines
@@ -949,17 +950,10 @@ router.post('/:id/send-message', protect, async (req, res) => {
 
         // --- TRIGGER NOTIFICATIONS FOR ENROLLED GRADE STUDENTS ---
         try {
-            const targetGradeName = String(gradeNumber).trim();
-            const enrolledStudentIds = course.enrolledStudents || [];
+            const enrolledStudents = await getClassEnrolledStudents(req.params.id, gradeNumber);
             
-            if (enrolledStudentIds.length > 0) {
-                const students = await User.find({ 
-                    _id: { $in: enrolledStudentIds }, 
-                    role: 'student', 
-                    grade: new RegExp(targetGradeName, 'i') 
-                }).select('_id');
-
-                const notifDocs = students
+            if (enrolledStudents.length > 0) {
+                const notifDocs = enrolledStudents
                     .filter(st => st._id.toString() !== req.user._id.toString())
                     .map(st => ({
                         recipient: st._id,
