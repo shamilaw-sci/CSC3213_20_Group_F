@@ -20,7 +20,12 @@ import {
   FaArrowLeft,
   FaUserGraduate,
   FaEye,
-  FaReceipt
+  FaReceipt,
+  FaClock,
+  FaVideo,
+  FaFilePdf,
+  FaTasks,
+  FaUserTie
 } from 'react-icons/fa';
 
 const Analytics = () => {
@@ -33,6 +38,7 @@ const Analytics = () => {
   const [selectedChildId, setSelectedChildId] = useState('');
   const [selectedTeacherStudentId, setSelectedTeacherStudentId] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState('all');
+  const [selectedAdminTeacherId, setSelectedAdminTeacherId] = useState('all');
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
   const [studentGradeFilter, setStudentGradeFilter] = useState('all');
 
@@ -44,10 +50,10 @@ const Analytics = () => {
 
   useEffect(() => {
     const targetStudentId = isParent ? selectedChildId : selectedTeacherStudentId;
-    fetchAnalytics(studentTypeFilter, targetStudentId, selectedCourseId);
-  }, [studentTypeFilter, selectedChildId, selectedTeacherStudentId, selectedCourseId]);
+    fetchAnalytics(studentTypeFilter, targetStudentId, selectedCourseId, selectedAdminTeacherId);
+  }, [studentTypeFilter, selectedChildId, selectedTeacherStudentId, selectedCourseId, selectedAdminTeacherId]);
 
-  const fetchAnalytics = async (typeFilter = 'all', childOrStudentId = '', courseId = 'all') => {
+  const fetchAnalytics = async (typeFilter = 'all', childOrStudentId = '', courseId = 'all', adminTeacherId = 'all') => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -57,6 +63,9 @@ const Analytics = () => {
       }
       if (courseId && courseId !== 'all') {
         url += `&courseId=${courseId}`;
+      }
+      if (adminTeacherId && adminTeacherId !== 'all') {
+        url += `&teacherId=${adminTeacherId}`;
       }
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
@@ -556,7 +565,7 @@ const Analytics = () => {
               <div className="flex items-center gap-3">
                 <span className="p-3 bg-white/10 rounded-2xl text-amber-400 text-2xl">👨‍🏫</span>
                 <div>
-                  <h2 className="text-3xl font-extrabold tracking-tight">Faculty Analytics & Class Insights</h2>
+                  <h2 className="text-3xl font-extrabold tracking-tight">Teacher Analytics & Class Insights</h2>
                   <p className="text-indigo-200 text-sm mt-1">
                     Monitor enrolled students, class attendance compliance, and fee settlements for your assigned courses.
                   </p>
@@ -659,71 +668,92 @@ const Analytics = () => {
             </div>
           </div>
 
-          {/* 4 Executive Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-purple-50/90 p-6 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition">
+          {/* 5 Executive Summary Cards for Faculty */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+            {/* Card 1: Total Lessons Published */}
+            <div className="bg-purple-50/90 p-5 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs text-purple-600 font-bold uppercase tracking-wider">My Enrolled Students</p>
-                  <h3 className="text-3xl font-extrabold text-purple-950 mt-1">{totalCount}</h3>
+                  <p className="text-[11px] text-purple-600 font-bold uppercase tracking-wider">Lessons Published</p>
+                  <h3 className="text-2xl font-extrabold text-purple-950 mt-1">{metrics?.totalLessonsPublished || 0}</h3>
                 </div>
-                <div className="w-12 h-12 bg-purple-200/60 text-[#2d1b64] rounded-2xl flex items-center justify-center text-xl shadow-inner">
-                  <FaUsers />
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-purple-100 flex items-center justify-between text-xs font-bold text-purple-900">
-                <span>{onlineCount} Online ({onlinePercent}%)</span>
-                <span>{physicalCount} Physical ({physicalPercent}%)</span>
-              </div>
-            </div>
-
-            <div className="bg-indigo-50/90 p-6 rounded-3xl border border-indigo-100 shadow-sm hover:shadow-md transition">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Assigned Classes</p>
-                  <h3 className="text-3xl font-extrabold text-indigo-950 mt-1">{metrics?.totalCourses || teacherCourses.length}</h3>
-                </div>
-                <div className="w-12 h-12 bg-indigo-200/60 text-indigo-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <div className="w-10 h-10 bg-purple-200/60 text-[#2d1b64] rounded-2xl flex items-center justify-center text-lg shadow-inner">
                   <FaBookOpen />
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-indigo-100 flex items-center justify-between text-xs font-bold text-indigo-900">
-                <span>Active Syllabus Curriculums</span>
-                <span className="text-indigo-700 font-extrabold">{studentsList.length} Learners</span>
+              <div className="mt-3 pt-3 border-t border-purple-100 text-[10px] font-bold text-purple-900 flex items-center justify-between">
+                <span>{metrics?.totalVideosCount || 0} Videos • {metrics?.totalPdfsCount || 0} PDFs</span>
+                <span>{metrics?.totalAssignmentsCount || 0} Tasks</span>
               </div>
             </div>
 
-            <div className="bg-emerald-50/90 p-6 rounded-3xl border border-emerald-100 shadow-sm hover:shadow-md transition">
+            {/* Card 2: Attendance Rate */}
+            <div className="bg-blue-50/90 p-5 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs text-emerald-700 font-bold uppercase tracking-wider">Revenue Generated</p>
-                  <h3 className="text-3xl font-extrabold text-emerald-800 mt-1">
-                    LKR {(metrics?.totalRevenue || 0).toLocaleString()}
-                  </h3>
+                  <p className="text-[11px] text-blue-700 font-bold uppercase tracking-wider">Attendance Rate</p>
+                  <h3 className="text-2xl font-extrabold text-blue-900 mt-1">{metrics?.attendanceRate || 100}%</h3>
                 </div>
-                <div className="w-12 h-12 bg-emerald-200/60 text-emerald-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
-                  <FaMoneyBillWave />
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-emerald-100 flex items-center justify-between text-xs font-bold text-emerald-950">
-                <span>Direct Course Fees Settled</span>
-                <span className="text-emerald-700 font-extrabold">Verified ✓</span>
-              </div>
-            </div>
-
-            <div className="bg-blue-50/90 p-6 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-blue-700 font-bold uppercase tracking-wider">Average Attendance</p>
-                  <h3 className="text-3xl font-extrabold text-blue-900 mt-1">{metrics?.attendanceRate || 100}%</h3>
-                </div>
-                <div className="w-12 h-12 bg-blue-200/60 text-blue-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <div className="w-10 h-10 bg-blue-200/60 text-blue-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                   <FaCheckCircle />
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-blue-100 flex items-center justify-between text-xs font-bold text-blue-900">
-                <span>Logged Class Sessions:</span>
-                <span className="text-blue-700 font-extrabold">{metrics?.attendanceBreakdown?.total || 0} Records</span>
+              <div className="mt-3 pt-3 border-t border-blue-100 text-[10px] font-bold text-blue-900 flex items-center justify-between">
+                <span>{metrics?.attendanceBreakdown?.present || 0} Present</span>
+                <span>{metrics?.attendanceBreakdown?.total || 0} Total Logged</span>
+              </div>
+            </div>
+
+            {/* Card 3: Active Timetable Hours */}
+            <div className="bg-amber-50/90 p-5 rounded-3xl border border-amber-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-[11px] text-amber-700 font-bold uppercase tracking-wider">Timetable Hours</p>
+                  <h3 className="text-2xl font-extrabold text-amber-900 mt-1">{metrics?.activeTimetableHours || 0} <span className="text-xs font-semibold">Hrs/Wk</span></h3>
+                </div>
+                <div className="w-10 h-10 bg-amber-200/60 text-amber-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                  <FaClock />
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-amber-100 text-[10px] font-bold text-amber-900 flex items-center justify-between">
+                <span>Weekly Lecture Load</span>
+                <span>Active</span>
+              </div>
+            </div>
+
+            {/* Card 4: My Enrolled Students */}
+            <div className="bg-indigo-50/90 p-5 rounded-3xl border border-indigo-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wider">Enrolled Students</p>
+                  <h3 className="text-2xl font-extrabold text-indigo-950 mt-1">{totalCount}</h3>
+                </div>
+                <div className="w-10 h-10 bg-indigo-200/60 text-indigo-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                  <FaUsers />
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-indigo-100 text-[10px] font-bold text-indigo-900 flex items-center justify-between">
+                <span>{onlineCount} Online</span>
+                <span>{physicalCount} Physical</span>
+              </div>
+            </div>
+
+            {/* Card 5: Revenue Generated */}
+            <div className="bg-emerald-50/90 p-5 rounded-3xl border border-emerald-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-bold uppercase tracking-wider">Revenue Generated</p>
+                  <h3 className="text-2xl font-extrabold text-emerald-800 mt-1">
+                    LKR {(metrics?.totalRevenue || 0).toLocaleString()}
+                  </h3>
+                </div>
+                <div className="w-10 h-10 bg-emerald-200/60 text-emerald-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                  <FaMoneyBillWave />
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-emerald-100 text-[10px] font-bold text-emerald-950 flex items-center justify-between">
+                <span>{metrics?.totalCourses || teacherCourses.length} Courses</span>
+                <span className="text-emerald-700 font-extrabold">Verified ✓</span>
               </div>
             </div>
           </div>
@@ -1123,7 +1153,7 @@ const Analytics = () => {
   // ==========================================
   // RENDER ADMIN VIEW
   // ==========================================
-  const { metrics, gradeDistribution = [], topCourses = [], courseRevenueList = [], weeklyStudentTrend = [] } = data || {};
+  const { metrics, gradeDistribution = [], topCourses = [], courseRevenueList = [], weeklyStudentTrend = [], teacherBreakdownList = [], coursesDetailedList = [] } = data || {};
 
   const onlineCount = metrics?.onlineStudents || 0;
   const physicalCount = metrics?.physicalStudents || 0;
@@ -1156,7 +1186,7 @@ const Analytics = () => {
               <div>
                 <h2 className="text-3xl font-extrabold tracking-tight">Analytics & Platform Insights</h2>
                 <p className="text-indigo-200 text-sm mt-1">
-                  Real-time visual charts on weekly student mode growth, grade concentration, course popularity, and revenue matrices.
+                  Real-time visual operational analytics on weekly student growth, teacher performance, course workloads, and revenues.
                 </p>
               </div>
             </div>
@@ -1200,6 +1230,84 @@ const Analytics = () => {
           </div>
         </div>
 
+        {/* ADMIN TEACHER FILTER RIBBON */}
+        <div className="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm space-y-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+            <span className="text-xs font-black uppercase tracking-wider text-purple-950 flex items-center gap-2">
+              <FaUserTie className="text-purple-600" /> Filter Analytics by Teacher / Instructor:
+            </span>
+            <span className="text-xs text-purple-700 font-bold bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+              {teacherBreakdownList.length} Active Instructors
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setSelectedAdminTeacherId('all')}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer border ${
+                selectedAdminTeacherId === 'all'
+                  ? 'bg-purple-900 text-white border-purple-950 shadow-md ring-2 ring-amber-400 scale-[1.02]'
+                  : 'bg-purple-50/60 hover:bg-purple-100 text-purple-950 border-purple-100'
+              }`}
+            >
+              <span>🌐 All Teachers (Institute Overview)</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                selectedAdminTeacherId === 'all' ? 'bg-amber-400 text-purple-950' : 'bg-purple-200 text-purple-900'
+              }`}>
+                Total Institute
+              </span>
+            </button>
+
+            {teacherBreakdownList.map(teacher => {
+              const isSelected = selectedAdminTeacherId === teacher._id;
+              return (
+                <button
+                  key={teacher._id}
+                  type="button"
+                  onClick={() => setSelectedAdminTeacherId(teacher._id)}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer border ${
+                    isSelected
+                      ? 'bg-purple-900 text-white border-purple-950 shadow-md ring-2 ring-amber-400 scale-[1.02]'
+                      : 'bg-purple-50/60 hover:bg-purple-100 text-purple-950 border-purple-100'
+                  }`}
+                >
+                  <span>👨‍🏫 {teacher.name}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                    isSelected ? 'bg-amber-400 text-purple-950' : 'bg-purple-200 text-purple-900'
+                  }`}>
+                    {teacher.coursesCount} Course{teacher.coursesCount !== 1 ? 's' : ''}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Selected Teacher Active Filter Alert */}
+        {selectedAdminTeacherId !== 'all' && data?.selectedTeacherInfo && (
+          <div className="bg-gradient-to-r from-purple-900 to-indigo-900 text-white p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg border border-purple-500/30">
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 bg-amber-400 text-purple-950 rounded-xl text-lg font-black">👨‍🏫</span>
+              <div>
+                <h4 className="font-extrabold text-sm sm:text-base">
+                  Teacher Performance Report: {data.selectedTeacherInfo.name}
+                </h4>
+                <p className="text-xs text-purple-200">
+                  {data.selectedTeacherInfo.email} • {data.selectedTeacherInfo.coursesCount} Active Courses • {data.selectedTeacherInfo.activeTimetableHours} Lecture Hours/Wk
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedAdminTeacherId('all')}
+              className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-purple-950 font-black text-xs rounded-xl shadow transition cursor-pointer self-start sm:self-auto"
+            >
+              Reset to All Teachers
+            </button>
+          </div>
+        )}
+
         {/* Filter Indicator Badge */}
         {studentTypeFilter !== 'all' && (
           <div className="bg-purple-100 border border-purple-200 text-purple-900 px-5 py-3 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm">
@@ -1215,85 +1323,113 @@ const Analytics = () => {
           </div>
         )}
 
-        {/* Executive Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          <div className="bg-purple-50/90 p-6 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition">
+        {/* 6 Executive Summary Cards for Admin */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5">
+          {/* Card 1: Total Lessons Published */}
+          <div className="bg-purple-50/90 p-5 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs text-purple-600 font-bold uppercase tracking-wider">
-                  {studentTypeFilter === 'all' ? 'Total Students' : `${studentTypeFilter} Students`}
-                </p>
-                <h3 className="text-3xl font-extrabold text-purple-950 mt-1">{totalCount}</h3>
+                <p className="text-[11px] text-purple-600 font-bold uppercase tracking-wider">Lessons Published</p>
+                <h3 className="text-2xl font-extrabold text-purple-950 mt-1">{metrics?.totalLessonsPublished || 0}</h3>
               </div>
-              <div className="w-12 h-12 bg-purple-200/60 text-[#2d1b64] rounded-2xl flex items-center justify-center text-xl shadow-inner">
-                <FaUsers />
+              <div className="w-10 h-10 bg-purple-200/60 text-[#2d1b64] rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                <FaBookOpen />
               </div>
             </div>
-            
-            <div className="mt-4 pt-4 border-t border-purple-100 flex items-center justify-between text-xs font-bold">
-              <span className="text-purple-800 flex items-center gap-1">
-                <FaGlobe /> {onlineCount} Online ({onlinePercent}%)
-              </span>
-              <span className="text-indigo-900 flex items-center gap-1">
-                <FaSchool /> {physicalCount} Physical ({physicalPercent}%)
-              </span>
+            <div className="mt-3 pt-3 border-t border-purple-100 text-[10px] font-bold text-purple-900 flex items-center justify-between">
+              <span>{metrics?.totalVideosCount || 0} Videos • {metrics?.totalPdfsCount || 0} PDFs</span>
+              <span>{metrics?.totalAssignmentsCount || 0} Tasks</span>
             </div>
           </div>
 
-          <div className="bg-indigo-50/90 p-6 rounded-3xl border border-indigo-100 shadow-sm hover:shadow-md transition">
+          {/* Card 2: Attendance Compliance */}
+          <div className="bg-blue-50/90 p-5 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Active Teachers</p>
-                <h3 className="text-3xl font-extrabold text-indigo-950 mt-1">{metrics?.totalTeachers || 0}</h3>
+                <p className="text-[11px] text-blue-700 font-bold uppercase tracking-wider">Attendance Rate</p>
+                <h3 className="text-2xl font-extrabold text-blue-900 mt-1">{metrics?.attendanceRate || 100}%</h3>
               </div>
-              <div className="w-12 h-12 bg-indigo-200/60 text-indigo-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
-                <FaChalkboardTeacher />
-              </div>
-            </div>
-            
-            <div className="mt-4 pt-4 border-t border-indigo-100 flex items-center justify-between text-xs">
-              <span className="text-indigo-600 font-medium">Active Courses:</span>
-              <span className="font-bold text-indigo-950">{metrics?.totalCourses || 0} Courses</span>
-            </div>
-          </div>
-
-          <div className="bg-emerald-50/90 p-6 rounded-3xl border border-emerald-100 shadow-sm hover:shadow-md transition">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs text-emerald-700 font-bold uppercase tracking-wider">Revenue Collected</p>
-                <h3 className="text-3xl font-extrabold text-emerald-800 mt-1">
-                  LKR {(metrics?.totalRevenue || 0).toLocaleString()}
-                </h3>
-              </div>
-              <div className="w-12 h-12 bg-emerald-200/60 text-emerald-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
-                <FaMoneyBillWave />
-              </div>
-            </div>
-            
-            <div className="mt-4 pt-4 border-t border-emerald-100 flex items-center justify-between text-xs">
-              <span className="text-emerald-700 font-medium">Receipts Settled:</span>
-              <span className="font-bold text-emerald-950">{metrics?.totalPaymentsCount || 0} Payments</span>
-            </div>
-          </div>
-
-          <div className="bg-blue-50/90 p-6 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs text-blue-700 font-bold uppercase tracking-wider">Attendance Compliance</p>
-                <h3 className="text-3xl font-extrabold text-blue-900 mt-1">{metrics?.attendanceRate || 100}%</h3>
-              </div>
-              <div className="w-12 h-12 bg-blue-200/60 text-blue-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+              <div className="w-10 h-10 bg-blue-200/60 text-blue-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                 <FaCheckCircle />
               </div>
             </div>
-            
-            <div className="mt-4 pt-4 border-t border-blue-100 flex items-center justify-between text-xs">
-              <span className="text-blue-700 font-medium">Logged Sessions:</span>
-              <span className="font-bold text-blue-950">{metrics?.attendanceBreakdown?.total || 0} Records</span>
+            <div className="mt-3 pt-3 border-t border-blue-100 text-[10px] font-bold text-blue-900 flex items-center justify-between">
+              <span>{metrics?.attendanceBreakdown?.present || 0} Present</span>
+              <span>{metrics?.attendanceBreakdown?.total || 0} Logged</span>
             </div>
           </div>
 
+          {/* Card 3: Active Timetable Hours */}
+          <div className="bg-amber-50/90 p-5 rounded-3xl border border-amber-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-[11px] text-amber-700 font-bold uppercase tracking-wider">Timetable Hours</p>
+                <h3 className="text-2xl font-extrabold text-amber-900 mt-1">{metrics?.activeTimetableHours || 0} <span className="text-xs font-semibold">Hrs/Wk</span></h3>
+              </div>
+              <div className="w-10 h-10 bg-amber-200/60 text-amber-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                <FaClock />
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-amber-100 text-[10px] font-bold text-amber-900 flex items-center justify-between">
+              <span>Weekly Lecture Load</span>
+              <span>Active</span>
+            </div>
+          </div>
+
+          {/* Card 4: Total Students */}
+          <div className="bg-purple-50/90 p-5 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-[11px] text-purple-600 font-bold uppercase tracking-wider">
+                  {studentTypeFilter === 'all' ? 'Total Students' : `${studentTypeFilter} Students`}
+                </p>
+                <h3 className="text-2xl font-extrabold text-purple-950 mt-1">{totalCount}</h3>
+              </div>
+              <div className="w-10 h-10 bg-purple-200/60 text-[#2d1b64] rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                <FaUsers />
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-purple-100 text-[10px] font-bold text-purple-900 flex items-center justify-between">
+              <span>{onlineCount} Online</span>
+              <span>{physicalCount} Physical</span>
+            </div>
+          </div>
+
+          {/* Card 5: Active Teachers & Courses */}
+          <div className="bg-indigo-50/90 p-5 rounded-3xl border border-indigo-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wider">Active Teachers</p>
+                <h3 className="text-2xl font-extrabold text-indigo-950 mt-1">{metrics?.totalTeachers || 0}</h3>
+              </div>
+              <div className="w-10 h-10 bg-indigo-200/60 text-indigo-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                <FaChalkboardTeacher />
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-indigo-100 text-[10px] font-bold text-indigo-900 flex items-center justify-between">
+              <span>{metrics?.totalCourses || 0} Active Courses</span>
+              <span className="text-indigo-700 font-extrabold">Curriculum</span>
+            </div>
+          </div>
+
+          {/* Card 6: Revenue Collected */}
+          <div className="bg-emerald-50/90 p-5 rounded-3xl border border-emerald-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-[11px] text-emerald-700 font-bold uppercase tracking-wider">Revenue Collected</p>
+                <h3 className="text-2xl font-extrabold text-emerald-800 mt-1">
+                  LKR {(metrics?.totalRevenue || 0).toLocaleString()}
+                </h3>
+              </div>
+              <div className="w-10 h-10 bg-emerald-200/60 text-emerald-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                <FaMoneyBillWave />
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-emerald-100 text-[10px] font-bold text-emerald-950 flex items-center justify-between">
+              <span>{metrics?.totalPaymentsCount || 0} Payments</span>
+              <span className="text-emerald-700 font-extrabold">Verified ✓</span>
+            </div>
+          </div>
         </div>
 
         {/* Section 1: Weekly Growth Line Chart & Donut Mode Share Chart */}
@@ -2130,6 +2266,212 @@ const Analytics = () => {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+
+        {/* Section 5: Teachers & Instructors Operational Performance Breakdown */}
+        <div className="bg-white p-8 rounded-[30px] border border-purple-200/80 shadow-md space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-purple-100 pb-4">
+            <div>
+              <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
+                <FaChalkboardTeacher className="text-purple-600" /> Teachers & Instructors Operational Performance
+              </h3>
+              <p className="text-xs text-purple-600/80 mt-0.5">
+                Comparative workload and delivery metrics across all teachers and instructors (Lessons published, teaching hours, compliance, and revenues).
+              </p>
+            </div>
+            <span className="px-3.5 py-1.5 bg-purple-100 text-purple-950 font-black text-xs rounded-full border border-purple-200 shadow-2xs">
+              👨‍🏫 {teacherBreakdownList.length} Active Instructors
+            </span>
+          </div>
+
+          {teacherBreakdownList.length === 0 ? (
+            <p className="text-sm text-gray-400 py-8 text-center">No teacher accounts recorded in the database.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+              {teacherBreakdownList.map((teacher) => {
+                const isSelected = selectedAdminTeacherId === teacher._id;
+                return (
+                  <div
+                    key={teacher._id}
+                    className={`bg-gradient-to-br from-purple-50/60 to-indigo-50/30 p-6 rounded-3xl border transition-all duration-300 space-y-4 relative ${
+                      isSelected
+                        ? 'border-purple-900 shadow-lg ring-2 ring-amber-400 scale-[1.02]'
+                        : 'border-purple-100 hover:shadow-md'
+                    }`}
+                  >
+                    {/* Teacher Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-800 to-indigo-900 text-white flex items-center justify-center font-black text-lg shadow-sm">
+                          {teacher.name ? teacher.name.charAt(0).toUpperCase() : 'T'}
+                        </div>
+                        <div>
+                          <h4 className="font-extrabold text-gray-900 text-base leading-tight">{teacher.name}</h4>
+                          <span className="text-[11px] text-purple-700 font-semibold block">{teacher.email}</span>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <span className="bg-amber-400 text-purple-950 text-[10px] font-black px-2.5 py-1 rounded-full shadow-2xs">
+                          Active Filter
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Operational Metric Badges */}
+                    <div className="grid grid-cols-3 gap-2 bg-white p-3 rounded-2xl border border-purple-100 text-center">
+                      <div className="p-1">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase block">Lessons</span>
+                        <span className="text-sm font-black text-purple-950">{teacher.totalLessonsPublished}</span>
+                        <span className="text-[9px] text-purple-600 font-semibold block">Modules</span>
+                      </div>
+                      <div className="p-1 border-x border-purple-50">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase block">Hours</span>
+                        <span className="text-sm font-black text-amber-600">{teacher.activeTimetableHours}</span>
+                        <span className="text-[9px] text-amber-700 font-semibold block">Hrs / Wk</span>
+                      </div>
+                      <div className="p-1">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase block">Compliance</span>
+                        <span className="text-sm font-black text-blue-900">{teacher.attendanceRate}%</span>
+                        <span className="text-[9px] text-blue-600 font-semibold block">Presence</span>
+                      </div>
+                    </div>
+
+                    {/* Courses and Revenue Details */}
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex justify-between items-center text-gray-600 font-semibold">
+                        <span>Assigned Courses:</span>
+                        <span className="font-bold text-purple-950">{teacher.coursesCount} Courses</span>
+                      </div>
+                      <div className="flex justify-between items-center text-gray-600 font-semibold">
+                        <span>Enrolled Students:</span>
+                        <span className="font-bold text-indigo-900">{teacher.totalStudents} Learners</span>
+                      </div>
+                      <div className="flex justify-between items-center text-gray-600 font-semibold">
+                        <span>Revenue Handled:</span>
+                        <span className="font-extrabold text-emerald-700">LKR {(teacher.totalRevenue || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="pt-2 border-t border-purple-100">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAdminTeacherId(prev => prev === teacher._id ? 'all' : teacher._id)}
+                        className={`w-full py-2.5 rounded-xl font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-2 ${
+                          isSelected
+                            ? 'bg-amber-400 hover:bg-amber-300 text-purple-950 shadow-md'
+                            : 'bg-purple-900 hover:bg-purple-800 text-white shadow-xs'
+                        }`}
+                      >
+                        <FaUserTie /> {isSelected ? 'Reset to All Teachers' : `Inspect ${teacher.name.split(' ')[0]}'s Analytics`}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Section 6: Comprehensive Course Operational Matrix Table */}
+        <div className="bg-white p-8 rounded-[30px] border border-purple-200/80 shadow-md space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-purple-100 pb-4">
+            <div>
+              <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
+                <FaBookOpen className="text-purple-600" /> Comprehensive Course Operational Performance Matrix
+              </h3>
+              <p className="text-xs text-purple-600/80 mt-0.5">
+                Complete institutional course breakdown comparing published curriculum modules, scheduled lecture hours, attendance rates, and revenue.
+              </p>
+            </div>
+            <span className="px-3.5 py-1.5 bg-amber-400 text-purple-950 font-black text-xs rounded-full shadow-2xs">
+              📚 {coursesDetailedList.length} Courses Listed
+            </span>
+          </div>
+
+          {coursesDetailedList.length === 0 ? (
+            <p className="text-sm text-gray-400 py-8 text-center">No courses match the current filter.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-purple-100 shadow-2xs">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gradient-to-r from-purple-900 to-indigo-950 text-white text-xs font-black tracking-wider uppercase">
+                    <th className="p-4 rounded-tl-2xl">Course & Syllabus</th>
+                    <th className="p-4">Assigned Instructor</th>
+                    <th className="p-4 text-center">Lessons Published</th>
+                    <th className="p-4 text-center">Timetable Workload</th>
+                    <th className="p-4 text-center">Attendance Rate</th>
+                    <th className="p-4 text-center">Enrolled Students</th>
+                    <th className="p-4 text-right rounded-tr-2xl">Revenue Generated</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-purple-50 text-xs font-semibold">
+                  {coursesDetailedList.map((course) => (
+                    <tr key={course._id} className="hover:bg-purple-50/50 transition">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-900 flex items-center justify-center font-black text-sm shrink-0">
+                            📖
+                          </div>
+                          <div>
+                            <span className="font-extrabold text-gray-900 text-sm block">{course.title}</span>
+                            <span className="text-[10px] text-gray-500 line-clamp-1">{course.description}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="p-4">
+                        <span className="font-bold text-purple-950 flex items-center gap-1.5">
+                          <span>👨‍🏫</span> {course.instructorName}
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <div className="inline-flex flex-col items-center">
+                          <span className="px-2.5 py-1 bg-purple-100 text-purple-900 rounded-lg font-black text-xs">
+                            {course.lessonsPublished} Modules
+                          </span>
+                          <span className="text-[9px] text-gray-500 mt-0.5">
+                            {course.videosCount} Vids • {course.pdfsCount} PDFs
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <span className="px-2.5 py-1 bg-amber-100 text-amber-900 rounded-lg font-black text-xs">
+                          ⏱️ {course.activeTimetableHours} Hrs/Wk
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <span className={`px-2.5 py-1 rounded-lg font-black text-xs ${
+                          course.attendanceRate >= 80 
+                            ? 'bg-emerald-100 text-emerald-900' 
+                            : course.attendanceRate >= 60 
+                            ? 'bg-amber-100 text-amber-900' 
+                            : 'bg-red-100 text-red-900'
+                        }`}>
+                          ✓ {course.attendanceRate}%
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <span className="font-extrabold text-indigo-950 text-sm">
+                          {course.enrolledCount} Students
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-right">
+                        <span className="font-black text-emerald-700 text-sm">
+                          LKR {(course.revenue || 0).toLocaleString()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

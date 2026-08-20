@@ -15,6 +15,7 @@ const Attendance = require('../models/Attendance');
 const Schedule = require('../models/Schedule');
 const Notification = require('../models/Notification');
 const ReadingProgress = require('../models/ReadingProgress');
+const Lesson = require('../models/Lesson');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail, sendPasscodeEmail } = require('../utils/emailService');
@@ -26,6 +27,38 @@ const {
   sendParentCredentialSMS
 } = require('../services/smsService');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Helper to parse time strings (24h '14:30' or 12h '02:30 PM') to minutes
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const str = String(timeStr).trim();
+  const isPM = /pm/i.test(str);
+  const isAM = /am/i.test(str);
+  const clean = str.replace(/[ap]m/i, '').trim();
+  const parts = clean.split(':').map(Number);
+  let hours = parts[0] || 0;
+  const minutes = parts[1] || 0;
+  if (isPM && hours < 12) hours += 12;
+  if (isAM && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+};
+
+// Helper to calculate total active schedule duration in hours per week
+const calculateScheduleHours = (schedules) => {
+  let totalMinutes = 0;
+  (schedules || []).forEach(s => {
+    if (s.startTime && s.endTime) {
+      const startMin = parseTimeToMinutes(s.startTime);
+      const endMin = parseTimeToMinutes(s.endTime);
+      let diff = endMin - startMin;
+      if (diff < 0) diff += 24 * 60;
+      if (diff > 0 && diff <= 12 * 60) {
+        totalMinutes += diff;
+      }
+    }
+  });
+  return parseFloat((totalMinutes / 60).toFixed(1));
+};
 
 // Helper to generate Online Student Registration Number (e.g. OL-G06-2012-4829)
 const generateOnlineRegistrationNumber = async (grade, dateOfBirth) => {
@@ -1983,7 +2016,7 @@ router.get('/teacher-stats', protect, async (req, res) => {
         ratingCount++;
       }
     });
-    const avgRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : "4.9";
+    const avgRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : "5.0";
 
     res.json({
       coursesCount: teacherCourses.length,
@@ -2463,6 +2496,32 @@ router.get('/analytics-summary', protect, async (req, res) => {
       const physicalStudentsCount = rawTeacherStudents.filter(s => s.studentType !== 'online').length;
       const totalStudentsCount = rawTeacherStudents.length;
 
+      // Lessons published for teacher's courses
+      const teacherLessons = await Lesson.find({
+        course: { $in: filteredCourseIds }
+      }).lean();
+
+      const totalLessonsPublished = teacherLessons.length;
+      let totalVideosCount = 0;
+      let totalPdfsCount = 0;
+      let totalAssignmentsCount = 0;
+
+      teacherLessons.forEach(l => {
+        totalVideosCount += (l.videoLessons || []).length;
+        totalPdfsCount += (l.pdfMaterials || []).length;
+        totalAssignmentsCount += (l.assignments || []).length;
+      });
+
+      // Active weekly timetable hours for teacher's courses/schedules
+      const teacherSchedules = await Schedule.find({
+        $or: [
+          { teacherId: teacherId },
+          { courseId: { $in: filteredCourseIds } }
+        ]
+      }).lean();
+
+      const activeTimetableHours = calculateScheduleHours(teacherSchedules);
+
       // Build rich student list with per-student stats in teacher's classes
       const studentsList = await Promise.all(
         rawTeacherStudents.map(async (student) => {
@@ -2524,17 +2583,43 @@ router.get('/analytics-summary', protect, async (req, res) => {
         physical: gradeTypeBreakdown[g]?.physical || 0
       })).sort((a, b) => b.count - a.count);
 
-      // Top courses ranking for this teacher
+      // Top courses ranking and operational breakdown for this teacher
       const topCourses = teacherCourses.map(c => {
+        const cId = c._id.toString();
         const enrolledCount = (c.enrolledStudents || []).length;
-        const coursePayments = teacherPayments.filter(p => p.course?.toString() === c._id.toString());
+        const coursePayments = teacherPayments.filter(p => p.course?.toString() === cId);
         const courseRevenue = coursePayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+
+        const courseLessons = teacherLessons.filter(l => l.course?.toString() === cId);
+        const courseSchedules = teacherSchedules.filter(s => s.courseId?.toString() === cId);
+        const courseHours = calculateScheduleHours(courseSchedules);
+
+        const courseAttLogs = teacherAttendanceLogs.filter(a => a.courseId?.toString() === cId);
+        const coursePresent = courseAttLogs.filter(a => a.status === 'Present').length;
+        const courseAttRate = courseAttLogs.length > 0 ? Math.round((coursePresent / courseAttLogs.length) * 100) : 100;
+
+        let vidCount = 0;
+        let pdfCount = 0;
+        let assignCount = 0;
+        courseLessons.forEach(l => {
+          vidCount += (l.videoLessons || []).length;
+          pdfCount += (l.pdfMaterials || []).length;
+          assignCount += (l.assignments || []).length;
+        });
+
         return {
           _id: c._id,
           title: c.title,
           price: c.price || 2500,
           enrolledCount,
-          revenue: courseRevenue
+          revenue: courseRevenue,
+          lessonsPublished: courseLessons.length,
+          videosCount: vidCount,
+          pdfsCount: pdfCount,
+          assignmentsCount: assignCount,
+          activeTimetableHours: courseHours,
+          attendanceRate: courseAttRate,
+          schedulesCount: courseSchedules.length
         };
       }).sort((a, b) => b.enrolledCount - a.enrolledCount);
 
@@ -2542,12 +2627,7 @@ router.get('/analytics-summary', protect, async (req, res) => {
         success: true,
         isTeacherView: true,
         isStudentDetail: false,
-        teacherCourses: teacherCourses.map(c => ({
-          _id: c._id,
-          title: c.title,
-          price: c.price,
-          enrolledCount: (c.enrolledStudents || []).length
-        })),
+        teacherCourses: topCourses,
         selectedCourseId: selectedCourseId || 'all',
         metrics: {
           totalStudents: totalStudentsCount,
@@ -2555,6 +2635,11 @@ router.get('/analytics-summary', protect, async (req, res) => {
           physicalStudents: physicalStudentsCount,
           totalCourses: teacherCourses.length,
           totalRevenue,
+          totalLessonsPublished,
+          totalVideosCount,
+          totalPdfsCount,
+          totalAssignmentsCount,
+          activeTimetableHours,
           attendanceRate: attendanceCompliance,
           attendanceBreakdown: {
             total: totalAttendanceLogged,
@@ -2569,7 +2654,8 @@ router.get('/analytics-summary', protect, async (req, res) => {
       });
     }
 
-    const { studentType } = req.query;
+    // 4. ADMIN VIEW (With Institute Overview & Teacher Drill-Down)
+    const { studentType, teacherId: adminTeacherFilterId } = req.query;
     const filterType = (studentType && studentType !== 'all') ? studentType.toLowerCase() : null;
 
     const studentFilter = { role: 'student' };
@@ -2618,57 +2704,169 @@ router.get('/analytics-summary', protect, async (req, res) => {
       physical: gradeTypeBreakdown[gradeName]?.physical || 0
     })).sort((a, b) => b.count - a.count);
 
-    const courses = await Course.find({})
+    // Fetch all teachers, courses, lessons, schedules, attendance, and payments
+    const allTeachers = await User.find({ role: 'teacher' })
+      .select('name email profilePicture phoneNumber department')
+      .lean();
+
+    const allCourses = await Course.find({})
       .populate('instructor', 'name email profilePicture')
       .lean();
 
-    const topCourses = await Promise.all(courses.map(async (c) => {
-      const enrollmentQuery = filterType
-        ? { course: c._id, student: { $in: filteredStudentIds } }
-        : { course: c._id };
+    const allLessons = await Lesson.find({}).lean();
+    const allSchedules = await Schedule.find({}).populate('courseId').populate('teacherId').lean();
 
-      const enrollmentDocsCount = await Enrollment.countDocuments(enrollmentQuery);
+    const paymentQuery = { status: 'COMPLETED' };
+    if (filterType) {
+      paymentQuery.student = { $in: filteredStudentIds };
+    }
+    const allPayments = await Payment.find(paymentQuery).populate('course', 'title price').lean();
 
-      let embeddedArrayCount = 0;
-      if (Array.isArray(c.enrolledStudents)) {
-        if (filterType) {
-          embeddedArrayCount = c.enrolledStudents.filter(id =>
-            filteredStudentIds.some(fid => fid.toString() === id.toString())
-          ).length;
-        } else {
-          embeddedArrayCount = c.enrolledStudents.length;
-        }
+    const attendanceQuery = filterType ? { studentId: { $in: filteredStudentIds } } : {};
+    const allAttendanceLogs = await Attendance.find(attendanceQuery).lean();
+
+    const totalAttendanceRecords = allAttendanceLogs.length;
+    const presentRecords = allAttendanceLogs.filter(a => a.status === 'Present').length;
+    const absentRecords = allAttendanceLogs.filter(a => a.status === 'Absent').length;
+    const lateRecords = allAttendanceLogs.filter(a => a.status === 'Late').length;
+
+    const instituteAttendanceRate = totalAttendanceRecords > 0
+      ? Math.round((presentRecords / totalAttendanceRecords) * 100)
+      : 100;
+
+    const instituteLessonsCount = allLessons.length;
+    let instituteVideosCount = 0;
+    let institutePdfsCount = 0;
+    let instituteAssignmentsCount = 0;
+    allLessons.forEach(l => {
+      instituteVideosCount += (l.videoLessons || []).length;
+      institutePdfsCount += (l.pdfMaterials || []).length;
+      instituteAssignmentsCount += (l.assignments || []).length;
+    });
+
+    const instituteTimetableHours = calculateScheduleHours(allSchedules);
+    const totalRevenue = allPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+
+    // Build per-teacher operational breakdown list for Admin
+    const teacherBreakdownList = allTeachers.map(t => {
+      const tId = t._id.toString();
+      const tCourses = allCourses.filter(c => {
+        const instId = c.instructor?._id?.toString() || c.instructor?.toString();
+        return instId === tId;
+      });
+      const tCourseIds = tCourses.map(c => c._id.toString());
+
+      const tLessons = allLessons.filter(l => tCourseIds.includes(l.course?.toString()));
+      const tSchedules = allSchedules.filter(s => {
+        const sTeacherId = s.teacherId?._id?.toString() || s.teacherId?.toString();
+        const sCourseId = s.courseId?._id?.toString() || s.courseId?.toString();
+        return sTeacherId === tId || (sCourseId && tCourseIds.includes(sCourseId));
+      });
+      const tHours = calculateScheduleHours(tSchedules);
+
+      const tStudentSet = new Set();
+      tCourses.forEach(c => (c.enrolledStudents || []).forEach(sId => tStudentSet.add(sId.toString())));
+
+      const tAttLogs = allAttendanceLogs.filter(a => a.courseId && tCourseIds.includes(a.courseId.toString()));
+      const tPresent = tAttLogs.filter(a => a.status === 'Present').length;
+      const tAttRate = tAttLogs.length > 0 ? Math.round((tPresent / tAttLogs.length) * 100) : 100;
+
+      const tPayments = allPayments.filter(p => {
+        const pCourseId = p.course?._id?.toString() || p.course?.toString();
+        return pCourseId && tCourseIds.includes(pCourseId);
+      });
+      const tRevenue = tPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+
+      let tVid = 0;
+      let tPdf = 0;
+      let tAssign = 0;
+      tLessons.forEach(l => {
+        tVid += (l.videoLessons || []).length;
+        tPdf += (l.pdfMaterials || []).length;
+        tAssign += (l.assignments || []).length;
+      });
+
+      return {
+        _id: t._id,
+        name: t.name,
+        email: t.email,
+        profilePicture: t.profilePicture || '',
+        phoneNumber: t.phoneNumber || '',
+        coursesCount: tCourses.length,
+        coursesList: tCourses.map(c => ({ _id: c._id, title: c.title })),
+        totalLessonsPublished: tLessons.length,
+        videosCount: tVid,
+        pdfsCount: tPdf,
+        assignmentsCount: tAssign,
+        activeTimetableHours: tHours,
+        attendanceRate: tAttRate,
+        totalStudents: tStudentSet.size,
+        totalRevenue: tRevenue
+      };
+    });
+
+    // Build comprehensive course list with full operational details
+    const coursesDetailedList = allCourses.map(c => {
+      const cId = c._id.toString();
+      const cLessons = allLessons.filter(l => l.course?.toString() === cId);
+      const cSchedules = allSchedules.filter(s => {
+        const sCourseId = s.courseId?._id?.toString() || s.courseId?.toString();
+        return sCourseId === cId;
+      });
+      const cHours = calculateScheduleHours(cSchedules);
+
+      const cAttLogs = allAttendanceLogs.filter(a => a.courseId?.toString() === cId);
+      const cPresent = cAttLogs.filter(a => a.status === 'Present').length;
+      const cAttRate = cAttLogs.length > 0 ? Math.round((cPresent / cAttLogs.length) * 100) : 100;
+
+      const cPayments = allPayments.filter(p => {
+        const pCourseId = p.course?._id?.toString() || p.course?.toString();
+        return pCourseId === cId;
+      });
+      const cRevenue = cPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+
+      let enrolledCount = Array.isArray(c.enrolledStudents) ? c.enrolledStudents.length : 0;
+      if (filterType && Array.isArray(c.enrolledStudents)) {
+        enrolledCount = c.enrolledStudents.filter(id =>
+          filteredStudentIds.some(fid => fid.toString() === id.toString())
+        ).length;
       }
 
-      const enrolledCount = Math.max(enrollmentDocsCount, embeddedArrayCount);
+      let vidCount = 0;
+      let pdfCount = 0;
+      let assignCount = 0;
+      cLessons.forEach(l => {
+        vidCount += (l.videoLessons || []).length;
+        pdfCount += (l.pdfMaterials || []).length;
+        assignCount += (l.assignments || []).length;
+      });
 
       return {
         _id: c._id,
         title: c.title,
         description: c.description,
         instructorName: c.instructor?.name || 'Unassigned',
+        instructorId: c.instructor?._id || c.instructor || null,
         price: c.price || 2500,
         enrolledCount,
+        revenue: cRevenue,
+        lessonsPublished: cLessons.length,
+        videosCount: vidCount,
+        pdfsCount: pdfCount,
+        assignmentsCount: assignCount,
+        activeTimetableHours: cHours,
+        attendanceRate: cAttRate,
+        schedulesCount: cSchedules.length,
         cardImage: c.cardImage || '',
         banner: c.banner || ''
       };
-    }));
+    });
 
-    topCourses.sort((a, b) => b.enrolledCount - a.enrolledCount);
+    coursesDetailedList.sort((a, b) => b.enrolledCount - a.enrolledCount);
 
-    const paymentQuery = { status: 'COMPLETED' };
-    if (filterType) {
-      paymentQuery.student = { $in: filteredStudentIds };
-    }
-
-    const payments = await Payment.find(paymentQuery)
-      .populate('course', 'title price')
-      .lean();
-
-    const totalRevenue = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
-
+    // Course Revenue List
     const courseRevenueMap = {};
-    payments.forEach(p => {
+    allPayments.forEach(p => {
       const courseTitle = p.course?.title || 'General Course';
       courseRevenueMap[courseTitle] = (courseRevenueMap[courseTitle] || 0) + (p.amount || 0);
     });
@@ -2679,7 +2877,6 @@ router.get('/analytics-summary', protect, async (req, res) => {
     })).sort((a, b) => b.revenue - a.revenue);
 
     const allStudentsList = await User.find({ role: 'student' }).select('studentType createdAt').lean();
-
     const getWeekLabel = (d) => {
       const date = new Date(d);
       const day = date.getDate();
@@ -2704,29 +2901,38 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
     const weeklyStudentTrend = Object.values(weeklyStudentMap);
 
-    const attendanceQuery = filterType ? { studentId: { $in: filteredStudentIds } } : {};
-    const totalAttendanceRecords = await Attendance.countDocuments(attendanceQuery);
-    const presentRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Present' });
-    const absentRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Absent' });
-    const lateRecords = await Attendance.countDocuments({ ...attendanceQuery, status: 'Late' });
+    // Handle Admin Teacher Filter if selected
+    let effectiveCourses = coursesDetailedList;
+    let selectedTeacherInfo = null;
 
-    const attendanceRate = totalAttendanceRecords > 0
-      ? Math.round((presentRecords / totalAttendanceRecords) * 100)
-      : 100;
+    if (adminTeacherFilterId && adminTeacherFilterId !== 'all') {
+      const matchedTeacher = teacherBreakdownList.find(t => t._id.toString() === adminTeacherFilterId);
+      if (matchedTeacher) {
+        selectedTeacherInfo = matchedTeacher;
+        effectiveCourses = coursesDetailedList.filter(c => c.instructorId?.toString() === adminTeacherFilterId);
+      }
+    }
 
     res.json({
       success: true,
       studentTypeFilter: filterType || 'all',
+      selectedTeacherId: adminTeacherFilterId || 'all',
+      selectedTeacherInfo,
       metrics: {
-        totalStudents,
+        totalStudents: selectedTeacherInfo ? selectedTeacherInfo.totalStudents : totalStudents,
         onlineStudents,
         physicalStudents,
         totalTeachers,
         totalAdmins,
-        totalCourses: courses.length,
-        totalRevenue,
-        totalPaymentsCount: payments.length,
-        attendanceRate,
+        totalCourses: selectedTeacherInfo ? selectedTeacherInfo.coursesCount : allCourses.length,
+        totalRevenue: selectedTeacherInfo ? selectedTeacherInfo.totalRevenue : totalRevenue,
+        totalPaymentsCount: allPayments.length,
+        totalLessonsPublished: selectedTeacherInfo ? selectedTeacherInfo.totalLessonsPublished : instituteLessonsCount,
+        totalVideosCount: selectedTeacherInfo ? selectedTeacherInfo.videosCount : instituteVideosCount,
+        totalPdfsCount: selectedTeacherInfo ? selectedTeacherInfo.pdfsCount : institutePdfsCount,
+        totalAssignmentsCount: selectedTeacherInfo ? selectedTeacherInfo.assignmentsCount : instituteAssignmentsCount,
+        activeTimetableHours: selectedTeacherInfo ? selectedTeacherInfo.activeTimetableHours : instituteTimetableHours,
+        attendanceRate: selectedTeacherInfo ? selectedTeacherInfo.attendanceRate : instituteAttendanceRate,
         attendanceBreakdown: {
           total: totalAttendanceRecords,
           present: presentRecords,
@@ -2735,7 +2941,10 @@ router.get('/analytics-summary', protect, async (req, res) => {
         }
       },
       gradeDistribution,
-      topCourses,
+      topCourses: effectiveCourses,
+      coursesDetailedList: effectiveCourses,
+      teacherBreakdownList,
+      allTeachersList: allTeachers,
       courseRevenueList,
       weeklyStudentTrend
     });
