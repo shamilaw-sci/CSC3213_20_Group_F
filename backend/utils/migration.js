@@ -173,6 +173,50 @@ const migrateData = async () => {
             }
         }
 
+        // --- 3. Legacy Lesson Assignments Migration ---
+        try {
+            const Lesson = require('../models/Lesson');
+            const Assignment = require('../models/Assignment');
+            const lessons = await Lesson.find({ 'assignments.0': { $exists: true } });
+            
+            for (let lesson of lessons) {
+                if (lesson.assignments && lesson.assignments.length > 0) {
+                    for (let oldAsgn of lesson.assignments) {
+                        const existing = await Assignment.findOne({
+                            course: lesson.course,
+                            grade: lesson.grade,
+                            title: oldAsgn.title
+                        });
+
+                        if (!existing) {
+                            const courseDoc = await Course.findById(lesson.course);
+                            const instructorId = courseDoc?.instructor || (await User.findOne({ role: 'teacher' }))?._id;
+
+                            if (instructorId) {
+                                await Assignment.create({
+                                    title: oldAsgn.title,
+                                    description: 'Legacy class homework assignment document.',
+                                    course: lesson.course,
+                                    grade: lesson.grade,
+                                    weekNumber: oldAsgn.weekNumber || 1,
+                                    instructor: instructorId,
+                                    attachmentUrl: oldAsgn.fileUrl || (oldAsgn.filename ? `/uploads/${oldAsgn.filename}` : ''),
+                                    attachmentName: oldAsgn.title || oldAsgn.filename || 'Assignment.pdf',
+                                    attachmentSize: oldAsgn.fileSize || 0,
+                                    maxMarks: 100,
+                                    passingMarks: 50,
+                                    createdAt: oldAsgn.uploadedAt || new Date()
+                                });
+                                console.log(`📑 Migrated legacy assignment [${oldAsgn.title}] for Grade ${lesson.grade}`);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (asgnMigrateErr) {
+            console.warn("Legacy assignment migration notice:", asgnMigrateErr.message);
+        }
+
         console.log("--------------------------------------------------");
         console.log("🎉 LuminaLearn Migration completed successfully!");
         console.log("--------------------------------------------------");

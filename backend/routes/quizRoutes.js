@@ -12,6 +12,7 @@ const Notification = require('../models/Notification');
 const { protect, isTeacherOrAdmin } = require('../middleware/authMiddleware');
 const { sendCourseUpdateEmail } = require('../utils/emailService');
 const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
+const { notifyParentsOfStudent, notifyParentsInBatch } = require('../utils/notificationHelper');
 
 // --- MULTER STORAGE FOR QUIZ QUESTION IMAGES (Max 1MB) ---
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -175,20 +176,34 @@ router.post('/', protect, isTeacherOrAdmin, async (req, res) => {
 
     await quiz.save();
 
-    // Trigger Notification & Email for students enrolled in this specific class & course
+    // Trigger Notification & Email for students and linked parents
     try {
       const enrolledStudents = await getClassEnrolledStudents(course, grade);
       if (enrolledStudents.length > 0) {
         const notifDocs = enrolledStudents.map(st => ({
           recipient: st._id,
-          type: 'NEW_CONTENT',
-          title: `New Quiz Available: ${title}`,
-          message: `A new quiz '${title}' is now active for ${courseExists.title} (${grade}).`,
+          type: 'QUIZ',
+          title: `📝 New Quiz Scheduled: ${title}`,
+          message: `A new quiz assessment '${title}' is now active for ${courseExists.title} (${grade}).`,
           link: `/course/${courseExists._id}`,
           metadata: { courseId: courseExists._id, quizId: quiz._id }
         }));
 
         await Notification.insertMany(notifDocs);
+
+        // Notify linked parents of enrolled students
+        await notifyParentsInBatch(enrolledStudents.map(st => ({
+          student: st,
+          type: 'QUIZ',
+          title: `📝 New Quiz Scheduled: ${title}`,
+          message: `A new quiz assessment '${title}' has been scheduled for your child ${st.name} (${courseExists.title} - Grade ${grade}).`,
+          link: '/parent-dashboard',
+          metadata: {
+            studentId: st._id,
+            quizId: quiz._id,
+            courseId: courseExists._id
+          }
+        })));
 
         enrolledStudents.forEach(st => {
           if (st.email) {
@@ -402,18 +417,46 @@ router.post('/:quizId/submit', protect, async (req, res) => {
 
     await submission.save();
 
-    // Trigger Notification to Quiz Teacher / Admin
+    // Trigger Notification: Notify Teacher (only if role is 'teacher', never admin) & Notify Linked Parents
     try {
+      // 1. Notify Teacher (Skip if teacher is Admin to prevent spam)
       if (quiz.teacher && quiz.teacher.toString() !== req.user._id.toString()) {
-        await Notification.create({
-          recipient: quiz.teacher,
-          type: 'GENERAL',
-          title: `Quiz Submitted: ${quiz.title}`,
-          message: `${req.user.name || 'A student'} submitted '${quiz.title}' with score ${score}/${totalPoints}.`,
-          link: `/course/${quiz.course}`,
-          metadata: { quizId: quiz._id, studentId: req.user._id, score }
-        });
+        const teacherDoc = await User.findById(quiz.teacher).select('role');
+        if (teacherDoc && teacherDoc.role === 'teacher') {
+          await Notification.create({
+            recipient: quiz.teacher,
+            type: 'QUIZ',
+            title: `Quiz Submitted: ${quiz.title}`,
+            message: `${req.user.name || 'A student'} submitted '${quiz.title}' with score ${score}/${totalPoints}.`,
+            link: `/course/${quiz.course}`,
+            metadata: { quizId: quiz._id, studentId: req.user._id, score, totalPoints }
+          });
+        }
       }
+
+      // 2. In-App Notification for Linked Parents
+      const pct = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
+      const passMark = quiz.passingPercentage || 50;
+      const isPassed = pct >= passMark;
+
+      await notifyParentsOfStudent({
+        studentIdOrDoc: req.user._id,
+        studentName: req.user.name,
+        type: 'QUIZ',
+        title: `🎯 Quiz Assessment Completed: ${req.user.name}`,
+        message: `${req.user.name} completed '${quiz.title}' with a score of ${score}/${totalPoints} (${pct}%). Assessment Result: ${isPassed ? 'Passed ✓' : 'Needs Work'}.`,
+        link: '/parent-dashboard',
+        metadata: {
+          studentId: req.user._id,
+          studentName: req.user.name,
+          quizId: quiz._id,
+          courseId: quiz.course,
+          score,
+          totalPoints,
+          percentage: pct,
+          isPassed
+        }
+      });
     } catch (notifErr) {
       console.error('Quiz submission notification error:', notifErr.message);
     }

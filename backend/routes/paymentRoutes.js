@@ -10,6 +10,7 @@ const Notification = require('../models/Notification');
 const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authMiddleware');
 const { sendSMS, maskPhoneNumber, sendPaymentSMS } = require('../services/smsService');
 const { sendPaymentReceiptEmail } = require('../utils/emailService');
+const { notifyParentsOfStudent } = require('../utils/notificationHelper');
 
 const isStaffTeacherOrAdmin = (req, res, next) => {
   if (
@@ -225,6 +226,24 @@ router.post('/process-mock', protect, async (req, res) => {
         metadata: { studentId, courseId, amount: paymentAmount, transactionId }
       });
 
+      // 3. In-App Notification for Linked Parents
+      await notifyParentsOfStudent({
+        studentIdOrDoc: student._id,
+        studentName: student.name,
+        type: 'PAYMENT',
+        title: `💳 Online Payment Successful: ${student.name}`,
+        message: `Course fee payment of LKR ${paymentAmount.toLocaleString()} for '${course.title}' was successfully completed. (Ref: ${transactionId})`,
+        link: '/parent-dashboard',
+        metadata: {
+          studentId: student._id,
+          studentName: student.name,
+          courseId: course._id,
+          amount: paymentAmount,
+          transactionId,
+          paymentId: newPayment._id
+        }
+      });
+
       // 3. Parent SMS Alert
       if (student.parentsPhoneNumber) {
         sendPaymentSMS({
@@ -435,6 +454,24 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
         metadata: { studentId, courseId, amount: finalAmount, transactionId }
       });
 
+      // 3. In-App Notification for Linked Parents
+      await notifyParentsOfStudent({
+        studentIdOrDoc: student._id,
+        studentName: student.name,
+        type: 'PAYMENT',
+        title: `🧾 Counter Fee Payment: ${student.name}`,
+        message: `In-person payment of LKR ${finalAmount.toLocaleString()} for '${course.title}' was recorded by administration. (Receipt: ${transactionId})`,
+        link: '/parent-dashboard',
+        metadata: {
+          studentId: student._id,
+          studentName: student.name,
+          courseId: course._id,
+          amount: finalAmount,
+          transactionId,
+          paymentId: payment._id
+        }
+      });
+
       // 3. Parent SMS Alert
       if (student.parentsPhoneNumber) {
         sendPaymentSMS({
@@ -559,6 +596,23 @@ router.post('/submit-bank-slip', protect, async (req, res) => {
         message: `Your bank deposit slip for '${course.title}' (LKR ${finalAmount.toLocaleString()}) has been uploaded and is pending Admin verification.`,
         link: '/payments',
         metadata: { paymentId: newPayment._id, courseId, amount: finalAmount }
+      });
+
+      // 3. In-App Notification for Linked Parents
+      await notifyParentsOfStudent({
+        studentIdOrDoc: student._id,
+        studentName: student.name,
+        type: 'PAYMENT',
+        title: `🏦 Bank Slip Submitted: ${student.name}`,
+        message: `A bank deposit slip of LKR ${finalAmount.toLocaleString()} for '${course.title}' was submitted and is pending admin verification.`,
+        link: '/parent-dashboard',
+        metadata: {
+          studentId: student._id,
+          studentName: student.name,
+          courseId: course._id,
+          amount: finalAmount,
+          paymentId: newPayment._id
+        }
       });
     } catch (notifErr) {
       console.error('Notification error:', notifErr.message);
@@ -690,6 +744,23 @@ router.put('/:id/approve-slip', protect, isCounterStaffOrAdmin, async (req, res)
             transactionId: payment.transactionId
           });
         }
+
+        // In-App Notification for Linked Parents
+        await notifyParentsOfStudent({
+          studentIdOrDoc: student._id,
+          studentName: student.name,
+          type: 'PAYMENT',
+          title: `🎉 Course Enrolled / Bank Slip Approved: ${student.name}`,
+          message: `Bank deposit slip for '${course.title}' (LKR ${payment.amount?.toLocaleString()}) has been verified and approved by admin. Course access unlocked!`,
+          link: '/parent-dashboard',
+          metadata: {
+            studentId: student._id,
+            studentName: student.name,
+            courseId: course._id,
+            paymentId: payment._id,
+            amount: payment.amount
+          }
+        });
       } catch (notifErr) {
         console.error('Approve slip notification error:', notifErr.message);
       }
@@ -727,7 +798,7 @@ router.put('/:id/reject-slip', protect, isCounterStaffOrAdmin, async (req, res) 
     payment.rejectionReason = rejectionReason || 'Bank deposit slip could not be verified by institute administration.';
     await payment.save();
 
-    // Notifications for Student
+    // Notifications for Student & Linked Parents
     if (payment.student) {
       try {
         await Notification.create({
@@ -737,6 +808,22 @@ router.put('/:id/reject-slip', protect, isCounterStaffOrAdmin, async (req, res) 
           message: `Your bank slip for '${payment.course?.title || 'Course'}' was rejected: "${payment.rejectionReason}". Please re-upload a clear slip.`,
           link: '/courses',
           metadata: { paymentId: payment._id }
+        });
+
+        // In-App Notification for Linked Parents
+        await notifyParentsOfStudent({
+          studentIdOrDoc: payment.student._id,
+          studentName: payment.student.name,
+          type: 'PAYMENT',
+          title: `⚠️ Bank Slip Verification Issue: ${payment.student.name}`,
+          message: `Bank deposit slip for '${payment.course?.title || 'Course'}' could not be verified by admin. Reason: "${payment.rejectionReason}". Please re-upload a valid receipt.`,
+          link: '/parent-dashboard',
+          metadata: {
+            studentId: payment.student._id,
+            studentName: payment.student.name,
+            paymentId: payment._id,
+            courseId: payment.course?._id
+          }
         });
 
         if (payment.student.email) {

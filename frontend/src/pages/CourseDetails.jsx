@@ -6,7 +6,13 @@ import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import TeacherModal from '../components/TeacherModal';
 import PdfReaderModal from '../components/PdfReaderModal';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
-import { FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube, FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt } from 'react-icons/fa';
+import { 
+  FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube, 
+  FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt,
+  FaClipboardCheck, FaFileUpload, FaCloudDownloadAlt, FaCheckDouble,
+  FaExclamationTriangle, FaCommentDots, FaEdit, FaTrashAlt, FaStar, 
+  FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheckCircle, FaTimesCircle, FaPaperPlane
+} from 'react-icons/fa';
 
 const getImageUrl = (url) => {
   if (!url) return '';
@@ -29,11 +35,51 @@ const CourseDetails = () => {
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedTeacherForModal, setSelectedTeacherForModal] = useState(null);
   const [pdfProgressMap, setPdfProgressMap] = useState({});
   const [activePdfModal, setActivePdfModal] = useState(null);
   const user = JSON.parse(localStorage.getItem('user'));
+
+  // Assignment Modal & Action States
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState(null);
+  const [asgnFormData, setAsgnFormData] = useState({
+    title: '',
+    description: '',
+    month: '',
+    weekNumber: 0,
+    maxMarks: 100,
+    passingMarks: 50,
+    dueDate: '',
+    allowLateSubmissions: true,
+    isActive: true,
+    attachmentFile: null
+  });
+  const [isSavingAssignment, setIsSavingAssignment] = useState(false);
+
+  // Student Submission Modal States
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [selectedAssignmentForSubmit, setSelectedAssignmentForSubmit] = useState(null);
+  const [solutionFile, setSolutionFile] = useState(null);
+  const [studentNote, setStudentNote] = useState('');
+  const [isSubmittingSolution, setIsSubmittingSolution] = useState(false);
+
+  // Student Feedback Modal States
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [selectedSubmissionForFeedback, setSelectedSubmissionForFeedback] = useState(null);
+
+  // Teacher Submissions Drawer / Modal States
+  const [showTeacherSubmissionsDrawer, setShowTeacherSubmissionsDrawer] = useState(false);
+  const [selectedAssignmentForTeacherSubmissions, setSelectedAssignmentForTeacherSubmissions] = useState(null);
+  const [teacherSubmissionsData, setTeacherSubmissionsData] = useState({ submissions: [], totalSubmissions: 0, gradedCount: 0 });
+  const [loadingTeacherSubmissions, setLoadingTeacherSubmissions] = useState(false);
+  const [teacherSubmissionsFilter, setTeacherSubmissionsFilter] = useState('all');
+  const [teacherSubmissionsSearch, setTeacherSubmissionsSearch] = useState('');
+  const [gradingInputs, setGradingInputs] = useState({}); // { [subId]: { marks, feedback } }
+  const [isSavingGradeMap, setIsSavingGradeMap] = useState({});
 
   // Track selected class. When null, show class cards grid.
   const [selectedGrade, setSelectedGrade] = useState(null);
@@ -365,6 +411,18 @@ const CourseDetails = () => {
     }
   };
 
+  const fetchAssignments = async () => {
+    try {
+      setLoadingAssignments(true);
+      const res = await api.get(`/assignments/course/${courseId}`);
+      setAssignments(res.data);
+    } catch (err) {
+      console.error("Error fetching assignments:", err);
+    } finally {
+      setLoadingAssignments(false);
+    }
+  };
+
   const handleToggleQuizActive = async (quizId) => {
     try {
       await api.patch(`/quizzes/${quizId}/toggle`);
@@ -395,6 +453,7 @@ const CourseDetails = () => {
       setLessons(lessonsRes.data);
       
       await fetchQuizzes();
+      await fetchAssignments();
     } catch (err) {
       toast.error("Failed to fetch details.");
     } finally {
@@ -782,55 +841,197 @@ const CourseDetails = () => {
     }
   };
 
-  const handleUploadAssignment = async (e) => {
+  // --- Assignment Management Handlers ---
+  const handleOpenCreateAssignment = () => {
+    setEditingAssignment(null);
+    setAsgnFormData({
+      title: '',
+      description: '',
+      month: selectedMonth ? selectedMonth.split(' ')[0] : '',
+      weekNumber: activeWeek || 1,
+      maxMarks: 100,
+      passingMarks: 50,
+      dueDate: '',
+      allowLateSubmissions: true,
+      isActive: true,
+      attachmentFile: null
+    });
+    setShowAssignmentModal(true);
+  };
+
+  const handleOpenEditAssignment = (asgn) => {
+    setEditingAssignment(asgn);
+    setAsgnFormData({
+      title: asgn.title || '',
+      description: asgn.description || '',
+      month: asgn.month || '',
+      weekNumber: asgn.weekNumber || 0,
+      maxMarks: asgn.maxMarks || 100,
+      passingMarks: asgn.passingMarks || 50,
+      dueDate: asgn.dueDate ? new Date(asgn.dueDate).toISOString().slice(0, 16) : '',
+      allowLateSubmissions: asgn.allowLateSubmissions !== false,
+      isActive: asgn.isActive !== false,
+      attachmentFile: null
+    });
+    setShowAssignmentModal(true);
+  };
+
+  const handleSaveAssignment = async (e) => {
     e.preventDefault();
-    if (!assignmentFile) {
-      toast.error("Please select an assignment PDF file first.");
+    if (!asgnFormData.title.trim()) {
+      toast.error("Please enter an assignment title.");
       return;
     }
 
-    if (assignmentFile.size > 5 * 1024 * 1024) {
-      toast.error("Cannot upload file. The maximum allowed size is 5MB.");
-      return;
-    }
-
-    const currentLesson = lessons.find(l => l.grade === selectedGrade);
-    if (!currentLesson) return;
-
-    setIsUploadingAssignment(true);
+    setIsSavingAssignment(true);
     const formData = new FormData();
-    formData.append('pdf', assignmentFile);
-    formData.append('title', assignmentTitle.trim() || assignmentFile.name);
+    formData.append('title', asgnFormData.title.trim());
+    formData.append('description', asgnFormData.description.trim());
+    formData.append('courseId', courseId);
+    formData.append('grade', selectedGrade);
+    formData.append('month', asgnFormData.month);
+    formData.append('weekNumber', asgnFormData.weekNumber);
+    formData.append('maxMarks', asgnFormData.maxMarks);
+    formData.append('passingMarks', asgnFormData.passingMarks);
+    if (asgnFormData.dueDate) {
+      formData.append('dueDate', asgnFormData.dueDate);
+    }
+    formData.append('allowLateSubmissions', asgnFormData.allowLateSubmissions);
+    formData.append('isActive', asgnFormData.isActive);
+
+    if (asgnFormData.attachmentFile) {
+      formData.append('attachment', asgnFormData.attachmentFile);
+    }
 
     try {
-      await api.post(`/lessons/${currentLesson._id}/assignment`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      toast.success("Assignment PDF uploaded successfully!");
-      setAssignmentFile(null);
-      setAssignmentTitle("");
-      await fetchCourseDetails();
+      if (editingAssignment) {
+        await api.put(`/assignments/${editingAssignment._id}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success("Assignment updated successfully!");
+      } else {
+        await api.post('/assignments', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success("Assignment created successfully!");
+      }
+      setShowAssignmentModal(false);
+      setEditingAssignment(null);
+      await fetchAssignments();
     } catch (err) {
-      const errMsg = err.response?.data?.error || "Failed to upload Assignment PDF.";
-      toast.error(errMsg);
+      toast.error(err.response?.data?.error || "Failed to save assignment.");
     } finally {
-      setIsUploadingAssignment(false);
+      setIsSavingAssignment(false);
     }
   };
 
-  const handleDeleteAssignment = async (pdfId) => {
-    const currentLesson = lessons.find(l => l.grade === selectedGrade);
-    if (!currentLesson) return;
-    if (!window.confirm("Are you sure you want to delete this Assignment PDF?")) return;
+  const handleDeleteAssignment = async (asgnId) => {
+    if (!window.confirm("Are you sure you want to delete this assignment and all student submissions?")) return;
+    try {
+      await api.delete(`/assignments/${asgnId}`);
+      toast.success("Assignment removed!");
+      await fetchAssignments();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to delete assignment.");
+    }
+  };
+
+  // Student Submit Solution Handlers
+  const handleOpenSubmitModal = (asgn) => {
+    setSelectedAssignmentForSubmit(asgn);
+    setSolutionFile(null);
+    setStudentNote(asgn.mySubmission?.studentNote || '');
+    setShowSubmitModal(true);
+  };
+
+  const handleSubmitSolution = async (e) => {
+    e.preventDefault();
+    if (!solutionFile) {
+      toast.error("Please upload your solution file (PDF, Word, Image, or Zip).");
+      return;
+    }
+
+    if (solutionFile.size > 10 * 1024 * 1024) {
+      toast.error("File exceeds 10MB limit.");
+      return;
+    }
+
+    setIsSubmittingSolution(true);
+    const formData = new FormData();
+    formData.append('solution', solutionFile);
+    formData.append('studentNote', studentNote.trim());
 
     try {
-      await api.delete(`/lessons/${currentLesson._id}/assignment/${pdfId}`);
-      toast.success("Assignment PDF removed!");
-      await fetchCourseDetails();
+      const res = await api.post(`/assignments/${selectedAssignmentForSubmit._id}/submit`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success(res.data.message || "Assignment solution submitted successfully!");
+      setShowSubmitModal(false);
+      setSelectedAssignmentForSubmit(null);
+      setSolutionFile(null);
+      setStudentNote('');
+      await fetchAssignments();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to delete Assignment PDF.");
+      toast.error(err.response?.data?.error || "Failed to submit assignment.");
+    } finally {
+      setIsSubmittingSolution(false);
+    }
+  };
+
+  // Student Feedback Modal
+  const handleOpenFeedbackModal = (mySub) => {
+    setSelectedSubmissionForFeedback(mySub);
+    setShowFeedbackModal(true);
+  };
+
+  // Teacher Submissions Drawer Handlers
+  const handleOpenTeacherSubmissions = async (asgn) => {
+    setSelectedAssignmentForTeacherSubmissions(asgn);
+    setShowTeacherSubmissionsDrawer(true);
+    setLoadingTeacherSubmissions(true);
+    try {
+      const res = await api.get(`/assignments/${asgn._id}/submissions`);
+      setTeacherSubmissionsData(res.data);
+      // Pre-fill grading inputs
+      const initialGrading = {};
+      (res.data.submissions || []).forEach(sub => {
+        initialGrading[sub._id] = {
+          marks: sub.marks !== null && sub.marks !== undefined ? sub.marks : '',
+          feedback: sub.feedback || ''
+        };
+      });
+      setGradingInputs(initialGrading);
+    } catch (err) {
+      toast.error("Failed to load submissions.");
+    } finally {
+      setLoadingTeacherSubmissions(false);
+    }
+  };
+
+  const handleSaveGrade = async (submissionId) => {
+    const data = gradingInputs[submissionId];
+    if (!data || data.marks === '' || isNaN(Number(data.marks))) {
+      toast.error("Please enter a valid numeric mark.");
+      return;
+    }
+
+    setIsSavingGradeMap(prev => ({ ...prev, [submissionId]: true }));
+    try {
+      await api.patch(`/assignments/submissions/${submissionId}/grade`, {
+        marks: Number(data.marks),
+        feedback: data.feedback || '',
+        status: 'graded'
+      });
+      toast.success("Marks & feedback saved! Student notified.");
+      if (selectedAssignmentForTeacherSubmissions) {
+        const res = await api.get(`/assignments/${selectedAssignmentForTeacherSubmissions._id}/submissions`);
+        setTeacherSubmissionsData(res.data);
+      }
+      await fetchAssignments();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to save marks.");
+    } finally {
+      setIsSavingGradeMap(prev => ({ ...prev, [submissionId]: false }));
     }
   };
 
@@ -2033,94 +2234,181 @@ const CourseDetails = () => {
             </div>
           </div>
 
-          {/* Assignments Section */}
+          {/* Assignments & Homework Section */}
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-3 gap-3">
               <div>
-                <h4 className="font-bold text-lg text-gray-800">
-                  Assignments ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
+                <h4 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                  <span>📑</span> Assignments & Homework ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
                 </h4>
-                <p className="text-xs text-gray-500">Download class assignment PDF documents or upload new ones.</p>
+                <p className="text-xs text-gray-500">Submit homework solutions, download teacher question attachments, and review grading remarks.</p>
               </div>
+              {isTeacherOrAdmin && (
+                <button
+                  type="button"
+                  onClick={handleOpenCreateAssignment}
+                  className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2.5 rounded-xl text-xs font-black transition shadow-sm cursor-pointer flex items-center gap-1.5 shrink-0"
+                >
+                  <FaPlus /> + Create Assignment
+                </button>
+              )}
             </div>
 
-            {/* Assignment upload form (Teacher/Admin only) */}
-            {isTeacherOrAdmin && (
-              <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Upload Assignment PDF</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input
-                    type="text"
-                    placeholder="Assignment Title (Optional)"
-                    value={assignmentTitle}
-                    onChange={(e) => setAssignmentTitle(e.target.value)}
-                    className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
-                  />
-                  <div>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      key={assignmentFile ? 'loaded' : 'empty'}
-                      onChange={(e) => setAssignmentFile(e.target.files[0])}
-                      className="w-full p-2 bg-white border border-gray-200 rounded-lg outline-none text-sm"
-                    />
-                  </div>
-                  <button
-                    onClick={handleUploadAssignment}
-                    disabled={isUploadingAssignment}
-                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer transition-colors text-sm"
-                  >
-                    {isUploadingAssignment ? 'Uploading...' : '+ Upload Assignment'}
-                  </button>
+            {/* Assignments List */}
+            <div className="space-y-4 pt-1">
+              {assignments.filter(asgn => {
+                const matchesGrade = asgn.grade === selectedGrade;
+                const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
+                return matchesGrade && matchesMonth;
+              }).length === 0 ? (
+                <div className="py-8 text-center text-gray-400 space-y-1">
+                  <p className="text-sm font-semibold">No assignments posted for {selectedGrade} ({selectedMonth}) yet.</p>
+                  {isTeacherOrAdmin && (
+                    <p className="text-xs text-purple-600 font-bold cursor-pointer hover:underline" onClick={handleOpenCreateAssignment}>
+                      Click here to create the first assignment for this class
+                    </p>
+                  )}
                 </div>
-                <p className="text-xs text-gray-500">Maximum size: 5MB. Only PDF files are allowed.</p>
-              </div>
-            )}
-
-            {/* Assignment PDFs List */}
-            <div className="space-y-3">
-              {!currentLesson?.assignments || currentLesson.assignments.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No assignments uploaded for this grade yet.</p>
               ) : (
-                currentLesson.assignments.map((assignment) => (
-                  <div key={assignment._id || assignment.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/20 hover:bg-purple-50 transition-all gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="text-purple-600 text-2xl font-bold">📝</div>
-                      <div>
-                        <p className="font-extrabold text-gray-900 text-sm">{assignment.title}</p>
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500 font-medium">
-                            Size: {assignment.fileSize ? (assignment.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '0.99 MB'}
+                assignments.filter(asgn => {
+                  const matchesGrade = asgn.grade === selectedGrade;
+                  const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
+                  return matchesGrade && matchesMonth;
+                }).map((asgn) => {
+                  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+                  const mySub = asgn.mySubmission;
+                  const isGraded = mySub?.status === 'graded' && mySub?.marks !== null;
+                  const isSubmitted = !!mySub;
+                  const isOverdue = asgn.dueDate ? new Date() > new Date(asgn.dueDate) : false;
+
+                  return (
+                    <div key={asgn._id} className="p-5 border border-purple-100/80 rounded-2xl bg-white hover:bg-purple-50/20 transition-all space-y-4 shadow-xs">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xl">📑</span>
+                            <h5 className="font-extrabold text-gray-900 text-base">{asgn.title}</h5>
+                            {asgn.weekNumber > 0 && (
+                              <span className="bg-purple-100 text-purple-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-200">
+                                Week {asgn.weekNumber}
+                              </span>
+                            )}
+                            {!asgn.isActive && (
+                              <span className="bg-gray-100 text-gray-600 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-gray-200">
+                                Closed / Inactive
+                              </span>
+                            )}
+                          </div>
+                          {asgn.description && (
+                            <p className="text-xs text-gray-600 font-medium pl-7 line-clamp-2 leading-relaxed">
+                              {asgn.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Badges / Due Date / Points */}
+                        <div className="flex items-center gap-2 flex-wrap text-xs shrink-0 self-end sm:self-auto">
+                          <span className="px-3 py-1 bg-amber-50 text-amber-900 font-black rounded-xl border border-amber-200/60">
+                            Max: {asgn.maxMarks || 100} Marks
                           </span>
-                          <span className="text-[10px] text-gray-400 font-medium">
-                            Uploaded: {assignment.uploadedAt ? new Date(assignment.uploadedAt).toLocaleDateString() : 'N/A'}
-                          </span>
+                          {asgn.dueDate && (
+                            <span className={`px-3 py-1 font-bold rounded-xl border flex items-center gap-1 ${
+                              isOverdue ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-700 border-slate-200'
+                            }`}>
+                              <FaClock /> Due: {new Date(asgn.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Bar / Status */}
+                      <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {asgn.attachmentUrl && (
+                            <a
+                              href={asgn.attachmentUrl.startsWith('http') ? asgn.attachmentUrl : `http://localhost:5000${asgn.attachmentUrl}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-800 hover:bg-purple-100 rounded-xl text-xs font-extrabold transition border border-purple-200"
+                            >
+                              <FaCloudDownloadAlt className="text-sm" /> Question Sheet ({asgn.attachmentName || 'Download'})
+                            </a>
+                          )}
+
+                          {!isTeacher && (
+                            <div>
+                              {isGraded ? (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                  <FaAward className="text-emerald-600" /> Graded: {mySub.marks}/{asgn.maxMarks || 100} Marks ({Math.round((mySub.marks / (asgn.maxMarks || 100)) * 100)}%)
+                                </span>
+                              ) : isSubmitted ? (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-900 border border-blue-200">
+                                  <FaCheckCircle className="text-blue-600" /> Submitted (Awaiting Teacher Grading)
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                  ⏳ Pending Solution Submission
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Right Buttons */}
+                        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                          {isTeacher ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenTeacherSubmissions(asgn)}
+                                className="px-3.5 py-1.5 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 rounded-xl text-xs font-black transition cursor-pointer border border-indigo-200 flex items-center gap-1.5"
+                              >
+                                <FaClipboardCheck /> Submissions ({asgn.submissionsCount || 0})
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditAssignment(asgn)}
+                                className="px-3 py-1.5 bg-purple-50 text-purple-800 hover:bg-purple-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteAssignment(asgn._id)}
+                                className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {isGraded && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenFeedbackModal(mySub)}
+                                  className="px-4 py-2 bg-emerald-700 text-white hover:bg-emerald-800 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                                >
+                                  <FaCommentDots /> View Remarks & Feedback
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenSubmitModal(asgn)}
+                                className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 ${
+                                  isSubmitted
+                                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+                                    : 'bg-purple-700 hover:bg-purple-800 text-white'
+                                }`}
+                              >
+                                <FaFileUpload /> {isSubmitted ? 'Resubmit / Update Solution' : 'Submit Solution'}
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                      <a
-                        href={assignment.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition"
-                        title="Download Assignment"
-                      >
-                        Download
-                      </a>
-
-                      {isTeacherOrAdmin && (
-                        <button
-                          onClick={() => handleDeleteAssignment(assignment._id)}
-                          className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -3087,6 +3375,527 @@ const CourseDetails = () => {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 1: CREATE / EDIT ASSIGNMENT (Teacher/Admin) */}
+      {/* ========================================================================= */}
+      {showAssignmentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 text-xl flex items-center justify-center font-black">
+                  📑
+                </span>
+                <div>
+                  <h3 className="text-xl font-black text-gray-900">
+                    {editingAssignment ? 'Edit Homework Assignment' : 'Create New Class Assignment'}
+                  </h3>
+                  <p className="text-xs text-gray-500 font-bold">Grade: {selectedGrade} • {course?.title}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowAssignmentModal(false); setEditingAssignment(null); }}
+                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAssignment} className="space-y-4 text-xs font-bold text-gray-700">
+              <div>
+                <label className="block text-gray-800 mb-1">Assignment Title <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  placeholder="e.g. Unit 3 Mechanics & Kinetics Homework"
+                  value={asgnFormData.title}
+                  onChange={(e) => setAsgnFormData({ ...asgnFormData, title: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-semibold text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-800 mb-1">Instructions / Description (Optional)</label>
+                <textarea
+                  rows={3}
+                  placeholder="Detailed guidelines, reference textbook pages, or formatting rules..."
+                  value={asgnFormData.description}
+                  onChange={(e) => setAsgnFormData({ ...asgnFormData, description: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-medium text-xs resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-800 mb-1">Curriculum Month</label>
+                  <select
+                    value={asgnFormData.month}
+                    onChange={(e) => setAsgnFormData({ ...asgnFormData, month: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-bold text-xs"
+                  >
+                    <option value="">All Months</option>
+                    {MONTH_NAMES.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-800 mb-1">Session Week</label>
+                  <select
+                    value={asgnFormData.weekNumber}
+                    onChange={(e) => setAsgnFormData({ ...asgnFormData, weekNumber: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-bold text-xs"
+                  >
+                    <option value={0}>All Weeks (General)</option>
+                    <option value={1}>Week 1</option>
+                    <option value={2}>Week 2</option>
+                    <option value={3}>Week 3</option>
+                    <option value={4}>Week 4</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-800 mb-1">Maximum Marks</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={asgnFormData.maxMarks}
+                    onChange={(e) => setAsgnFormData({ ...asgnFormData, maxMarks: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-bold text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-800 mb-1">Passing Marks Threshold</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={asgnFormData.maxMarks || 100}
+                    value={asgnFormData.passingMarks}
+                    onChange={(e) => setAsgnFormData({ ...asgnFormData, passingMarks: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-bold text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-800 mb-1">Submission Due Date & Time (Optional)</label>
+                <input
+                  type="datetime-local"
+                  value={asgnFormData.dueDate}
+                  onChange={(e) => setAsgnFormData({ ...asgnFormData, dueDate: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-bold text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-800 mb-1">
+                  Question Sheet / Resource Attachment (PDF, Word, Image up to 10MB)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.zip"
+                  onChange={(e) => setAsgnFormData({ ...asgnFormData, attachmentFile: e.target.files[0] })}
+                  className="w-full px-4 py-2 bg-gray-50 rounded-2xl border border-gray-200 outline-none text-xs"
+                />
+                {editingAssignment?.attachmentName && !asgnFormData.attachmentFile && (
+                  <p className="text-[11px] text-purple-700 font-bold mt-1">
+                    Current attachment: {editingAssignment.attachmentName}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-6 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={asgnFormData.allowLateSubmissions}
+                    onChange={(e) => setAsgnFormData({ ...asgnFormData, allowLateSubmissions: e.target.checked })}
+                    className="w-4 h-4 text-purple-600 rounded"
+                  />
+                  <span>Allow Late Submissions</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={asgnFormData.isActive}
+                    onChange={(e) => setAsgnFormData({ ...asgnFormData, isActive: e.target.checked })}
+                    className="w-4 h-4 text-purple-600 rounded"
+                  />
+                  <span>Active & Accepting Submissions</span>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => { setShowAssignmentModal(false); setEditingAssignment(null); }}
+                  className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingAssignment}
+                  className="px-6 py-2.5 bg-purple-700 text-white font-black rounded-xl hover:bg-purple-800 transition shadow-md shadow-purple-200 cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingAssignment ? 'Saving...' : editingAssignment ? 'Update Assignment' : 'Create Assignment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 2: STUDENT SUBMIT SOLUTION */}
+      {/* ========================================================================= */}
+      {showSubmitModal && selectedAssignmentForSubmit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+              <div>
+                <h3 className="text-xl font-black text-gray-900">Submit Homework Solution</h3>
+                <p className="text-xs text-purple-700 font-bold mt-0.5">{selectedAssignmentForSubmit.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowSubmitModal(false); setSelectedAssignmentForSubmit(null); }}
+                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-purple-50/60 p-4 rounded-2xl border border-purple-100 text-xs space-y-1.5 text-purple-950 font-medium">
+              <div className="flex justify-between">
+                <span>Maximum Marks:</span>
+                <span className="font-extrabold">{selectedAssignmentForSubmit.maxMarks || 100} Marks</span>
+              </div>
+              {selectedAssignmentForSubmit.dueDate && (
+                <div className="flex justify-between">
+                  <span>Deadline:</span>
+                  <span className="font-extrabold text-red-700">
+                    {new Date(selectedAssignmentForSubmit.dueDate).toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleSubmitSolution} className="space-y-4 text-xs font-bold text-gray-700">
+              <div>
+                <label className="block text-gray-800 mb-1">
+                  Attach Solution File (PDF, Word, Image, Zip up to 10MB) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.zip"
+                  onChange={(e) => setSolutionFile(e.target.files[0])}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none text-xs"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-800 mb-1">Note to Instructor (Optional)</label>
+                <textarea
+                  rows={3}
+                  placeholder="Any questions or explanatory notes regarding your solution..."
+                  value={studentNote}
+                  onChange={(e) => setStudentNote(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-medium text-xs resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => { setShowSubmitModal(false); setSelectedAssignmentForSubmit(null); }}
+                  className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingSolution}
+                  className="px-6 py-2.5 bg-purple-700 text-white font-black rounded-xl hover:bg-purple-800 transition shadow-md shadow-purple-200 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                >
+                  <FaPaperPlane /> {isSubmittingSolution ? 'Submitting...' : 'Upload & Submit'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: STUDENT VIEW GRADED FEEDBACK */}
+      {/* ========================================================================= */}
+      {showFeedbackModal && selectedSubmissionForFeedback && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
+                  🏆
+                </span>
+                <div>
+                  <h3 className="text-lg font-black text-gray-900">Assignment Evaluation</h3>
+                  <p className="text-xs text-gray-500 font-bold">Grading Marks & Teacher Remarks</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowFeedbackModal(false); setSelectedSubmissionForFeedback(null); }}
+                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-emerald-50/70 p-5 rounded-2xl border border-emerald-200 text-center space-y-2">
+              <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider">Score Achieved</span>
+              <div className="text-3xl font-black text-emerald-950">
+                {selectedSubmissionForFeedback.marks} <span className="text-base text-gray-400 font-bold">/ {selectedSubmissionForFeedback.assignment?.maxMarks || 100}</span>
+              </div>
+              <div className="text-xs font-black text-emerald-800">
+                {Math.round((selectedSubmissionForFeedback.marks / (selectedSubmissionForFeedback.assignment?.maxMarks || 100)) * 100)}% Grade
+              </div>
+            </div>
+
+            {selectedSubmissionForFeedback.feedback ? (
+              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 space-y-1.5">
+                <span className="text-xs font-black text-amber-900 flex items-center gap-1.5">
+                  <FaCommentDots className="text-amber-500" /> Instructor's Remarks:
+                </span>
+                <p className="text-xs text-amber-950 font-semibold leading-relaxed">
+                  "{selectedSubmissionForFeedback.feedback}"
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 italic text-center">No additional remarks written by instructor.</p>
+            )}
+
+            <div className="text-[11px] text-gray-500 font-medium space-y-1 border-t border-gray-100 pt-3">
+              <div>Graded on: {selectedSubmissionForFeedback.gradedAt ? new Date(selectedSubmissionForFeedback.gradedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recently'}</div>
+              <div>Submitted file: <span className="font-bold text-gray-700">{selectedSubmissionForFeedback.fileName}</span></div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => { setShowFeedbackModal(false); setSelectedSubmissionForFeedback(null); }}
+                className="px-6 py-2.5 bg-purple-700 text-white font-black rounded-xl hover:bg-purple-800 transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 4: TEACHER SUBMISSIONS & GRADING REVIEW DRAWER */}
+      {/* ========================================================================= */}
+      {showTeacherSubmissionsDrawer && selectedAssignmentForTeacherSubmissions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-4xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto space-y-6">
+            <div className="flex justify-between items-start border-b border-gray-100 pb-4 gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">📋</span>
+                  <h3 className="text-xl font-black text-gray-900">
+                    Submissions: {selectedAssignmentForTeacherSubmissions.title}
+                  </h3>
+                </div>
+                <p className="text-xs text-gray-500 font-bold mt-1">
+                  Grade {selectedAssignmentForTeacherSubmissions.grade} • Max Marks: {selectedAssignmentForTeacherSubmissions.maxMarks || 100} • Total Submissions: {teacherSubmissionsData.totalSubmissions || 0} ({teacherSubmissionsData.gradedCount || 0} Graded)
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowTeacherSubmissionsDrawer(false); setSelectedAssignmentForTeacherSubmissions(null); }}
+                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTeacherSubmissionsFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    teacherSubmissionsFilter === 'all' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  All ({teacherSubmissionsData.totalSubmissions || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTeacherSubmissionsFilter('submitted')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    teacherSubmissionsFilter === 'submitted' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  Pending Grading ({(teacherSubmissionsData.totalSubmissions || 0) - (teacherSubmissionsData.gradedCount || 0)})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTeacherSubmissionsFilter('graded')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    teacherSubmissionsFilter === 'graded' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  Graded ({teacherSubmissionsData.gradedCount || 0})
+                </button>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Search student name or reg no..."
+                value={teacherSubmissionsSearch}
+                onChange={(e) => setTeacherSubmissionsSearch(e.target.value)}
+                className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-200 outline-none text-xs font-medium w-full sm:w-60"
+              />
+            </div>
+
+            {/* Submissions List */}
+            {loadingTeacherSubmissions ? (
+              <div className="py-12 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
+              </div>
+            ) : (teacherSubmissionsData.submissions || []).length === 0 ? (
+              <div className="py-12 text-center text-gray-400 font-semibold text-sm">
+                No student submissions found for this filter.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(teacherSubmissionsData.submissions || [])
+                  .filter(sub => {
+                    if (teacherSubmissionsFilter === 'submitted') return sub.status !== 'graded';
+                    if (teacherSubmissionsFilter === 'graded') return sub.status === 'graded';
+                    return true;
+                  })
+                  .filter(sub => {
+                    if (!teacherSubmissionsSearch.trim()) return true;
+                    const q = teacherSubmissionsSearch.toLowerCase();
+                    const s = sub.student;
+                    return s?.name?.toLowerCase().includes(q) || s?.registrationNumber?.toLowerCase().includes(q);
+                  })
+                  .map(sub => {
+                    const student = sub.student;
+                    const currentMarks = gradingInputs[sub._id]?.marks ?? (sub.marks !== null ? sub.marks : '');
+                    const currentFeedback = gradingInputs[sub._id]?.feedback ?? (sub.feedback || '');
+                    const isSaving = isSavingGradeMap[sub._id];
+
+                    return (
+                      <div key={sub._id} className="p-5 border border-gray-200 rounded-2xl bg-gray-50/50 space-y-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-purple-200 text-purple-900 font-black text-sm flex items-center justify-center">
+                              {student?.name?.charAt(0) || 'S'}
+                            </div>
+                            <div>
+                              <h5 className="font-black text-gray-900 text-sm">{student?.name || 'Enrolled Student'}</h5>
+                              <p className="text-xs text-gray-500 font-mono">Reg: {student?.registrationNumber || 'N/A'} • {student?.email}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap text-xs">
+                            {sub.isLate && (
+                              <span className="px-2.5 py-0.5 bg-red-100 text-red-800 font-black rounded-full border border-red-200">
+                                ⏰ LATE SUBMISSION
+                              </span>
+                            )}
+                            <span className="text-gray-500 font-medium">
+                              Submitted: {new Date(sub.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Student Note */}
+                        {sub.studentNote && (
+                          <div className="bg-white p-3 rounded-xl border border-gray-200 text-xs text-gray-700">
+                            <span className="font-bold text-gray-500 block mb-0.5">Student Note:</span>
+                            "{sub.studentNote}"
+                          </div>
+                        )}
+
+                        {/* Solution File Download */}
+                        <div className="flex items-center gap-3">
+                          <a
+                            href={sub.fileUrl?.startsWith('http') ? sub.fileUrl : `http://localhost:5000${sub.fileUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-black transition shadow-xs"
+                          >
+                            <FaCloudDownloadAlt /> Download Student Solution ({sub.fileName})
+                          </a>
+                        </div>
+
+                        {/* Inline Grading Form */}
+                        <div className="bg-white p-4 rounded-2xl border border-purple-100 space-y-3">
+                          <span className="text-xs font-black text-purple-950 uppercase tracking-wider block">
+                            Grade & Evaluation (Max: {selectedAssignmentForTeacherSubmissions.maxMarks || 100} Marks)
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-700 mb-1">Awarded Marks</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max={selectedAssignmentForTeacherSubmissions.maxMarks || 100}
+                                placeholder="e.g. 85"
+                                value={currentMarks}
+                                onChange={(e) => setGradingInputs(prev => ({
+                                  ...prev,
+                                  [sub._id]: { ...prev[sub._id], marks: e.target.value }
+                                }))}
+                                className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 font-extrabold text-sm outline-none focus:border-purple-600"
+                              />
+                            </div>
+                            <div className="sm:col-span-2">
+                              <label className="block text-[11px] font-bold text-gray-700 mb-1">Teacher Remarks / Feedback</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Great structured arguments! Check question 4 calculation."
+                                value={currentFeedback}
+                                onChange={(e) => setGradingInputs(prev => ({
+                                  ...prev,
+                                  [sub._id]: { ...prev[sub._id], feedback: e.target.value }
+                                }))}
+                                className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs font-medium outline-none focus:border-purple-600"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end pt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleSaveGrade(sub._id)}
+                              disabled={isSaving}
+                              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                            >
+                              <FaSave /> {isSaving ? 'Saving...' : sub.status === 'graded' ? 'Update Grade' : 'Save Grade'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
         </div>
       )}

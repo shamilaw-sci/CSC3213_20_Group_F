@@ -17,6 +17,8 @@ const Notification = require('../models/Notification');
 const ReadingProgress = require('../models/ReadingProgress');
 const Quiz = require('../models/Quiz');
 const QuizSubmission = require('../models/QuizSubmission');
+const Assignment = require('../models/Assignment');
+const AssignmentSubmission = require('../models/AssignmentSubmission');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail, sendPasscodeEmail } = require('../utils/emailService');
@@ -2205,6 +2207,22 @@ const getStudentAnalyticsPayload = async (studentUser) => {
     ? Math.round(quizSubmissions.reduce((sum, s) => sum + (s.totalPoints > 0 ? (s.score / s.totalPoints) * 100 : 0), 0) / totalQuizzesAttempted)
     : 0;
 
+  // Student Assignment Performance Metrics
+  const assignmentSubmissions = await AssignmentSubmission.find({ student: studentId })
+    .populate({
+      path: 'assignment',
+      select: 'title grade month weekNumber maxMarks passingMarks course dueDate',
+      populate: { path: 'course', select: 'title' }
+    })
+    .sort({ submittedAt: -1 })
+    .lean();
+
+  const totalAssignmentsSubmitted = assignmentSubmissions.length;
+  const gradedAssignments = assignmentSubmissions.filter(s => s.status === 'graded' && s.marks !== null);
+  const avgAssignmentMarksPercent = gradedAssignments.length > 0
+    ? Math.round(gradedAssignments.reduce((sum, s) => sum + ((s.marks / (s.assignment?.maxMarks || 100)) * 100), 0) / gradedAssignments.length)
+    : 0;
+
   return {
     studentMetrics: {
       studentName: studentUser.name,
@@ -2216,6 +2234,8 @@ const getStudentAnalyticsPayload = async (studentUser) => {
       totalPaidAmount,
       totalQuizzesAttempted,
       avgQuizScorePercent,
+      totalAssignmentsSubmitted,
+      avgAssignmentMarksPercent,
       userGrade: studentUser.grade || 'Unassigned',
       userType: studentUser.studentType || 'online'
     },
@@ -2235,6 +2255,13 @@ const getStudentAnalyticsPayload = async (studentUser) => {
       totalQuizzesAttempted,
       avgQuizScorePercent,
       quizSubmissions
+    },
+    assignmentSubmissions,
+    assignmentMetrics: {
+      totalAssignmentsSubmitted,
+      avgAssignmentMarksPercent,
+      gradedCount: gradedAssignments.length,
+      assignmentSubmissions
     }
   };
 };
@@ -2869,6 +2896,27 @@ router.get('/parent-summary', protect, async (req, res) => {
           return scorePct >= passPct;
         }).length;
 
+        // 6. Homework & Assignment Submissions & Performance
+        const assignmentSubmissions = await AssignmentSubmission.find({ student: childId })
+          .populate({
+            path: 'assignment',
+            select: 'title grade month weekNumber maxMarks passingMarks course dueDate',
+            populate: { path: 'course', select: 'title' }
+          })
+          .sort({ submittedAt: -1 })
+          .lean();
+
+        const totalAssignments = assignmentSubmissions.length;
+        const gradedAssignments = assignmentSubmissions.filter(s => s.status === 'graded' && s.marks !== null);
+        const averageAssignmentMarks = gradedAssignments.length > 0
+          ? Math.round(gradedAssignments.reduce((sum, s) => sum + ((s.marks / (s.assignment?.maxMarks || 100)) * 100), 0) / gradedAssignments.length)
+          : 0;
+
+        const passedAssignmentsCount = gradedAssignments.filter(s => {
+          const passMark = s.assignment?.passingMarks || 50;
+          return (s.marks || 0) >= passMark;
+        }).length;
+
         return {
           child: {
             _id: child._id,
@@ -2906,6 +2954,14 @@ router.get('/parent-summary', protect, async (req, res) => {
             averageQuizPercent,
             passedQuizzesCount,
             passRate: totalQuizzes > 0 ? Math.round((passedQuizzesCount / totalQuizzes) * 100) : 0
+          },
+          assignmentSubmissions,
+          assignmentMetrics: {
+            totalAssignments,
+            gradedCount: gradedAssignments.length,
+            averageAssignmentMarks,
+            passedAssignmentsCount,
+            passRate: gradedAssignments.length > 0 ? Math.round((passedAssignmentsCount / gradedAssignments.length) * 100) : 0
           }
         };
       })

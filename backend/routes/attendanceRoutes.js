@@ -9,6 +9,7 @@ const Enrollment = require('../models/Enrollment');
 const Payment = require('../models/Payment');
 const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authMiddleware');
 const { sendAttendanceSMS } = require('../services/smsService');
+const { notifyParentsOfStudent } = require('../utils/notificationHelper');
 
 const isStaffTeacherOrAdmin = (req, res, next) => {
   if (
@@ -130,27 +131,21 @@ router.post('/', protect, async (req, res) => {
       }
 
       // 6c. In-App Notification for Linked Parents
-      const parents = await User.find({
-        role: 'parent',
-        linkedStudents: student._id
+      await notifyParentsOfStudent({
+        studentIdOrDoc: student._id,
+        studentName: student.name,
+        type: 'ATTENDANCE',
+        title: `Attendance Marked: ${student.name}`,
+        message: `${student.name} was marked '${status}' for ${classTitle} on ${formattedDate}.`,
+        link: '/parent-dashboard',
+        metadata: {
+          studentId: student._id,
+          studentName: student.name,
+          attendanceId: newAttendance._id,
+          status,
+          date: populatedAttendance.date
+        }
       });
-
-      for (const parentUser of parents) {
-        await Notification.create({
-          recipient: parentUser._id,
-          type: 'ATTENDANCE',
-          title: `Attendance Marked: ${student.name}`,
-          message: `${student.name} was marked '${status}' for ${classTitle} on ${formattedDate}.`,
-          link: '/parent-dashboard',
-          metadata: {
-            studentId: student._id,
-            studentName: student.name,
-            attendanceId: newAttendance._id,
-            status,
-            date: populatedAttendance.date
-          }
-        });
-      }
 
       await newAttendance.save();
     } catch (notifErr) {
@@ -217,7 +212,7 @@ router.post('/mark-batch', protect, async (req, res) => {
       );
       savedRecords.push(recordDoc);
 
-      // In-App Notification trigger
+      // In-App Notification trigger for student & parents
       try {
         await Notification.create({
           recipient: item.studentId,
@@ -225,6 +220,15 @@ router.post('/mark-batch', protect, async (req, res) => {
           title: `Attendance Recorded: ${item.status || 'Present'}`,
           message: `Your attendance status for today was recorded as '${item.status || 'Present'}'.`,
           link: '/dashboard'
+        });
+
+        await notifyParentsOfStudent({
+          studentIdOrDoc: item.studentId,
+          type: 'ATTENDANCE',
+          title: `Attendance Status: ${item.status || 'Present'}`,
+          message: `Your child's attendance status for today was recorded as '${item.status || 'Present'}'.`,
+          link: '/parent-dashboard',
+          metadata: { studentId: item.studentId, status: item.status }
         });
       } catch (notifErr) {
         // Silent catch for notification error
@@ -910,24 +914,20 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
 
       // 2. Dispatch In-App Notification Alerts to parent(s) and student
       try {
-        const parents = await User.find({
-          role: 'parent',
-          linkedStudents: student._id
+        await notifyParentsOfStudent({
+          studentIdOrDoc: student._id,
+          studentName: student.name,
+          type: 'ATTENDANCE',
+          title: `🔔 Student Arrival: ${student.name}`,
+          message: `${student.name} has safely arrived and checked in for ${sessionInfoStr} at ${timeStr}.`,
+          link: '/parent-dashboard',
+          metadata: {
+            studentId: student._id,
+            studentName: student.name,
+            session: sessionInfoStr,
+            time: timeStr
+          }
         });
-
-        for (const parentUser of parents) {
-          await Notification.create({
-            recipient: parentUser._id,
-            type: 'ATTENDANCE',
-            title: `🔔 Student Arrival: ${student.name}`,
-            message: `${student.name} has safely arrived and checked in for ${sessionInfoStr} at ${timeStr}.`,
-            link: '/parent-dashboard',
-            metadata: {
-              studentId: student._id,
-              studentName: student.name
-            }
-          });
-        }
 
         await Notification.create({
           recipient: student._id,

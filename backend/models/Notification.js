@@ -27,6 +27,8 @@ const NotificationSchema = new mongoose.Schema({
       'NEW_CONTENT',
       'LIVE_CLASS',
       'CLASS_POSTPONED',
+      'ASSIGNMENT',
+      'QUIZ',
       'GENERAL'
     ],
     default: 'GENERAL'

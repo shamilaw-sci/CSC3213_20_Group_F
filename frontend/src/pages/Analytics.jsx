@@ -98,7 +98,16 @@ const Analytics = () => {
   // RENDER STUDENT / PARENT / TEACHER-STUDENT-DETAIL VIEW
   // ==========================================
   if (isStudent || isParent || (isTeacher && data?.isStudentDetail) || (data?.isStudentView && !data?.isTeacherView)) {
-    const { studentMetrics, attendanceBreakdown, enrolledCoursesList = [], studentPayments = [], quizSubmissions = [], quizMetrics = {} } = data || {};
+    const { 
+      studentMetrics, 
+      attendanceBreakdown, 
+      enrolledCoursesList = [], 
+      studentPayments = [], 
+      quizSubmissions = [], 
+      quizMetrics = {}, 
+      assignmentSubmissions = [], 
+      assignmentMetrics = {} 
+    } = data || {};
     
     const presentCount = attendanceBreakdown?.present || 0;
     const absentCount = attendanceBreakdown?.absent || 0;
@@ -586,6 +595,105 @@ const Analytics = () => {
                               isPassed ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
                             }`}>
                               {isPassed ? 'PASSED ✓' : 'NEEDS WORK'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Section 4: Academic Homework & Assignment Performance */}
+          <div className="bg-[#f8faff] p-8 rounded-[30px] border border-indigo-200/80 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-indigo-950 flex items-center gap-2">
+                  <FaClipboardList className="text-indigo-600" /> Academic Homework & Assignment Performance
+                </h3>
+                <p className="text-xs text-indigo-700/80 mt-0.5">Summary of evaluated homework assignments and instructor remarks</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-black bg-indigo-200 text-indigo-950 px-3.5 py-1 rounded-full border border-indigo-300">
+                  Avg Marks: {studentMetrics?.avgAssignmentMarksPercent || 0}%
+                </span>
+                <span className="text-xs font-black bg-purple-100 text-purple-900 px-3.5 py-1 rounded-full border border-purple-200">
+                  {studentMetrics?.totalAssignmentsSubmitted || assignmentSubmissions.length} Submitted
+                </span>
+              </div>
+            </div>
+
+            {assignmentSubmissions.length === 0 ? (
+              <div className="py-12 text-center space-y-2">
+                <p className="text-sm text-gray-500 font-semibold">No homework assignments submitted yet.</p>
+                <Link to="/courses" className="text-xs font-extrabold text-purple-700 underline hover:text-purple-900">
+                  Go to Courses to view weekly homework tasks →
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-x-auto pt-1">
+                <table className="w-full text-left text-xs font-semibold text-gray-700">
+                  <thead className="bg-indigo-100/70 text-indigo-950 uppercase text-[10px] tracking-wider">
+                    <tr>
+                      <th className="p-3.5 rounded-l-xl">Homework Task</th>
+                      <th className="p-3.5">Course</th>
+                      <th className="p-3.5">Submission Date</th>
+                      <th className="p-3.5">Marks / Total</th>
+                      <th className="p-3.5">Score %</th>
+                      <th className="p-3.5 rounded-r-xl">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-indigo-100/80">
+                    {assignmentSubmissions.map(sub => {
+                      const asgn = sub.assignment;
+                      const maxMarks = asgn?.maxMarks || 100;
+                      const isGraded = sub.status === 'graded' && sub.marks !== null;
+                      const pct = isGraded ? Math.round((sub.marks / maxMarks) * 100) : 0;
+                      const passThreshold = asgn?.passingMarks || 50;
+                      const isPassed = isGraded && sub.marks >= passThreshold;
+                      const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : 'N/A';
+
+                      return (
+                        <tr key={sub._id} className="hover:bg-white/80 transition">
+                          <td className="p-3.5 font-bold text-gray-900">
+                            <div>{asgn?.title || 'Homework Assignment'}</div>
+                            {asgn?.month && (
+                              <span className="text-[10px] text-indigo-700 font-bold">
+                                {asgn.month} {asgn.weekNumber > 0 && `(Week ${asgn.weekNumber})`}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3.5 font-semibold text-purple-900">
+                            {asgn?.course?.title || 'Enrolled Course'}
+                          </td>
+                          <td className="p-3.5 text-gray-600 font-mono text-[11px]">{dateStr}</td>
+                          <td className="p-3.5 font-extrabold text-gray-900">
+                            {isGraded ? (
+                              <>
+                                <span className="text-purple-700">{sub.marks}</span> / {maxMarks}
+                              </>
+                            ) : (
+                              <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-bold">
+                                Pending
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3.5 font-black text-gray-800">
+                            {isGraded ? (
+                              <span className={isPassed ? 'text-emerald-700' : 'text-red-600'}>{pct}%</span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="p-3.5">
+                            <span className={`px-2.5 py-0.5 rounded-full font-extrabold text-[10px] ${
+                              isGraded
+                                ? isPassed ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {isGraded ? (isPassed ? 'PASSED ✓' : 'NEEDS WORK') : 'SUBMITTED'}
                             </span>
                           </td>
                         </tr>
