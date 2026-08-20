@@ -179,10 +179,10 @@ const sendSMS = async ({ phone, message, otpCode, studentName = 'Student', bypas
     const isEnabled = await isSmsServiceEnabled();
     if (!isEnabled) {
       console.log(`⚠️ [SMS DISABLED IN SETTINGS]: Skipped SMS to ${phone} ("${message.slice(0, 40)}...")`);
-      return { 
-        success: false, 
-        reason: 'SMS notification service is currently turned OFF by the administrator.', 
-        disabled: true 
+      return {
+        success: false,
+        reason: 'SMS notification service is currently turned OFF by the administrator.',
+        disabled: true
       };
     }
   }
@@ -198,7 +198,7 @@ const sendSMS = async ({ phone, message, otpCode, studentName = 'Student', bypas
   const rawToken = process.env.TEXTLK_API_TOKEN;
   if (rawToken && rawToken.trim()) {
     const cleanToken = rawToken.trim().replace(/^Bearer\s+/i, '').replace(/^["']|["']$/g, '');
-    const senderId = (process.env.TEXTLK_SENDER_ID || 'TextLKDemo').trim().replace(/^["']|["']$/g, '');
+    const senderId = (process.env.TEXTLK_SENDER_ID || 'Kirula Edu').trim().replace(/^["']|["']$/g, '');
 
     // Payload formatted as per text.lk documentation
     const payload = {
@@ -264,7 +264,7 @@ const sendSMS = async ({ phone, message, otpCode, studentName = 'Student', bypas
   console.log('\n====================================================');
   console.log('📱 [SMS SIMULATOR] Text.lk Dispatch Simulation');
   console.log(`Recipient: ${studentName} (${recipientPhone} / ${formatSriLankaPhone(phone)})`);
-  console.log(`Sender ID: ${process.env.TEXTLK_SENDER_ID || 'TextLKDemo (Default)'}`);
+  console.log(`Sender ID: ${process.env.TEXTLK_SENDER_ID || 'Kirula Edu (Default)'}`);
   console.log(`Message  : "${message}"`);
   if (otpCode) console.log(`OTP Code : [ ${otpCode} ]`);
   console.log('💡 Tip: Set TEXTLK_API_TOKEN in backend .env to send real SMS via text.lk');
@@ -298,7 +298,7 @@ const sendPaymentSMS = async ({ parentPhone, studentName, courseTitle, amount, d
  */
 const sendBulkSMS = async ({ phoneNumbers = [], message, classTitle = '' }) => {
   const fullMessage = classTitle ? `[LuminaLearn - ${classTitle}] ${message}` : `[LuminaLearn Notice] ${message}`;
-  
+
   // Normalize and deduplicate recipient phone numbers
   const validPhones = [...new Set(
     phoneNumbers
@@ -324,8 +324,8 @@ const sendBulkSMS = async ({ phoneNumbers = [], message, classTitle = '' }) => {
  */
 const sendVerificationOTP = async ({ phone, otpCode, purpose = 'Verification', studentName = 'Student' }) => {
   const recipientPhone = formatTextLkPhone(phone);
-  const message = `[LuminaLearn] Your ${purpose} OTP code is: ${otpCode}. Valid for 10 minutes. Do not share this code with anyone.`;
-  
+  const message = `Your LuminaLearn ${purpose} OTP code is: ${otpCode}. Valid for 10 minutes. Do not share this code with anyone.`;
+
   return await sendSMS({ phone: recipientPhone, message, otpCode, studentName });
 };
 
@@ -335,7 +335,7 @@ const sendVerificationOTP = async ({ phone, otpCode, purpose = 'Verification', s
 const sendCredentialSMS = async ({ phone, name, loginIdentifier, password, role = 'student', portalUrl = 'www.luminalearn.edu.lk' }) => {
   const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ');
   const message = `LuminaLearn: Welcome ${name}! Your ${roleDisplay} account has been created at ${portalUrl}. Login ID: ${loginIdentifier}, Default Password: ${password}. Please log in and change your password.`;
-  
+
   return await sendSMS({ phone, message, studentName: name });
 };
 
@@ -344,7 +344,7 @@ const sendCredentialSMS = async ({ phone, name, loginIdentifier, password, role 
  */
 const sendParentCredentialSMS = async ({ parentPhone, studentName, defaultPassword = 'Parent@123', portalUrl = 'www.luminalearn.edu.lk' }) => {
   const message = `LuminaLearn: Your parent account for student ${studentName} has been created at ${portalUrl}. Username/Phone: ${parentPhone}, Default Password: ${defaultPassword}. Please log in and change your password.`;
-  
+
   return await sendSMS({ phone: parentPhone, message, studentName: `Parent of ${studentName}` });
 };
 

@@ -698,7 +698,26 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
     const Course = require('../models/Course');
     const Schedule = require('../models/Schedule');
 
+    // If explicit scheduleId was provided (e.g. manual selection in kiosk), resolve course and title
+    if (resolvedScheduleId) {
+      const explicitSchedule = await Schedule.findById(resolvedScheduleId).populate('courseId');
+      if (explicitSchedule) {
+        if (!resolvedCourseId && explicitSchedule.courseId) {
+          resolvedCourseId = explicitSchedule.courseId._id || explicitSchedule.courseId;
+        }
+        targetCourseTitle = explicitSchedule.title || (explicitSchedule.courseId && explicitSchedule.courseId.title) || targetCourseTitle;
+        targetScheduleDetails = {
+          title: explicitSchedule.title,
+          room: explicitSchedule.room,
+          startTime: explicitSchedule.startTime,
+          endTime: explicitSchedule.endTime,
+          dayOfWeek: explicitSchedule.dayOfWeek
+        };
+      }
+    }
+
     // AUTO-DETECT SCHEDULE BY TIME & GRADE IF NOT EXPLICITLY PROVIDED
+    let foundScheduleMatch = false;
     if (!resolvedScheduleId) {
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const currentDay = days[new Date().getDay()];
@@ -765,8 +784,8 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
               continue;
             }
             resolvedScheduleId = sch._id;
-            resolvedCourseId = sch.courseId ? (sch.courseId._id ? sch.courseId._id : sch.courseId) : null;
-            targetCourseTitle = sch.title;
+            resolvedCourseId = sch.courseId ? (sch.courseId._id || sch.courseId) : resolvedCourseId;
+            targetCourseTitle = sch.title || (sch.courseId && sch.courseId.title) || targetCourseTitle;
             targetScheduleDetails = {
               title: sch.title,
               room: sch.room,
@@ -774,14 +793,15 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
               endTime: sch.endTime,
               dayOfWeek: sch.dayOfWeek
             };
+            foundScheduleMatch = true;
             break;
           }
         }
       }
     }
 
-    // Fetch course title if courseId was explicitly passed
-    if (resolvedCourseId && !targetCourseTitle) {
+    // Fetch course title if courseId was explicitly passed or resolved
+    if (resolvedCourseId && (!targetCourseTitle || targetCourseTitle === 'General Institute Session')) {
       const foundCourse = await Course.findById(resolvedCourseId);
       if (foundCourse) {
         targetCourseTitle = foundCourse.title;
@@ -827,8 +847,6 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
     todayEnd.setHours(23, 59, 59, 999);
 
     // Prevent duplicate scans within the same day for the SAME class schedule/course
-    // If no schedule was resolved (student has already attended all classes today),
-    // check if they have ANY attendance today to return the correct message.
     let scanFilter = {
       studentId: student._id,
       date: { $gte: todayStart, $lte: todayEnd }
@@ -838,16 +856,11 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
     } else if (resolvedCourseId) {
       scanFilter.courseId = resolvedCourseId;
     }
-    // If neither scheduleId nor courseId resolved, and we couldn't find an unattended
-    // class, it means student is done for the day — don't create a new record
-    const noMoreClasses = !resolvedScheduleId && !resolvedCourseId;
 
-    const existingScan = noMoreClasses
-      ? await Attendance.findOne({ studentId: student._id, date: { $gte: todayStart, $lte: todayEnd } })
-      : await Attendance.findOne(scanFilter);
+    const existingScan = await Attendance.findOne(scanFilter);
 
     let newScanRecord;
-    if (!existingScan && !noMoreClasses) {
+    if (!existingScan) {
       const scanDate = new Date();
       const dayOfMonth = scanDate.getDate();
       let calculatedWeek = 1;
@@ -861,10 +874,8 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
         ? `${targetCourseTitle} (${currentMonthStr} - Week ${calculatedWeek})`
         : `${currentMonthStr} - Week ${calculatedWeek}`;
 
-      newScanRecord = await Attendance.create({
+      const attendanceData = {
         studentId: student._id,
-        courseId: resolvedCourseId || null,
-        scheduleId: resolvedScheduleId || null,
         mode: 'PHYSICAL_QR',
         status: 'Present',
         weekNumber: calculatedWeek,
@@ -872,7 +883,11 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
         remarks: remarksFormatted,
         date: scanDate,
         markedBy: adminId
-      });
+      };
+      if (resolvedCourseId) attendanceData.courseId = resolvedCourseId;
+      if (resolvedScheduleId) attendanceData.scheduleId = resolvedScheduleId;
+
+      newScanRecord = await Attendance.create(attendanceData);
 
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const sessionInfoStr = targetScheduleDetails 
@@ -930,15 +945,11 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
 
     // Build appropriate message
     let responseMessage;
-    let isAlreadyScanned;
-    if (!existingScan && !noMoreClasses) {
+    let isAlreadyScanned = false;
+    if (!existingScan) {
       responseMessage = `Check-in successful for ${student.name}!`;
-      isAlreadyScanned = false;
-    } else if (noMoreClasses) {
-      responseMessage = `${student.name} has already attended all scheduled classes today!`;
-      isAlreadyScanned = true;
     } else {
-      responseMessage = `Attendance already logged for ${student.name} in this class today!`;
+      responseMessage = `Attendance already logged for ${student.name} today!`;
       isAlreadyScanned = true;
     }
 

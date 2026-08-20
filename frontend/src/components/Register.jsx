@@ -256,8 +256,8 @@ const Register = () => {
                 type="button"
                 onClick={() => setStudentRegMethod('email')}
                 className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${studentRegMethod === 'email'
-                    ? 'bg-purple-900 text-white shadow-md'
-                    : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-purple-900 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900'
                   }`}
               >
                 <FaEnvelope className="text-xs" /> Register with Email
@@ -266,8 +266,8 @@ const Register = () => {
                 type="button"
                 onClick={() => setStudentRegMethod('phone')}
                 className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${studentRegMethod === 'phone'
-                    ? 'bg-purple-900 text-white shadow-md'
-                    : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-purple-900 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900'
                   }`}
               >
                 <FaPhone className="text-xs" /> Register with Phone No
@@ -515,7 +515,7 @@ const Register = () => {
                     Valid for 10 minutes.
                     {verifyChannel === 'phone' && (
                       <span className="block text-amber-700 font-semibold mt-0.5">
-                        (Development Mode: OTP logged in backend server terminal)
+                        (Check your mobile for OTP)
                       </span>
                     )}
                   </p>

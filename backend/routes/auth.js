@@ -18,12 +18,12 @@ const ReadingProgress = require('../models/ReadingProgress');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail, sendPasscodeEmail } = require('../utils/emailService');
-const { 
-  sendVerificationOTP, 
-  formatSriLankaPhone, 
+const {
+  sendVerificationOTP,
+  formatSriLankaPhone,
   maskPhoneNumber,
   sendCredentialSMS,
-  sendParentCredentialSMS 
+  sendParentCredentialSMS
 } = require('../services/smsService');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -407,7 +407,7 @@ router.post('/register-initiate', async (req, res) => {
         success: true,
         channel: 'phone',
         identifier: rawPhone,
-        message: `A 6-digit verification OTP has been sent to ${rawPhone}. (Check backend terminal in development mode)`
+        message: `A 6-digit verification OTP has been sent to ${rawPhone}.`
       });
     }
 
@@ -1014,7 +1014,7 @@ router.post('/forgot-password-initiate', async (req, res) => {
         channel: 'phone',
         identifier: phone,
         maskedDestination: maskedPhone,
-        message: `A 6-digit password reset OTP has been sent to ${maskedPhone}. (Check backend terminal in development mode)`
+        message: `A 6-digit password reset OTP has been sent to ${maskedPhone}.`
       });
     }
 
@@ -2314,8 +2314,8 @@ router.get('/analytics-summary', protect, async (req, res) => {
       const uniqueStudentIds = Array.from(enrolledStudentIdSet);
 
       // Fetch student user records
-      const studentTypeFilter = (req.query.studentType && req.query.studentType !== 'all') 
-        ? req.query.studentType.toLowerCase() 
+      const studentTypeFilter = (req.query.studentType && req.query.studentType !== 'all')
+        ? req.query.studentType.toLowerCase()
         : null;
 
       const studentQuery = {
@@ -2341,7 +2341,7 @@ router.get('/analytics-summary', protect, async (req, res) => {
           course: { $in: teacherCourseIds }
         }).populate('course').lean();
 
-        const studentDirectCourses = teacherCourses.filter(c => 
+        const studentDirectCourses = teacherCourses.filter(c =>
           (c.enrolledStudents || []).some(sId => sId.toString() === targetStudent._id.toString())
         );
 
@@ -2447,8 +2447,8 @@ router.get('/analytics-summary', protect, async (req, res) => {
 
       const totalAttendanceLogged = teacherAttendanceLogs.length;
       const totalPresent = teacherAttendanceLogs.filter(a => a.status === 'Present').length;
-      const attendanceCompliance = totalAttendanceLogged > 0 
-        ? Math.round((totalPresent / totalAttendanceLogged) * 100) 
+      const attendanceCompliance = totalAttendanceLogged > 0
+        ? Math.round((totalPresent / totalAttendanceLogged) * 100)
         : 100;
 
       // Payments for teacher's courses
@@ -2470,7 +2470,7 @@ router.get('/analytics-summary', protect, async (req, res) => {
             .filter(c => (c.enrolledStudents || []).some(id => id.toString() === student._id.toString()))
             .map(c => c.title);
 
-          const studentAttLogs = teacherAttendanceLogs.filter(a => 
+          const studentAttLogs = teacherAttendanceLogs.filter(a =>
             (a.studentId?.toString() === student._id.toString()) || (a.student?.toString() === student._id.toString())
           );
           const stuPresent = studentAttLogs.filter(a => a.status === 'Present').length;

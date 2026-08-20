@@ -14,7 +14,12 @@ const AttendanceSchema = new mongoose.Schema({
   courseId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
-    required: true
+    required: false
+  },
+  remarks: {
+    type: String,
+    trim: true,
+    required: false
   },
   weekNumber: {
     type: Number,
