@@ -13,10 +13,15 @@ import {
   FaShieldAlt,
   FaSyncAlt,
   FaCheckCircle,
-  FaUserFriends
+  FaUserFriends,
+  FaSun,
+  FaMoon,
+  FaEye,
+  FaEyeSlash
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
+import { useTheme } from '../context/ThemeContext';
 
 const gradeOptions = [
   "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11",
@@ -30,6 +35,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [grade, setGrade] = useState('');
   const [parentsPhoneNumber, setParentsPhoneNumber] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -213,13 +219,24 @@ const Register = () => {
     toast.error('Google registration was cancelled or failed.');
   };
 
+  const { isDark, toggleTheme } = useTheme();
   const currentParentPhone = studentRegMethod === 'email' ? parentsPhoneNumber : phoneNumber;
 
   return (
     <div
-      className="flex min-h-screen font-sans text-slate-900 bg-cover bg-center overflow-y-auto"
+      className="flex min-h-screen font-sans text-slate-900 dark:text-white bg-cover bg-center overflow-y-auto relative"
       style={{ backgroundImage: "url('/assets/Login_screen_BG.png')" }}
     >
+
+      {/* Theme Switcher Toggle */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="absolute top-6 right-6 z-30 p-3 rounded-2xl bg-white/80 dark:bg-slate-800/90 text-slate-700 dark:text-amber-400 hover:bg-white dark:hover:bg-slate-700 shadow-lg backdrop-blur-md border border-slate-200/80 dark:border-slate-700 transition-all cursor-pointer hover:scale-105 active:scale-95"
+        title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+      >
+        {isDark ? <FaSun className="text-base text-amber-400" /> : <FaMoon className="text-base text-purple-700" />}
+      </button>
 
       {/* Left Side - Welcome Text */}
       <div className="relative hidden w-full flex-col justify-start pt-5 px-12 lg:flex lg:w-[55%] xl:px-24">
@@ -239,25 +256,25 @@ const Register = () => {
         </div>
       </div>
 
-      {/* Right Side - White Register Panel */}
-      <div className="auth-light-panel flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto min-h-screen">
+      {/* Right Side - Register Panel */}
+      <div className="flex w-full items-center justify-center bg-white dark:bg-slate-900/95 dark:backdrop-blur-xl px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto min-h-screen border-l border-transparent dark:border-slate-800 transition-colors">
         <div className="w-full max-w-md py-4">
 
           {/* Header */}
           <div className="mb-5">
-            <h2 className="text-4xl font-bold text-[#1e1e38]">Online Student Register</h2>
-            <p className="mt-1.5 text-xs text-slate-500">
+            <h2 className="text-4xl font-black text-[#1e1e38] dark:text-white tracking-tight">Online Student Register</h2>
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
               Create your online student account with instant verification
             </p>
 
             {/* Registration Method Switcher */}
-            <div className="flex bg-slate-100 p-1 rounded-2xl gap-1.5 mt-4">
+            <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1.5 rounded-2xl gap-1.5 mt-4 border border-slate-200/80 dark:border-slate-700/80">
               <button
                 type="button"
                 onClick={() => setStudentRegMethod('email')}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${studentRegMethod === 'email'
-                  ? 'bg-purple-900 text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900'
+                className={`flex-1 py-2.5 text-xs font-extrabold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${studentRegMethod === 'email'
+                  ? 'bg-purple-900 dark:bg-purple-600 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
               >
                 <FaEnvelope className="text-xs" /> Register with Email
@@ -265,9 +282,9 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => setStudentRegMethod('phone')}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${studentRegMethod === 'phone'
-                  ? 'bg-purple-900 text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900'
+                className={`flex-1 py-2.5 text-xs font-extrabold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${studentRegMethod === 'phone'
+                  ? 'bg-purple-900 dark:bg-purple-600 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
               >
                 <FaPhone className="text-xs" /> Register with Phone No
@@ -276,11 +293,11 @@ const Register = () => {
           </div>
 
           {/* Verification Notice Banner */}
-          <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3 text-amber-800 text-xs flex gap-2.5 items-start shadow-xs">
+          <div className="mb-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-3 text-amber-800 dark:text-amber-200 text-xs flex gap-2.5 items-start shadow-xs">
             <span className="text-base leading-none mt-0.5">⚠️</span>
             <div>
-              <h4 className="font-semibold text-amber-900">Security Verification Required</h4>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700">
+              <h4 className="font-extrabold text-amber-900 dark:text-amber-300">Security Verification Required</h4>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700 dark:text-amber-400 font-medium">
                 {studentRegMethod === 'email'
                   ? "A 6-digit passcode will be emailed to you to verify your identity before registration is finalized."
                   : "A 6-digit OTP will be sent to your mobile phone (logged in dev console) for verification."}
@@ -288,90 +305,118 @@ const Register = () => {
             </div>
           </div>
 
-          <form onSubmit={handleInitiateRegister} className="space-y-3">
+          <form onSubmit={handleInitiateRegister} className="space-y-4 mt-4">
 
             {/* Full Name Input */}
-            <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-              <FaUser className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-              <input
-                type="text"
-                placeholder="Enter student full name"
-                className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500 font-medium"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+            <div className="space-y-1.5">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Student Full Name <span className="text-red-500">*</span>
+              </label>
+              <div className="relative rounded-2xl bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 focus-within:border-purple-600 dark:focus-within:border-purple-400 focus-within:ring-4 focus-within:ring-purple-100 dark:focus-within:ring-purple-950/60 transition-all shadow-2xs">
+                <FaUser className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
+                <input
+                  type="text"
+                  className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
             {/* Email Input (If Email Method) */}
             {studentRegMethod === 'email' && (
-              <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-                <FaEnvelope className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-                <input
-                  type="email"
-                  placeholder="Enter student email address"
-                  className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Student Email Address <span className="text-red-500">*</span>
+                </label>
+                <div className="relative rounded-2xl bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 focus-within:border-purple-600 dark:focus-within:border-purple-400 focus-within:ring-4 focus-within:ring-purple-100 dark:focus-within:ring-purple-950/60 transition-all shadow-2xs">
+                  <FaEnvelope className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
+                  <input
+                    type="email"
+                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
             )}
 
             {/* Phone Number Input (If Phone Method) */}
             {studentRegMethod === 'phone' && (
-              <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-                <FaPhone className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-                <input
-                  type="tel"
-                  placeholder="Mobile phone (e.g. 0771234567)"
-                  className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500 font-medium"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  required
-                />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Student Mobile Phone <span className="text-red-500">*</span>
+                </label>
+                <div className="relative rounded-2xl bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 focus-within:border-purple-600 dark:focus-within:border-purple-400 focus-within:ring-4 focus-within:ring-purple-100 dark:focus-within:ring-purple-950/60 transition-all shadow-2xs">
+                  <FaPhone className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
+                  <input
+                    type="tel"
+                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
             )}
 
             {/* Parent's Phone Number (If Email Method) */}
             {studentRegMethod === 'email' && (
-              <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-                <FaPhone className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-                <input
-                  type="tel"
-                  placeholder="Parent's mobile phone (e.g. 0771234567)"
-                  className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500"
-                  value={parentsPhoneNumber}
-                  onChange={(e) => setParentsPhoneNumber(e.target.value)}
-                  required
-                />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Parent's Mobile Phone <span className="text-red-500">*</span>
+                </label>
+                <div className="relative rounded-2xl bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 focus-within:border-purple-600 dark:focus-within:border-purple-400 focus-within:ring-4 focus-within:ring-purple-100 dark:focus-within:ring-purple-950/60 transition-all shadow-2xs">
+                  <FaPhone className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
+                  <input
+                    type="tel"
+                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                    value={parentsPhoneNumber}
+                    onChange={(e) => setParentsPhoneNumber(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
             )}
 
             {/* Password Input */}
-            <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-              <FaLock className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-              <input
-                type="password"
-                placeholder="Set password (min 6 chars)"
-                className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none placeholder:text-slate-500"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            <div className="space-y-1.5">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Set Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative rounded-2xl bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 focus-within:border-purple-600 dark:focus-within:border-purple-400 focus-within:ring-4 focus-within:ring-purple-100 dark:focus-within:ring-purple-950/60 transition-all shadow-2xs">
+                <FaLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="w-full bg-transparent pl-11 pr-11 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-purple-700 dark:hover:text-purple-300 p-1.5 rounded-lg transition cursor-pointer"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
+                </button>
+              </div>
             </div>
 
             {/* Date of Birth Input */}
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950 mb-1">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 Student Date of Birth (Birthday) <span className="text-red-500">*</span>
               </label>
-              <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-                <FaCalendarAlt className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+              <div className="relative rounded-2xl bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 focus-within:border-purple-600 dark:focus-within:border-purple-400 focus-within:ring-4 focus-within:ring-purple-100 dark:focus-within:ring-purple-950/60 transition-all shadow-2xs">
+                <FaCalendarAlt className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
                 <input
                   type="date"
                   max={new Date().toISOString().split('T')[0]}
-                  className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none cursor-pointer"
+                  className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl cursor-pointer"
                   value={dateOfBirth}
                   onChange={(e) => setDateOfBirth(e.target.value)}
                   required
@@ -380,21 +425,21 @@ const Register = () => {
             </div>
 
             {/* Grade Selection */}
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950 mb-1">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 Select Current Grade <span className="text-red-500">*</span>
               </label>
-              <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-                <FaGraduationCap className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+              <div className="relative rounded-2xl bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 focus-within:border-purple-600 dark:focus-within:border-purple-400 focus-within:ring-4 focus-within:ring-purple-100 dark:focus-within:ring-purple-950/60 transition-all shadow-2xs">
+                <FaGraduationCap className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
                 <select
-                  className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none cursor-pointer"
+                  className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl cursor-pointer"
                   value={grade}
                   onChange={(e) => setGrade(e.target.value)}
                   required
                 >
-                  <option value="">-- Choose Grade --</option>
+                  <option value="" className="dark:bg-slate-900">-- Choose Grade --</option>
                   {gradeOptions.map((g) => (
-                    <option key={g} value={g}>{g}</option>
+                    <option key={g} value={g} className="dark:bg-slate-900">{g}</option>
                   ))}
                 </select>
               </div>
@@ -404,7 +449,7 @@ const Register = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative flex w-full items-center justify-center rounded-xl bg-lumina-purple px-6 py-4 text-xs font-bold text-white transition-all hover:bg-purple-800 shadow-lg shadow-purple-900/20 cursor-pointer disabled:opacity-50 mt-2"
+              className="group relative flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-950 dark:from-purple-600 dark:to-indigo-600 dark:hover:from-purple-500 dark:hover:to-indigo-500 px-6 py-4 text-xs font-extrabold text-white transition-all shadow-lg shadow-purple-900/20 dark:shadow-purple-950/60 cursor-pointer disabled:opacity-50 mt-2"
             >
               {loading ? (
                 <span>Sending Verification Code...</span>
@@ -423,8 +468,8 @@ const Register = () => {
           {studentRegMethod === 'email' && googleClientId && (
             <div className="mt-5">
               <div className="relative mb-3">
-                <div className="absolute inset-x-0 top-1/2 h-px bg-slate-200" />
-                <div className="relative mx-auto w-max bg-white px-3 text-xs text-slate-400">
+                <div className="absolute inset-x-0 top-1/2 h-px bg-slate-200 dark:bg-slate-800" />
+                <div className="relative mx-auto w-max bg-white dark:bg-slate-900 px-3 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   Or register with
                 </div>
               </div>
@@ -442,11 +487,11 @@ const Register = () => {
           )}
 
           {/* Footer Text */}
-          <div className="mt-6 text-center text-xs text-slate-500">
+          <div className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
             <p>
               Already have an account?{' '}
               <button
-                className="font-semibold text-[#3a1c8a] hover:underline cursor-pointer"
+                className="font-bold text-purple-800 hover:text-purple-950 dark:text-purple-400 dark:hover:text-purple-300 hover:underline cursor-pointer"
                 onClick={() => navigate('/login')}
               >
                 Sign in here.

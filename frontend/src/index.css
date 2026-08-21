@@ -136,27 +136,7 @@ select:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px #1e293b inset !important;
 }
 
-/* Force light auth panels (Login, Register, Forgot Password) to ALWAYS stay pure white */
-.auth-light-panel,
-.auth-light-panel input,
-.auth-light-panel textarea,
-.auth-light-panel select {
-  color-scheme: light !important;
-}
 
-.auth-light-panel input:-webkit-autofill,
-.auth-light-panel input:-webkit-autofill:hover, 
-.auth-light-panel input:-webkit-autofill:focus,
-.auth-light-panel input:-webkit-autofill:active,
-.dark .auth-light-panel input:-webkit-autofill,
-.dark .auth-light-panel input:-webkit-autofill:hover, 
-.dark .auth-light-panel input:-webkit-autofill:focus,
-.dark .auth-light-panel input:-webkit-autofill:active {
-  -webkit-text-fill-color: #0f172a !important;
-  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-}
 
 /* Hide scrollbar utility across all browsers */
 .no-scrollbar::-webkit-scrollbar,
