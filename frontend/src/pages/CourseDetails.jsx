@@ -175,6 +175,47 @@ const CourseDetails = () => {
   const [videoDownloadType, setVideoDownloadType] = useState('immediate');
   const [videoCustomUnlockDate, setVideoCustomUnlockDate] = useState('');
 
+  // Expandable Workspace Sections State
+  const [expandedSections, setExpandedSections] = useState({
+    announcement: true,
+    videos: true,
+    pdfs: true,
+    assignments: true,
+    quizzes: true,
+  });
+
+  const toggleSection = (key) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const expandAllSections = () => {
+    setExpandedSections({
+      announcement: true,
+      videos: true,
+      pdfs: true,
+      assignments: true,
+      quizzes: true,
+    });
+  };
+
+  const collapseAllSections = () => {
+    setExpandedSections({
+      announcement: false,
+      videos: false,
+      pdfs: false,
+      assignments: false,
+      quizzes: false,
+    });
+  };
+
+  // Creation Modals States (Teacher / Admin)
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [showAddVideoModal, setShowAddVideoModal] = useState(false);
+  const [showAddPdfModal, setShowAddPdfModal] = useState(false);
+
   // Material Download Settings Edit Modal state (Teacher/Admin)
   const [editingDownloadModal, setEditingDownloadModal] = useState({
     isOpen: false,
@@ -826,7 +867,8 @@ const CourseDetails = () => {
       await api.put(`/lessons/${currentLesson._id}`,
         { teacherMessage: editingMessage }
       );
-      toast.success("Announcement updated!");
+      toast.success("Announcement updated successfully!");
+      setShowAnnouncementModal(false);
       fetchCourseDetails();
     } catch (err) {
       toast.error("Failed to update announcement.");
@@ -835,10 +877,14 @@ const CourseDetails = () => {
 
   const handleAddVideo = async (e) => {
     e.preventDefault();
+    if (!videoUrl.trim()) {
+      toast.error("Please provide a valid video link.");
+      return;
+    }
     const currentLesson = lessons.find(l => l.grade === selectedGrade);
     if (!currentLesson) return;
     const newVideoItem = {
-      title: videoTitle.trim(),
+      title: videoTitle.trim() || 'Video Lecture',
       url: videoUrl.trim(),
       allowDownload: videoDownloadType !== 'disabled',
       downloadDelayType: videoDownloadType,
@@ -850,11 +896,12 @@ const CourseDetails = () => {
       await api.put(`/lessons/${currentLesson._id}`,
         { videoLessons: updatedVideos }
       );
-      toast.success("Video lesson added with download permissions!");
+      toast.success("Video lesson added successfully!");
       setVideoTitle("");
       setVideoUrl("");
       setVideoDownloadType('immediate');
       setVideoCustomUnlockDate('');
+      setShowAddVideoModal(false);
       fetchCourseDetails();
     } catch (err) {
       toast.error("Failed to add video.");
@@ -908,11 +955,12 @@ const CourseDetails = () => {
           'Content-Type': 'multipart/form-data'
         }
       });
-      toast.success("PDF uploaded with download permissions!");
+      toast.success("PDF study material uploaded successfully!");
       setPdfFile(null);
       setPdfTitle("");
       setPdfDownloadType('immediate');
       setPdfCustomUnlockDate('');
+      setShowAddPdfModal(false);
       await fetchCourseDetails();
     } catch (err) {
       const errMsg = err.response?.data?.error || "Failed to upload PDF.";
@@ -1956,714 +2004,973 @@ const CourseDetails = () => {
             </div>
           )}
 
-          {/* Announcement Card */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <h4 className="font-bold text-lg text-gray-800 mb-4">Teacher's Announcement (Week {activeWeek})</h4>
-            {user?.role === 'student' ? (
-              <p className="text-gray-600 bg-gray-50 p-4 rounded-xl leading-relaxed whitespace-pre-line">
-                {currentLesson?.teacherMessage || "No Contents available for this course yet."}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                <textarea
-                  className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
-                  rows="4"
-                  placeholder="Type an announcement or message for this class here..."
-                  value={editingMessage}
-                  onChange={(e) => setEditingMessage(e.target.value)}
-                />
-                <button
-                  onClick={handleSaveMessage}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-sm cursor-pointer"
-                >
-                  Save Announcement
-                </button>
-              </div>
-            )}
-          </div>
-
           {canEnroll && (
-            <div className="bg-white p-6 rounded-2xl border border-green-200 shadow-sm">
-              <p className="text-green-700 font-semibold">This course is recommended for {studentGrade && (studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`)}.</p>
+            <div className="bg-white p-6 rounded-3xl border border-green-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
+              <div>
+                <h4 className="font-extrabold text-green-900 text-base">Course Recommended for Your Grade</h4>
+                <p className="text-green-700 text-xs mt-0.5 font-medium">This course is recommended for {studentGrade && (studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`)}. Enroll today to participate and access all live classes & assessments.</p>
+              </div>
               <button
+                type="button"
                 onClick={() => setShowEnrollModal(true)}
-                className="mt-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-3 text-white font-bold hover:from-green-700 hover:to-emerald-700 shadow-md transition"
+                className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-3 text-white font-extrabold text-xs hover:from-green-700 hover:to-emerald-700 shadow-md transition shrink-0 cursor-pointer"
               >
                 Enroll in this Course 🎓
               </button>
             </div>
           )}
 
-          {/* Video Lessons Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-              <div>
-                <h4 className="font-bold text-lg text-gray-800">Video Lessons (Week {activeWeek} — {selectedMonth})</h4>
-                <p className="text-xs text-gray-500">Watch the lecture video below to complete video study requirement.</p>
+          {/* ========================================================================= */}
+          {/* TEACHER & ADMIN QUICK ACTION CREATION TOOLBAR */}
+          {/* ========================================================================= */}
+          {isTeacherOrAdmin && (
+            <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-[#1e1035] p-4 sm:p-5 rounded-3xl text-white shadow-lg flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 border border-purple-800/60 animate-fadeIn">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center text-2xl shrink-0 shadow-inner border border-white/15">
+                  ⚡
+                </div>
+                <div>
+                  <h4 className="font-black text-sm sm:text-base leading-tight">Class Content Creator</h4>
+                  <p className="text-purple-200 text-xs mt-0.5 font-medium">
+                    Publish learning assets for <strong className="text-white">Week {activeWeek}</strong> ({selectedMonth} • {selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`}).
+                  </p>
+                </div>
               </div>
-              {!isTeacherOrAdmin && currentLesson?.videoLessons && currentLesson.videoLessons.length > 0 && (
-                <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${isVideoWatched ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
-                  {isVideoWatched ? '✓ Video Completed' : 'Pending View'}
-                </span>
-              )}
-            </div>
 
-            {/* Video addition form (Teacher/Admin only) */}
-            {isTeacherOrAdmin && (
-              <form onSubmit={handleAddVideo} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 p-4 bg-gray-50 rounded-xl">
-                <input
-                  type="text"
-                  placeholder="Video Title"
-                  value={videoTitle}
-                  onChange={(e) => setVideoTitle(e.target.value)}
-                  className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
-                  required
-                />
-                <input
-                  type="url"
-                  placeholder="Video Link (e.g. YouTube URL)"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
-                  required
-                />
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  type="submit"
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer text-sm"
+                  type="button"
+                  onClick={() => {
+                    setEditingMessage(currentLesson?.teacherMessage || '');
+                    setShowAnnouncementModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-black transition cursor-pointer flex items-center gap-1.5 border border-white/20 shadow-xs active:scale-95"
+                  title="Post or update weekly announcement for students"
                 >
-                  + Add Video
+                  <span>📢</span> Announcement
                 </button>
 
-                {/* Download Accessibility Control */}
-                <div className="md:col-span-3 flex flex-wrap items-center gap-3 bg-purple-50/60 p-3 rounded-xl border border-purple-100 mt-1">
-                  <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                    <FaDownload className="text-purple-600" /> Student Download Access:
-                  </span>
-                  <select
-                    value={videoDownloadType}
-                    onChange={(e) => setVideoDownloadType(e.target.value)}
-                    className="bg-white border border-gray-200 text-xs font-bold text-gray-800 rounded-lg p-2 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
-                  >
-                    <option value="immediate">🟢 Immediate Download (Available Now)</option>
-                    <option value="one_month">⏳ After 1 Month (30 Days)</option>
-                    <option value="custom_date">📅 Custom Unlock Date</option>
-                    <option value="disabled">🚫 View Online Only (Download Disabled)</option>
-                  </select>
-                  {videoDownloadType === 'custom_date' && (
-                    <input
-                      type="date"
-                      value={videoCustomUnlockDate}
-                      onChange={(e) => setVideoCustomUnlockDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="bg-white border border-purple-200 text-xs font-bold rounded-lg p-2 outline-none"
-                      required
-                    />
-                  )}
-                </div>
-              </form>
-            )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVideoTitle('');
+                    setVideoUrl('');
+                    setVideoDownloadType('immediate');
+                    setVideoCustomUnlockDate('');
+                    setShowAddVideoModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                  title="Add video lecture link"
+                >
+                  <span>🎬</span> + Video Lesson
+                </button>
 
-            {/* Video Lessons List */}
-            <div className="space-y-3">
-              {!currentLesson?.videoLessons || currentLesson.videoLessons.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No video lessons uploaded for this grade yet.</p>
-              ) : (
-                currentLesson.videoLessons.map((vid) => {
-                  const dlStatus = getMaterialDownloadStatus(vid);
-                  return (
-                    <div key={vid._id || vid.url} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="text-red-500 text-xl">🎬</div>
-                        <div>
-                          <p className="font-bold text-gray-800">{vid.title}</p>
-                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                            <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline">
-                              {vid.url}
-                            </a>
-                            {/* Teacher/Admin status badge */}
-                            {isTeacherOrAdmin && (
-                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${dlStatus.status === 'immediate'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                  : dlStatus.status === 'scheduled'
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPdfTitle('');
+                    setPdfFile(null);
+                    setPdfDownloadType('immediate');
+                    setPdfCustomUnlockDate('');
+                    setShowAddPdfModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                  title="Upload PDF note / study booklet"
+                >
+                  <span>📕</span> + PDF Material
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenCreateAssignment}
+                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                  title="Create homework assignment"
+                >
+                  <span>📑</span> + Assignment
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigate(`/course/${courseId}/create-quiz`)}
+                  className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                  title="Create weekly interactive quiz"
+                >
+                  <span>📝</span> + Quiz
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* WORKSPACE SECTIONS CONTROLS BAR */}
+          {/* ========================================================================= */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-gray-500">Learning Materials & Content</span>
+              <span className="bg-purple-100 text-purple-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-200">
+                Week {activeWeek} • {selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xs font-bold self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={expandAllSections}
+                className="text-purple-700 hover:text-purple-900 hover:underline cursor-pointer flex items-center gap-1.5 transition"
+              >
+                <FaChevronDown className="text-[10px]" /> Expand All
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                type="button"
+                onClick={collapseAllSections}
+                className="text-purple-700 hover:text-purple-900 hover:underline cursor-pointer flex items-center gap-1.5 transition"
+              >
+                <FaChevronUp className="text-[10px]" /> Collapse All
+              </button>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* SECTION 1: TEACHER'S ANNOUNCEMENT (Expandable) */}
+          {/* ========================================================================= */}
+          <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200">
+            <div
+              onClick={() => toggleSection('announcement')}
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-gray-50/80 transition-colors text-left cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                  📢
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-extrabold text-base text-gray-900 leading-tight">
+                    Teacher's Announcement (Week {activeWeek})
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                    {currentLesson?.teacherMessage
+                      ? 'Important guidelines, schedule reminders, and teacher notes for this class.'
+                      : 'No announcement published for this class session yet.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                {currentLesson?.teacherMessage ? (
+                  <span className="bg-purple-100 text-purple-900 text-xs font-extrabold px-2.5 py-1 rounded-xl border border-purple-200">
+                    Active Message
+                  </span>
+                ) : (
+                  <span className="bg-gray-100 text-gray-500 text-xs font-semibold px-2.5 py-1 rounded-xl">
+                    Empty
+                  </span>
+                )}
+
+                {isTeacherOrAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingMessage(currentLesson?.teacherMessage || '');
+                      setShowAnnouncementModal(true);
+                    }}
+                    className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <FaEdit className="text-xs" /> Edit
+                  </button>
+                )}
+
+                <div className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-xs transition">
+                  {expandedSections.announcement ? <FaChevronUp /> : <FaChevronDown />}
+                </div>
+              </div>
+            </div>
+
+            {expandedSections.announcement && (
+              <div className="p-5 pt-0 border-t border-gray-100 space-y-3 bg-white animate-fadeIn">
+                {currentLesson?.teacherMessage ? (
+                  <div className="bg-purple-50/50 border border-purple-100 p-4 rounded-2xl text-gray-800 text-sm leading-relaxed whitespace-pre-line font-medium">
+                    {currentLesson.teacherMessage}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-gray-400 text-xs italic bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                    No announcement or teacher message posted for Week {activeWeek} yet.
+                    {isTeacherOrAdmin && (
+                      <span
+                        onClick={() => {
+                          setEditingMessage('');
+                          setShowAnnouncementModal(true);
+                        }}
+                        className="block text-purple-600 font-bold not-italic mt-1.5 cursor-pointer hover:underline"
+                      >
+                        + Click here to write an announcement
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ========================================================================= */}
+          {/* SECTION 2: VIDEO LESSONS (Expandable) */}
+          {/* ========================================================================= */}
+          <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200">
+            <div
+              onClick={() => toggleSection('videos')}
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-gray-50/80 transition-colors text-left cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                  🎬
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-extrabold text-base text-gray-900 leading-tight">
+                    Video Lessons (Week {activeWeek} — {selectedMonth})
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">Recorded lecture streams and walkthrough explanations.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black px-2.5 py-1 rounded-xl">
+                  {currentLesson?.videoLessons?.length || 0} {currentLesson?.videoLessons?.length === 1 ? 'Video' : 'Videos'}
+                </span>
+
+                {!isTeacherOrAdmin && currentLesson?.videoLessons && currentLesson.videoLessons.length > 0 && (
+                  <span className={`text-xs font-extrabold px-3 py-1 rounded-xl border ${
+                    isVideoWatched
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                  }`}>
+                    {isVideoWatched ? '✓ Watched' : 'Pending View'}
+                  </span>
+                )}
+
+                {isTeacherOrAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setVideoTitle('');
+                      setVideoUrl('');
+                      setVideoDownloadType('immediate');
+                      setVideoCustomUnlockDate('');
+                      setShowAddVideoModal(true);
+                    }}
+                    className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <FaPlus className="text-[10px]" /> Add Video
+                  </button>
+                )}
+
+                <div className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-xs transition">
+                  {expandedSections.videos ? <FaChevronUp /> : <FaChevronDown />}
+                </div>
+              </div>
+            </div>
+
+            {expandedSections.videos && (
+              <div className="p-5 pt-0 border-t border-gray-100 space-y-3 bg-white animate-fadeIn">
+                {!currentLesson?.videoLessons || currentLesson.videoLessons.length === 0 ? (
+                  <div className="py-8 text-center text-gray-400 space-y-1 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                    <p className="text-sm font-semibold">No video lessons uploaded for Week {activeWeek} yet.</p>
+                    {isTeacherOrAdmin && (
+                      <p
+                        className="text-xs text-emerald-700 font-bold cursor-pointer hover:underline mt-1"
+                        onClick={() => {
+                          setVideoTitle('');
+                          setVideoUrl('');
+                          setVideoDownloadType('immediate');
+                          setVideoCustomUnlockDate('');
+                          setShowAddVideoModal(true);
+                        }}
+                      >
+                        + Click here to add a video lesson
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  currentLesson.videoLessons.map((vid) => {
+                    const dlStatus = getMaterialDownloadStatus(vid);
+                    return (
+                      <div key={vid._id || vid.url} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 rounded-2xl hover:bg-gray-50/70 transition-all gap-3 bg-white shadow-2xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-xl shrink-0 font-bold shadow-inner">
+                            🎬
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-extrabold text-gray-900 text-sm truncate">{vid.title}</p>
+                            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                              <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline truncate max-w-xs">
+                                {vid.url}
+                              </a>
+                              {isTeacherOrAdmin && (
+                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                                  dlStatus.status === 'immediate'
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : dlStatus.status === 'scheduled'
                                     ? 'bg-amber-50 text-amber-800 border-amber-200'
                                     : 'bg-slate-100 text-slate-600 border-slate-200'
                                 }`}>
-                                {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
-                              </span>
-                            )}
+                                  {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap shrink-0">
+                          {!isTeacherOrAdmin && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  markMaterialCompleted('video');
+                                  window.open(vid.url, '_blank', 'noopener,noreferrer');
+                                }}
+                                className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                              >
+                                <span>▶</span> Watch Video
+                              </button>
+
+                              {dlStatus.isAvailable && (
+                                <a
+                                  href={vid.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  download
+                                  className="bg-purple-100 hover:bg-purple-200 text-purple-900 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                  title="Download / Open Video"
+                                >
+                                  <FaDownload className="text-[10px]" /> Download
+                                </a>
+                              )}
+
+                              {dlStatus.status === 'scheduled' && (
+                                <span
+                                  className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-2 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5"
+                                  title={`Download unlocks on ${dlStatus.formattedDate}`}
+                                >
+                                  <FaHourglassHalf className="text-amber-600 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
+                                </span>
+                              )}
+                            </>
+                          )}
+
+                          {isTeacherOrAdmin && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDownloadSettingsModal('video', vid, currentLesson?._id)}
+                                className="text-purple-700 hover:bg-purple-50 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100"
+                                title="Configure Download Access"
+                              >
+                                <FaCog className="text-xs" /> Download Settings
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteVideo(vid._id)}
+                                className="text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl transition text-xs font-bold cursor-pointer border border-red-100"
+                              >
+                                Remove
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
 
-                      <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-                        {/* Student Watch & Download Controls */}
-                        {!isTeacherOrAdmin && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                markMaterialCompleted('video');
-                                window.open(vid.url, '_blank', 'noopener,noreferrer');
-                              }}
-                              className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
-                            >
-                              <span>▶</span> Watch Video
-                            </button>
+          {/* ========================================================================= */}
+          {/* SECTION 3: STUDY MATERIALS — PDF NOTES (Expandable) */}
+          {/* ========================================================================= */}
+          <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200">
+            <div
+              onClick={() => toggleSection('pdfs')}
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-gray-50/80 transition-colors text-left cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                  📕
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-extrabold text-base text-gray-900 leading-tight">
+                    Study Materials — PDF Notes (Week {activeWeek} — {selectedMonth})
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">Read lecture slides, revision summaries, and structured study booklets.</p>
+                </div>
+              </div>
 
-                            {dlStatus.isAvailable && (
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span className="bg-purple-50 text-purple-900 border border-purple-200 text-xs font-black px-2.5 py-1 rounded-xl">
+                  {currentLesson?.pdfMaterials?.length || 0} {currentLesson?.pdfMaterials?.length === 1 ? 'PDF' : 'PDFs'}
+                </span>
+
+                {!isTeacherOrAdmin && currentLesson?.pdfMaterials && currentLesson.pdfMaterials.length > 0 && (
+                  <span className={`text-xs font-extrabold px-3 py-1 rounded-xl border ${
+                    isPdfDownloaded
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                  }`}>
+                    {isPdfDownloaded ? '✓ Completed' : 'Pending View'}
+                  </span>
+                )}
+
+                {isTeacherOrAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPdfTitle('');
+                      setPdfFile(null);
+                      setPdfDownloadType('immediate');
+                      setPdfCustomUnlockDate('');
+                      setShowAddPdfModal(true);
+                    }}
+                    className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <FaPlus className="text-[10px]" /> Upload PDF
+                  </button>
+                )}
+
+                <div className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-xs transition">
+                  {expandedSections.pdfs ? <FaChevronUp /> : <FaChevronDown />}
+                </div>
+              </div>
+            </div>
+
+            {expandedSections.pdfs && (
+              <div className="p-5 pt-0 border-t border-gray-100 space-y-3 bg-white animate-fadeIn">
+                {!currentLesson?.pdfMaterials || currentLesson.pdfMaterials.length === 0 ? (
+                  <div className="py-8 text-center text-gray-400 space-y-1 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                    <p className="text-sm font-semibold">No PDF study materials uploaded for Week {activeWeek} yet.</p>
+                    {isTeacherOrAdmin && (
+                      <p
+                        className="text-xs text-purple-700 font-bold cursor-pointer hover:underline mt-1"
+                        onClick={() => {
+                          setPdfTitle('');
+                          setPdfFile(null);
+                          setPdfDownloadType('immediate');
+                          setPdfCustomUnlockDate('');
+                          setShowAddPdfModal(true);
+                        }}
+                      >
+                        + Click here to upload a PDF note
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  currentLesson.pdfMaterials.map((pdf) => {
+                    const pId = pdf._id ? String(pdf._id) : (pdf.filename || pdf.title);
+                    const pProg = pdfProgressMap[pId] || pdfProgressMap[pdf.title] || pdfProgressMap[pdf.filename];
+                    const pPercent = pProg?.progressPercentage || 0;
+                    const pMaxRead = pProg?.maxPageRead || 0;
+                    const pTotal = pProg?.totalPages || 0;
+                    const pNextPage = pProg?.nextPageToRead || (pMaxRead > 0 ? Math.min(pTotal, pMaxRead + 1) : 1);
+                    const dlStatus = getMaterialDownloadStatus(pdf);
+
+                    return (
+                      <div key={pdf._id || pdf.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-2xl bg-white hover:bg-purple-50/20 transition-all gap-3 shadow-2xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl shrink-0 font-bold shadow-inner">
+                            📕
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-extrabold text-gray-900 text-sm truncate">{pdf.title}</p>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-500 font-medium">
+                                Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '0.99 MB'}
+                              </span>
+
+                              <div className="flex items-center gap-2">
+                                <div className="w-20 bg-slate-200 h-2 rounded-full overflow-hidden border border-slate-300">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-500 ${pPercent >= 100 ? 'bg-emerald-500' : 'bg-purple-600'}`}
+                                    style={{ width: `${pPercent}%` }}
+                                  ></div>
+                                </div>
+
+                                <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${pPercent >= 100
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : pPercent > 0
+                                      ? 'bg-purple-100 text-purple-900 border-purple-300'
+                                      : 'bg-slate-100 text-slate-600 border-slate-300'
+                                  }`}>
+                                  {pPercent >= 100
+                                    ? '✓ 100% Completed'
+                                    : pPercent > 0
+                                      ? `📖 ${pPercent}% Read (Pg ${pMaxRead}/${pTotal})`
+                                      : '📖 Unread (0%)'}
+                                </span>
+                              </div>
+
+                              {isTeacherOrAdmin && (
+                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${dlStatus.status === 'immediate'
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : dlStatus.status === 'scheduled'
+                                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                                  }`}>
+                                  {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setActivePdfModal({
+                              pdf: { ...pdf, _id: pdf._id ? String(pdf._id) : pdf.filename },
+                              lessonId: currentLesson?._id
+                            })}
+                            className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                          >
+                            <span>📖</span> {pPercent >= 100 ? 'Review PDF Notes ▶' : pPercent > 0 ? `Continue (Pg ${pNextPage}) ▶` : 'Start Reading PDF ▶'}
+                          </button>
+
+                          {!isTeacherOrAdmin && (
+                            dlStatus.isAvailable ? (
                               <a
-                                href={vid.url}
+                                href={pdf.fileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 download
-                                className="bg-purple-100 hover:bg-purple-200 text-purple-900 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                                title="Download / Open Video"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+                                title="Download PDF File"
                               >
                                 <FaDownload className="text-[10px]" /> Download
                               </a>
-                            )}
-
-                            {dlStatus.status === 'scheduled' && (
+                            ) : dlStatus.status === 'scheduled' ? (
                               <span
-                                className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5"
+                                className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
                                 title={`Download unlocks on ${dlStatus.formattedDate}`}
                               >
                                 <FaHourglassHalf className="text-amber-600 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
                               </span>
-                            )}
-                          </>
-                        )}
-
-                        {/* Teacher/Admin Manage Download Settings */}
-                        {isTeacherOrAdmin && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenDownloadSettingsModal('video', vid, currentLesson?._id)}
-                              className="text-purple-700 hover:bg-purple-50 px-3 py-1.5 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100"
-                              title="Configure Download Access"
-                            >
-                              <FaCog className="text-xs" /> Download Settings
-                            </button>
-                            <button
-                              onClick={() => handleDeleteVideo(vid._id)}
-                              className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-xs font-semibold cursor-pointer"
-                            >
-                              Remove
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* PDF Materials Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-              <div>
-                <h4 className="font-bold text-lg text-gray-800">Study Materials — PDF Notes (Week {activeWeek} — {selectedMonth})</h4>
-                <p className="text-xs text-gray-500">Download and review the lecture PDF notes to complete document requirement.</p>
-              </div>
-              {!isTeacherOrAdmin && currentLesson?.pdfMaterials && currentLesson.pdfMaterials.length > 0 && (
-                <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${isPdfDownloaded ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
-                  {isPdfDownloaded ? '✓ PDF Completed' : 'Pending View'}
-                </span>
-              )}
-            </div>
-
-            {/* PDF upload form (Teacher/Admin only) */}
-            {isTeacherOrAdmin && (
-              <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Upload PDF Lesson Material</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input
-                    type="text"
-                    placeholder="Document Title (Optional)"
-                    value={pdfTitle}
-                    onChange={(e) => setPdfTitle(e.target.value)}
-                    className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
-                  />
-                  <div>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      key={pdfFile ? 'loaded' : 'empty'}
-                      onChange={(e) => setPdfFile(e.target.files[0])}
-                      className="w-full p-2 bg-white border border-gray-200 rounded-lg outline-none text-sm"
-                    />
-                  </div>
-                  <button
-                    onClick={handleUploadPdf}
-                    disabled={isUploadingPdf}
-                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer transition-colors text-sm"
-                  >
-                    {isUploadingPdf ? 'Uploading...' : '+ Upload PDF'}
-                  </button>
-
-                  {/* Download Accessibility Control */}
-                  <div className="md:col-span-3 flex flex-wrap items-center gap-3 bg-purple-50/60 p-3 rounded-xl border border-purple-100 mt-1">
-                    <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                      <FaDownload className="text-purple-600" /> Student Download Access:
-                    </span>
-                    <select
-                      value={pdfDownloadType}
-                      onChange={(e) => setPdfDownloadType(e.target.value)}
-                      className="bg-white border border-gray-200 text-xs font-bold text-gray-800 rounded-lg p-2 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
-                    >
-                      <option value="immediate">🟢 Immediate Download (Available Now)</option>
-                      <option value="one_month">⏳ After 1 Month (30 Days)</option>
-                      <option value="custom_date">📅 Custom Unlock Date</option>
-                      <option value="disabled">🚫 View Online Only (Download Disabled)</option>
-                    </select>
-                    {pdfDownloadType === 'custom_date' && (
-                      <input
-                        type="date"
-                        value={pdfCustomUnlockDate}
-                        onChange={(e) => setPdfCustomUnlockDate(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
-                        className="bg-white border border-purple-200 text-xs font-bold rounded-lg p-2 outline-none"
-                        required
-                      />
-                    )}
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500">Maximum size: 5MB. Only PDF files are allowed.</p>
-              </div>
-            )}
-
-            {/* PDF Notes List with Reading Progress */}
-            <div className="space-y-3">
-              {!currentLesson?.pdfMaterials || currentLesson.pdfMaterials.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No study materials uploaded for this grade yet.</p>
-              ) : (
-                currentLesson.pdfMaterials.map((pdf) => {
-                  const pId = pdf._id ? String(pdf._id) : (pdf.filename || pdf.title);
-                  const pProg = pdfProgressMap[pId] || pdfProgressMap[pdf.title] || pdfProgressMap[pdf.filename];
-                  const pPercent = pProg?.progressPercentage || 0;
-                  const pMaxRead = pProg?.maxPageRead || 0;
-                  const pTotal = pProg?.totalPages || 0;
-                  const pNextPage = pProg?.nextPageToRead || (pMaxRead > 0 ? Math.min(pTotal, pMaxRead + 1) : 1);
-                  const dlStatus = getMaterialDownloadStatus(pdf);
-
-                  return (
-                    <div key={pdf._id || pdf.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/20 hover:bg-purple-50 transition-all gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="text-red-600 text-2xl font-bold">📕</div>
-                        <div>
-                          <p className="font-extrabold text-gray-900 text-sm">{pdf.title}</p>
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-500 font-medium">
-                              Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '0.99 MB'}
-                            </span>
-
-                            <div className="flex items-center gap-2">
-                              <div className="w-20 bg-slate-200 h-2 rounded-full overflow-hidden border border-slate-300">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-500 ${pPercent >= 100 ? 'bg-emerald-500' : 'bg-purple-600'}`}
-                                  style={{ width: `${pPercent}%` }}
-                                ></div>
-                              </div>
-
-                              <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${pPercent >= 100
-                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                  : pPercent > 0
-                                    ? 'bg-purple-100 text-purple-900 border-purple-300'
-                                    : 'bg-slate-100 text-slate-600 border-slate-300'
-                                }`}>
-                                {pPercent >= 100
-                                  ? '✓ 100% Completed'
-                                  : pPercent > 0
-                                    ? `📖 ${pPercent}% Read (Page ${pMaxRead} of ${pTotal} • Continue Pg ${pNextPage})`
-                                    : '📖 Unread (0%)'}
-                              </span>
-                            </div>
-
-                            {/* Teacher/Admin status badge */}
-                            {isTeacherOrAdmin && (
-                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${dlStatus.status === 'immediate'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                  : dlStatus.status === 'scheduled'
-                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                    : 'bg-slate-100 text-slate-600 border-slate-200'
-                                }`}>
-                                {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => setActivePdfModal({
-                            pdf: { ...pdf, _id: pdf._id ? String(pdf._id) : pdf.filename },
-                            lessonId: currentLesson?._id
-                          })}
-                          className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
-                        >
-                          <span>📖</span> {pPercent >= 100 ? 'Review PDF Notes ▶' : pPercent > 0 ? `Continue from Page ${pNextPage} ▶` : 'Start Reading PDF ▶'}
-                        </button>
-
-                        {/* Student Download / Lock Button */}
-                        {!isTeacherOrAdmin && (
-                          dlStatus.isAvailable ? (
-                            <a
-                              href={pdf.fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download
-                              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
-                              title="Download PDF File"
-                            >
-                              <FaDownload className="text-[10px]" /> Download
-                            </a>
-                          ) : dlStatus.status === 'scheduled' ? (
-                            <span
-                              className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
-                              title={`Download unlocks on ${dlStatus.formattedDate}`}
-                            >
-                              <FaHourglassHalf className="text-amber-600 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
-                            </span>
-                          ) : null
-                        )}
-
-                        {/* Teacher/Admin Controls */}
-                        {isTeacherOrAdmin && (
-                          <>
-                            <a
-                              href={pdf.fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download
-                              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1"
-                              title="Download File"
-                            >
-                              <FaDownload className="text-[10px]" /> Download
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenDownloadSettingsModal('pdf', pdf, currentLesson?._id)}
-                              className="text-purple-700 hover:bg-purple-50 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100"
-                              title="Configure Download Access"
-                            >
-                              <FaCog className="text-xs" /> Download Settings
-                            </button>
-                            <button
-                              onClick={() => handleDeletePdf(pdf._id)}
-                              className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
-                            >
-                              Remove
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Assignments & Homework Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-3 gap-3">
-              <div>
-                <h4 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                  <span>📑</span> Assignments & Homework ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
-                </h4>
-                <p className="text-xs text-gray-500">Submit homework solutions, download teacher question attachments, and review grading remarks.</p>
-              </div>
-              {isTeacherOrAdmin && (
-                <button
-                  type="button"
-                  onClick={handleOpenCreateAssignment}
-                  className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2.5 rounded-xl text-xs font-black transition shadow-sm cursor-pointer flex items-center gap-1.5 shrink-0"
-                >
-                  <FaPlus /> Create Assignment
-                </button>
-              )}
-            </div>
-
-            {/* Assignments List */}
-            <div className="space-y-4 pt-1">
-              {assignments.filter(asgn => {
-                const matchesGrade = asgn.grade === selectedGrade;
-                const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
-                return matchesGrade && matchesMonth;
-              }).length === 0 ? (
-                <div className="py-8 text-center text-gray-400 space-y-1">
-                  <p className="text-sm font-semibold">No assignments posted for {selectedGrade} ({selectedMonth}) yet.</p>
-                  {isTeacherOrAdmin && (
-                    <p className="text-xs text-purple-600 font-bold cursor-pointer hover:underline" onClick={handleOpenCreateAssignment}>
-                      Click here to create the first assignment for this class
-                    </p>
-                  )}
-                </div>
-              ) : (
-                assignments.filter(asgn => {
-                  const matchesGrade = asgn.grade === selectedGrade;
-                  const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
-                  return matchesGrade && matchesMonth;
-                }).map((asgn) => {
-                  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
-                  const mySub = asgn.mySubmission;
-                  const isGraded = mySub?.status === 'graded' && mySub?.marks !== null;
-                  const isSubmitted = !!mySub;
-                  const isOverdue = asgn.dueDate ? new Date() > new Date(asgn.dueDate) : false;
-
-                  return (
-                    <div key={asgn._id} className="p-5 border border-purple-100/80 rounded-2xl bg-white hover:bg-purple-50/20 transition-all space-y-4 shadow-xs">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xl">📑</span>
-                            <h5 className="font-extrabold text-gray-900 text-base">{asgn.title}</h5>
-                            {asgn.weekNumber > 0 && (
-                              <span className="bg-purple-100 text-purple-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-200">
-                                Week {asgn.weekNumber}
-                              </span>
-                            )}
-                            {!asgn.isActive && (
-                              <span className="bg-gray-100 text-gray-600 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-gray-200">
-                                Closed / Inactive
-                              </span>
-                            )}
-                          </div>
-                          {asgn.description && (
-                            <p className="text-xs text-gray-600 font-medium pl-7 line-clamp-2 leading-relaxed">
-                              {asgn.description}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Badges / Due Date / Points */}
-                        <div className="flex items-center gap-2 flex-wrap text-xs shrink-0 self-end sm:self-auto">
-                          <span className="px-3 py-1 bg-amber-50 text-amber-900 font-black rounded-xl border border-amber-200/60">
-                            Max: {asgn.maxMarks || 100} Marks
-                          </span>
-                          {asgn.dueDate && (
-                            <span className={`px-3 py-1 font-bold rounded-xl border flex items-center gap-1 ${isOverdue ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-700 border-slate-200'
-                              }`}>
-                              <FaClock /> Due: {new Date(asgn.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Action Bar / Status */}
-                      <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {asgn.attachmentUrl && (
-                            <a
-                              href={asgn.attachmentUrl.startsWith('http') ? asgn.attachmentUrl : `http://localhost:5000${asgn.attachmentUrl}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-800 hover:bg-purple-100 rounded-xl text-xs font-extrabold transition border border-purple-200"
-                            >
-                              <FaCloudDownloadAlt className="text-sm" /> Question Sheet ({asgn.attachmentName || 'Download'})
-                            </a>
+                            ) : null
                           )}
 
-                          {!isTeacher && (
-                            <div>
-                              {isGraded ? (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300">
-                                  <FaAward className="text-emerald-600" /> Graded: {mySub.marks}/{asgn.maxMarks || 100} Marks ({Math.round((mySub.marks / (asgn.maxMarks || 100)) * 100)}%)
-                                </span>
-                              ) : isSubmitted ? (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-900 border border-blue-200">
-                                  <FaCheckCircle className="text-blue-600" /> Submitted (Awaiting Teacher Grading)
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                  ⏳ Pending Solution Submission
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Right Buttons */}
-                        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-                          {isTeacher ? (
+                          {isTeacherOrAdmin && (
                             <>
+                              <a
+                                href={pdf.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                                title="Download File"
+                              >
+                                <FaDownload className="text-[10px]" /> Download
+                              </a>
                               <button
                                 type="button"
-                                onClick={() => handleOpenTeacherSubmissions(asgn)}
-                                className="px-3.5 py-1.5 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 rounded-xl text-xs font-black transition cursor-pointer border border-indigo-200 flex items-center gap-1.5"
+                                onClick={() => handleOpenDownloadSettingsModal('pdf', pdf, currentLesson?._id)}
+                                className="text-purple-700 hover:bg-purple-50 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100"
+                                title="Configure Download Access"
                               >
-                                <FaClipboardCheck /> Submissions ({asgn.submissionsCount || 0})
+                                <FaCog className="text-xs" /> Download Settings
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleOpenEditAssignment(asgn)}
-                                className="px-3 py-1.5 bg-purple-50 text-purple-800 hover:bg-purple-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                                onClick={() => handleDeletePdf(pdf._id)}
+                                className="text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl transition text-xs font-bold cursor-pointer border border-red-100"
+                              >
+                                Remove
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ========================================================================= */}
+          {/* SECTION 4: ASSIGNMENTS & HOMEWORK (Expandable) */}
+          {/* ========================================================================= */}
+          <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200">
+            <div
+              onClick={() => toggleSection('assignments')}
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-gray-50/80 transition-colors text-left cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                  📑
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-extrabold text-base text-gray-900 leading-tight">
+                    Assignments & Homework ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">Submit homework solutions, question sheets, and review instructor grading.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span className="bg-amber-50 text-amber-900 border border-amber-200 text-xs font-black px-2.5 py-1 rounded-xl">
+                  {assignments.filter(asgn => {
+                    const matchesGrade = asgn.grade === selectedGrade;
+                    const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
+                    return matchesGrade && matchesMonth;
+                  }).length} {assignments.filter(asgn => {
+                    const matchesGrade = asgn.grade === selectedGrade;
+                    const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
+                    return matchesGrade && matchesMonth;
+                  }).length === 1 ? 'Assignment' : 'Assignments'}
+                </span>
+
+                {isTeacherOrAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenCreateAssignment();
+                    }}
+                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <FaPlus className="text-[10px]" /> Create Asgn
+                  </button>
+                )}
+
+                <div className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-xs transition">
+                  {expandedSections.assignments ? <FaChevronUp /> : <FaChevronDown />}
+                </div>
+              </div>
+            </div>
+
+            {expandedSections.assignments && (
+              <div className="p-5 pt-0 border-t border-gray-100 space-y-4 bg-white animate-fadeIn">
+                {assignments.filter(asgn => {
+                  const matchesGrade = asgn.grade === selectedGrade;
+                  const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
+                  return matchesGrade && matchesMonth;
+                }).length === 0 ? (
+                  <div className="py-8 text-center text-gray-400 space-y-1 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                    <p className="text-sm font-semibold">No assignments posted for {selectedGrade} ({selectedMonth}) yet.</p>
+                    {isTeacherOrAdmin && (
+                      <p className="text-xs text-amber-700 font-bold cursor-pointer hover:underline mt-1" onClick={handleOpenCreateAssignment}>
+                        + Click here to create the first assignment
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  assignments.filter(asgn => {
+                    const matchesGrade = asgn.grade === selectedGrade;
+                    const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
+                    return matchesGrade && matchesMonth;
+                  }).map((asgn) => {
+                    const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+                    const mySub = asgn.mySubmission;
+                    const isGraded = mySub?.status === 'graded' && mySub?.marks !== null;
+                    const isSubmitted = !!mySub;
+                    const isOverdue = asgn.dueDate ? new Date() > new Date(asgn.dueDate) : false;
+
+                    return (
+                      <div key={asgn._id} className="p-5 border border-purple-100/80 rounded-2xl bg-white hover:bg-purple-50/20 transition-all space-y-4 shadow-xs">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xl">📑</span>
+                              <h5 className="font-extrabold text-gray-900 text-base">{asgn.title}</h5>
+                              {asgn.weekNumber > 0 && (
+                                <span className="bg-purple-100 text-purple-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-200">
+                                  Week {asgn.weekNumber}
+                                </span>
+                              )}
+                              {!asgn.isActive && (
+                                <span className="bg-gray-100 text-gray-600 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-gray-200">
+                                  Closed / Inactive
+                                </span>
+                              )}
+                            </div>
+                            {asgn.description && (
+                              <p className="text-xs text-gray-600 font-medium pl-7 line-clamp-2 leading-relaxed">
+                                {asgn.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Badges / Due Date / Points */}
+                          <div className="flex items-center gap-2 flex-wrap text-xs shrink-0 self-end sm:self-auto">
+                            <span className="px-3 py-1 bg-amber-50 text-amber-900 font-black rounded-xl border border-amber-200/60">
+                              Max: {asgn.maxMarks || 100} Marks
+                            </span>
+                            {asgn.dueDate && (
+                              <span className={`px-3 py-1 font-bold rounded-xl border flex items-center gap-1 ${
+                                isOverdue ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-700 border-slate-200'
+                              }`}>
+                                <FaClock /> Due: {new Date(asgn.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Bar / Status */}
+                        <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {asgn.attachmentUrl && (
+                              <a
+                                href={asgn.attachmentUrl.startsWith('http') ? asgn.attachmentUrl : `http://localhost:5000${asgn.attachmentUrl}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-800 hover:bg-purple-100 rounded-xl text-xs font-extrabold transition border border-purple-200"
+                              >
+                                <FaCloudDownloadAlt className="text-sm" /> Question Sheet ({asgn.attachmentName || 'Download'})
+                              </a>
+                            )}
+
+                            {!isTeacher && (
+                              <div>
+                                {isGraded ? (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                    <FaAward className="text-emerald-600" /> Graded: {mySub.marks}/{asgn.maxMarks || 100} Marks ({Math.round((mySub.marks / (asgn.maxMarks || 100)) * 100)}%)
+                                  </span>
+                                ) : isSubmitted ? (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-900 border border-blue-200">
+                                    <FaCheckCircle className="text-blue-600" /> Submitted (Awaiting Teacher Grading)
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                    ⏳ Pending Solution Submission
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Right Buttons */}
+                          <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                            {isTeacher ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenTeacherSubmissions(asgn)}
+                                  className="px-3.5 py-1.5 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 rounded-xl text-xs font-black transition cursor-pointer border border-indigo-200 flex items-center gap-1.5"
+                                >
+                                  <FaClipboardCheck /> Submissions ({asgn.submissionsCount || 0})
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditAssignment(asgn)}
+                                  className="px-3 py-1.5 bg-purple-50 text-purple-800 hover:bg-purple-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAssignment(asgn._id)}
+                                  className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                {isGraded && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenFeedbackModal(mySub)}
+                                    className="px-4 py-2 bg-emerald-700 text-white hover:bg-emerald-800 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                                  >
+                                    <FaCommentDots /> View Remarks & Feedback
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenSubmitModal(asgn)}
+                                  className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 ${
+                                    isSubmitted
+                                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+                                      : 'bg-purple-700 hover:bg-purple-800 text-white'
+                                  }`}
+                                >
+                                  <FaFileUpload /> {isSubmitted ? 'Resubmit / Update Solution' : 'Submit Solution'}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ========================================================================= */}
+          {/* SECTION 5: QUIZZES & ASSESSMENTS (Expandable) */}
+          {/* ========================================================================= */}
+          <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200">
+            <div
+              onClick={() => toggleSection('quizzes')}
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-gray-50/80 transition-colors text-left cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                  📝
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-extrabold text-base text-gray-900 leading-tight">
+                    Quizzes & Assessments ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">Test your knowledge by attempting weekly interactive quiz assessments.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span className="bg-blue-50 text-blue-900 border border-blue-200 text-xs font-black px-2.5 py-1 rounded-xl">
+                  {quizzes.filter(q => {
+                    const matchesGrade = q.grade === selectedGrade;
+                    const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
+                    return matchesGrade && matchesMonth;
+                  }).length} {quizzes.filter(q => {
+                    const matchesGrade = q.grade === selectedGrade;
+                    const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
+                    return matchesGrade && matchesMonth;
+                  }).length === 1 ? 'Quiz' : 'Quizzes'}
+                </span>
+
+                {isTeacherOrAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/course/${courseId}/create-quiz`);
+                    }}
+                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <FaPlus className="text-[10px]" /> Create Quiz
+                  </button>
+                )}
+
+                <div className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-xs transition">
+                  {expandedSections.quizzes ? <FaChevronUp /> : <FaChevronDown />}
+                </div>
+              </div>
+            </div>
+
+            {expandedSections.quizzes && (
+              <div className="p-5 pt-0 border-t border-gray-100 space-y-3 bg-white animate-fadeIn">
+                {quizzes.filter(q => {
+                  const matchesGrade = q.grade === selectedGrade;
+                  const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
+                  return matchesGrade && matchesMonth;
+                }).length === 0 ? (
+                  <div className="py-8 text-center text-gray-400 space-y-1 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                    <p className="text-sm font-semibold">No quizzes available for {selectedGrade} ({selectedMonth}) yet.</p>
+                    {isTeacherOrAdmin && (
+                      <p
+                        className="text-xs text-blue-600 font-bold cursor-pointer hover:underline mt-1"
+                        onClick={() => navigate(`/course/${courseId}/create-quiz`)}
+                      >
+                        + Click here to create a new quiz assessment
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  quizzes.filter(q => {
+                    const matchesGrade = q.grade === selectedGrade;
+                    const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
+                    return matchesGrade && matchesMonth;
+                  }).map((quiz) => {
+                    const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+                    return (
+                      <div key={quiz._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 rounded-2xl hover:bg-gray-50/70 transition-all gap-4 bg-white shadow-2xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-2xl bg-yellow-100 text-yellow-700 text-xl flex items-center justify-center font-bold shrink-0 shadow-inner">
+                            📝
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-extrabold text-gray-900 text-sm truncate">{quiz.title}</p>
+                              {quiz.weekNumber !== undefined && quiz.weekNumber > 0 && (
+                                <span className="bg-purple-50 text-purple-700 text-[10px] font-extrabold px-2 py-0.5 rounded border border-purple-200">
+                                  Week {quiz.weekNumber}
+                                </span>
+                              )}
+                              {!quiz.isActive && (
+                                <span className="bg-gray-100 text-gray-600 text-[10px] font-extrabold px-2 py-0.5 rounded border border-gray-200">
+                                  Inactive
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Questions: {quiz.questions?.length} · Time: {quiz.timeLimit > 0 ? `${quiz.timeLimit} mins` : 'No limit'} · Pass Mark: {quiz.passingPercentage || 50}%
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap shrink-0">
+                          {isTeacher ? (
+                            <>
+                              <button
+                                onClick={() => handleToggleQuizActive(quiz._id)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${quiz.isActive
+                                    ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                                    : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
+                                  }`}
+                              >
+                                {quiz.isActive ? 'Deactivate' : 'Activate'}
+                              </button>
+                              <button
+                                onClick={() => navigate(`/course/${courseId}/quiz/${quiz._id}/edit`)}
+                                className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border border-purple-200"
                               >
                                 Edit
                               </button>
                               <button
-                                type="button"
-                                onClick={() => handleDeleteAssignment(asgn._id)}
-                                className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                                onClick={() => navigate(`/quiz/${quiz._id}/submissions`)}
+                                className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border border-blue-200"
+                              >
+                                Submissions
+                              </button>
+                              <button
+                                onClick={() => handleDeleteQuiz(quiz._id)}
+                                className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border border-red-200"
                               >
                                 Delete
                               </button>
                             </>
                           ) : (
                             <>
-                              {isGraded && (
+                              {quiz.hasAttempted ? (
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs font-bold text-gray-500">
+                                    Score: <strong className="text-purple-600">{quiz.score}</strong> / {quiz.totalPoints}
+                                  </span>
+                                  <button
+                                    onClick={() => navigate(`/quiz/${quiz._id}/take`)}
+                                    className="bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer"
+                                  >
+                                    Review Answers
+                                  </button>
+                                </div>
+                              ) : (
                                 <button
-                                  type="button"
-                                  onClick={() => handleOpenFeedbackModal(mySub)}
-                                  className="px-4 py-2 bg-emerald-700 text-white hover:bg-emerald-800 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                                  onClick={() => navigate(`/quiz/${quiz._id}/take`)}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer"
                                 >
-                                  <FaCommentDots /> View Remarks & Feedback
+                                  Start Quiz
                                 </button>
                               )}
-                              <button
-                                type="button"
-                                onClick={() => handleOpenSubmitModal(asgn)}
-                                className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 ${isSubmitted
-                                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-800'
-                                    : 'bg-purple-700 hover:bg-purple-800 text-white'
-                                  }`}
-                              >
-                                <FaFileUpload /> {isSubmitted ? 'Resubmit / Update Solution' : 'Submit Solution'}
-                              </button>
                             </>
                           )}
                         </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Quizzes & Assessments Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-              <div>
-                <h4 className="font-bold text-lg text-gray-800">
-                  Quizes ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
-                </h4>
-                <p className="text-xs text-gray-500">Test your knowledge by attempting the weekly quiz assessments.</p>
+                    );
+                  })
+                )}
               </div>
-              {isTeacherOrAdmin && (
-                <button
-                  onClick={() => navigate(`/course/${courseId}/create-quiz`)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
-                >
-                  + Create Quiz
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              {quizzes.filter(q => {
-                const matchesGrade = q.grade === selectedGrade;
-                const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
-                return matchesGrade && matchesMonth;
-              }).length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No quizzes available for {selectedGrade} ({selectedMonth}) yet.</p>
-              ) : (
-                quizzes.filter(q => {
-                  const matchesGrade = q.grade === selectedGrade;
-                  const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
-                  return matchesGrade && matchesMonth;
-                }).map((quiz) => {
-                  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
-                  return (
-                    <div key={quiz._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="text-yellow-500 text-2xl">📝</div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-extrabold text-gray-900 text-sm">{quiz.title}</p>
-                            {quiz.weekNumber !== undefined && quiz.weekNumber > 0 && (
-                              <span className="bg-purple-50 text-purple-700 text-[10px] font-extrabold px-2 py-0.5 rounded border border-purple-200">
-                                Week {quiz.weekNumber}
-                              </span>
-                            )}
-                            {!quiz.isActive && (
-                              <span className="bg-gray-100 text-gray-600 text-[10px] font-extrabold px-2 py-0.5 rounded border border-gray-200">
-                                Inactive
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Questions: {quiz.questions?.length} · Time: {quiz.timeLimit > 0 ? `${quiz.timeLimit} mins` : 'No limit'} · Pass Mark: {quiz.passingPercentage || 50}%
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-                        {isTeacher ? (
-                          <>
-                            <button
-                              onClick={() => handleToggleQuizActive(quiz._id)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${quiz.isActive
-                                  ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
-                                  : 'bg-green-50 text-green-700 hover:bg-green-100'
-                                }`}
-                            >
-                              {quiz.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                            <button
-                              onClick={() => navigate(`/course/${courseId}/quiz/${quiz._id}/edit`)}
-                              className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => navigate(`/quiz/${quiz._id}/submissions`)}
-                              className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
-                            >
-                              Submissions
-                            </button>
-                            <button
-                              onClick={() => handleDeleteQuiz(quiz._id)}
-                              className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
-                            >
-                              Delete
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            {quiz.hasAttempted ? (
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs font-bold text-gray-500">
-                                  Score: <strong className="text-purple-600">{quiz.score}</strong> / {quiz.totalPoints}
-                                </span>
-                                <button
-                                  onClick={() => navigate(`/quiz/${quiz._id}/take`)}
-                                  className="bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer"
-                                >
-                                  Review Answers
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => navigate(`/quiz/${quiz._id}/take`)}
-                                className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer"
-                              >
-                                Start Quiz
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            )}
           </div>
 
         </div>
@@ -3498,6 +3805,261 @@ const CourseDetails = () => {
                     <span>{isPublishingLive ? 'Publishing...' : currentLesson?.liveStream?.isLive ? 'Update Live Stream' : 'Publish Live Class'}</span>
                   </button>
                 </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: POST / EDIT ANNOUNCEMENT (Teacher/Admin) */}
+      {/* ========================================================================= */}
+      {showAnnouncementModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <span className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 text-xl flex items-center justify-center font-black">
+                  📢
+                </span>
+                <div>
+                  <h3 className="text-lg font-black text-gray-900">
+                    {currentLesson?.teacherMessage ? 'Update Announcement' : 'Post New Announcement'}
+                  </h3>
+                  <p className="text-xs text-gray-500 font-bold">Week {activeWeek} • Grade {selectedGrade}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAnnouncementModal(false)}
+                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-gray-700">
+                Announcement Message <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={5}
+                placeholder="Type your message, homework expectations, or classroom notices here..."
+                value={editingMessage}
+                onChange={(e) => setEditingMessage(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-medium text-xs leading-relaxed resize-none"
+                required
+              />
+              <p className="text-[11px] text-gray-400">
+                💡 This announcement will be visible to all enrolled students for Week {activeWeek}.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowAnnouncementModal(false)}
+                className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveMessage}
+                className="px-6 py-2.5 bg-purple-700 text-white font-black rounded-xl hover:bg-purple-800 transition shadow-md shadow-purple-200 cursor-pointer text-xs"
+              >
+                Save Announcement
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD VIDEO LESSON (Teacher/Admin) */}
+      {/* ========================================================================= */}
+      {showAddVideoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <span className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 text-xl flex items-center justify-center font-black">
+                  🎬
+                </span>
+                <div>
+                  <h3 className="text-lg font-black text-gray-900">Add Video Lesson</h3>
+                  <p className="text-xs text-gray-500 font-bold">Week {activeWeek} • Grade {selectedGrade}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddVideoModal(false)}
+                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddVideo} className="space-y-4 text-xs font-bold text-gray-700">
+              <div>
+                <label className="block text-gray-800 mb-1">Video Title <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  placeholder="e.g. Unit 3 - Lecture 1 (Theory)"
+                  value={videoTitle}
+                  onChange={(e) => setVideoTitle(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-emerald-600 font-semibold text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-800 mb-1">Video Link (YouTube URL or Direct Link) <span className="text-red-500">*</span></label>
+                <input
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-emerald-600 font-medium text-xs"
+                  required
+                />
+              </div>
+
+              <div className="bg-purple-50/60 p-3.5 rounded-2xl border border-purple-100 space-y-2">
+                <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                  <FaDownload className="text-purple-600" /> Student Download Policy:
+                </label>
+                <select
+                  value={videoDownloadType}
+                  onChange={(e) => setVideoDownloadType(e.target.value)}
+                  className="w-full bg-white border border-gray-200 text-xs font-bold text-gray-800 rounded-xl p-2.5 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                >
+                  <option value="immediate">🟢 Immediate Download (Available Now)</option>
+                  <option value="one_month">⏳ After 1 Month (30 Days)</option>
+                  <option value="custom_date">📅 Custom Unlock Date</option>
+                  <option value="disabled">🚫 View Online Only (Download Disabled)</option>
+                </select>
+                {videoDownloadType === 'custom_date' && (
+                  <input
+                    type="date"
+                    value={videoCustomUnlockDate}
+                    onChange={(e) => setVideoCustomUnlockDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full bg-white border border-purple-200 text-xs font-bold rounded-xl p-2.5 outline-none"
+                    required
+                  />
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddVideoModal(false)}
+                  className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl transition shadow-md shadow-emerald-200 cursor-pointer text-xs"
+                >
+                  + Add Video Lesson
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: UPLOAD PDF MATERIAL (Teacher/Admin) */}
+      {/* ========================================================================= */}
+      {showAddPdfModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <span className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 text-xl flex items-center justify-center font-black">
+                  📕
+                </span>
+                <div>
+                  <h3 className="text-lg font-black text-gray-900">Upload PDF Note / Material</h3>
+                  <p className="text-xs text-gray-500 font-bold">Week {activeWeek} • Grade {selectedGrade}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddPdfModal(false)}
+                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadPdf} className="space-y-4 text-xs font-bold text-gray-700">
+              <div>
+                <label className="block text-gray-800 mb-1">Document Title (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Unit 3 - Summary Note & Formulas"
+                  value={pdfTitle}
+                  onChange={(e) => setPdfTitle(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-semibold text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-800 mb-1">PDF File (Max 5MB) <span className="text-red-500">*</span></label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setPdfFile(e.target.files[0])}
+                  className="w-full px-4 py-2.5 bg-gray-50 rounded-2xl border border-gray-200 outline-none text-xs"
+                  required
+                />
+              </div>
+
+              <div className="bg-purple-50/60 p-3.5 rounded-2xl border border-purple-100 space-y-2">
+                <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                  <FaDownload className="text-purple-600" /> Student Download Policy:
+                </label>
+                <select
+                  value={pdfDownloadType}
+                  onChange={(e) => setPdfDownloadType(e.target.value)}
+                  className="w-full bg-white border border-gray-200 text-xs font-bold text-gray-800 rounded-xl p-2.5 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                >
+                  <option value="immediate">🟢 Immediate Download (Available Now)</option>
+                  <option value="one_month">⏳ After 1 Month (30 Days)</option>
+                  <option value="custom_date">📅 Custom Unlock Date</option>
+                  <option value="disabled">🚫 View Online Only (Download Disabled)</option>
+                </select>
+                {pdfDownloadType === 'custom_date' && (
+                  <input
+                    type="date"
+                    value={pdfCustomUnlockDate}
+                    onChange={(e) => setPdfCustomUnlockDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full bg-white border border-purple-200 text-xs font-bold rounded-xl p-2.5 outline-none"
+                    required
+                  />
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddPdfModal(false)}
+                  className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploadingPdf}
+                  className="px-6 py-2.5 bg-purple-700 hover:bg-purple-800 text-white font-black rounded-xl transition shadow-md shadow-purple-200 cursor-pointer text-xs disabled:opacity-50"
+                >
+                  {isUploadingPdf ? 'Uploading...' : '+ Upload PDF'}
+                </button>
               </div>
             </form>
           </div>

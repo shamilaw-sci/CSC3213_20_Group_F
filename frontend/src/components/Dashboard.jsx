@@ -25,7 +25,15 @@ import {
   FaReceipt,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaArrowRight
+  FaArrowRight,
+  FaGraduationCap,
+  FaCoins,
+  FaMoneyBillWave,
+  FaFilter,
+  FaExternalLinkAlt,
+  FaComments,
+  FaUserShield,
+  FaSearch
 } from 'react-icons/fa';
 import StudentIdCard from './StudentIdCard';
 import AddScheduleModal from './AddScheduleModal';
@@ -38,13 +46,15 @@ const gradeOptions = [
 ];
 
 // --- HERO WELCOME BANNER ---
-const DashboardHero = ({ user, roleBadge, quickActions }) => {
+const DashboardHero = ({ user, roleBadge, quickActions, extraBadge }) => {
   const [timeStr, setTimeStr] = useState('');
+  const [dateStr, setDateStr] = useState('');
 
   useEffect(() => {
     const update = () => {
       const now = new Date();
       setTimeStr(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setDateStr(now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }));
     };
     update();
     const interval = setInterval(update, 30000);
@@ -52,31 +62,39 @@ const DashboardHero = ({ user, roleBadge, quickActions }) => {
   }, []);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-6 sm:p-8 text-white shadow-xl mb-6 border border-purple-900/30">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-purple-950 p-6 sm:p-8 text-white shadow-xl mb-6 border border-purple-900/40 animate-fadeIn">
       {/* Ambient background glow orbs */}
-      <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/15 rounded-full blur-3xl pointer-events-none transform translate-x-20 -translate-y-20" />
-      <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl pointer-events-none transform translate-x-24 -translate-y-24" />
+      <div className="absolute bottom-0 left-1/3 w-72 h-72 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="bg-purple-500/25 border border-purple-400/30 text-purple-200 text-3xs font-extrabold uppercase px-3.5 py-1 rounded-full tracking-widest backdrop-blur-md">
+          <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
+            <span className="bg-purple-500/30 border border-purple-400/40 text-purple-200 text-[10px] font-black uppercase px-3.5 py-1 rounded-full tracking-widest backdrop-blur-md shadow-xs">
               {roleBadge}
             </span>
-            <span className="text-purple-300/80 text-xs font-medium flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+            <span className="text-purple-200/90 text-xs font-semibold flex items-center gap-1.5 bg-white/10 border border-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
               <FaClock className="text-purple-400 text-xs" /> {timeStr}
             </span>
+            <span className="text-purple-300/80 text-xs font-medium hidden sm:inline-flex items-center gap-1 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+              📅 {dateStr}
+            </span>
+            {extraBadge && (
+              <span className="text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-bold px-3 py-1 rounded-full">
+                {extraBadge}
+              </span>
+            )}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-            Welcome back, {user?.name || 'User'}! 👋
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2">
+            Welcome back, {user?.name || 'Administrator'}! <span className="inline-block animate-wave">👋</span>
           </h1>
-          <p className="text-purple-200/80 text-xs sm:text-sm mt-1 max-w-xl">
-            Here is your live institute management overview and real-time operations performance.
+          <p className="text-purple-200/80 text-xs sm:text-sm mt-1 max-w-xl font-medium">
+            Live institute management overview, student enrolment analytics, and real-time operations.
           </p>
         </div>
 
         {quickActions && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             {quickActions}
           </div>
         )}
@@ -85,13 +103,13 @@ const DashboardHero = ({ user, roleBadge, quickActions }) => {
   );
 };
 
-// --- CUSTOM SVG LINE CHART COMPONENT ---
+// --- CUSTOM SMOOTH BEZIER SVG LINE CHART COMPONENT ---
 const SvgLineChart = ({ data }) => {
   if (!data || data.length === 0) return null;
-  const padding = 35;
-  const width = 500;
-  const height = 220;
-  const maxVal = Math.max(...data.map(d => d.count)) * 1.25 || 10;
+  const padding = 40;
+  const width = 560;
+  const height = 240;
+  const maxVal = Math.max(...data.map(d => d.count)) * 1.3 || 10;
 
   const points = data.map((d, index) => {
     const x = padding + (index * (width - padding * 2) / (data.length - 1 || 1));
@@ -99,51 +117,63 @@ const SvgLineChart = ({ data }) => {
     return { x, y, month: d.month, count: d.count };
   });
 
+  // Calculate smooth cubic Bezier path
   let pathD = `M ${points[0].x} ${points[0].y}`;
   for (let i = 1; i < points.length; i++) {
-    pathD += ` L ${points[i].x} ${points[i].y}`;
+    const prev = points[i - 1];
+    const curr = points[i];
+    const cpx1 = prev.x + (curr.x - prev.x) / 2;
+    const cpy1 = prev.y;
+    const cpx2 = prev.x + (curr.x - prev.x) / 2;
+    const cpy2 = curr.y;
+    pathD += ` C ${cpx1} ${cpy1}, ${cpx2} ${cpy2}, ${curr.x} ${curr.y}`;
   }
 
   const fillD = pathD + ` L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full select-none">
       <defs>
         <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.0" />
+          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.45" />
+          <stop offset="60%" stopColor="#6366f1" stopOpacity="0.12" />
+          <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
         </linearGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#7c3aed" floodOpacity="0.25" />
+        </filter>
       </defs>
 
-      {/* Grid Lines */}
+      {/* Horizontal Grid Lines */}
       {[0, 0.25, 0.5, 0.75, 1].map((r, i) => {
         const y = padding + r * (height - padding * 2);
         const value = Math.round(maxVal * (1 - r));
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" strokeWidth="1" />
-            <text x={padding - 8} y={y + 4} fill="#94a3b8" fontSize="9" textAnchor="end" className="font-semibold">{value}</text>
+            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" strokeWidth="1" strokeDasharray={r === 1 ? 'none' : '3 3'} />
+            <text x={padding - 10} y={y + 3.5} fill="#94a3b8" fontSize="9" textAnchor="end" className="font-bold">{value}</text>
           </g>
         );
       })}
 
-      {/* Area under line */}
+      {/* Area under curve */}
       <path d={fillD} fill="url(#chartGrad)" />
 
-      {/* Main Line */}
-      <path d={pathD} fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Main Curve */}
+      <path d={pathD} fill="none" stroke="#7c3aed" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" />
 
-      {/* Dots and Tooltips */}
+      {/* Interactive Dots and Badges */}
       {points.map((p, i) => (
         <g key={i} className="group cursor-pointer">
-          <circle cx={p.x} cy={p.y} r="4.5" fill="#6366f1" stroke="white" strokeWidth="2.5" />
-          <circle cx={p.x} cy={p.y} r="12" fill="#6366f1" opacity="0" className="hover:opacity-15 transition-opacity" />
+          <circle cx={p.x} cy={p.y} r="5" fill="#7c3aed" stroke="white" strokeWidth="2.5" className="transition-transform group-hover:scale-125" />
+          <circle cx={p.x} cy={p.y} r="14" fill="#7c3aed" opacity="0" className="hover:opacity-15 transition-opacity" />
 
-          <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <rect x={p.x - 22} y={p.y - 28} width="44" height="18" rx="4" fill="#0f172a" />
-            <text x={p.x} y={p.y - 16} fill="white" fontSize="8" fontWeight="bold" textAnchor="middle">{p.count}</text>
+          {/* Hover Tooltip Card */}
+          <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            <rect x={p.x - 28} y={p.y - 32} width="56" height="22" rx="6" fill="#0f172a" />
+            <text x={p.x} y={p.y - 18} fill="white" fontSize="9" fontWeight="900" textAnchor="middle">{p.count} Enrolled</text>
           </g>
-          <text x={p.x} y={height - padding + 15} fill="#64748b" fontSize="9" fontWeight="bold" textAnchor="middle">{p.month}</text>
+          <text x={p.x} y={height - padding + 16} fill="#64748b" fontSize="10" fontWeight="bold" textAnchor="middle">{p.month}</text>
         </g>
       ))}
     </svg>
@@ -151,34 +181,57 @@ const SvgLineChart = ({ data }) => {
 };
 
 // --- PAYMENT METRICS DONUT CHART COMPONENT ---
-const PaymentDonut = ({ totalCollected = 0, pendingDues = 0 }) => {
+const PaymentDonut = ({ totalCollected = 0, pendingDues = 0, onNavigate }) => {
   const total = totalCollected + pendingDues;
   const percentage = total > 0 ? Math.round((totalCollected / total) * 100) : 100;
   const strokeDashoffset = 251.2 * (1 - percentage / 100);
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 h-full">
-      <div className="relative w-36 h-36 flex items-center justify-center">
+    <div className="flex flex-col items-center justify-between p-2 h-full">
+      <div className="relative w-36 h-36 flex items-center justify-center my-auto">
         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="9" fill="transparent" />
-          <circle cx="50" cy="50" r="40" stroke="#10b981" strokeWidth="9" fill="transparent"
-            strokeDasharray="251.2" strokeDashoffset={strokeDashoffset} strokeLinecap="round" className="transition-all duration-1000" />
+          <circle
+            cx="50"
+            cy="50"
+            r="40"
+            stroke="#10b981"
+            strokeWidth="9"
+            fill="transparent"
+            strokeDasharray="251.2"
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="transition-all duration-1000 ease-out"
+          />
         </svg>
         <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-3xl font-extrabold text-slate-800">{percentage}%</span>
-          <span className="text-4xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Collected</span>
+          <span className="text-3xl font-black text-slate-800 tracking-tight">{percentage}%</span>
+          <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">Settled</span>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 w-full text-xs font-semibold">
-        <div className="bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-100 flex flex-col items-center">
-          <span className="text-slate-400 font-bold text-4xs uppercase tracking-wider">Paid Total</span>
-          <span className="text-sm font-bold text-emerald-600 mt-0.5">LKR {totalCollected.toLocaleString()}</span>
+      <div className="w-full space-y-2 mt-3">
+        <div className="grid grid-cols-2 gap-2.5 text-xs font-semibold">
+          <div className="bg-emerald-50/90 p-3 rounded-2xl border border-emerald-100/80 flex flex-col items-center shadow-2xs">
+            <span className="text-emerald-800 font-black text-[10px] uppercase tracking-wider">Paid Total</span>
+            <span className="text-sm font-black text-emerald-600 mt-0.5">LKR {totalCollected.toLocaleString()}</span>
+          </div>
+          <div className="bg-amber-50/90 p-3 rounded-2xl border border-amber-100/80 flex flex-col items-center shadow-2xs">
+            <span className="text-amber-800 font-black text-[10px] uppercase tracking-wider">Pending Dues</span>
+            <span className="text-sm font-black text-amber-600 mt-0.5">LKR {pendingDues.toLocaleString()}</span>
+          </div>
         </div>
-        <div className="bg-amber-50/80 p-2.5 rounded-xl border border-amber-100 flex flex-col items-center">
-          <span className="text-slate-400 font-bold text-4xs uppercase tracking-wider">Pending Dues</span>
-          <span className="text-sm font-bold text-amber-600 mt-0.5">LKR {pendingDues.toLocaleString()}</span>
-        </div>
+
+        {onNavigate && (
+          <button
+            type="button"
+            onClick={onNavigate}
+            className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-purple-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 border border-slate-200/80 cursor-pointer"
+          >
+            <span>View Fee Records & Invoices</span>
+            <FaArrowRight className="text-[10px]" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -224,6 +277,8 @@ const AdminDashboard = ({ user }) => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({
     students: 0,
+    onlineStudents: 0,
+    physicalStudents: 0,
     teachers: 0,
     courses: 0,
     recentRegistrations: [],
@@ -237,6 +292,9 @@ const AdminDashboard = ({ user }) => {
   const [teachers, setTeachers] = useState([]);
   const [attendanceStats, setAttendanceStats] = useState({ today: { present: 0, late: 0, absent: 0, total: 0 } });
   const [loading, setLoading] = useState(true);
+
+  // Timetable Day Filter State
+  const [selectedDayFilter, setSelectedDayFilter] = useState('ALL');
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -303,95 +361,201 @@ const AdminDashboard = ({ user }) => {
     }
   };
 
+  // Helper for Schedule Day of Week
+  const daysOfWeek = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+  const getTodayDayCode = () => {
+    const map = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    return map[new Date().getDay()];
+  };
+  const todayCode = getTodayDayCode();
+
+  const filteredSchedule = schedule.filter(sch => {
+    if (selectedDayFilter === 'ALL') return true;
+    if (selectedDayFilter === 'TODAY') {
+      const schDay = (sch.dayOfWeek || '').toUpperCase().slice(0, 3);
+      return schDay === todayCode;
+    }
+    const schDay = (sch.dayOfWeek || '').toUpperCase().slice(0, 3);
+    return schDay === selectedDayFilter;
+  });
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Hero Banner */}
+    <div className="space-y-6 animate-fade-in pb-8">
+      {/* ========================================================================= */}
+      {/* 1. HERO COMMAND BANNER */}
+      {/* ========================================================================= */}
       <DashboardHero
         user={user}
         roleBadge="System Administrator"
+        extraBadge="🟢 Operations Active"
         quickActions={
           <>
             <button
               onClick={() => navigate('/add-course')}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg cursor-pointer"
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs px-4 py-2.5 rounded-2xl transition flex items-center gap-2 shadow-lg shadow-purple-900/30 active:scale-95 cursor-pointer"
             >
               <FaPlusCircle /> Create Course
             </button>
             <button
               onClick={() => setShowModal(true)}
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 backdrop-blur-md cursor-pointer"
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs px-4 py-2.5 rounded-2xl transition flex items-center gap-2 backdrop-blur-md active:scale-95 cursor-pointer"
             >
               <FaCalendarAlt /> Add Class
+            </button>
+            <button
+              onClick={() => navigate('/sms-settings')}
+              className="bg-amber-600/90 hover:bg-amber-600 text-white font-bold text-xs px-3.5 py-2.5 rounded-2xl transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
+              title="Broadcast SMS Announcement"
+            >
+              <FaBullhorn /> SMS Broadcast
+            </button>
+            <button
+              onClick={() => navigate('/analytics')}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs px-3.5 py-2.5 rounded-2xl transition flex items-center gap-1.5 backdrop-blur-md active:scale-95 cursor-pointer"
+              title="View In-Depth Analytics"
+            >
+              <FaChartLine /> Analytics
             </button>
           </>
         }
       />
 
-      {/* Stats KPI Ribbon */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
-          <div className="p-4 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform">
-            <FaUsers className="text-2xl" />
+      {/* ========================================================================= */}
+      {/* 2. STATS KPI MATRIX (5 METRICS RIBBON) */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Metric 1: Total Students */}
+        <div
+          onClick={() => navigate('/manage-users')}
+          className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-100/90 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-purple-200 transition-all group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Total Students</span>
+            <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FaUsers className="text-xl" />
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Students</p>
-            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.students || 0}</h3>
-            <span className="text-4xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1">
-              Active Learners
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
-          <div className="p-4 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
-            <FaChalkboardTeacher className="text-2xl" />
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Institute Teachers</p>
-            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.teachers || 0}</h3>
-            <span className="text-4xs text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-1">
-              Teaching Staff
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
-          <div className="p-4 bg-amber-50 text-amber-600 rounded-xl group-hover:scale-110 transition-transform">
-            <FaBookOpen className="text-2xl" />
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Courses</p>
-            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">{stats.courses || 0}</h3>
-            <span className="text-4xs text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-full inline-block mt-1">
-              Curriculum Programs
-            </span>
+          <div className="mt-2">
+            <h3 className="text-2xl font-black text-slate-800">{stats.students || 0}</h3>
+            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+              <span className="text-[10px] text-purple-700 font-extrabold bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                💻 {stats.onlineStudents || Math.max(0, (stats.students || 0) - (stats.physicalStudents || 0))} Online
+              </span>
+              <span className="text-[10px] text-indigo-700 font-extrabold bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                🏫 {stats.physicalStudents || 0} Physical
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 hover:shadow-md transition-all group">
-          <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">
-            <FaCalendarCheck className="text-2xl" />
+        {/* Metric 2: Teachers */}
+        <div
+          onClick={() => navigate('/manage-users')}
+          className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-100/90 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Faculty Staff</span>
+            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FaChalkboardTeacher className="text-xl" />
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Arrived Today</p>
-            <h3 className="text-2xl font-extrabold text-slate-800 mt-0.5">
+          <div className="mt-2">
+            <h3 className="text-2xl font-black text-slate-800">{stats.teachers || 0}</h3>
+            <div className="mt-1.5">
+              <span className="text-[10px] text-blue-700 font-extrabold bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+                👨‍🏫 Active Instructors
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Metric 3: Active Courses */}
+        <div
+          onClick={() => navigate('/courses')}
+          className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-100/90 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-amber-200 transition-all group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Active Courses</span>
+            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FaBookOpen className="text-xl" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-black text-slate-800">{stats.courses || 0}</h3>
+            <div className="mt-1.5">
+              <span className="text-[10px] text-amber-700 font-extrabold bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-100">
+                📚 Grades 6–13
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Metric 4: Arrived Today */}
+        <div
+          onClick={() => navigate('/attendance')}
+          className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-100/90 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-emerald-200 transition-all group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Arrived Today</span>
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FaCalendarCheck className="text-xl" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-black text-slate-800">
               {attendanceStats.today?.present || stats.todayArrivalsCount || 0}
             </h3>
-            <span className="text-4xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1">
-              Physical Check-ins
-            </span>
+            <div className="mt-1.5">
+              <span className="text-[10px] text-emerald-700 font-extrabold bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-100">
+                🏫 Counter Check-ins
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Metric 5: Revenue Collected */}
+        <div
+          onClick={() => navigate('/payments')}
+          className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-100/90 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-emerald-200 transition-all group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Revenue (LKR)</span>
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FaCoins className="text-xl" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-xl font-black text-slate-800">
+              {(stats.totalCollected || 0).toLocaleString()}
+            </h3>
+            <div className="mt-1.5">
+              <span className="text-[10px] text-emerald-700 font-extrabold bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-100">
+                💳 {stats.pendingDues > 0 ? `${stats.pendingDues.toLocaleString()} Pending` : '100% Settled'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Visual Charts Section */}
+      {/* ========================================================================= */}
+      {/* 3. VISUAL CHARTS ROW (Curved Intake Line & Fee Collection Donut) */}
+      {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs lg:col-span-2 flex flex-col justify-between h-96">
-          <div>
-            <h3 className="font-bold text-slate-800 text-lg">Student Intake Analytics</h3>
-            <p className="text-xs text-slate-400">Monthly student registrations trend</p>
+        {/* Student Intake Curve */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs lg:col-span-2 flex flex-col justify-between min-h-[380px]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="font-extrabold text-slate-800 text-base">Student Intake & Registration Trend</h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Monthly enrollment progression across all academic grades</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="bg-purple-50 text-purple-700 text-xs font-black px-3 py-1 rounded-xl border border-purple-100">
+                📈 {stats.students || 0} Total Registered
+              </span>
+            </div>
           </div>
-          <div className="h-64 flex items-center justify-center">
+
+          <div className="h-64 flex items-center justify-center pt-2">
             {stats.growthData && stats.growthData.length > 0 ? (
               <SvgLineChart data={stats.growthData} />
             ) : (
@@ -400,102 +564,278 @@ const AdminDashboard = ({ user }) => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between h-96">
-          <div>
-            <h3 className="font-bold text-slate-800 text-lg">Fee Collections Ratio</h3>
-            <p className="text-xs text-slate-400">Total collected vs expected pending dues</p>
+        {/* Fee Collection Donut */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs flex flex-col justify-between min-h-[380px]">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="font-extrabold text-slate-800 text-base">Fee Collections & Settlement</h3>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">Total collected vs outstanding student fee dues</p>
           </div>
-          <div className="flex-1">
-            <PaymentDonut totalCollected={stats.totalCollected} pendingDues={stats.pendingDues} />
+          <div className="flex-1 py-2">
+            <PaymentDonut
+              totalCollected={stats.totalCollected}
+              pendingDues={stats.pendingDues}
+              onNavigate={() => navigate('/payments')}
+            />
           </div>
         </div>
       </div>
 
-      {/* Operations Grid */}
+      {/* ========================================================================= */}
+      {/* 4. OPERATIONS & SCHEDULE GRID */}
+      {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Registrations Log */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs lg:col-span-1 flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs lg:col-span-1 flex flex-col justify-between">
           <div>
-            <h3 className="font-bold text-slate-800 text-lg mb-4">Recent Registrations</h3>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div>
+                <h3 className="font-extrabold text-slate-800 text-base">Recent Admissions</h3>
+                <p className="text-xs text-slate-400 font-medium">Newest enrolled student profiles</p>
+              </div>
+              <span className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-xs">
+                {stats.recentRegistrations?.length || 0}
+              </span>
+            </div>
+
             <div className="space-y-3.5">
               {stats.recentRegistrations && stats.recentRegistrations.length > 0 ? (
-                stats.recentRegistrations.map((reg) => (
-                  <div key={reg._id} className="flex justify-between items-center border-b border-slate-50 pb-2.5">
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-800">{reg.name}</h4>
-                      <p className="text-4xs text-slate-400 font-medium">{reg.email}</p>
+                stats.recentRegistrations.map((reg, idx) => {
+                  const colors = ['bg-purple-100 text-purple-700', 'bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-rose-100 text-rose-700'];
+                  const avatarColor = colors[idx % colors.length];
+                  const initial = (reg.name || 'S').charAt(0).toUpperCase();
+
+                  return (
+                    <div key={reg._id || idx} className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-9 h-9 rounded-xl ${avatarColor} flex items-center justify-center font-black text-sm shrink-0 shadow-2xs`}>
+                          {initial}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-black text-slate-800 truncate">{reg.name}</h4>
+                          <p className="text-[11px] text-slate-400 font-medium truncate">{reg.email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 pl-2">
+                        <span className="text-[10px] font-black text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-lg border border-purple-100 block">
+                          {reg.grade || 'General'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">
+                          {reg.createdAt ? new Date(reg.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-4xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
-                        {reg.grade || 'No Grade'}
-                      </span>
-                      <p className="text-4xs text-slate-400 font-medium mt-1">
-                        {new Date(reg.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <p className="text-xs text-slate-400 italic text-center py-6">No recent registrations</p>
+                <p className="text-xs text-slate-400 italic text-center py-8">No recent registrations</p>
               )}
             </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 mt-4">
+            <button
+              onClick={() => navigate('/manage-users')}
+              className="w-full py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-800 font-black text-xs rounded-2xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>View All Enrolled Students</span>
+              <FaArrowRight className="text-[10px]" />
+            </button>
           </div>
         </div>
 
         {/* Timetable Schedule Manager */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs lg:col-span-2 flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="font-bold text-slate-800 text-lg">Institute Timetable</h3>
-              <p className="text-xs text-slate-400">Active recurring schedule for student classes</p>
-            </div>
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
-            >
-              <FaPlusCircle /> Add Class to Calendar
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto max-h-[300px] space-y-3 pr-1">
-            {schedule && schedule.length > 0 ? (
-              schedule.map((sch) => (
-                <div key={sch._id} className="flex justify-between items-center p-3.5 rounded-xl border border-slate-100 hover:border-purple-200 hover:bg-purple-50/20 transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-purple-50 text-purple-700 p-3 rounded-xl flex flex-col items-center min-w-[70px]">
-                      <span className="text-4xs font-extrabold uppercase text-purple-600">{sch.dayOfWeek ? sch.dayOfWeek.slice(0, 3) : 'DAY'}</span>
-                      <FaCalendarAlt className="text-sm mt-0.5" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">{sch.title}</h4>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-4xs text-slate-500 font-semibold mt-1">
-                        <span>🕒 {sch.startTime} - {sch.endTime}</span>
-                        <span>📍 {sch.room}</span>
-                        {(sch.courseId?.instructor?.name || sch.teacherId?.name || sch.teacherName) && (
-                          <span>👨‍🏫 {sch.courseId?.instructor?.name || sch.teacherId?.name || sch.teacherName}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteSchedule(sch._id, sch.title)}
-                    className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl transition cursor-pointer"
-                    title="Delete Class"
-                  >
-                    <FaTrash />
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-12 text-slate-400 italic text-xs">
-                No classes scheduled yet. Click "Add Class to Calendar" to create class sessions.
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs lg:col-span-2 flex flex-col justify-between">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
+              <div>
+                <h3 className="font-extrabold text-slate-800 text-base">Institute Master Timetable</h3>
+                <p className="text-xs text-slate-400 font-medium">Recurring class schedules and room assignments</p>
               </div>
-            )}
+              <button
+                onClick={() => setShowModal(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-black text-xs px-4 py-2.5 rounded-2xl flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs self-start sm:self-auto"
+              >
+                <FaPlusCircle /> Add Class Session
+              </button>
+            </div>
+
+            {/* Day of Week Filter Bar */}
+            <div className="flex flex-wrap items-center gap-1.5 mb-4 p-1.5 bg-slate-50 rounded-2xl border border-slate-200/60">
+              <button
+                type="button"
+                onClick={() => setSelectedDayFilter('ALL')}
+                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
+                  selectedDayFilter === 'ALL'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-200/60'
+                }`}
+              >
+                ALL ({schedule.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDayFilter('TODAY')}
+                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                  selectedDayFilter === 'TODAY'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/60'
+                }`}
+              >
+                <span>TODAY ({todayCode})</span>
+              </button>
+              {daysOfWeek.map((day) => {
+                const count = schedule.filter(s => (s.dayOfWeek || '').toUpperCase().slice(0, 3) === day).length;
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => setSelectedDayFilter(day)}
+                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      selectedDayFilter === day
+                        ? 'bg-purple-600 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-200/60'
+                    }`}
+                  >
+                    {day} {count > 0 && <span className="opacity-70 text-[10px]">({count})</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Timetable List */}
+            <div className="overflow-y-auto max-h-[300px] space-y-2.5 pr-1">
+              {filteredSchedule && filteredSchedule.length > 0 ? (
+                filteredSchedule.map((sch) => {
+                  const schDay = (sch.dayOfWeek || '').toUpperCase().slice(0, 3);
+                  const isToday = schDay === todayCode;
+
+                  return (
+                    <div
+                      key={sch._id}
+                      className={`flex justify-between items-center p-3.5 rounded-2xl border transition-all ${
+                        isToday
+                          ? 'border-emerald-300 bg-emerald-50/30 hover:bg-emerald-50/60'
+                          : 'border-slate-100 hover:border-purple-200 hover:bg-purple-50/20 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className={`p-2.5 rounded-2xl flex flex-col items-center min-w-[62px] shrink-0 ${
+                          isToday ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-50 text-purple-700'
+                        }`}>
+                          <span className="text-[10px] font-black uppercase tracking-wider">{sch.dayOfWeek ? sch.dayOfWeek.slice(0, 3) : 'DAY'}</span>
+                          <FaCalendarAlt className="text-sm mt-0.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-sm font-black text-slate-800 truncate">{sch.title}</h4>
+                            {isToday && (
+                              <span className="bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                                Happening Today
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 font-semibold mt-1">
+                            <span className="flex items-center gap-1">🕒 {sch.startTime} – {sch.endTime}</span>
+                            <span className="flex items-center gap-1">📍 {sch.room || 'Classroom'}</span>
+                            {(sch.courseId?.instructor?.name || sch.teacherId?.name || sch.teacherName) && (
+                              <span className="flex items-center gap-1 text-purple-700 font-bold">
+                                👨‍🏫 {sch.courseId?.instructor?.name || sch.teacherId?.name || sch.teacherName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteSchedule(sch._id, sch.title)}
+                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl transition cursor-pointer shrink-0 ml-2"
+                        title="Delete Class Schedule"
+                      >
+                        <FaTrash className="text-sm" />
+                      </button>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-10 text-slate-400 italic text-xs bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
+                  No classes scheduled for {selectedDayFilter === 'ALL' ? 'this institute' : selectedDayFilter === 'TODAY' ? 'today' : selectedDayFilter}.
+                  <p
+                    onClick={() => setShowModal(true)}
+                    className="text-purple-600 font-bold not-italic mt-1 cursor-pointer hover:underline"
+                  >
+                    + Click here to schedule a class
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* CREATE SCHEDULE MODAL */}
+      {/* ========================================================================= */}
+      {/* 5. ADMINISTRATIVE QUICK ACTION DOCK */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 text-white shadow-lg border border-purple-800/60">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3 mb-4">
+          <div>
+            <h3 className="text-base font-black text-white">Institute Administration Shortcuts</h3>
+            <p className="text-xs text-purple-200 font-medium">Quick navigation to frequent institutional operations</p>
+          </div>
+          <span className="text-[10px] font-black text-purple-300 bg-white/10 px-3 py-1 rounded-full uppercase tracking-wider">
+            Fast Access
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div
+            onClick={() => navigate('/sms-settings')}
+            className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 transition-all border border-white/10 cursor-pointer group active:scale-98"
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg mb-2.5 group-hover:scale-110 transition-transform">
+              📢
+            </div>
+            <h4 className="font-extrabold text-sm text-white">SMS Broadcast</h4>
+            <p className="text-xs text-purple-200 mt-0.5">Send instant notices to parents & students.</p>
+          </div>
+
+          <div
+            onClick={() => navigate('/payments')}
+            className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 transition-all border border-white/10 cursor-pointer group active:scale-98"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg mb-2.5 group-hover:scale-110 transition-transform">
+              💳
+            </div>
+            <h4 className="font-extrabold text-sm text-white">Fee Settlement</h4>
+            <p className="text-xs text-purple-200 mt-0.5">Record offline payments & cash receipts.</p>
+          </div>
+
+          <div
+            onClick={() => navigate('/manage-users')}
+            className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 transition-all border border-white/10 cursor-pointer group active:scale-98"
+          >
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center text-lg mb-2.5 group-hover:scale-110 transition-transform">
+              👥
+            </div>
+            <h4 className="font-extrabold text-sm text-white">User Directory</h4>
+            <p className="text-xs text-purple-200 mt-0.5">Manage student & teacher accounts.</p>
+          </div>
+
+          <div
+            onClick={() => navigate('/enrollments')}
+            className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 transition-all border border-white/10 cursor-pointer group active:scale-98"
+          >
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center text-lg mb-2.5 group-hover:scale-110 transition-transform">
+              📑
+            </div>
+            <h4 className="font-extrabold text-sm text-white">Course Admissions</h4>
+            <p className="text-xs text-purple-200 mt-0.5">View and approve student enrollments.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 6. CREATE SCHEDULE MODAL */}
+      {/* ========================================================================= */}
       <AddScheduleModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
