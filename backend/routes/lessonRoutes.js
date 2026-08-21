@@ -712,7 +712,9 @@ const handleEndLiveStreamHelper = async (req, res) => {
             });
         }
 
+        // Clean up: delete all live broadcast messages upon concluding stream, preserving student Q&A threads
         const existingMessages = lesson.liveStream?.liveMessages || [];
+        const nonBroadcastMessages = existingMessages.filter(m => !m.isBroadcast);
         const existingFeedbacks = lesson.liveStream?.feedbacks || [];
         const existingViewers = lesson.liveStream?.viewers || [];
 
@@ -725,7 +727,7 @@ const handleEndLiveStreamHelper = async (req, res) => {
             youtubeUrl: '',
             startedAt: lesson.liveStream?.startedAt,
             endedAt: new Date(),
-            liveMessages: existingMessages,
+            liveMessages: nonBroadcastMessages,
             feedbacks: existingFeedbacks,
             viewers: existingViewers
         };
@@ -1142,10 +1144,11 @@ router.get('/:lessonId/live-stream/messages', protect, async (req, res) => {
 
         if (isStudent) {
             const myUserId = req.user._id.toString();
-            // Fast filter for student: broadcasts + student's own private questions & replies
+            const isStreamLive = Boolean(lesson.liveStream?.isLive);
+            // Fast filter for student: active broadcasts (during live) + student's own private questions & replies
             const myMessages = allMessages.filter(m => {
                 if (m.isStaffOnly) return false;
-                if (m.isBroadcast === true) return true;
+                if (m.isBroadcast === true) return isStreamLive;
                 const ctxId = m.studentContext ? (typeof m.studentContext === 'object' ? m.studentContext._id?.toString() : m.studentContext.toString()) : null;
                 const senderId = m.sender ? (typeof m.sender === 'object' ? m.sender._id?.toString() : m.sender.toString()) : null;
                 const recipientId = m.recipient ? (typeof m.recipient === 'object' ? m.recipient._id?.toString() : m.recipient.toString()) : null;
