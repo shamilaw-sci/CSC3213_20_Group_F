@@ -164,6 +164,90 @@ const CourseDetails = () => {
     locked: isFutureMonth(idx, navYear),
   }));
 
+  // Material Download Settings states for upload forms
+  const [pdfDownloadType, setPdfDownloadType] = useState('immediate');
+  const [pdfCustomUnlockDate, setPdfCustomUnlockDate] = useState('');
+
+  const [assignmentDownloadType, setAssignmentDownloadType] = useState('immediate');
+  const [assignmentCustomUnlockDate, setAssignmentCustomUnlockDate] = useState('');
+
+  const [videoDownloadType, setVideoDownloadType] = useState('immediate');
+  const [videoCustomUnlockDate, setVideoCustomUnlockDate] = useState('');
+
+  // Material Download Settings Edit Modal state (Teacher/Admin)
+  const [editingDownloadModal, setEditingDownloadModal] = useState({
+    isOpen: false,
+    materialType: null,
+    material: null,
+    lessonId: null
+  });
+  const [editDownloadType, setEditDownloadType] = useState('immediate');
+  const [editCustomUnlockDate, setEditCustomUnlockDate] = useState('');
+  const [isSavingDownloadSettings, setIsSavingDownloadSettings] = useState(false);
+
+  // Helper to determine material download availability status
+  const getMaterialDownloadStatus = (item) => {
+    if (!item) return { isAvailable: true, status: 'immediate', label: 'Download Available' };
+    if (item.allowDownload === false || item.downloadDelayType === 'disabled') {
+      return { isAvailable: false, status: 'disabled', label: 'View Only (Download Disabled)' };
+    }
+    if (item.downloadUnlockDate) {
+      const unlockTime = new Date(item.downloadUnlockDate).getTime();
+      const nowTime = Date.now();
+      if (nowTime < unlockTime) {
+        const diffDays = Math.max(1, Math.ceil((unlockTime - nowTime) / (1000 * 60 * 60 * 24)));
+        const formattedDate = new Date(item.downloadUnlockDate).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+        return {
+          isAvailable: false,
+          status: 'scheduled',
+          unlockDate: item.downloadUnlockDate,
+          daysRemaining: diffDays,
+          label: `🔒 Unlocks on ${formattedDate} (${diffDays}d left)`,
+          formattedDate
+        };
+      }
+    }
+    return { isAvailable: true, status: 'immediate', label: 'Download Available' };
+  };
+
+  const handleOpenDownloadSettingsModal = (materialType, material, lessonId) => {
+    setEditingDownloadModal({
+      isOpen: true,
+      materialType,
+      material,
+      lessonId
+    });
+    setEditDownloadType(material?.downloadDelayType || (material?.allowDownload === false ? 'disabled' : 'immediate'));
+    setEditCustomUnlockDate(
+      material?.downloadUnlockDate ? new Date(material.downloadUnlockDate).toISOString().split('T')[0] : ''
+    );
+  };
+
+  const handleSaveMaterialDownloadSettings = async () => {
+    if (!editingDownloadModal.material || !editingDownloadModal.lessonId) return;
+    setIsSavingDownloadSettings(true);
+    try {
+      await api.patch(`/lessons/${editingDownloadModal.lessonId}/material-download-settings`, {
+        materialType: editingDownloadModal.materialType,
+        materialId: editingDownloadModal.material._id || editingDownloadModal.material.id,
+        downloadDelayType: editDownloadType,
+        downloadUnlockDate: editDownloadType === 'custom_date' ? editCustomUnlockDate : null,
+        allowDownload: editDownloadType !== 'disabled'
+      });
+      toast.success("Download permissions updated successfully!");
+      setEditingDownloadModal({ isOpen: false, materialType: null, material: null, lessonId: null });
+      await fetchCourseDetails();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to update download settings.");
+    } finally {
+      setIsSavingDownloadSettings(false);
+    }
+  };
+
   // Timetables and Role Helpers
   const [courseSchedules, setCourseSchedules] = useState([]);
   const [showSchedule, setShowSchedule] = useState(false);
@@ -752,14 +836,24 @@ const CourseDetails = () => {
     e.preventDefault();
     const currentLesson = lessons.find(l => l.grade === selectedGrade);
     if (!currentLesson) return;
-    const updatedVideos = [...(currentLesson.videoLessons || []), { title: videoTitle, url: videoUrl }];
+    const newVideoItem = {
+      title: videoTitle.trim(),
+      url: videoUrl.trim(),
+      allowDownload: videoDownloadType !== 'disabled',
+      downloadDelayType: videoDownloadType,
+      downloadUnlockDate: videoDownloadType === 'custom_date' && videoCustomUnlockDate ? new Date(videoCustomUnlockDate) : null,
+      uploadedAt: new Date()
+    };
+    const updatedVideos = [...(currentLesson.videoLessons || []), newVideoItem];
     try {
       await api.put(`/lessons/${currentLesson._id}`,
         { videoLessons: updatedVideos }
       );
-      toast.success("Video lesson added!");
+      toast.success("Video lesson added with download permissions!");
       setVideoTitle("");
       setVideoUrl("");
+      setVideoDownloadType('immediate');
+      setVideoCustomUnlockDate('');
       fetchCourseDetails();
     } catch (err) {
       toast.error("Failed to add video.");
@@ -801,6 +895,11 @@ const CourseDetails = () => {
     const formData = new FormData();
     formData.append('pdf', pdfFile);
     formData.append('title', pdfTitle.trim() || pdfFile.name);
+    formData.append('allowDownload', pdfDownloadType !== 'disabled');
+    formData.append('downloadDelayType', pdfDownloadType);
+    if (pdfDownloadType === 'custom_date' && pdfCustomUnlockDate) {
+      formData.append('downloadUnlockDate', pdfCustomUnlockDate);
+    }
 
     try {
       await api.post(`/lessons/${currentLesson._id}/pdf`, formData, {
@@ -808,9 +907,11 @@ const CourseDetails = () => {
           'Content-Type': 'multipart/form-data'
         }
       });
-      toast.success("PDF uploaded successfully!");
+      toast.success("PDF uploaded with download permissions!");
       setPdfFile(null);
       setPdfTitle("");
+      setPdfDownloadType('immediate');
+      setPdfCustomUnlockDate('');
       await fetchCourseDetails();
     } catch (err) {
       const errMsg = err.response?.data?.error || "Failed to upload PDF.";
@@ -960,6 +1061,13 @@ const CourseDetails = () => {
     const formData = new FormData();
     formData.append('solution', solutionFile);
     formData.append('studentNote', studentNote.trim());
+    formData.append('pdf', assignmentFile);
+    formData.append('title', assignmentTitle.trim() || assignmentFile.name);
+    formData.append('allowDownload', assignmentDownloadType !== 'disabled');
+    formData.append('downloadDelayType', assignmentDownloadType);
+    if (assignmentDownloadType === 'custom_date' && assignmentCustomUnlockDate) {
+      formData.append('downloadUnlockDate', assignmentCustomUnlockDate);
+    }
 
     try {
       const res = await api.post(`/assignments/${selectedAssignmentForSubmit._id}/submit`, formData, {
@@ -971,6 +1079,12 @@ const CourseDetails = () => {
       setSolutionFile(null);
       setStudentNote('');
       await fetchAssignments();
+      toast.success("Assignment PDF uploaded with download permissions!");
+      setAssignmentFile(null);
+      setAssignmentTitle("");
+      setAssignmentDownloadType('immediate');
+      setAssignmentCustomUnlockDate('');
+      await fetchCourseDetails();
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to submit assignment.");
     } finally {
@@ -1907,9 +2021,11 @@ const CourseDetails = () => {
                 <h4 className="font-bold text-lg text-gray-800">Video Lessons (Week {activeWeek} — {selectedMonth})</h4>
                 <p className="text-xs text-gray-500">Watch the lecture video below to complete video study requirement.</p>
               </div>
-              <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${isVideoWatched ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
-                {isVideoWatched ? '✓ Video Completed' : 'Pending View'}
-              </span>
+              {!isTeacherOrAdmin && currentLesson?.videoLessons && currentLesson.videoLessons.length > 0 && (
+                <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${isVideoWatched ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
+                  {isVideoWatched ? '✓ Video Completed' : 'Pending View'}
+                </span>
+              )}
             </div>
 
             {/* Video addition form (Teacher/Admin only) */}
@@ -1937,76 +2053,132 @@ const CourseDetails = () => {
                 >
                   + Add Video
                 </button>
+
+                {/* Download Accessibility Control */}
+                <div className="md:col-span-3 flex flex-wrap items-center gap-3 bg-purple-50/60 p-3 rounded-xl border border-purple-100 mt-1">
+                  <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                    <FaDownload className="text-purple-600" /> Student Download Access:
+                  </span>
+                  <select
+                    value={videoDownloadType}
+                    onChange={(e) => setVideoDownloadType(e.target.value)}
+                    className="bg-white border border-gray-200 text-xs font-bold text-gray-800 rounded-lg p-2 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                  >
+                    <option value="immediate">🟢 Immediate Download (Available Now)</option>
+                    <option value="one_month">⏳ After 1 Month (30 Days)</option>
+                    <option value="custom_date">📅 Custom Unlock Date</option>
+                    <option value="disabled">🚫 View Online Only (Download Disabled)</option>
+                  </select>
+                  {videoDownloadType === 'custom_date' && (
+                    <input
+                      type="date"
+                      value={videoCustomUnlockDate}
+                      onChange={(e) => setVideoCustomUnlockDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="bg-white border border-purple-200 text-xs font-bold rounded-lg p-2 outline-none"
+                      required
+                    />
+                  )}
+                </div>
               </form>
             )}
 
-            {/* Demo / Real Videos List */}
+            {/* Video Lessons List */}
             <div className="space-y-3">
-              {!currentLesson?.hideDemoVideo && (
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/40 hover:bg-purple-50 transition-all gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="text-red-500 text-2xl">🎬</div>
-                    <div>
-                      <p className="font-extrabold text-gray-900 text-sm">
-                        Week {activeWeek} Master Lecture Video: Theory & Concepts ({selectedMonth})
-                      </p>
-                      <p className="text-xs text-purple-700 font-semibold mt-0.5">
-                        Required Video Material — 45 mins HD Recording
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    {isVideoWatched ? (
-                      <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-4 py-2 rounded-xl border border-emerald-200">
-                        ✓ Watched & Completed
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => markMaterialCompleted('video')}
-                        className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
-                      >
-                        <span>▶</span> Watch Lecture Video
-                      </button>
-                    )}
-                    {isTeacherOrAdmin && (
-                      <button
-                        onClick={handleDeleteDemoVideo}
-                        className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {currentLesson?.hideDemoVideo && (!currentLesson?.videoLessons || currentLesson.videoLessons.length === 0) && (
+              {!currentLesson?.videoLessons || currentLesson.videoLessons.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">No video lessons uploaded for this grade yet.</p>
-              )}
+              ) : (
+                currentLesson.videoLessons.map((vid) => {
+                  const dlStatus = getMaterialDownloadStatus(vid);
+                  return (
+                    <div key={vid._id || vid.url} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="text-red-500 text-xl">🎬</div>
+                        <div>
+                          <p className="font-bold text-gray-800">{vid.title}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                            <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline">
+                              {vid.url}
+                            </a>
+                            {/* Teacher/Admin status badge */}
+                            {isTeacherOrAdmin && (
+                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                                dlStatus.status === 'immediate'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : dlStatus.status === 'scheduled'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                              }`}>
+                                {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
 
-              {currentLesson?.videoLessons?.map((vid) => (
-                <div key={vid._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="text-red-500 text-xl">🎬</div>
-                    <div>
-                      <p className="font-bold text-gray-800">{vid.title}</p>
-                      <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline">
-                        {vid.url}
-                      </a>
+                      <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                        {/* Student Watch & Download Controls */}
+                        {!isTeacherOrAdmin && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                markMaterialCompleted('video');
+                                window.open(vid.url, '_blank', 'noopener,noreferrer');
+                              }}
+                              className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                            >
+                              <span>▶</span> Watch Video
+                            </button>
+
+                            {dlStatus.isAvailable && (
+                              <a
+                                href={vid.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download
+                                className="bg-purple-100 hover:bg-purple-200 text-purple-900 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                title="Download / Open Video"
+                              >
+                                <FaDownload className="text-[10px]" /> Download
+                              </a>
+                            )}
+
+                            {dlStatus.status === 'scheduled' && (
+                              <span
+                                className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5"
+                                title={`Download unlocks on ${dlStatus.formattedDate}`}
+                              >
+                                <FaHourglassHalf className="text-amber-600 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
+                              </span>
+                            )}
+                          </>
+                        )}
+
+                        {/* Teacher/Admin Manage Download Settings */}
+                        {isTeacherOrAdmin && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDownloadSettingsModal('video', vid, currentLesson?._id)}
+                              className="text-purple-700 hover:bg-purple-50 px-3 py-1.5 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100"
+                              title="Configure Download Access"
+                            >
+                              <FaCog className="text-xs" /> Download Settings
+                            </button>
+                            <button
+                              onClick={() => handleDeleteVideo(vid._id)}
+                              className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-xs font-semibold cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  {isTeacherOrAdmin && (
-                    <button
-                      onClick={() => handleDeleteVideo(vid._id)}
-                      className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              ))}
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -2017,9 +2189,11 @@ const CourseDetails = () => {
                 <h4 className="font-bold text-lg text-gray-800">Study Materials — PDF Notes (Week {activeWeek} — {selectedMonth})</h4>
                 <p className="text-xs text-gray-500">Download and review the lecture PDF notes to complete document requirement.</p>
               </div>
-              <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${isPdfDownloaded ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
-                {isPdfDownloaded ? '✓ PDF Completed' : 'Pending View'}
-              </span>
+              {!isTeacherOrAdmin && currentLesson?.pdfMaterials && currentLesson.pdfMaterials.length > 0 && (
+                <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${isPdfDownloaded ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
+                  {isPdfDownloaded ? '✓ PDF Completed' : 'Pending View'}
+                </span>
+              )}
             </div>
 
             {/* PDF upload form (Teacher/Admin only) */}
@@ -2050,6 +2224,33 @@ const CourseDetails = () => {
                   >
                     {isUploadingPdf ? 'Uploading...' : '+ Upload PDF'}
                   </button>
+
+                  {/* Download Accessibility Control */}
+                  <div className="md:col-span-3 flex flex-wrap items-center gap-3 bg-purple-50/60 p-3 rounded-xl border border-purple-100 mt-1">
+                    <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                      <FaDownload className="text-purple-600" /> Student Download Access:
+                    </span>
+                    <select
+                      value={pdfDownloadType}
+                      onChange={(e) => setPdfDownloadType(e.target.value)}
+                      className="bg-white border border-gray-200 text-xs font-bold text-gray-800 rounded-lg p-2 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                    >
+                      <option value="immediate">🟢 Immediate Download (Available Now)</option>
+                      <option value="one_month">⏳ After 1 Month (30 Days)</option>
+                      <option value="custom_date">📅 Custom Unlock Date</option>
+                      <option value="disabled">🚫 View Online Only (Download Disabled)</option>
+                    </select>
+                    {pdfDownloadType === 'custom_date' && (
+                      <input
+                        type="date"
+                        value={pdfCustomUnlockDate}
+                        onChange={(e) => setPdfCustomUnlockDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="bg-white border border-purple-200 text-xs font-bold rounded-lg p-2 outline-none"
+                        required
+                      />
+                    )}
+                  </div>
                 </div>
                 <p className="text-xs text-gray-500">Maximum size: 5MB. Only PDF files are allowed.</p>
               </div>
@@ -2057,180 +2258,137 @@ const CourseDetails = () => {
 
             {/* PDF Notes List with Reading Progress */}
             <div className="space-y-3">
-              {!currentLesson?.hideDemoPdf && (
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-blue-100 rounded-xl bg-blue-50/40 hover:bg-blue-50 transition-all gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="text-red-600 text-2xl font-bold">📕</div>
-                    <div>
-                      <p className="font-extrabold text-gray-900 text-sm">
-                        Week {activeWeek} Lecture Notes & Tutorial Problems ({selectedMonth}).pdf
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <span className="text-xs text-blue-700 font-semibold">
-                          Required Study Notes — PDF Document (2.4 MB)
-                        </span>
-                        {(() => {
-                          const prog = pdfProgressMap['demo-pdf'];
-                          const percent = prog?.progressPercentage || 0;
-                          const maxRead = prog?.maxPageRead || 0;
-                          const total = prog?.totalPages || 20;
-                          const nextPage = prog?.nextPageToRead || (maxRead > 0 ? Math.min(total, maxRead + 1) : 1);
-
-                          if (percent >= 100) {
-                            return (
-                              <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                ✓ 100% Completed
-                              </span>
-                            );
-                          } else if (percent > 0) {
-                            return (
-                              <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-300">
-                                📖 {percent}% Read (Page {maxRead} of {total} • Continue Pg {nextPage})
-                              </span>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <button
-                      type="button"
-                      onClick={() => setActivePdfModal({
-                        pdf: {
-                          _id: 'demo-pdf',
-                          title: `Week ${activeWeek} Lecture Notes (${selectedMonth}).pdf`,
-                          fileUrl: ''
-                        },
-                        lessonId: currentLesson?._id || 'demo-lesson'
-                      })}
-                      className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>📖</span> {(() => {
-                        const prog = pdfProgressMap['demo-pdf'];
-                        const percent = prog?.progressPercentage || 0;
-                        const maxRead = prog?.maxPageRead || 0;
-                        const total = prog?.totalPages || 20;
-                        const nextPage = prog?.nextPageToRead || (maxRead > 0 ? Math.min(total, maxRead + 1) : 1);
-
-                        if (percent >= 100) return 'Review PDF Notes ▶';
-                        if (percent > 0) return `Continue from Page ${nextPage} ▶`;
-                        return 'Start Reading PDF ▶';
-                      })()}
-                    </button>
-
-                    {isPdfDownloaded ? (
-                      <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-2 rounded-xl border border-emerald-200">
-                        ✓ Covered
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => markMaterialCompleted('pdf')}
-                        className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer"
-                      >
-                        Mark Done
-                      </button>
-                    )}
-                    {isTeacherOrAdmin && (
-                      <button
-                        onClick={handleDeleteDemoPdf}
-                        className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {currentLesson?.hideDemoPdf && (!currentLesson?.pdfMaterials || currentLesson.pdfMaterials.length === 0) && (
+              {!currentLesson?.pdfMaterials || currentLesson.pdfMaterials.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">No study materials uploaded for this grade yet.</p>
-              )}
+              ) : (
+                currentLesson.pdfMaterials.map((pdf) => {
+                  const pId = pdf._id ? String(pdf._id) : (pdf.filename || pdf.title);
+                  const pProg = pdfProgressMap[pId] || pdfProgressMap[pdf.title] || pdfProgressMap[pdf.filename];
+                  const pPercent = pProg?.progressPercentage || 0;
+                  const pMaxRead = pProg?.maxPageRead || 0;
+                  const pTotal = pProg?.totalPages || 0;
+                  const pNextPage = pProg?.nextPageToRead || (pMaxRead > 0 ? Math.min(pTotal, pMaxRead + 1) : 1);
+                  const dlStatus = getMaterialDownloadStatus(pdf);
 
-              {currentLesson?.pdfMaterials?.map((pdf) => {
-                // Normalize the PDF id to a plain string (MongoDB ObjectId arrives as object)
-                const pId = pdf._id ? String(pdf._id) : (pdf.filename || pdf.title);
-                // Look up using all possible keys
-                const pProg = pdfProgressMap[pId] || pdfProgressMap[pdf.title] || pdfProgressMap[pdf.filename];
-                const pPercent = pProg?.progressPercentage || 0;
-                const pMaxRead = pProg?.maxPageRead || 0;
-                const pTotal = pProg?.totalPages || 0;
-                const pNextPage = pProg?.nextPageToRead || (pMaxRead > 0 ? Math.min(pTotal, pMaxRead + 1) : 1);
+                  return (
+                    <div key={pdf._id || pdf.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/20 hover:bg-purple-50 transition-all gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="text-red-600 text-2xl font-bold">📕</div>
+                        <div>
+                          <p className="font-extrabold text-gray-900 text-sm">{pdf.title}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-500 font-medium">
+                              Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '0.99 MB'}
+                            </span>
 
-                return (
-                  <div key={pdf._id || pdf.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/20 hover:bg-purple-50 transition-all gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="text-red-600 text-2xl font-bold">📕</div>
-                      <div>
-                        <p className="font-extrabold text-gray-900 text-sm">{pdf.title}</p>
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500 font-medium">
-                            Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '0.99 MB'}
-                          </span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 bg-slate-200 h-2 rounded-full overflow-hidden border border-slate-300">
+                                <div 
+                                  className={`h-full rounded-full transition-all duration-500 ${pPercent >= 100 ? 'bg-emerald-500' : 'bg-purple-600'}`}
+                                  style={{ width: `${pPercent}%` }}
+                                ></div>
+                              </div>
 
-                          <div className="flex items-center gap-2">
-                            <div className="w-20 bg-slate-200 h-2 rounded-full overflow-hidden border border-slate-300">
-                              <div 
-                                className={`h-full rounded-full transition-all duration-500 ${pPercent >= 100 ? 'bg-emerald-500' : 'bg-purple-600'}`}
-                                style={{ width: `${pPercent}%` }}
-                              ></div>
+                              <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                                pPercent >= 100 
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+                                  : pPercent > 0 
+                                    ? 'bg-purple-100 text-purple-900 border-purple-300'
+                                    : 'bg-slate-100 text-slate-600 border-slate-300'
+                              }`}>
+                                {pPercent >= 100 
+                                  ? '✓ 100% Completed' 
+                                  : pPercent > 0 
+                                    ? `📖 ${pPercent}% Read (Page ${pMaxRead} of ${pTotal} • Continue Pg ${pNextPage})`
+                                    : '📖 Unread (0%)'}
+                              </span>
                             </div>
 
-                            <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                              pPercent >= 100 
-                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
-                                : pPercent > 0 
-                                  ? 'bg-purple-100 text-purple-900 border-purple-300'
-                                  : 'bg-slate-100 text-slate-600 border-slate-300'
-                            }`}>
-                              {pPercent >= 100 
-                                ? '✓ 100% Completed' 
-                                : pPercent > 0 
-                                  ? `📖 ${pPercent}% Read (Page ${pMaxRead} of ${pTotal} • Continue Pg ${pNextPage})`
-                                  : '📖 Unread (0%)'}
-                            </span>
+                            {/* Teacher/Admin status badge */}
+                            {isTeacherOrAdmin && (
+                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                                dlStatus.status === 'immediate'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : dlStatus.status === 'scheduled'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                              }`}>
+                                {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                      <button
-                        type="button"
-                        onClick={() => setActivePdfModal({ 
-                          pdf: { ...pdf, _id: pdf._id ? String(pdf._id) : pdf.filename },
-                          lessonId: currentLesson?._id 
-                        })}
-                        className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
-                      >
-                        <span>📖</span> {pPercent >= 100 ? 'Review PDF Notes ▶' : pPercent > 0 ? `Continue from Page ${pNextPage} ▶` : 'Start Reading PDF ▶'}
-                      </button>
-
-                      <a
-                        href={pdf.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition"
-                        title="Download File"
-                      >
-                        Download
-                      </a>
-
-                      {isTeacherOrAdmin && (
+                      <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
                         <button
-                          onClick={() => handleDeletePdf(pdf._id)}
-                          className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
+                          type="button"
+                          onClick={() => setActivePdfModal({ 
+                            pdf: { ...pdf, _id: pdf._id ? String(pdf._id) : pdf.filename },
+                            lessonId: currentLesson?._id 
+                          })}
+                          className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
                         >
-                          Remove
+                          <span>📖</span> {pPercent >= 100 ? 'Review PDF Notes ▶' : pPercent > 0 ? `Continue from Page ${pNextPage} ▶` : 'Start Reading PDF ▶'}
                         </button>
-                      )}
+
+                        {/* Student Download / Lock Button */}
+                        {!isTeacherOrAdmin && (
+                          dlStatus.isAvailable ? (
+                            <a
+                              href={pdf.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download
+                              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+                              title="Download PDF File"
+                            >
+                              <FaDownload className="text-[10px]" /> Download
+                            </a>
+                          ) : dlStatus.status === 'scheduled' ? (
+                            <span
+                              className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
+                              title={`Download unlocks on ${dlStatus.formattedDate}`}
+                            >
+                              <FaHourglassHalf className="text-amber-600 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
+                            </span>
+                          ) : null
+                        )}
+
+                        {/* Teacher/Admin Controls */}
+                        {isTeacherOrAdmin && (
+                          <>
+                            <a
+                              href={pdf.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download
+                              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                              title="Download File"
+                            >
+                              <FaDownload className="text-[10px]" /> Download
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDownloadSettingsModal('pdf', pdf, currentLesson?._id)}
+                              className="text-purple-700 hover:bg-purple-50 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100"
+                              title="Configure Download Access"
+                            >
+                              <FaCog className="text-xs" /> Download Settings
+                            </button>
+                            <button
+                              onClick={() => handleDeletePdf(pdf._id)}
+                              className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -2268,6 +2426,61 @@ const CourseDetails = () => {
                       Click here to create the first assignment for this class
                     </p>
                   )}
+            {/* Assignment upload form (Teacher/Admin only) */}
+            {isTeacherOrAdmin && (
+              <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Upload Assignment PDF</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Assignment Title (Optional)"
+                    value={assignmentTitle}
+                    onChange={(e) => setAssignmentTitle(e.target.value)}
+                    className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
+                  />
+                  <div>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      key={assignmentFile ? 'loaded' : 'empty'}
+                      onChange={(e) => setAssignmentFile(e.target.files[0])}
+                      className="w-full p-2 bg-white border border-gray-200 rounded-lg outline-none text-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={handleUploadAssignment}
+                    disabled={isUploadingAssignment}
+                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer transition-colors text-sm"
+                  >
+                    {isUploadingAssignment ? 'Uploading...' : '+ Upload Assignment'}
+                  </button>
+
+                  {/* Download Accessibility Control */}
+                  <div className="md:col-span-3 flex flex-wrap items-center gap-3 bg-purple-50/60 p-3 rounded-xl border border-purple-100 mt-1">
+                    <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                      <FaDownload className="text-purple-600" /> Student Download Access:
+                    </span>
+                    <select
+                      value={assignmentDownloadType}
+                      onChange={(e) => setAssignmentDownloadType(e.target.value)}
+                      className="bg-white border border-gray-200 text-xs font-bold text-gray-800 rounded-lg p-2 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                    >
+                      <option value="immediate">🟢 Immediate Download (Available Now)</option>
+                      <option value="one_month">⏳ After 1 Month (30 Days)</option>
+                      <option value="custom_date">📅 Custom Unlock Date</option>
+                      <option value="disabled">🚫 View Online Only (Download Disabled)</option>
+                    </select>
+                    {assignmentDownloadType === 'custom_date' && (
+                      <input
+                        type="date"
+                        value={assignmentCustomUnlockDate}
+                        onChange={(e) => setAssignmentCustomUnlockDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="bg-white border border-purple-200 text-xs font-bold rounded-lg p-2 outline-none"
+                        required
+                      />
+                    )}
+                  </div>
                 </div>
               ) : (
                 assignments.filter(asgn => {
@@ -2405,6 +2618,94 @@ const CourseDetails = () => {
                             </>
                           )}
                         </div>
+                currentLesson.assignments.map((assignment) => {
+                  const dlStatus = getMaterialDownloadStatus(assignment);
+                  return (
+                    <div key={assignment._id || assignment.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/20 hover:bg-purple-50 transition-all gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="text-purple-600 text-2xl font-bold">📝</div>
+                        <div>
+                          <p className="font-extrabold text-gray-900 text-sm">{assignment.title}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-500 font-medium">
+                              Size: {assignment.fileSize ? (assignment.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '0.99 MB'}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-medium">
+                              Uploaded: {assignment.uploadedAt ? new Date(assignment.uploadedAt).toLocaleDateString() : 'N/A'}
+                            </span>
+                            {/* Teacher/Admin status badge */}
+                            {isTeacherOrAdmin && (
+                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                                dlStatus.status === 'immediate'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : dlStatus.status === 'scheduled'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                              }`}>
+                                {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                        {/* Student Download / Lock State */}
+                        {!isTeacherOrAdmin && (
+                          dlStatus.isAvailable ? (
+                            <a
+                              href={assignment.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download
+                              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+                              title="Download Assignment"
+                            >
+                              <FaDownload className="text-[10px]" /> Download
+                            </a>
+                          ) : dlStatus.status === 'scheduled' ? (
+                            <span
+                              className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
+                              title={`Download unlocks on ${dlStatus.formattedDate}`}
+                            >
+                              <FaHourglassHalf className="text-amber-600 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
+                            </span>
+                          ) : (
+                            <span className="bg-slate-100 text-slate-500 px-3 py-2 rounded-xl text-xs font-semibold">
+                              Online View Only
+                            </span>
+                          )
+                        )}
+
+                        {/* Teacher/Admin Controls */}
+                        {isTeacherOrAdmin && (
+                          <>
+                            <a
+                              href={assignment.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download
+                              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                              title="Download Assignment"
+                            >
+                              <FaDownload className="text-[10px]" /> Download
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDownloadSettingsModal('assignment', assignment, currentLesson?._id)}
+                              className="text-purple-700 hover:bg-purple-50 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100"
+                              title="Configure Download Access"
+                            >
+                              <FaCog className="text-xs" /> Download Settings
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAssignment(assignment._id)}
+                              className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   );
@@ -3401,6 +3702,22 @@ const CourseDetails = () => {
                 type="button"
                 onClick={() => { setShowAssignmentModal(false); setEditingAssignment(null); }}
                 className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition"
+      {/* Material Download Settings Modal (Teacher/Admin) */}
+      {editingDownloadModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-purple-100 space-y-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+                  <FaDownload className="text-purple-700" /> Material Download Access
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Configure when and how students can download this {editingDownloadModal.materialType === 'pdf' ? 'PDF Note' : editingDownloadModal.materialType === 'assignment' ? 'Assignment PDF' : 'Video Lesson'}.
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingDownloadModal({ isOpen: false, materialType: null, material: null, lessonId: null })}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -3896,6 +4213,110 @@ const CourseDetails = () => {
                   })}
               </div>
             )}
+            <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-100">
+              <p className="text-xs text-purple-900 font-extrabold truncate">
+                📄 {editingDownloadModal.material?.title || 'Selected Study Material'}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs font-extrabold text-gray-700 uppercase tracking-wider block">
+                Choose Download Policy:
+              </label>
+              
+              <div className="space-y-2.5">
+                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'immediate' ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
+                  <input
+                    type="radio"
+                    name="editDownloadType"
+                    value="immediate"
+                    checked={editDownloadType === 'immediate'}
+                    onChange={(e) => setEditDownloadType(e.target.value)}
+                    className="w-4 h-4 text-purple-600"
+                  />
+                  <div>
+                    <p className="text-sm font-bold">🟢 Immediate Download</p>
+                    <p className="text-[11px] text-gray-500">Students can download this material immediately.</p>
+                  </div>
+                </label>
+
+                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'one_month' ? 'bg-amber-50 border-amber-300 text-amber-950 font-bold shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
+                  <input
+                    type="radio"
+                    name="editDownloadType"
+                    value="one_month"
+                    checked={editDownloadType === 'one_month'}
+                    onChange={(e) => setEditDownloadType(e.target.value)}
+                    className="w-4 h-4 text-purple-600"
+                  />
+                  <div>
+                    <p className="text-sm font-bold">⏳ After 1 Month (30 Days)</p>
+                    <p className="text-[11px] text-gray-500">Download button will automatically unlock in 30 days.</p>
+                  </div>
+                </label>
+
+                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'custom_date' ? 'bg-blue-50 border-blue-300 text-blue-950 font-bold shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
+                  <input
+                    type="radio"
+                    name="editDownloadType"
+                    value="custom_date"
+                    checked={editDownloadType === 'custom_date'}
+                    onChange={(e) => setEditDownloadType(e.target.value)}
+                    className="w-4 h-4 text-purple-600"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold">📅 Custom Scheduled Date</p>
+                    <p className="text-[11px] text-gray-500">Pick a specific calendar date when download unlocks.</p>
+                  </div>
+                </label>
+
+                {editDownloadType === 'custom_date' && (
+                  <div className="pl-6 pt-1">
+                    <input
+                      type="date"
+                      value={editCustomUnlockDate}
+                      onChange={(e) => setEditCustomUnlockDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full p-2.5 bg-white border border-blue-200 rounded-xl text-xs font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      required
+                    />
+                  </div>
+                )}
+
+                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'disabled' ? 'bg-red-50 border-red-300 text-red-950 font-bold shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
+                  <input
+                    type="radio"
+                    name="editDownloadType"
+                    value="disabled"
+                    checked={editDownloadType === 'disabled'}
+                    onChange={(e) => setEditDownloadType(e.target.value)}
+                    className="w-4 h-4 text-red-600"
+                  />
+                  <div>
+                    <p className="text-sm font-bold">🚫 Disable Download (View Online Only)</p>
+                    <p className="text-[11px] text-gray-500">Students can only view or read online in browser.</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingDownloadModal({ isOpen: false, materialType: null, material: null, lessonId: null })}
+                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold text-xs hover:bg-gray-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSavingDownloadSettings}
+                onClick={handleSaveMaterialDownloadSettings}
+                className="px-6 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md transition cursor-pointer disabled:opacity-50"
+              >
+                {isSavingDownloadSettings ? 'Saving...' : 'Save Download Permissions'}
+              </button>
+            </div>
           </div>
         </div>
       )}

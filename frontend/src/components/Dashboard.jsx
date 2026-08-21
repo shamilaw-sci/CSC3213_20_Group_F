@@ -513,7 +513,7 @@ const AdminDashboard = ({ user }) => {
 // ==========================================
 const TeacherDashboard = ({ user }) => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ coursesCount: 0, studentsCount: 0, rating: "4.9", coursesList: [], studentsList: [] });
+  const [stats, setStats] = useState({ coursesCount: 0, studentsCount: 0, rating: "5.0", coursesList: [], studentsList: [] });
   const [schedule, setSchedule] = useState([]);
   const [attendanceLogs, setAttendanceLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -949,11 +949,11 @@ const StudentDashboard = ({ user }) => {
           <div className="w-64 h-2 bg-slate-950/80 rounded-full overflow-hidden mb-2 border border-white/10">
             <div
               className="bg-gradient-to-r from-purple-400 to-indigo-400 h-full rounded-full transition-all duration-1000"
-              style={{ width: `${activeCourse ? (activeCourse.progress || 45) : 0}%` }}
+              style={{ width: `${activeCourse ? (activeCourse.progress || 0) : 0}%` }}
             />
           </div>
           <p className="text-4xs text-purple-200 font-extrabold uppercase tracking-wider">
-            {activeCourse ? `${activeCourse.progress || 45}% Completed` : '0% Completed'}
+            {activeCourse ? `${activeCourse.progress || 0}% Completed` : '0% Completed'}
           </p>
         </div>
 

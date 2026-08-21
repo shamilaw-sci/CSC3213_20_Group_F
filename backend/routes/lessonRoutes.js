@@ -142,7 +142,18 @@ router.put('/:lessonId', protect, isTeacherOrAdmin, async (req, res) => {
             lesson.teacherMessage = teacherMessage;
         }
         if (videoLessons !== undefined) {
-            lesson.videoLessons = videoLessons;
+            lesson.videoLessons = videoLessons.map(v => {
+                const settings = resolveDownloadSettings(v);
+                return {
+                    title: v.title,
+                    url: v.url,
+                    weekNumber: v.weekNumber || 1,
+                    allowDownload: settings.allowDownload,
+                    downloadDelayType: settings.downloadDelayType,
+                    downloadUnlockDate: settings.downloadUnlockDate,
+                    uploadedAt: v.uploadedAt || new Date()
+                };
+            });
         }
         if (hideDemoVideo !== undefined) {
             lesson.hideDemoVideo = hideDemoVideo;
@@ -197,6 +208,31 @@ router.put('/:lessonId', protect, isTeacherOrAdmin, async (req, res) => {
     }
 });
 
+// Helper to resolve download settings and unlock date
+const resolveDownloadSettings = (body = {}) => {
+    let allowDownload = true;
+    let downloadDelayType = body.downloadDelayType || 'immediate';
+    let downloadUnlockDate = null;
+
+    if (body.allowDownload === false || body.allowDownload === 'false' || downloadDelayType === 'disabled') {
+        allowDownload = false;
+        downloadDelayType = 'disabled';
+        downloadUnlockDate = null;
+    } else if (downloadDelayType === 'one_month') {
+        allowDownload = true;
+        downloadUnlockDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    } else if (downloadDelayType === 'custom_date' && body.downloadUnlockDate) {
+        allowDownload = true;
+        downloadUnlockDate = new Date(body.downloadUnlockDate);
+    } else {
+        allowDownload = true;
+        downloadDelayType = 'immediate';
+        downloadUnlockDate = null;
+    }
+
+    return { allowDownload, downloadDelayType, downloadUnlockDate };
+};
+
 // @route   POST /api/lessons/:lessonId/pdf
 // @desc    Upload a PDF material (Admin/Teacher only)
 router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, async (req, res) => {
@@ -214,6 +250,7 @@ router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, as
         const filename = req.file.filename;
         const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
         const fileSize = req.file.size;
+        const { allowDownload, downloadDelayType, downloadUnlockDate } = resolveDownloadSettings(req.body);
 
         if (!lesson.pdfMaterials) {
             lesson.pdfMaterials = [];
@@ -223,7 +260,11 @@ router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, as
             title,
             filename,
             fileUrl,
-            fileSize
+            fileSize,
+            allowDownload,
+            downloadDelayType,
+            downloadUnlockDate,
+            uploadedAt: new Date()
         });
 
         await lesson.save();
@@ -311,6 +352,7 @@ router.post('/:lessonId/assignment', protect, isTeacherOrAdmin, uploadPdfMiddlew
         const filename = req.file.filename;
         const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
         const fileSize = req.file.size;
+        const { allowDownload, downloadDelayType, downloadUnlockDate } = resolveDownloadSettings(req.body);
 
         if (!lesson.assignments) {
             lesson.assignments = [];
@@ -320,7 +362,11 @@ router.post('/:lessonId/assignment', protect, isTeacherOrAdmin, uploadPdfMiddlew
             title,
             filename,
             fileUrl,
-            fileSize
+            fileSize,
+            allowDownload,
+            downloadDelayType,
+            downloadUnlockDate,
+            uploadedAt: new Date()
         });
 
         await lesson.save();
@@ -356,6 +402,53 @@ router.post('/:lessonId/assignment', protect, isTeacherOrAdmin, uploadPdfMiddlew
         res.status(201).json({ message: "Assignment PDF uploaded successfully!", lesson });
     } catch (err) {
         res.status(500).json({ error: "Failed to upload Assignment PDF: " + err.message });
+    }
+});
+
+// @route   PATCH /api/lessons/:lessonId/material-download-settings
+// @desc    Update download permissions and unlock schedule for a specific material (Admin/Teacher only)
+router.patch('/:lessonId/material-download-settings', protect, isTeacherOrAdmin, async (req, res) => {
+    try {
+        const { materialType, materialId, allowDownload, downloadDelayType, downloadUnlockDate } = req.body;
+        const lesson = await Lesson.findById(req.params.lessonId);
+        if (!lesson) {
+            return res.status(404).json({ error: "Class not found." });
+        }
+
+        const settings = resolveDownloadSettings({ allowDownload, downloadDelayType, downloadUnlockDate });
+
+        if (materialType === 'pdf') {
+            const item = (lesson.pdfMaterials && lesson.pdfMaterials.id) 
+                ? (lesson.pdfMaterials.id(materialId) || lesson.pdfMaterials.find(p => p._id && p._id.toString() === materialId))
+                : lesson.pdfMaterials.find(p => p._id && p._id.toString() === materialId);
+            if (!item) return res.status(404).json({ error: "PDF material not found." });
+            item.allowDownload = settings.allowDownload;
+            item.downloadDelayType = settings.downloadDelayType;
+            item.downloadUnlockDate = settings.downloadUnlockDate;
+        } else if (materialType === 'assignment') {
+            const item = (lesson.assignments && lesson.assignments.id) 
+                ? (lesson.assignments.id(materialId) || lesson.assignments.find(a => a._id && a._id.toString() === materialId))
+                : lesson.assignments.find(a => a._id && a._id.toString() === materialId);
+            if (!item) return res.status(404).json({ error: "Assignment not found." });
+            item.allowDownload = settings.allowDownload;
+            item.downloadDelayType = settings.downloadDelayType;
+            item.downloadUnlockDate = settings.downloadUnlockDate;
+        } else if (materialType === 'video') {
+            const item = (lesson.videoLessons && lesson.videoLessons.id) 
+                ? (lesson.videoLessons.id(materialId) || lesson.videoLessons.find(v => v._id && v._id.toString() === materialId))
+                : lesson.videoLessons.find(v => v._id && v._id.toString() === materialId);
+            if (!item) return res.status(404).json({ error: "Video lesson not found." });
+            item.allowDownload = settings.allowDownload;
+            item.downloadDelayType = settings.downloadDelayType;
+            item.downloadUnlockDate = settings.downloadUnlockDate;
+        } else {
+            return res.status(400).json({ error: "Invalid material type specified." });
+        }
+
+        await lesson.save();
+        res.json({ message: "Download settings updated successfully!", lesson });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to update download settings: " + err.message });
     }
 });
 

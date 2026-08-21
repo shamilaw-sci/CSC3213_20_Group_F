@@ -28,7 +28,11 @@ const lessonSchema = new mongoose.Schema({
   videoLessons: [{
     title: String,
     url: String,
-    weekNumber: { type: Number, enum: [1, 2, 3, 4], default: 1 }
+    weekNumber: { type: Number, enum: [1, 2, 3, 4], default: 1 },
+    allowDownload: { type: Boolean, default: true },
+    downloadUnlockDate: { type: Date, default: null },
+    downloadDelayType: { type: String, enum: ['immediate', 'one_month', 'custom_date', 'disabled'], default: 'immediate' },
+    uploadedAt: { type: Date, default: Date.now }
   }],
   pdfMaterials: [{
     title: { type: String, required: true },
@@ -36,6 +40,9 @@ const lessonSchema = new mongoose.Schema({
     fileUrl: { type: String, required: true },
     fileSize: { type: Number },
     weekNumber: { type: Number, enum: [1, 2, 3, 4], default: 1 },
+    allowDownload: { type: Boolean, default: true },
+    downloadUnlockDate: { type: Date, default: null },
+    downloadDelayType: { type: String, enum: ['immediate', 'one_month', 'custom_date', 'disabled'], default: 'immediate' },
     uploadedAt: { type: Date, default: Date.now }
   }],
   assignments: [{
@@ -44,6 +51,9 @@ const lessonSchema = new mongoose.Schema({
     fileUrl: { type: String, required: true },
     fileSize: { type: Number },
     weekNumber: { type: Number, enum: [1, 2, 3, 4], default: 1 },
+    allowDownload: { type: Boolean, default: true },
+    downloadUnlockDate: { type: Date, default: null },
+    downloadDelayType: { type: String, enum: ['immediate', 'one_month', 'custom_date', 'disabled'], default: 'immediate' },
     uploadedAt: { type: Date, default: Date.now }
   }],
   hideDemoVideo: { type: Boolean, default: false },
