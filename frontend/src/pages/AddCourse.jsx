@@ -11,12 +11,12 @@ const ImageUploadZone = ({ label, hint, accept, file, onFileChange }) => {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <p className="text-xs text-gray-400 mb-2">Recommended size: <span className="font-semibold text-purple-600">{hint}</span> · Max 5 MB · JPG, PNG, WebP</p>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Recommended size: <span className="font-semibold text-purple-600 dark:text-purple-400">{hint}</span> · Max 5 MB · JPG, PNG, WebP</p>
 
       <div
         onClick={() => inputRef.current.click()}
-        className="relative w-full border-2 border-dashed border-gray-300 rounded-xl overflow-hidden cursor-pointer hover:border-purple-500 transition group"
+        className="relative w-full border-2 border-dashed border-gray-300 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 rounded-xl overflow-hidden cursor-pointer hover:border-purple-500 transition group"
         style={{ minHeight: '120px' }}
       >
         {previewUrl ? (
@@ -32,11 +32,11 @@ const ImageUploadZone = ({ label, hint, accept, file, onFileChange }) => {
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-8 text-gray-400 group-hover:text-purple-500 transition">
+          <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500 group-hover:text-purple-500 transition">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span className="text-sm">Click to upload image</span>
+            <span className="text-sm font-medium">Click to upload image</span>
           </div>
         )}
       </div>
@@ -53,7 +53,7 @@ const ImageUploadZone = ({ label, hint, accept, file, onFileChange }) => {
         <button
           type="button"
           onClick={() => onFileChange(null)}
-          className="mt-1 text-xs text-red-500 hover:underline"
+          className="mt-1 text-xs text-red-500 hover:underline cursor-pointer"
         >
           ✕ Remove image
         </button>
@@ -360,17 +360,17 @@ const AddCourse = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Create Course &amp; Assign Teacher</h2>
+    <div className="max-w-2xl mx-auto mt-10 p-8 bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-800">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white text-center">Create Course &amp; Assign Teacher</h2>
 
       <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
 
         {/* Course Title */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Course Title</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Course Title</label>
           <input
             type="text"
-            className="w-full p-3 mt-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+            className="w-full p-3 mt-1 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
             value={courseData.title}
             onChange={(e) => setCourseData({ ...courseData, title: e.target.value })}
             required
@@ -380,7 +380,7 @@ const AddCourse = () => {
         {/* Description */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
             <button
               type="button"
               onClick={() => {
@@ -389,30 +389,30 @@ const AddCourse = () => {
                 setCourseData(prev => ({ ...prev, description: sampleText }));
                 toast.success("Sample description loaded! Change yellow [...] boxes.");
               }}
-              className="text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3 py-1 rounded-full transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+              className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline cursor-pointer flex items-center gap-1"
             >
-              ✨ Use Sample Description
+              🪄 Use Sample Description
             </button>
           </div>
           <textarea
-            rows={3}
-            className="w-full p-3 mt-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+            rows="4"
+            className="w-full p-3 mt-1 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm leading-relaxed"
             placeholder="Enter course description or click 'Use Sample Description' above..."
             value={courseData.description}
             onChange={(e) => setCourseData({ ...courseData, description: e.target.value })}
             required
           />
           {courseData.description && (
-            <div className="mt-2.5 p-3.5 bg-amber-50/80 border border-amber-200/90 rounded-xl text-xs text-gray-700 leading-relaxed shadow-xs">
-              <div className="flex items-center justify-between gap-1.5 text-amber-900 font-extrabold mb-1.5 uppercase tracking-wider text-[10px]">
+            <div className="mt-2.5 p-3.5 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/80 rounded-xl text-xs text-gray-700 dark:text-gray-300 leading-relaxed shadow-xs">
+              <div className="flex items-center justify-between gap-1.5 text-amber-900 dark:text-amber-300 font-extrabold mb-1.5 uppercase tracking-wider text-[10px]">
                 <span>✨ Live Edit Preview</span>
-                <span className="text-amber-700 font-medium">Yellow boxes = Parts to customize</span>
+                <span className="text-amber-700 dark:text-amber-400 font-medium">Yellow boxes = Parts to customize</span>
               </div>
-              <p className="font-medium text-gray-800">
+              <p className="font-medium text-gray-800 dark:text-gray-200">
                 {courseData.description.split(/(\[[^\]]+\])/g).map((part, idx) => {
                   if (part.startsWith('[') && part.endsWith(']')) {
                     return (
-                      <span key={idx} className="bg-amber-300 text-amber-950 font-black px-1.5 py-0.5 rounded border border-amber-400 mx-0.5 shadow-2xs animate-pulse">
+                      <span key={idx} className="bg-amber-300 dark:bg-amber-500/80 text-amber-950 dark:text-black font-black px-1.5 py-0.5 rounded border border-amber-400 dark:border-amber-600 mx-0.5 shadow-2xs animate-pulse">
                         {part}
                       </span>
                     );
@@ -426,26 +426,26 @@ const AddCourse = () => {
 
         {/* Student Type Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Target Student Type</label>
-          <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Student Type</label>
+          <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-xl gap-1">
             <button
               type="button"
               onClick={() => setStudentType('all')}
-              className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition ${studentType === 'all' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition cursor-pointer ${studentType === 'all' ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'}`}
             >
               🌐 All Students
             </button>
             <button
               type="button"
               onClick={() => setStudentType('online')}
-              className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition ${studentType === 'online' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition cursor-pointer ${studentType === 'online' ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'}`}
             >
               💻 Online Students Only
             </button>
             <button
               type="button"
               onClick={() => setStudentType('physical')}
-              className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition ${studentType === 'physical' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition cursor-pointer ${studentType === 'physical' ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'}`}
             >
               🏫 Physical Students Only
             </button>
@@ -473,16 +473,16 @@ const AddCourse = () => {
           </div>
 
           {/* Subject-Wise Sample Pictures UNDER Upload Zones */}
-          <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+          <div className="bg-purple-50/50 dark:bg-slate-800 p-4 rounded-xl border border-purple-100 dark:border-slate-700">
             <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 🖼️ Subject-Wise Sample Pictures
               </label>
-              <span className="text-xs text-purple-700 font-semibold">
+              <span className="text-xs text-purple-700 dark:text-purple-400 font-semibold">
                 Click any picture to open in System Cropper
               </span>
             </div>
-            <p className="text-xs text-gray-400 mb-3">Select a subject category to filter sample images, then click to crop.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Select a subject category to filter sample images, then click to crop.</p>
 
             {/* Subject Category Pills */}
             <div className="flex flex-wrap gap-1.5 mb-3">
@@ -494,7 +494,7 @@ const AddCourse = () => {
                   className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                     selectedSubjectFilter === cat
                       ? 'bg-purple-700 text-white shadow-xs'
-                      : 'bg-white text-gray-600 hover:bg-purple-50 hover:text-purple-700 border border-gray-200'
+                      : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-slate-700 hover:text-purple-700 dark:hover:text-purple-300 border border-gray-200 dark:border-slate-700'
                   }`}
                 >
                   {cat}
@@ -507,7 +507,7 @@ const AddCourse = () => {
               {SUBJECT_PRESETS
                 .filter(p => selectedSubjectFilter === 'All' || p.subject === selectedSubjectFilter)
                 .map((preset) => (
-                  <div key={preset.id} className="group relative rounded-xl overflow-hidden border border-gray-200 shadow-xs hover:border-purple-500 hover:shadow-lg transition-all">
+                  <div key={preset.id} className="group relative rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 shadow-xs hover:border-purple-500 hover:shadow-lg transition-all">
                     <img src={preset.url} alt={preset.title} className="w-full h-32 sm:h-36 object-cover group-hover:scale-105 transition-transform duration-300" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent p-3 flex flex-col justify-between">
                       <span className="self-start text-xs font-semibold bg-purple-700/90 text-white px-2.5 py-0.5 rounded-md shadow-xs">
@@ -561,56 +561,56 @@ const AddCourse = () => {
           </div>
         </div>
 
-        <hr className="my-4 border-gray-200" />
+        <hr className="my-4 border-gray-200 dark:border-slate-800" />
 
         {/* Bank Account Details Section for Bank Slip Deposits */}
-        <div className="bg-purple-50/60 p-5 rounded-2xl border border-purple-200 space-y-4">
+        <div className="bg-purple-50/60 dark:bg-slate-800 p-5 rounded-2xl border border-purple-200 dark:border-slate-700 space-y-4">
           <div>
-            <h3 className="font-extrabold text-purple-950 text-base flex items-center gap-2">
+            <h3 className="font-extrabold text-purple-950 dark:text-purple-200 text-base flex items-center gap-2">
               <span>🏦</span> Bank Deposit Account Details (For Bank Slip Payments)
             </h3>
-            <p className="text-xs text-purple-700 mt-0.5">
+            <p className="text-xs text-purple-700 dark:text-purple-400 mt-0.5">
               Specify the institute bank account information where students can transfer funds and upload deposit slips.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 mb-1">Bank Name</label>
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">Bank Name</label>
               <input
                 type="text"
                 placeholder="e.g. Sampath Bank / Commercial Bank"
-                className="w-full p-2.5 bg-white border border-purple-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-purple-600"
+                className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 text-gray-800 dark:text-white rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-purple-600"
                 value={bankDetails.bankName}
                 onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 mb-1">Account Holder Name</label>
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">Account Holder Name</label>
               <input
                 type="text"
                 placeholder="e.g. LuminaLearn Education Pvt Ltd"
-                className="w-full p-2.5 bg-white border border-purple-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-purple-600"
+                className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 text-gray-800 dark:text-white rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-purple-600"
                 value={bankDetails.accountName}
                 onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 mb-1">Account Number</label>
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">Account Number</label>
               <input
                 type="text"
                 placeholder="e.g. 1098 7654 3210"
-                className="w-full p-2.5 bg-white border border-purple-200 rounded-xl text-xs font-mono font-bold outline-none focus:ring-2 focus:ring-purple-600"
+                className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 text-gray-800 dark:text-white rounded-xl text-xs font-mono font-bold outline-none focus:ring-2 focus:ring-purple-600"
                 value={bankDetails.accountNumber}
                 onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 mb-1">Branch Name</label>
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">Branch Name</label>
               <input
                 type="text"
                 placeholder="e.g. Colombo Super Branch"
-                className="w-full p-2.5 bg-white border border-purple-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-purple-600"
+                className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 text-gray-800 dark:text-white rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-purple-600"
                 value={bankDetails.branchName}
                 onChange={(e) => setBankDetails({ ...bankDetails, branchName: e.target.value })}
               />
@@ -618,34 +618,34 @@ const AddCourse = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 mb-1">Deposit Instructions for Students</label>
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">Deposit Instructions for Students</label>
             <textarea
               rows="2"
               placeholder="e.g. Deposit exact course fee of LKR 2,500 and upload a clear photo/receipt of the bank transfer slip."
-              className="w-full p-2.5 bg-white border border-purple-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-purple-600"
+              className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 text-gray-800 dark:text-white rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-purple-600"
               value={bankDetails.paymentInstructions}
               onChange={(e) => setBankDetails({ ...bankDetails, paymentInstructions: e.target.value })}
             ></textarea>
           </div>
         </div>
 
-        <hr className="my-4 border-gray-200" />
+        <hr className="my-4 border-gray-200 dark:border-slate-800" />
 
-        <h3 className="font-semibold text-gray-700">Assign Teacher</h3>
+        <h3 className="font-semibold text-gray-700 dark:text-gray-200">Assign Teacher</h3>
 
         {/* Toggle between existing and new */}
-        <div className="flex bg-gray-100 p-1 rounded-lg gap-2">
+        <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-lg gap-2">
           <button
             type="button"
             onClick={() => setAssignmentMode('existing')}
-            className={`flex-1 py-2 text-sm font-semibold rounded-md transition ${assignmentMode === 'existing' ? 'bg-white text-gray-800 shadow' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`flex-1 py-2 text-sm font-semibold rounded-md transition cursor-pointer ${assignmentMode === 'existing' ? 'bg-white dark:bg-slate-900 text-gray-800 dark:text-white shadow' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
           >
             Select Existing Teacher
           </button>
           <button
             type="button"
             onClick={() => setAssignmentMode('new')}
-            className={`flex-1 py-2 text-sm font-semibold rounded-md transition ${assignmentMode === 'new' ? 'bg-white text-gray-800 shadow' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`flex-1 py-2 text-sm font-semibold rounded-md transition cursor-pointer ${assignmentMode === 'new' ? 'bg-white dark:bg-slate-900 text-gray-800 dark:text-white shadow' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
           >
             Register New Teacher
           </button>
@@ -653,9 +653,9 @@ const AddCourse = () => {
 
         {assignmentMode === 'existing' ? (
           <div>
-            <label className="block text-sm font-medium text-gray-700">Choose Teacher</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Choose Teacher</label>
             <select
-              className="w-full p-3 mt-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white cursor-pointer"
+              className="w-full p-3 mt-1 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white dark:bg-slate-800 text-gray-800 dark:text-white cursor-pointer"
               value={selectedTeacherId}
               onChange={(e) => setSelectedTeacherId(e.target.value)}
               required={assignmentMode === 'existing'}
@@ -669,30 +669,30 @@ const AddCourse = () => {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Teacher Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Teacher Name</label>
               <input
                 type="text"
-                className="w-full p-3 mt-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                className="w-full p-3 mt-1 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white dark:bg-slate-800 text-gray-800 dark:text-white"
                 value={newTeacherData.teacherName}
                 onChange={(e) => setNewTeacherData({ ...newTeacherData, teacherName: e.target.value })}
                 required={assignmentMode === 'new'}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Teacher Email</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Teacher Email</label>
               <input
                 type="email"
-                className="w-full p-3 mt-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                className="w-full p-3 mt-1 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white dark:bg-slate-800 text-gray-800 dark:text-white"
                 value={newTeacherData.teacherEmail}
                 onChange={(e) => setNewTeacherData({ ...newTeacherData, teacherEmail: e.target.value })}
                 required={assignmentMode === 'new'}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Default Password</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Default Password</label>
               <input
                 type="password"
-                className="w-full p-3 mt-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                className="w-full p-3 mt-1 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white dark:bg-slate-800 text-gray-800 dark:text-white"
                 value={newTeacherData.defaultPassword}
                 onChange={(e) => setNewTeacherData({ ...newTeacherData, defaultPassword: e.target.value })}
                 required={assignmentMode === 'new'}
@@ -707,7 +707,7 @@ const AddCourse = () => {
             type="submit"
             onClick={() => setAddAnother(false)}
             disabled={isLoading}
-            className={`flex-1 text-white p-3 rounded-lg font-bold transition ${isLoading ? 'bg-gray-400' : 'bg-lumina-purple hover:bg-purple-800 cursor-pointer'}`}
+            className={`flex-1 text-white p-3 rounded-lg font-bold transition ${isLoading ? 'bg-gray-400 dark:bg-slate-700' : 'bg-lumina-purple hover:bg-purple-800 cursor-pointer'}`}
           >
             {isLoading && !addAnother ? 'Creating...' : 'Create Course'}
           </button>
@@ -715,7 +715,7 @@ const AddCourse = () => {
             type="submit"
             onClick={() => setAddAnother(true)}
             disabled={isLoading}
-            className={`flex-1 border-2 border-purple-600 text-purple-700 hover:bg-purple-50 p-3 rounded-lg font-bold transition ${isLoading ? 'opacity-50' : 'cursor-pointer'}`}
+            className={`flex-1 border-2 border-purple-600 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-slate-800 p-3 rounded-lg font-bold transition ${isLoading ? 'opacity-50' : 'cursor-pointer'}`}
           >
             {isLoading && addAnother ? 'Creating...' : '+ Create & Add Another'}
           </button>
@@ -724,26 +724,26 @@ const AddCourse = () => {
 
       {isCropping && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-4xl rounded-2xl bg-white p-4 shadow-2xl">
+          <div className="w-full max-w-4xl rounded-2xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-4 shadow-2xl border border-gray-200 dark:border-slate-800">
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-800">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
                   {cropSourceType === 'banner' ? 'Crop Banner Image' : 'Crop Thumbnail Image'}
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Drag the image, zoom in or out, and confirm the selected area.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeCropper}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+                className="rounded-lg border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 Cancel
               </button>
             </div>
 
-            <div className="relative h-[420px] overflow-hidden rounded-xl bg-gray-100">
+            <div className="relative h-[420px] overflow-hidden rounded-xl bg-gray-100 dark:bg-slate-950">
               <Cropper
                 image={cropFile}
                 crop={crop}
@@ -759,7 +759,7 @@ const AddCourse = () => {
 
             <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex-1">
-                <label className="mb-1 block text-sm font-medium text-gray-700">Zoom</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Zoom</label>
                 <input
                   type="range"
                   min="1"
@@ -774,14 +774,14 @@ const AddCourse = () => {
                 <button
                   type="button"
                   onClick={closeCropper}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  className="rounded-lg border border-gray-300 dark:border-slate-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleCropConfirm}
-                  className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+                  className="rounded-lg bg-purple-600 hover:bg-purple-700 px-4 py-2 text-sm font-semibold text-white cursor-pointer shadow-sm"
                 >
                   Use cropped image
                 </button>

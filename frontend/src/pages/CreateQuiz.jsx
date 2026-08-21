@@ -323,43 +323,44 @@ const CreateQuiz = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-[65vh] gap-3">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 dark:border-purple-400"></div>
+        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 animate-pulse">Loading quiz editor...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] py-8 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 py-8 px-4 sm:px-6 lg:px-8 font-sans text-gray-800 dark:text-gray-100">
       <div className="max-w-4xl mx-auto space-y-6">
         
         {/* Back navigation */}
         <button
           type="button"
           onClick={() => navigate(`/course/${courseId}`)}
-          className="flex items-center gap-2 text-gray-600 hover:text-purple-600 font-bold mb-2 transition cursor-pointer"
+          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-bold mb-2 transition cursor-pointer"
         >
           <FaArrowLeft /> Back to Course details
         </button>
 
         {/* Header Section */}
-        <div className="bg-white rounded-3xl shadow-sm border border-purple-100 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-purple-100 dark:border-slate-800 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-2xl font-bold shadow-inner">
+            <div className="w-14 h-14 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 flex items-center justify-center text-2xl font-bold shadow-inner">
               <FaClipboardList />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black text-gray-900">
+                <h1 className="text-2xl font-black text-gray-900 dark:text-white">
                   {isEditMode ? 'Edit Assessment Quiz' : 'Create New Assessment Quiz'}
                 </h1>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
-                  isEditMode ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-green-100 text-green-800 border border-green-200'
+                  isEditMode ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : 'bg-green-100 dark:bg-green-950/80 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800'
                 }`}>
                   {isEditMode ? 'Edit Mode' : 'New Quiz'}
                 </span>
               </div>
-              <p className="text-gray-500 font-medium text-xs mt-0.5">Course: <strong>{course?.title}</strong></p>
+              <p className="text-gray-500 dark:text-gray-400 font-medium text-xs mt-0.5">Course: <strong>{course?.title}</strong></p>
             </div>
           </div>
         </div>
@@ -368,14 +369,15 @@ const CreateQuiz = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           
           {/* Metadata Section */}
-          <div className="bg-white rounded-3xl shadow-sm border border-purple-100 p-6 sm:p-8 space-y-6">
-            <h2 className="text-lg font-black text-gray-800 border-b border-gray-100 pb-3 flex items-center gap-2">
-              <FaBookOpen className="text-purple-600" /> Quiz Details & Curriculum Schedule
+          {/* Metadata Section */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-purple-100 dark:border-slate-800 p-6 sm:p-8 space-y-6">
+            <h2 className="text-lg font-black text-gray-800 dark:text-white border-b border-gray-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+              <FaBookOpen className="text-purple-600 dark:text-purple-400" /> Quiz Details & Curriculum Schedule
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
-                <label className="block text-xs font-black uppercase tracking-wider text-gray-700 mb-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
                   Quiz Title *
                 </label>
                 <input
@@ -383,20 +385,20 @@ const CreateQuiz = () => {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g., Mathematics Midterm Assessment - Unit 3"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-semibold text-gray-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600"
                   required
                 />
               </div>
 
               {/* Grade Selector */}
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-gray-700 mb-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
                   Target Grade *
                 </label>
                 <select
                   value={grade}
                   onChange={(e) => setGrade(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-gray-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
                   required
                 >
                   <option value="" disabled>Select Target Grade</option>
@@ -410,13 +412,13 @@ const CreateQuiz = () => {
 
               {/* Month Selector */}
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-gray-700 mb-1.5 flex items-center gap-1">
-                  <FaCalendarAlt className="text-purple-600" /> Curriculum Month
+                <label className="block text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
+                  <FaCalendarAlt className="text-purple-600 dark:text-purple-400" /> Curriculum Month
                 </label>
                 <select
                   value={month}
                   onChange={(e) => setMonth(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-gray-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
                 >
                   {MONTHS.map(m => (
                     <option key={m} value={m}>{m}</option>
@@ -426,13 +428,13 @@ const CreateQuiz = () => {
 
               {/* Week Number */}
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-gray-700 mb-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
                   Lesson Week Number
                 </label>
                 <select
                   value={weekNumber}
                   onChange={(e) => setWeekNumber(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-gray-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
                 >
                   <option value={1}>Week 1</option>
                   <option value={2}>Week 2</option>
@@ -445,8 +447,8 @@ const CreateQuiz = () => {
               {/* Time Limit & Passing % */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-gray-700 mb-1.5 flex items-center gap-1">
-                    <FaClock className="text-purple-600" /> Time (Mins)
+                  <label className="block text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
+                    <FaClock className="text-purple-600 dark:text-purple-400" /> Time (Mins)
                   </label>
                   <input
                     type="number"
@@ -454,14 +456,14 @@ const CreateQuiz = () => {
                     onChange={(e) => setTimeLimit(Math.max(0, parseInt(e.target.value) || 0))}
                     placeholder="0 for unlimited"
                     min="0"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-gray-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600"
                   />
-                  <span className="text-[10px] text-gray-400 font-semibold block mt-1">0 = No limit</span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold block mt-1">0 = No limit</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-gray-700 mb-1.5 flex items-center gap-1">
-                    <FaPercentage className="text-purple-600" /> Pass %
+                  <label className="block text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
+                    <FaPercentage className="text-purple-600 dark:text-purple-400" /> Pass %
                   </label>
                   <input
                     type="number"
@@ -469,22 +471,22 @@ const CreateQuiz = () => {
                     onChange={(e) => setPassingPercentage(Math.min(100, Math.max(1, parseInt(e.target.value) || 50)))}
                     min="1"
                     max="100"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-gray-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600"
                   />
-                  <span className="text-[10px] text-gray-400 font-semibold block mt-1">Default 50%</span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold block mt-1">Default 50%</span>
                 </div>
               </div>
 
               {/* Description */}
               <div className="md:col-span-2">
-                <label className="block text-xs font-black uppercase tracking-wider text-gray-700 mb-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
                   Description / Student Instructions
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe the topics covered, marking criteria, or special instructions for students..."
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 h-20"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-medium text-gray-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600 h-20"
                 />
               </div>
             </div>
@@ -494,8 +496,8 @@ const CreateQuiz = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-black text-gray-900">Quiz Questions ({questions.length})</h2>
-                <p className="text-xs text-gray-500 font-medium">Create questions using text, diagram image uploads (&lt; 1MB), or both.</p>
+                <h2 className="text-xl font-black text-gray-900 dark:text-white">Quiz Questions ({questions.length})</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Create questions using text, diagram image uploads (&lt; 1MB), or both.</p>
               </div>
               <button
                 type="button"
@@ -512,22 +514,22 @@ const CreateQuiz = () => {
               const isTF = qType === 'true_false';
 
               return (
-                <div key={qIndex} className="bg-white rounded-3xl shadow-sm border-2 border-purple-100/80 p-6 sm:p-8 space-y-6 relative transition hover:border-purple-200">
+                <div key={qIndex} className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border-2 border-purple-100/80 dark:border-slate-800 p-6 sm:p-8 space-y-6 relative transition hover:border-purple-200 dark:hover:border-slate-700">
                   
                   {/* Top Bar: Question #, Type Switcher, Points, Trash */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
                     <div className="flex items-center gap-3">
                       <span className="w-9 h-9 rounded-2xl bg-purple-900 text-white font-black text-sm flex items-center justify-center shadow-sm">
                         {qIndex + 1}
                       </span>
                       
                       {/* Question Type Switcher Pills */}
-                      <div className="flex items-center bg-gray-100 p-1 rounded-2xl">
+                      <div className="flex items-center bg-gray-100 dark:bg-slate-800 p-1 rounded-2xl border border-gray-200 dark:border-slate-700">
                         <button
                           type="button"
                           onClick={() => handleTypeChange(qIndex, 'mcq')}
                           className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                            qType === 'mcq' ? 'bg-purple-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                            qType === 'mcq' ? 'bg-purple-600 text-white shadow-xs' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                           }`}
                         >
                           <FaDotCircle /> Single Choice (MCQ)
@@ -536,7 +538,7 @@ const CreateQuiz = () => {
                           type="button"
                           onClick={() => handleTypeChange(qIndex, 'multiple')}
                           className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                            qType === 'multiple' ? 'bg-purple-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                            qType === 'multiple' ? 'bg-purple-600 text-white shadow-xs' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                           }`}
                         >
                           <FaCheckSquare /> Multiple Select
@@ -545,7 +547,7 @@ const CreateQuiz = () => {
                           type="button"
                           onClick={() => handleTypeChange(qIndex, 'true_false')}
                           className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                            qType === 'true_false' ? 'bg-purple-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                            qType === 'true_false' ? 'bg-purple-600 text-white shadow-xs' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                           }`}
                         >
                           <FaToggleOn /> True / False
@@ -554,21 +556,21 @@ const CreateQuiz = () => {
                     </div>
                     
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5 bg-purple-50 px-3 py-1 rounded-xl border border-purple-100">
-                        <label className="text-xs font-black text-purple-900">Points:</label>
+                      <div className="flex items-center gap-1.5 bg-purple-50 dark:bg-purple-950/60 px-3 py-1 rounded-xl border border-purple-100 dark:border-purple-800">
+                        <label className="text-xs font-black text-purple-900 dark:text-purple-300">Points:</label>
                         <input
                           type="number"
                           min="1"
                           value={question.points}
                           onChange={(e) => handleQuestionChange(qIndex, 'points', Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-12 px-1 py-0.5 bg-white border border-purple-200 rounded-lg text-center font-black text-xs text-purple-950 focus:outline-none"
+                          className="w-12 px-1 py-0.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 rounded-lg text-center font-black text-xs text-purple-950 dark:text-white focus:outline-none"
                         />
                       </div>
                       
                       <button
                         type="button"
                         onClick={() => handleRemoveQuestion(qIndex)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition cursor-pointer"
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition cursor-pointer"
                         title="Delete Question"
                       >
                         <FaTrash size={16} />
@@ -578,7 +580,7 @@ const CreateQuiz = () => {
 
                   {/* Question Text Input */}
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-wider text-gray-700 mb-1.5">
+                    <label className="block text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
                       Question Text
                     </label>
                     <input
@@ -586,22 +588,22 @@ const CreateQuiz = () => {
                       value={question.questionText}
                       onChange={(e) => handleQuestionChange(qIndex, 'questionText', e.target.value)}
                       placeholder="Type the question content here..."
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-semibold text-gray-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600"
                     />
                   </div>
 
                   {/* Image Upload Area (< 1MB) */}
                   <div className="space-y-2">
-                    <label className="block text-xs font-black uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                      <FaImage className="text-purple-600" /> Question Diagram / Image (Optional, &lt; 1MB)
+                    <label className="block text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <FaImage className="text-purple-600 dark:text-purple-400" /> Question Diagram / Image (Optional, &lt; 1MB)
                     </label>
                     
                     {question.questionImage ? (
-                      <div className="relative inline-block border-2 border-purple-200 rounded-2xl overflow-hidden shadow-sm max-w-sm">
+                      <div className="relative inline-block border-2 border-purple-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm max-w-sm">
                         <img 
                           src={question.questionImage.startsWith('http') ? question.questionImage : `http://localhost:5000${question.questionImage}`} 
                           alt="Question diagram"
-                          className="max-h-48 object-contain bg-gray-50 p-2"
+                          className="max-h-48 object-contain bg-gray-50 dark:bg-slate-800 p-2"
                         />
                         <button
                           type="button"
@@ -613,7 +615,7 @@ const CreateQuiz = () => {
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <label className="px-4 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer">
+                        <label className="px-4 py-2.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer">
                           <FaImage /> {uploadingImgIndex === qIndex ? 'Uploading...' : 'Upload Image (< 1MB)'}
                           <input
                             type="file"
@@ -632,7 +634,7 @@ const CreateQuiz = () => {
                   <div className="space-y-3 pt-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <label className="block text-xs font-black uppercase tracking-wider text-gray-800">
+                        <label className="block text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200">
                           Options & Correct Answer Selection *
                         </label>
                         <p className="text-xs text-gray-400 font-medium">
@@ -643,7 +645,7 @@ const CreateQuiz = () => {
                             : 'Select the radio circle next to the correct answer.'}
                         </p>
                       </div>
-                      <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200 flex items-center gap-1">
+                      <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-xl border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
                         <FaCheckCircle /> Marked in Green
                       </span>
                     </div>
@@ -660,8 +662,8 @@ const CreateQuiz = () => {
                             key={oIndex} 
                             className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition ${
                               isMarked 
-                                ? 'bg-emerald-50/70 border-emerald-500 shadow-xs' 
-                                : 'bg-gray-50/50 border-gray-200 hover:border-purple-200'
+                                ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-500 dark:border-emerald-600 shadow-xs' 
+                                : 'bg-gray-50/50 dark:bg-slate-800/80 border-gray-200 dark:border-slate-700 hover:border-purple-200 dark:hover:border-slate-600'
                             }`}
                           >
                             {/* Radio or Checkbox */}
@@ -691,10 +693,10 @@ const CreateQuiz = () => {
                               disabled={isTF} // TF options are fixed to True/False
                               onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
                               placeholder={`Option ${oIndex + 1}`}
-                              className={`flex-1 px-4 py-2 bg-white border rounded-xl text-sm font-semibold focus:outline-none ${
+                              className={`flex-1 px-4 py-2 bg-white dark:bg-slate-800 border rounded-xl text-sm font-semibold focus:outline-none ${
                                 isMarked 
-                                  ? 'border-emerald-400 font-black text-emerald-950' 
-                                  : 'border-gray-200 focus:border-purple-500 text-gray-800'
+                                  ? 'border-emerald-400 dark:border-emerald-500 font-black text-emerald-950 dark:text-emerald-200' 
+                                  : 'border-gray-200 dark:border-slate-700 focus:border-purple-500 text-gray-800 dark:text-white'
                               }`}
                               required
                             />
@@ -726,7 +728,7 @@ const CreateQuiz = () => {
                       <button
                         type="button"
                         onClick={() => handleAddOption(qIndex)}
-                        className="text-xs font-black text-purple-700 hover:text-purple-800 hover:underline flex items-center gap-1.5 pt-1 cursor-pointer"
+                        className="text-xs font-black text-purple-700 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline flex items-center gap-1.5 pt-1 cursor-pointer"
                       >
                         <FaPlus /> Add Another Option
                       </button>
@@ -734,8 +736,8 @@ const CreateQuiz = () => {
                   </div>
 
                   {/* Explanation / Rationale Input */}
-                  <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/80 space-y-1.5">
-                    <label className="block text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                  <div className="bg-amber-50/50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-200/80 dark:border-amber-900/60 space-y-1.5">
+                    <label className="block text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
                       <FaLightbulb className="text-amber-500" /> Explanation / Rationale (Optional)
                     </label>
                     <input
@@ -743,28 +745,27 @@ const CreateQuiz = () => {
                       value={question.explanation || ''}
                       onChange={(e) => handleQuestionChange(qIndex, 'explanation', e.target.value)}
                       placeholder="Explain why the selected option(s) is correct (displayed to student after submitting)..."
-                      className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-xs font-medium text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-amber-200 dark:border-slate-700 rounded-xl text-xs font-medium text-amber-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
                     />
                   </div>
-
                 </div>
               );
             })}
           </div>
 
           {/* Form Actions Bar */}
-          <div className="bg-white p-6 rounded-3xl border border-purple-100 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-purple-100 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
             <button
               type="button"
               onClick={() => navigate(`/course/${courseId}`)}
-              className="w-full sm:w-auto px-6 py-3 border border-gray-200 bg-white text-gray-700 font-bold rounded-2xl hover:bg-gray-50 transition cursor-pointer"
+              className="w-full sm:w-auto px-6 py-3 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="w-full sm:w-auto px-8 py-3 bg-purple-700 text-white font-black rounded-2xl hover:bg-purple-800 shadow-lg shadow-purple-200 transition cursor-pointer flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-3 bg-purple-700 hover:bg-purple-800 text-white font-black rounded-2xl shadow-lg shadow-purple-200 dark:shadow-none transition cursor-pointer flex items-center justify-center gap-2"
             >
               {submitting ? (
                 <>

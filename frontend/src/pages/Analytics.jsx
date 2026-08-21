@@ -97,8 +97,9 @@ const Analytics = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#2d1b64]"></div>
+      <div className="min-h-[65vh] flex flex-col items-center justify-center gap-3">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 dark:border-purple-400"></div>
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 animate-pulse">Loading Analytics Data...</p>
       </div>
     );
   }
@@ -128,12 +129,12 @@ const Analytics = () => {
       : (totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 0);
 
     return (
-      <div className="min-h-screen bg-[#f1f5f9] p-4 md:p-10 font-sans text-gray-800 space-y-10">
+      <div className="min-h-screen bg-[#f1f5f9] dark:bg-slate-950 p-4 md:p-10 font-sans text-gray-800 dark:text-gray-100 space-y-10 transition-colors duration-200">
         <div className="max-w-7xl mx-auto space-y-8">
           
           {/* TEACHER VIEW: Selected Student Header / Back button */}
           {isTeacher && data?.isStudentDetail && (
-            <div className="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-purple-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <button
                   type="button"
@@ -143,13 +144,13 @@ const Analytics = () => {
                   <FaArrowLeft /> Back to Class Roster
                 </button>
                 <div>
-                  <span className="text-[10px] font-black text-purple-700 uppercase tracking-wider block">Inspecting Class Student</span>
-                  <h3 className="text-lg font-black text-gray-900">{data?.selectedStudent?.name}</h3>
+                  <span className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-wider block">Inspecting Class Student</span>
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white">{data?.selectedStudent?.name}</h3>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-mono font-bold bg-purple-50 text-purple-900 px-3 py-1.5 rounded-xl border border-purple-200">
+                <span className="text-xs font-mono font-bold bg-purple-50 dark:bg-purple-950/50 text-purple-900 dark:text-purple-300 px-3 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800">
                   {data?.selectedStudent?.registrationNumber || data?.selectedStudent?.email || 'No Reg #'}
                 </span>
                 <span className="text-xs font-bold bg-amber-400 text-purple-950 px-3 py-1.5 rounded-xl shadow-xs">
@@ -164,12 +165,12 @@ const Analytics = () => {
 
           {/* PARENT VIEW: Child Selection Navigation Bar */}
           {isParent && (
-            <div className="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm space-y-3.5">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-purple-200/80 dark:border-slate-800 shadow-sm space-y-3.5">
               <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-black uppercase tracking-wider text-purple-950 flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-purple-950 dark:text-purple-300 flex items-center gap-2">
                   <span>🧒</span> Select Child to Monitor:
                 </span>
-                <span className="text-xs text-purple-700 font-bold bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+                <span className="text-xs text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/50 px-3 py-1 rounded-full border border-purple-100 dark:border-purple-800">
                   {data?.parentChildren?.length || 0} Registered Children
                 </span>
               </div>
@@ -257,80 +258,80 @@ const Analytics = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
             {/* Card 1: Enrolled Courses */}
-            <div className="bg-purple-50/90 p-6 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition">
+            <div className="bg-purple-50/90 dark:bg-slate-900 p-6 rounded-3xl border border-purple-100 dark:border-slate-800 shadow-sm hover:shadow-md transition">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs text-purple-600 font-bold uppercase tracking-wider">Enrolled Courses</p>
-                  <h3 className="text-3xl font-extrabold text-purple-950 mt-1">{studentMetrics?.enrolledCoursesCount || enrolledCoursesList.length}</h3>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 font-bold uppercase tracking-wider">Enrolled Courses</p>
+                  <h3 className="text-3xl font-extrabold text-purple-950 dark:text-white mt-1">{studentMetrics?.enrolledCoursesCount || enrolledCoursesList.length}</h3>
                 </div>
-                <div className="w-12 h-12 bg-purple-200/60 text-[#2d1b64] rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <div className="w-12 h-12 bg-purple-200/60 dark:bg-purple-900/50 text-[#2d1b64] dark:text-purple-300 rounded-2xl flex items-center justify-center text-xl shadow-inner">
                   <FaBookOpen />
                 </div>
               </div>
               
-              <div className="mt-4 pt-4 border-t border-purple-100 flex items-center justify-between text-xs font-bold text-purple-900">
+              <div className="mt-4 pt-4 border-t border-purple-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-purple-900 dark:text-purple-300">
                 <span>Active Learning Seats</span>
-                <Link to="/courses" className="text-purple-700 underline font-extrabold flex items-center gap-1 hover:text-purple-950">
+                <Link to="/courses" className="text-purple-700 dark:text-purple-400 underline font-extrabold flex items-center gap-1 hover:text-purple-950 dark:hover:text-purple-200">
                   Browse Courses <FaArrowRight />
                 </Link>
               </div>
             </div>
 
             {/* Card 2: Attendance Compliance */}
-            <div className="bg-blue-50/90 p-6 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition">
+            <div className="bg-blue-50/90 dark:bg-slate-900 p-6 rounded-3xl border border-blue-100 dark:border-slate-800 shadow-sm hover:shadow-md transition">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs text-blue-700 font-bold uppercase tracking-wider">Weekly Attendance Rate</p>
-                  <h3 className="text-3xl font-extrabold text-blue-900 mt-1">{studentMetrics?.attendanceRate ?? 0}%</h3>
+                  <p className="text-xs text-blue-700 dark:text-blue-400 font-bold uppercase tracking-wider">Weekly Attendance Rate</p>
+                  <h3 className="text-3xl font-extrabold text-blue-900 dark:text-white mt-1">{studentMetrics?.attendanceRate ?? 0}%</h3>
                 </div>
-                <div className="w-12 h-12 bg-blue-200/60 text-blue-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <div className="w-12 h-12 bg-blue-200/60 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-2xl flex items-center justify-center text-xl shadow-inner">
                   <FaCheckCircle />
                 </div>
               </div>
               
-              <div className="mt-4 pt-4 border-t border-blue-100 flex items-center justify-between text-xs font-bold text-blue-900">
+              <div className="mt-4 pt-4 border-t border-blue-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-blue-900 dark:text-blue-300">
                 <span>{studentMetrics?.weeklyAttendedCount || 0} / {studentMetrics?.totalAvailableWeeks || 16} Weeks Attended</span>
-                <span className="text-blue-700 font-bold">{studentMetrics?.attendanceRate ?? 0}% Compliance</span>
+                <span className="text-blue-700 dark:text-blue-400 font-bold">{studentMetrics?.attendanceRate ?? 0}% Compliance</span>
               </div>
             </div>
 
             {/* Card 3: Payments Settled */}
-            <div className="bg-emerald-50/90 p-6 rounded-3xl border border-emerald-100 shadow-sm hover:shadow-md transition">
+            <div className="bg-emerald-50/90 dark:bg-slate-900 p-6 rounded-3xl border border-emerald-100 dark:border-slate-800 shadow-sm hover:shadow-md transition">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs text-emerald-700 font-bold uppercase tracking-wider">Payments Settled</p>
-                  <h3 className="text-3xl font-extrabold text-emerald-800 mt-1">
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">Payments Settled</p>
+                  <h3 className="text-3xl font-extrabold text-emerald-800 dark:text-white mt-1">
                     LKR {(studentMetrics?.totalPaidAmount || 0).toLocaleString()}
                   </h3>
                 </div>
-                <div className="w-12 h-12 bg-emerald-200/60 text-emerald-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <div className="w-12 h-12 bg-emerald-200/60 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center text-xl shadow-inner">
                   <FaMoneyBillWave />
                 </div>
               </div>
               
-              <div className="mt-4 pt-4 border-t border-emerald-100 flex items-center justify-between text-xs font-bold text-emerald-950">
+              <div className="mt-4 pt-4 border-t border-emerald-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-emerald-950 dark:text-emerald-300">
                 <span>{studentMetrics?.totalPaymentsCount || 0} Receipts</span>
-                <Link to="/payments" className="text-emerald-700 underline font-extrabold flex items-center gap-1 hover:text-emerald-950">
+                <Link to="/payments" className="text-emerald-700 dark:text-emerald-400 underline font-extrabold flex items-center gap-1 hover:text-emerald-950 dark:hover:text-emerald-200">
                   View Receipts <FaArrowRight />
                 </Link>
               </div>
             </div>
 
             {/* Card 4: Registered Grade */}
-            <div className="bg-indigo-50/90 p-6 rounded-3xl border border-indigo-100 shadow-sm hover:shadow-md transition">
+            <div className="bg-indigo-50/90 dark:bg-slate-900 p-6 rounded-3xl border border-indigo-100 dark:border-slate-800 shadow-sm hover:shadow-md transition">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Registered Grade</p>
-                  <h3 className="text-3xl font-extrabold text-indigo-950 mt-1">{studentMetrics?.userGrade || 'Grade 6'}</h3>
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">Registered Grade</p>
+                  <h3 className="text-3xl font-extrabold text-indigo-950 dark:text-white mt-1">{studentMetrics?.userGrade || 'Grade 6'}</h3>
                 </div>
-                <div className="w-12 h-12 bg-indigo-200/60 text-indigo-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <div className="w-12 h-12 bg-indigo-200/60 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-2xl flex items-center justify-center text-xl shadow-inner">
                   <FaGraduationCap />
                 </div>
               </div>
               
-              <div className="mt-4 pt-4 border-t border-indigo-100 flex items-center justify-between text-xs font-bold text-indigo-950">
+              <div className="mt-4 pt-4 border-t border-indigo-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-indigo-950 dark:text-indigo-300">
                 <span>Mode: {studentMetrics?.userType || 'online'}</span>
-                <span className="text-indigo-700 font-bold">Active Year 2026</span>
+                <span className="text-indigo-700 dark:text-indigo-400 font-bold">Active Year 2026</span>
               </div>
             </div>
 
@@ -340,22 +341,22 @@ const Analytics = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             {/* My Courses Cards (2 Cols) */}
-            <div className="lg:col-span-2 bg-[#fffdf7] p-8 rounded-[30px] border border-amber-200/80 shadow-sm space-y-6">
+            <div className="lg:col-span-2 bg-[#fffdf7] dark:bg-slate-900 p-8 rounded-[30px] border border-amber-200/80 dark:border-slate-800 shadow-sm space-y-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-xl font-bold text-amber-950 flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-amber-950 dark:text-white flex items-center gap-2">
                     <FaBookOpen className="text-amber-500" /> My Enrolled Courses
                   </h3>
-                  <p className="text-xs text-amber-600/70 mt-0.5">Courses you are currently registered and learning in</p>
+                  <p className="text-xs text-amber-600/70 dark:text-gray-400 mt-0.5">Courses you are currently registered and learning in</p>
                 </div>
-                <span className="text-xs font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-full border border-amber-300">
+                <span className="text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 px-3 py-1 rounded-full border border-amber-300 dark:border-amber-800">
                   {enrolledCoursesList.length} Enrolled
                 </span>
               </div>
 
               {enrolledCoursesList.length === 0 ? (
                 <div className="py-12 text-center space-y-3">
-                  <p className="text-sm text-gray-500">You are not enrolled in any courses yet.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">You are not enrolled in any courses yet.</p>
                   <Link 
                     to="/courses"
                     className="inline-block px-4 py-2 bg-purple-700 text-white font-bold text-xs rounded-xl shadow hover:bg-purple-800 transition"
@@ -366,23 +367,23 @@ const Analytics = () => {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
                   {enrolledCoursesList.map((course) => (
-                    <div key={course._id} className="bg-white p-6 rounded-3xl border border-amber-100 shadow-sm hover:shadow-md transition space-y-4 flex flex-col justify-between">
+                    <div key={course._id} className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-amber-100 dark:border-slate-700 shadow-sm hover:shadow-md transition space-y-4 flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-[10px] font-extrabold uppercase bg-purple-100 text-purple-900 px-2.5 py-0.5 rounded-full">
+                          <span className="text-[10px] font-extrabold uppercase bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
                             Active Learning
                           </span>
-                          <span className="text-xs font-bold text-emerald-700">LKR {course.price.toLocaleString()}</span>
+                          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">LKR {course.price.toLocaleString()}</span>
                         </div>
-                        <h4 className="text-lg font-extrabold text-gray-900 line-clamp-1">{course.title}</h4>
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{course.description}</p>
+                        <h4 className="text-lg font-extrabold text-gray-900 dark:text-white line-clamp-1">{course.title}</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{course.description}</p>
                       </div>
 
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                        <span className="text-xs text-gray-500 font-semibold">Teacher: <strong className="text-gray-800">{course.instructorName}</strong></span>
+                      <div className="pt-3 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Teacher: <strong className="text-gray-800 dark:text-gray-200">{course.instructorName}</strong></span>
                         <Link 
                           to={`/course/${course._id}`}
-                          className="px-3 py-1.5 bg-[#2d1b64] text-white text-xs font-bold rounded-xl hover:bg-indigo-900 transition flex items-center gap-1"
+                          className="px-3 py-1.5 bg-[#2d1b64] dark:bg-purple-700 text-white text-xs font-bold rounded-xl hover:bg-indigo-900 dark:hover:bg-purple-600 transition flex items-center gap-1"
                         >
                           Course <FaArrowRight />
                         </Link>
@@ -394,17 +395,17 @@ const Analytics = () => {
             </div>
 
             {/* Attendance Breakdown (1 Col) */}
-            <div className="bg-[#f5f3ff] p-8 rounded-[30px] border border-indigo-100 shadow-sm flex flex-col justify-between space-y-6">
+            <div className="bg-[#f5f3ff] dark:bg-slate-900 p-8 rounded-[30px] border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-6">
               <div>
-                <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
-                  <FaChartPie className="text-purple-600" /> Attendance Compliance
+                <h3 className="text-xl font-bold text-purple-950 dark:text-white flex items-center gap-2">
+                  <FaChartPie className="text-purple-600 dark:text-purple-400" /> Attendance Compliance
                 </h3>
-                <p className="text-xs text-purple-400 mt-0.5">Your attendance history across class sessions</p>
+                <p className="text-xs text-purple-400 dark:text-gray-400 mt-0.5">Your attendance history across class sessions</p>
               </div>
 
               <div className="relative w-48 h-48 mx-auto flex items-center justify-center my-4">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" stroke="#fef2f2" strokeWidth="16" fill="transparent" />
+                  <circle cx="50" cy="50" r="40" stroke="#fef2f2" strokeWidth="16" fill="transparent" className="dark:stroke-slate-800" />
                   <circle 
                     cx="50" 
                     cy="50" 
@@ -418,31 +419,31 @@ const Analytics = () => {
                 </svg>
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-2xl font-extrabold text-purple-950">{attPercentage}%</span>
-                  <span className="text-[10px] text-purple-500 font-bold uppercase tracking-wider">Attendance</span>
+                  <span className="text-2xl font-extrabold text-purple-950 dark:text-white">{attPercentage}%</span>
+                  <span className="text-[10px] text-purple-500 dark:text-purple-400 font-bold uppercase tracking-wider">Attendance</span>
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2 border-t border-purple-100">
+              <div className="space-y-3 pt-2 border-t border-purple-100 dark:border-slate-800">
                 <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-emerald-700 flex items-center gap-1.5">
+                  <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
                     <span className="w-3 h-3 bg-emerald-500 rounded-full inline-block"></span> Present
                   </span>
-                  <span className="text-emerald-900 font-extrabold">{presentCount} Sessions</span>
+                  <span className="text-emerald-900 dark:text-emerald-300 font-extrabold">{presentCount} Sessions</span>
                 </div>
 
                 <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-rose-700 flex items-center gap-1.5">
+                  <span className="text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
                     <span className="w-3 h-3 bg-rose-500 rounded-full inline-block"></span> Absent
                   </span>
-                  <span className="text-rose-900 font-extrabold">{absentCount} Sessions</span>
+                  <span className="text-rose-900 dark:text-rose-300 font-extrabold">{absentCount} Sessions</span>
                 </div>
 
                 <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-amber-700 flex items-center gap-1.5">
+                  <span className="text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                     <span className="w-3 h-3 bg-amber-500 rounded-full inline-block"></span> Late
                   </span>
-                  <span className="text-amber-900 font-extrabold">{lateCount} Sessions</span>
+                  <span className="text-amber-900 dark:text-amber-300 font-extrabold">{lateCount} Sessions</span>
                 </div>
               </div>
             </div>
@@ -450,17 +451,17 @@ const Analytics = () => {
           </div>
 
           {/* Section 1.5: 4-Week Attendance Progress Tracker */}
-          <div className="bg-[#f0f9ff] p-8 rounded-[30px] border border-sky-100 shadow-sm space-y-4">
+          <div className="bg-[#f0f9ff] dark:bg-slate-900 p-8 rounded-[30px] border border-sky-100 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <div>
-                <h3 className="text-xl font-bold text-sky-950 flex items-center gap-2">
+                <h3 className="text-xl font-bold text-sky-950 dark:text-white flex items-center gap-2">
                   📅 4-Week Attendance Progress Tracker
                 </h3>
-                <p className="text-xs text-sky-700/80 mt-0.5">
+                <p className="text-xs text-sky-700/80 dark:text-gray-400 mt-0.5">
                   Cumulative weekly attendance formula: ({studentMetrics?.weeklyAttendedCount || 0} / {studentMetrics?.totalAvailableWeeks || 16} total available weeks across active courses = {studentMetrics?.attendanceRate ?? 0}%)
                 </p>
               </div>
-              <span className="text-xs font-extrabold bg-sky-200 text-sky-900 px-3.5 py-1 rounded-full border border-sky-300">
+              <span className="text-xs font-extrabold bg-sky-200 dark:bg-sky-950/60 text-sky-900 dark:text-sky-300 px-3.5 py-1 rounded-full border border-sky-300 dark:border-sky-800">
                 Cumulative Rate: {studentMetrics?.attendanceRate ?? 0}%
               </span>
             </div>
@@ -469,10 +470,10 @@ const Analytics = () => {
               {[1, 2, 3, 4].map((wNum) => {
                 const isWeekAttended = (studentMetrics?.weeklyAttendedCount || 0) >= wNum;
                 return (
-                  <div key={wNum} className={`p-4 rounded-2xl border ${isWeekAttended ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-white border-sky-100 text-gray-400'}`}>
+                  <div key={wNum} className={`p-4 rounded-2xl border ${isWeekAttended ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300' : 'bg-white dark:bg-slate-800 border-sky-100 dark:border-slate-700 text-gray-400 dark:text-gray-400'}`}>
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs font-black uppercase">Week {wNum}</span>
-                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isWeekAttended ? 'bg-emerald-200 text-emerald-900' : 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isWeekAttended ? 'bg-emerald-200 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-300' : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400'}`}>
                         {isWeekAttended ? 'Logged ✓' : 'Pending'}
                       </span>
                     </div>
@@ -486,25 +487,25 @@ const Analytics = () => {
           </div>
 
           {/* Section 2: Recent Payment History Table */}
-          <div className="bg-[#f0fdf4] p-8 rounded-[30px] border border-emerald-100 shadow-sm space-y-6">
+          <div className="bg-[#f0fdf4] dark:bg-slate-900 p-8 rounded-[30px] border border-emerald-100 dark:border-slate-800 shadow-sm space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
-                  <FaMoneyBillWave className="text-emerald-600" /> Settled Course Payments
+                <h3 className="text-xl font-bold text-emerald-950 dark:text-white flex items-center gap-2">
+                  <FaMoneyBillWave className="text-emerald-600 dark:text-emerald-400" /> Settled Course Payments
                 </h3>
-                <p className="text-xs text-emerald-600/70 mt-0.5">Your official payment receipts for enrolled courses</p>
+                <p className="text-xs text-emerald-600/70 dark:text-gray-400 mt-0.5">Your official payment receipts for enrolled courses</p>
               </div>
-              <Link to="/payments" className="text-xs bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl hover:bg-emerald-800 transition">
+              <Link to="/payments" className="text-xs bg-emerald-700 hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl transition shadow-xs">
                 View Full Payments History
               </Link>
             </div>
 
             {studentPayments.length === 0 ? (
-              <p className="text-sm text-gray-500 py-6 text-center">No payment receipts logged yet.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No payment receipts logged yet.</p>
             ) : (
               <div className="overflow-x-auto pt-2">
-                <table className="w-full text-left text-xs font-semibold text-gray-700">
-                  <thead className="bg-emerald-100/60 text-emerald-950 uppercase text-[10px] tracking-wider">
+                <table className="w-full text-left text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <thead className="bg-emerald-100/60 dark:bg-slate-800 text-emerald-950 dark:text-emerald-300 uppercase text-[10px] tracking-wider">
                     <tr>
                       <th className="p-3.5 rounded-l-xl">Course Name</th>
                       <th className="p-3.5">Transaction ID</th>
@@ -513,15 +514,15 @@ const Analytics = () => {
                       <th className="p-3.5 rounded-r-xl">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-emerald-100/80">
+                  <tbody className="divide-y divide-emerald-100/80 dark:divide-slate-800">
                     {studentPayments.map(p => (
-                      <tr key={p._id} className="hover:bg-white/80 transition">
-                        <td className="p-3.5 font-bold text-gray-900">{p.course?.title || 'Course Fee'}</td>
-                        <td className="p-3.5 font-mono text-purple-900 text-[11px]">{p.transactionId}</td>
-                        <td className="p-3.5 text-gray-600">{new Date(p.paymentDate || p.createdAt).toLocaleDateString()}</td>
-                        <td className="p-3.5 font-extrabold text-emerald-800">LKR {(p.amount || 0).toLocaleString()}.00</td>
+                      <tr key={p._id} className="hover:bg-white/80 dark:hover:bg-slate-800/80 transition">
+                        <td className="p-3.5 font-bold text-gray-900 dark:text-white">{p.course?.title || 'Course Fee'}</td>
+                        <td className="p-3.5 font-mono text-purple-900 dark:text-purple-300 text-[11px]">{p.transactionId}</td>
+                        <td className="p-3.5 text-gray-600 dark:text-gray-400">{new Date(p.paymentDate || p.createdAt).toLocaleDateString()}</td>
+                        <td className="p-3.5 font-extrabold text-emerald-800 dark:text-emerald-400">LKR {(p.amount || 0).toLocaleString()}.00</td>
                         <td className="p-3.5">
-                          <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-extrabold text-[10px]">
+                          <span className="px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-full font-extrabold text-[10px]">
                             COMPLETED ✓
                           </span>
                         </td>
@@ -534,19 +535,19 @@ const Analytics = () => {
           </div>
 
           {/* Section 3: Academic Quiz & Assessment Performance */}
-          <div className="bg-[#fffdf7] p-8 rounded-[30px] border border-amber-200/80 shadow-sm space-y-6">
+          <div className="bg-[#fffdf7] dark:bg-slate-900 p-8 rounded-[30px] border border-amber-200/80 dark:border-slate-800 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h3 className="text-xl font-bold text-amber-950 flex items-center gap-2">
+                <h3 className="text-xl font-bold text-amber-950 dark:text-white flex items-center gap-2">
                   <FaClipboardList className="text-amber-500" /> Academic Quiz & Assessment Performance
                 </h3>
-                <p className="text-xs text-amber-700/80 mt-0.5">Summary of marks and grades achieved across course assessments</p>
+                <p className="text-xs text-amber-700/80 dark:text-gray-400 mt-0.5">Summary of marks and grades achieved across course assessments</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-black bg-amber-200 text-amber-950 px-3.5 py-1 rounded-full border border-amber-300">
+                <span className="text-xs font-black bg-amber-200 dark:bg-amber-950/60 text-amber-950 dark:text-amber-300 px-3.5 py-1 rounded-full border border-amber-300 dark:border-amber-800">
                   Avg Score: {studentMetrics?.avgQuizScorePercent || 0}%
                 </span>
-                <span className="text-xs font-black bg-purple-100 text-purple-900 px-3.5 py-1 rounded-full border border-purple-200">
+                <span className="text-xs font-black bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 px-3.5 py-1 rounded-full border border-purple-200 dark:border-purple-800">
                   {studentMetrics?.totalQuizzesAttempted || quizSubmissions.length} Attempted
                 </span>
               </div>
@@ -554,15 +555,15 @@ const Analytics = () => {
 
             {quizSubmissions.length === 0 ? (
               <div className="py-12 text-center space-y-2">
-                <p className="text-sm text-gray-500 font-semibold">No quiz assessments completed yet.</p>
-                <Link to="/courses" className="text-xs font-extrabold text-purple-700 underline hover:text-purple-900">
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold">No quiz assessments completed yet.</p>
+                <Link to="/courses" className="text-xs font-extrabold text-purple-700 dark:text-purple-400 underline hover:text-purple-900 dark:hover:text-purple-300">
                   Go to Courses to attempt weekly quizzes →
                 </Link>
               </div>
             ) : (
               <div className="overflow-x-auto pt-1">
-                <table className="w-full text-left text-xs font-semibold text-gray-700">
-                  <thead className="bg-amber-100/70 text-amber-950 uppercase text-[10px] tracking-wider">
+                <table className="w-full text-left text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <thead className="bg-amber-100/70 dark:bg-slate-800 text-amber-950 dark:text-amber-300 uppercase text-[10px] tracking-wider">
                     <tr>
                       <th className="p-3.5 rounded-l-xl">Quiz Assessment</th>
                       <th className="p-3.5">Course</th>
@@ -572,7 +573,7 @@ const Analytics = () => {
                       <th className="p-3.5 rounded-r-xl">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-amber-100/80">
+                  <tbody className="divide-y divide-amber-100/80 dark:divide-slate-800">
                     {quizSubmissions.map(sub => {
                       const pct = sub.totalPoints > 0 ? Math.round((sub.score / sub.totalPoints) * 100) : 0;
                       const passThreshold = sub.quiz?.passingPercentage || 50;
@@ -580,28 +581,28 @@ const Analytics = () => {
                       const dateStr = sub.completedAt ? new Date(sub.completedAt).toLocaleDateString() : 'N/A';
 
                       return (
-                        <tr key={sub._id} className="hover:bg-white/80 transition">
-                          <td className="p-3.5 font-bold text-gray-900">
+                        <tr key={sub._id} className="hover:bg-white/80 dark:hover:bg-slate-800/80 transition">
+                          <td className="p-3.5 font-bold text-gray-900 dark:text-white">
                             <div>{sub.quiz?.title || 'Course Quiz'}</div>
                             {sub.quiz?.month && (
-                              <span className="text-[10px] text-amber-700 font-bold">
+                              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">
                                 {sub.quiz.month} {sub.quiz.weekNumber > 0 && `(Week ${sub.quiz.weekNumber})`}
                               </span>
                             )}
                           </td>
-                          <td className="p-3.5 font-semibold text-purple-900">
+                          <td className="p-3.5 font-semibold text-purple-900 dark:text-purple-300">
                             {sub.quiz?.course?.title || 'Enrolled Course'}
                           </td>
-                          <td className="p-3.5 text-gray-600 font-mono text-[11px]">{dateStr}</td>
-                          <td className="p-3.5 font-extrabold text-gray-900">
-                            <span className="text-purple-700">{sub.score}</span> / {sub.totalPoints}
+                          <td className="p-3.5 text-gray-600 dark:text-gray-400 font-mono text-[11px]">{dateStr}</td>
+                          <td className="p-3.5 font-extrabold text-gray-900 dark:text-white">
+                            <span className="text-purple-700 dark:text-purple-400">{sub.score}</span> / {sub.totalPoints}
                           </td>
-                          <td className="p-3.5 font-black text-gray-800">
-                            <span className={isPassed ? 'text-emerald-700' : 'text-red-600'}>{pct}%</span>
+                          <td className="p-3.5 font-black text-gray-800 dark:text-gray-200">
+                            <span className={isPassed ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>{pct}%</span>
                           </td>
                           <td className="p-3.5">
                             <span className={`px-2.5 py-0.5 rounded-full font-extrabold text-[10px] ${
-                              isPassed ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                              isPassed ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
                             }`}>
                               {isPassed ? 'PASSED ✓' : 'NEEDS WORK'}
                             </span>
@@ -616,19 +617,19 @@ const Analytics = () => {
           </div>
 
           {/* Section 4: Academic Homework & Assignment Performance */}
-          <div className="bg-[#f8faff] p-8 rounded-[30px] border border-indigo-200/80 shadow-sm space-y-6">
+          <div className="bg-[#f8faff] dark:bg-slate-900 p-8 rounded-[30px] border border-indigo-200/80 dark:border-slate-800 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h3 className="text-xl font-bold text-indigo-950 flex items-center gap-2">
-                  <FaClipboardList className="text-indigo-600" /> Academic Homework & Assignment Performance
+                <h3 className="text-xl font-bold text-indigo-950 dark:text-white flex items-center gap-2">
+                  <FaClipboardList className="text-indigo-600 dark:text-indigo-400" /> Academic Homework & Assignment Performance
                 </h3>
-                <p className="text-xs text-indigo-700/80 mt-0.5">Summary of evaluated homework assignments and instructor remarks</p>
+                <p className="text-xs text-indigo-700/80 dark:text-gray-400 mt-0.5">Summary of evaluated homework assignments and instructor remarks</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-black bg-indigo-200 text-indigo-950 px-3.5 py-1 rounded-full border border-indigo-300">
+                <span className="text-xs font-black bg-indigo-200 dark:bg-indigo-950/60 text-indigo-950 dark:text-indigo-300 px-3.5 py-1 rounded-full border border-indigo-300 dark:border-indigo-800">
                   Avg Marks: {studentMetrics?.avgAssignmentMarksPercent || 0}%
                 </span>
-                <span className="text-xs font-black bg-purple-100 text-purple-900 px-3.5 py-1 rounded-full border border-purple-200">
+                <span className="text-xs font-black bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 px-3.5 py-1 rounded-full border border-purple-200 dark:border-purple-800">
                   {studentMetrics?.totalAssignmentsSubmitted || assignmentSubmissions.length} Submitted
                 </span>
               </div>
@@ -636,15 +637,15 @@ const Analytics = () => {
 
             {assignmentSubmissions.length === 0 ? (
               <div className="py-12 text-center space-y-2">
-                <p className="text-sm text-gray-500 font-semibold">No homework assignments submitted yet.</p>
-                <Link to="/courses" className="text-xs font-extrabold text-purple-700 underline hover:text-purple-900">
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold">No homework assignments submitted yet.</p>
+                <Link to="/courses" className="text-xs font-extrabold text-purple-700 dark:text-purple-400 underline hover:text-purple-900 dark:hover:text-purple-300">
                   Go to Courses to view weekly homework tasks →
                 </Link>
               </div>
             ) : (
               <div className="overflow-x-auto pt-1">
-                <table className="w-full text-left text-xs font-semibold text-gray-700">
-                  <thead className="bg-indigo-100/70 text-indigo-950 uppercase text-[10px] tracking-wider">
+                <table className="w-full text-left text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <thead className="bg-indigo-100/70 dark:bg-slate-800 text-indigo-950 dark:text-indigo-300 uppercase text-[10px] tracking-wider">
                     <tr>
                       <th className="p-3.5 rounded-l-xl">Homework Task</th>
                       <th className="p-3.5">Course</th>
@@ -654,7 +655,7 @@ const Analytics = () => {
                       <th className="p-3.5 rounded-r-xl">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-indigo-100/80">
+                  <tbody className="divide-y divide-indigo-100/80 dark:divide-slate-800">
                     {assignmentSubmissions.map(sub => {
                       const asgn = sub.assignment;
                       const maxMarks = asgn?.maxMarks || 100;
@@ -665,42 +666,42 @@ const Analytics = () => {
                       const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : 'N/A';
 
                       return (
-                        <tr key={sub._id} className="hover:bg-white/80 transition">
-                          <td className="p-3.5 font-bold text-gray-900">
+                        <tr key={sub._id} className="hover:bg-white/80 dark:hover:bg-slate-800/80 transition">
+                          <td className="p-3.5 font-bold text-gray-900 dark:text-white">
                             <div>{asgn?.title || 'Homework Assignment'}</div>
                             {asgn?.month && (
-                              <span className="text-[10px] text-indigo-700 font-bold">
+                              <span className="text-[10px] text-indigo-700 dark:text-indigo-400 font-bold">
                                 {asgn.month} {asgn.weekNumber > 0 && `(Week ${asgn.weekNumber})`}
                               </span>
                             )}
                           </td>
-                          <td className="p-3.5 font-semibold text-purple-900">
+                          <td className="p-3.5 font-semibold text-purple-900 dark:text-purple-300">
                             {asgn?.course?.title || 'Enrolled Course'}
                           </td>
-                          <td className="p-3.5 text-gray-600 font-mono text-[11px]">{dateStr}</td>
-                          <td className="p-3.5 font-extrabold text-gray-900">
+                          <td className="p-3.5 text-gray-600 dark:text-gray-400 font-mono text-[11px]">{dateStr}</td>
+                          <td className="p-3.5 font-extrabold text-gray-900 dark:text-white">
                             {isGraded ? (
                               <>
-                                <span className="text-purple-700">{sub.marks}</span> / {maxMarks}
+                                <span className="text-purple-700 dark:text-purple-400">{sub.marks}</span> / {maxMarks}
                               </>
                             ) : (
-                              <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-bold">
+                              <span className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded font-bold">
                                 Pending
                               </span>
                             )}
                           </td>
-                          <td className="p-3.5 font-black text-gray-800">
+                          <td className="p-3.5 font-black text-gray-800 dark:text-gray-200">
                             {isGraded ? (
-                              <span className={isPassed ? 'text-emerald-700' : 'text-red-600'}>{pct}%</span>
+                              <span className={isPassed ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>{pct}%</span>
                             ) : (
-                              <span className="text-gray-400">—</span>
+                              <span className="text-gray-400 dark:text-gray-400">—</span>
                             )}
                           </td>
                           <td className="p-3.5">
                             <span className={`px-2.5 py-0.5 rounded-full font-extrabold text-[10px] ${
                               isGraded
-                                ? isPassed ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                                : 'bg-blue-100 text-blue-800'
+                                ? isPassed ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
+                                : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
                             }`}>
                               {isGraded ? (isPassed ? 'PASSED ✓' : 'NEEDS WORK') : 'SUBMITTED'}
                             </span>
@@ -747,7 +748,7 @@ const Analytics = () => {
     const uniqueGrades = Array.from(new Set(studentsList.map(s => s.grade).filter(Boolean)));
 
     return (
-      <div className="min-h-screen bg-[#f1f5f9] p-4 md:p-10 font-sans text-gray-800 space-y-10">
+      <div className="min-h-screen bg-[#f1f5f9] dark:bg-slate-950 p-4 md:p-10 font-sans text-gray-800 dark:text-gray-100 space-y-10 transition-colors duration-200">
         <div className="max-w-7xl mx-auto space-y-8">
 
           {/* Teacher Header Banner */}
@@ -806,12 +807,12 @@ const Analytics = () => {
           </div>
 
           {/* Teacher Class / Course Selector Bar */}
-          <div className="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm space-y-3">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-purple-200/80 dark:border-slate-800 shadow-sm space-y-3">
             <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-black uppercase tracking-wider text-purple-950 flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-purple-950 dark:text-purple-300 flex items-center gap-2">
                 <span>📚</span> Filter by Assigned Class / Course:
               </span>
-              <span className="text-xs text-purple-700 font-bold bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+              <span className="text-xs text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/50 px-3 py-1 rounded-full border border-purple-100 dark:border-purple-800">
                 {teacherCourses.length} Assigned Course{teacherCourses.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -823,7 +824,7 @@ const Analytics = () => {
                 className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer border ${
                   selectedCourseId === 'all'
                     ? 'bg-purple-900 text-white border-purple-950 shadow-md ring-2 ring-amber-400 scale-[1.02]'
-                    : 'bg-purple-50/60 hover:bg-purple-100 text-purple-950 border-purple-100'
+                    : 'bg-purple-50/60 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-950 dark:text-purple-200 border-purple-100 dark:border-slate-700'
                 }`}
               >
                 <span>🌐 All My Classes</span>
@@ -844,7 +845,7 @@ const Analytics = () => {
                     className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer border ${
                       isSelected
                         ? 'bg-purple-900 text-white border-purple-950 shadow-md ring-2 ring-amber-400 scale-[1.02]'
-                        : 'bg-purple-50/60 hover:bg-purple-100 text-purple-950 border-purple-100'
+                        : 'bg-purple-50/60 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-950 dark:text-purple-200 border-purple-100 dark:border-slate-700'
                     }`}
                   >
                     <span>📖 {course.title}</span>
@@ -862,101 +863,101 @@ const Analytics = () => {
           {/* 5 Executive Summary Cards for Faculty */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             {/* Card 1: Total Lessons Published */}
-            <div className="bg-purple-50/90 p-5 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div className="bg-purple-50/90 dark:bg-purple-950/30 p-5 rounded-3xl border border-purple-100 dark:border-purple-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[11px] text-purple-600 font-bold uppercase tracking-wider">Lessons Published</p>
-                  <h3 className="text-2xl font-extrabold text-purple-950 mt-1">{metrics?.totalLessonsPublished || 0}</h3>
+                  <p className="text-[11px] text-purple-600 dark:text-purple-400 font-bold uppercase tracking-wider">Lessons Published</p>
+                  <h3 className="text-2xl font-extrabold text-purple-950 dark:text-white mt-1">{metrics?.totalLessonsPublished || 0}</h3>
                 </div>
-                <div className="w-10 h-10 bg-purple-200/60 text-[#2d1b64] rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                <div className="w-10 h-10 bg-purple-200/60 dark:bg-purple-900/50 text-[#2d1b64] dark:text-purple-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                   <FaBookOpen />
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-purple-100 text-[10px] font-bold text-purple-900 flex items-center justify-between">
+              <div className="mt-3 pt-3 border-t border-purple-100 dark:border-purple-900/40 text-[10px] font-bold text-purple-900 dark:text-purple-300 flex items-center justify-between">
                 <span>{metrics?.totalVideosCount || 0} Videos • {metrics?.totalPdfsCount || 0} PDFs</span>
                 <span>{metrics?.totalAssignmentsCount || 0} Tasks</span>
               </div>
             </div>
 
             {/* Card 2: Attendance Rate */}
-            <div className="bg-blue-50/90 p-5 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div className="bg-blue-50/90 dark:bg-blue-950/30 p-5 rounded-3xl border border-blue-100 dark:border-blue-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[11px] text-blue-700 font-bold uppercase tracking-wider">Attendance Rate</p>
-                  <h3 className="text-2xl font-extrabold text-blue-900 mt-1">{metrics?.attendanceRate || 100}%</h3>
+                  <p className="text-[11px] text-blue-700 dark:text-blue-400 font-bold uppercase tracking-wider">Attendance Rate</p>
+                  <h3 className="text-2xl font-extrabold text-blue-900 dark:text-white mt-1">{metrics?.attendanceRate || 100}%</h3>
                 </div>
-                <div className="w-10 h-10 bg-blue-200/60 text-blue-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                <div className="w-10 h-10 bg-blue-200/60 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                   <FaCheckCircle />
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-blue-100 text-[10px] font-bold text-blue-900 flex items-center justify-between">
+              <div className="mt-3 pt-3 border-t border-blue-100 dark:border-blue-900/40 text-[10px] font-bold text-blue-900 dark:text-blue-300 flex items-center justify-between">
                 <span>{metrics?.attendanceBreakdown?.present || 0} Present</span>
                 <span>{metrics?.attendanceBreakdown?.total || 0} Total Logged</span>
               </div>
             </div>
 
             {/* Card 3: Active Timetable Hours */}
-            <div className="bg-amber-50/90 p-5 rounded-3xl border border-amber-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div className="bg-amber-50/90 dark:bg-amber-950/30 p-5 rounded-3xl border border-amber-100 dark:border-amber-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[11px] text-amber-700 font-bold uppercase tracking-wider">Timetable Hours</p>
-                  <h3 className="text-2xl font-extrabold text-amber-900 mt-1">{metrics?.activeTimetableHours || 0} <span className="text-xs font-semibold">Hrs/Wk</span></h3>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold uppercase tracking-wider">Timetable Hours</p>
+                  <h3 className="text-2xl font-extrabold text-amber-900 dark:text-white mt-1">{metrics?.activeTimetableHours || 0} <span className="text-xs font-semibold">Hrs/Wk</span></h3>
                 </div>
-                <div className="w-10 h-10 bg-amber-200/60 text-amber-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                <div className="w-10 h-10 bg-amber-200/60 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                   <FaClock />
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-amber-100 text-[10px] font-bold text-amber-900 flex items-center justify-between">
+              <div className="mt-3 pt-3 border-t border-amber-100 dark:border-amber-900/40 text-[10px] font-bold text-amber-900 dark:text-amber-300 flex items-center justify-between">
                 <span>Weekly Lecture Load</span>
                 <span>Active</span>
               </div>
             </div>
 
             {/* Card 4: My Enrolled Students */}
-            <div className="bg-indigo-50/90 p-5 rounded-3xl border border-indigo-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div className="bg-indigo-50/90 dark:bg-indigo-950/30 p-5 rounded-3xl border border-indigo-100 dark:border-indigo-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wider">Enrolled Students</p>
-                  <h3 className="text-2xl font-extrabold text-indigo-950 mt-1">{totalCount}</h3>
+                  <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">Enrolled Students</p>
+                  <h3 className="text-2xl font-extrabold text-indigo-950 dark:text-white mt-1">{totalCount}</h3>
                 </div>
-                <div className="w-10 h-10 bg-indigo-200/60 text-indigo-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                <div className="w-10 h-10 bg-indigo-200/60 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                   <FaUsers />
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-indigo-100 text-[10px] font-bold text-indigo-900 flex items-center justify-between">
+              <div className="mt-3 pt-3 border-t border-indigo-100 dark:border-indigo-900/40 text-[10px] font-bold text-indigo-900 dark:text-indigo-300 flex items-center justify-between">
                 <span>{onlineCount} Online</span>
                 <span>{physicalCount} Physical</span>
               </div>
             </div>
 
             {/* Card 5: Revenue Generated */}
-            <div className="bg-emerald-50/90 p-5 rounded-3xl border border-emerald-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div className="bg-emerald-50/90 dark:bg-emerald-950/30 p-5 rounded-3xl border border-emerald-100 dark:border-emerald-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[11px] text-emerald-700 font-bold uppercase tracking-wider">Revenue Generated</p>
-                  <h3 className="text-2xl font-extrabold text-emerald-800 mt-1">
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">Revenue Generated</p>
+                  <h3 className="text-2xl font-extrabold text-emerald-800 dark:text-white mt-1">
                     LKR {(metrics?.totalRevenue || 0).toLocaleString()}
                   </h3>
                 </div>
-                <div className="w-10 h-10 bg-emerald-200/60 text-emerald-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+                <div className="w-10 h-10 bg-emerald-200/60 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                   <FaMoneyBillWave />
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-emerald-100 text-[10px] font-bold text-emerald-950 flex items-center justify-between">
+              <div className="mt-3 pt-3 border-t border-emerald-100 dark:border-emerald-900/40 text-[10px] font-bold text-emerald-950 dark:text-emerald-200 flex items-center justify-between">
                 <span>{metrics?.totalCourses || teacherCourses.length} Courses</span>
-                <span className="text-emerald-700 font-extrabold">Verified ✓</span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">Verified ✓</span>
               </div>
             </div>
           </div>
 
           {/* CLASS STUDENT ROSTER & INDIVIDUAL ANALYTICS SELECTOR */}
-          <div className="bg-white p-6 sm:p-8 rounded-[30px] border border-purple-200/80 shadow-md space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-purple-100 pb-5">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[30px] border border-purple-200/80 dark:border-slate-800 shadow-md space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-purple-100 dark:border-slate-800 pb-5">
               <div>
-                <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
-                  <FaUsers className="text-purple-600" /> Class Student Roster & Individual Analytics
+                <h3 className="text-xl font-bold text-purple-950 dark:text-white flex items-center gap-2">
+                  <FaUsers className="text-purple-600 dark:text-purple-400" /> Class Student Roster & Individual Analytics
                 </h3>
-                <p className="text-xs text-purple-600/80 mt-0.5">
+                <p className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-0.5">
                   All students registered in your class sessions. Select any student to inspect their detailed attendance, enrollment & fee settlement analytics.
                 </p>
               </div>
@@ -966,7 +967,7 @@ const Analytics = () => {
             </div>
 
             {/* Search and Filters Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-100">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-purple-50/50 dark:bg-slate-800/60 p-4 rounded-2xl border border-purple-100 dark:border-slate-700">
               <div className="relative w-full sm:w-80">
                 <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400 text-xs" />
                 <input
@@ -974,16 +975,16 @@ const Analytics = () => {
                   placeholder="Search by student name, reg # or email..."
                   value={studentSearchTerm}
                   onChange={(e) => setStudentSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-white border border-purple-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600 dark:text-white"
                 />
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-xs font-bold text-purple-900 whitespace-nowrap">Grade Filter:</span>
+                <span className="text-xs font-bold text-purple-900 dark:text-purple-300 whitespace-nowrap">Grade Filter:</span>
                 <select
                   value={studentGradeFilter}
                   onChange={(e) => setStudentGradeFilter(e.target.value)}
-                  className="px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
+                  className="px-3 py-2 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 rounded-xl text-xs font-bold text-purple-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
                 >
                   <option value="all">All Grades</option>
                   {uniqueGrades.map(g => (
@@ -1018,26 +1019,28 @@ const Analytics = () => {
                       <th className="p-4 text-center rounded-r-2xl">Individual Analytics</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-purple-100">
+                  <tbody className="divide-y divide-purple-100 dark:divide-slate-800">
                     {filteredClassStudents.map(student => (
-                      <tr key={student._id} className="hover:bg-purple-50/50 transition">
+                      <tr key={student._id} className="hover:bg-purple-50/50 dark:hover:bg-slate-800/60 transition">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-purple-200 text-purple-900 font-black flex items-center justify-center text-xs shrink-0 shadow-inner">
+                            <div className="w-9 h-9 rounded-full bg-purple-200 dark:bg-purple-900/60 text-purple-900 dark:text-purple-200 font-black flex items-center justify-center text-xs shrink-0 shadow-inner border border-purple-300 dark:border-purple-700">
                               {student.name ? student.name.charAt(0).toUpperCase() : 'S'}
                             </div>
                             <div>
-                              <span className="font-extrabold text-gray-900 block text-sm">{student.name}</span>
-                              <span className="text-[10px] text-purple-700 font-mono block">{student.registrationNumber || student.email}</span>
+                              <span className="font-extrabold text-gray-900 dark:text-white block text-sm">{student.name}</span>
+                              <span className="text-[10px] text-purple-700 dark:text-purple-400 font-mono block">{student.registrationNumber || student.email}</span>
                             </div>
                           </div>
                         </td>
 
                         <td className="p-4">
                           <div className="space-y-1">
-                            <span className="font-bold text-gray-800 block">{student.grade}</span>
-                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block ${
-                              student.studentType === 'online' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-800'
+                            <span className="font-bold text-gray-800 dark:text-gray-200 block">{student.grade}</span>
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block border ${
+                              student.studentType === 'online' 
+                                ? 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800' 
+                                : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800'
                             }`}>
                               {student.studentType === 'online' ? '💻 Online' : '🏫 Physical'}
                             </span>
@@ -1047,7 +1050,7 @@ const Analytics = () => {
                         <td className="p-4">
                           <div className="flex flex-wrap gap-1">
                             {student.enrolledCourses.map((cTitle, i) => (
-                              <span key={i} className="text-[10px] font-bold bg-purple-100 text-purple-900 px-2 py-0.5 rounded-md">
+                              <span key={i} className="text-[10px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-2 py-0.5 rounded-md">
                                 {cTitle}
                               </span>
                             ))}
@@ -1056,19 +1059,21 @@ const Analytics = () => {
 
                         <td className="p-4 text-center">
                           <div className="inline-block space-y-1">
-                            <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
-                              student.attendanceRate >= 75 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            <span className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${
+                              student.attendanceRate >= 75 
+                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' 
+                                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                             }`}>
                               {student.attendanceRate}% Compliance
                             </span>
-                            <span className="text-[10px] text-gray-500 block font-semibold">
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 block font-semibold">
                               {student.attendanceCount} Session{student.attendanceCount !== 1 ? 's' : ''} Logged
                             </span>
                           </div>
                         </td>
 
                         <td className="p-4 text-right">
-                          <span className="font-extrabold text-emerald-800 text-sm">
+                          <span className="font-extrabold text-emerald-800 dark:text-emerald-400 text-sm">
                             LKR {(student.totalPaid || 0).toLocaleString()}
                           </span>
                         </td>
@@ -1170,16 +1175,16 @@ const Analytics = () => {
             return (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left Donut */}
-                <div className="bg-[#fcfaff] p-6 sm:p-8 rounded-[30px] border border-purple-100/90 shadow-sm space-y-6 flex flex-col justify-between">
+                <div className="bg-[#fcfaff] dark:bg-slate-900 p-6 sm:p-8 rounded-[30px] border border-purple-100/90 dark:border-slate-800 shadow-sm space-y-6 flex flex-col justify-between">
                   <div>
-                    <div className="flex justify-between items-center border-b border-purple-100 pb-3">
+                    <div className="flex justify-between items-center border-b border-purple-100 dark:border-slate-800 pb-3">
                       <div>
-                        <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
-                          <FaGraduationCap className="text-purple-600" /> Class Academic Tiers
+                        <h3 className="text-xl font-bold text-purple-950 dark:text-white flex items-center gap-2">
+                          <FaGraduationCap className="text-purple-600 dark:text-purple-400" /> Class Academic Tiers
                         </h3>
-                        <p className="text-xs text-purple-600/80 mt-0.5">Enrolled student distribution across academic levels</p>
+                        <p className="text-xs text-purple-600/80 dark:text-gray-400 mt-0.5">Enrolled student distribution across academic levels</p>
                       </div>
-                      <span className="text-xs bg-purple-100 text-purple-900 font-extrabold px-3 py-1 rounded-full border border-purple-200">
+                      <span className="text-xs bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 font-extrabold px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800">
                         {gradeDistribution.length} Active Grades
                       </span>
                     </div>
@@ -1188,7 +1193,7 @@ const Analytics = () => {
                       <p className="text-sm text-gray-400 py-12 text-center">No student grade data recorded yet.</p>
                     ) : (
                       <div className="pt-4 space-y-6">
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 bg-white p-5 rounded-2xl border border-purple-100/80 shadow-2xs">
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-purple-100/80 dark:border-slate-700 shadow-2xs">
                           <div className="relative w-44 h-44 flex items-center justify-center shrink-0">
                             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
                               <circle cx="80" cy="80" r="65" fill="transparent" stroke="#f1f5f9" strokeWidth="20" />
@@ -1210,8 +1215,8 @@ const Analytics = () => {
                               ))}
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                              <span className="text-3xl font-black text-purple-950 tracking-tight leading-none">{totalCount}</span>
-                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-600 mt-1">Students</span>
+                              <span className="text-3xl font-black text-purple-950 dark:text-white tracking-tight leading-none">{totalCount}</span>
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-600 dark:text-purple-400 mt-1">Students</span>
                             </div>
                           </div>
 
@@ -1225,7 +1230,7 @@ const Analytics = () => {
                                   className={`p-2.5 rounded-xl border transition flex items-center justify-between cursor-pointer ${
                                     isSelected 
                                       ? 'bg-purple-900 text-white border-purple-900 shadow-sm' 
-                                      : 'bg-purple-50/50 hover:bg-purple-100/70 border-purple-100 text-purple-950'
+                                      : 'bg-purple-50/50 dark:bg-slate-900/60 hover:bg-purple-100/70 dark:hover:bg-slate-700/60 border-purple-100 dark:border-slate-700 text-purple-950 dark:text-gray-200'
                                   }`}
                                 >
                                   <div className="flex items-center gap-2">
@@ -1235,7 +1240,7 @@ const Analytics = () => {
                                   <div className="flex items-center gap-2 font-black">
                                     <span>{seg.count} Students</span>
                                     <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
-                                      isSelected ? 'bg-white/20 text-white' : 'bg-white text-purple-900 border border-purple-200'
+                                      isSelected ? 'bg-white/20 text-white' : 'bg-white dark:bg-slate-800 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-slate-700'
                                     }`}>
                                       {seg.percent}%
                                     </span>
@@ -1251,22 +1256,22 @@ const Analytics = () => {
                 </div>
 
                 {/* Right Mode Split */}
-                <div className="bg-[#f7f9ff] p-6 sm:p-8 rounded-[30px] border border-blue-100/90 shadow-sm space-y-6 flex flex-col justify-between">
+                <div className="bg-[#f7f9ff] dark:bg-slate-900 p-6 sm:p-8 rounded-[30px] border border-blue-100/90 dark:border-slate-800 shadow-sm space-y-6 flex flex-col justify-between">
                   <div>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-100 pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-100 dark:border-slate-800 pb-3">
                       <div>
-                        <h3 className="text-xl font-bold text-indigo-950 flex items-center gap-2">
-                          <FaGlobe className="text-indigo-600" /> Mode Split in Your Classes
+                        <h3 className="text-xl font-bold text-indigo-950 dark:text-white flex items-center gap-2">
+                          <FaGlobe className="text-indigo-600 dark:text-indigo-400" /> Mode Split in Your Classes
                         </h3>
-                        <p className="text-xs text-indigo-500 mt-0.5">Online vs physical student ratio per grade level</p>
+                        <p className="text-xs text-indigo-500 dark:text-gray-400 mt-0.5">Online vs physical student ratio per grade level</p>
                       </div>
 
-                      <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-blue-100 self-start sm:self-auto text-xs font-bold shadow-2xs">
+                      <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-blue-100 dark:border-slate-700 self-start sm:self-auto text-xs font-bold shadow-2xs">
                         <button
                           type="button"
                           onClick={() => setModeSortBy('grade')}
                           className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-[11px] ${
-                            modeSortBy === 'grade' ? 'bg-indigo-900 text-white' : 'text-indigo-900 hover:bg-blue-50'
+                            modeSortBy === 'grade' ? 'bg-indigo-900 dark:bg-purple-700 text-white' : 'text-indigo-900 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-slate-700'
                           }`}
                         >
                           Grade
@@ -1275,7 +1280,7 @@ const Analytics = () => {
                           type="button"
                           onClick={() => setModeSortBy('count')}
                           className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-[11px] ${
-                            modeSortBy === 'count' ? 'bg-indigo-900 text-white' : 'text-indigo-900 hover:bg-blue-50'
+                            modeSortBy === 'count' ? 'bg-indigo-900 dark:bg-purple-700 text-white' : 'text-indigo-900 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-slate-700'
                           }`}
                         >
                           Volume
@@ -1283,15 +1288,15 @@ const Analytics = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-blue-100 shadow-2xs my-4 text-xs font-extrabold">
-                      <span className="text-gray-500 uppercase text-[10px] tracking-wider">Class Mode Ratio:</span>
+                    <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-2xl border border-blue-100 dark:border-slate-700 shadow-2xs my-4 text-xs font-extrabold">
+                      <span className="text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">Class Mode Ratio:</span>
                       <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1.5 text-red-600">
+                        <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
                           <span className="w-3 h-3 bg-red-500 rounded-md inline-block"></span>
                           💻 Online ({onlinePercent}%)
                         </span>
-                        <span className="flex items-center gap-1.5 text-indigo-900">
-                          <span className="w-3 h-3 bg-indigo-900 rounded-md inline-block"></span>
+                        <span className="flex items-center gap-1.5 text-indigo-900 dark:text-indigo-300">
+                          <span className="w-3 h-3 bg-indigo-900 dark:bg-indigo-400 rounded-md inline-block"></span>
                           🏫 Physical ({physicalPercent}%)
                         </span>
                       </div>
@@ -1307,10 +1312,10 @@ const Analytics = () => {
                           const physicalRatio = 100 - onlineRatio;
 
                           return (
-                            <div key={g.grade} className="bg-white p-3.5 rounded-2xl border border-blue-100/80 shadow-2xs space-y-2">
+                            <div key={g.grade} className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-blue-100/80 dark:border-slate-700 shadow-2xs space-y-2">
                               <div className="flex justify-between items-center text-xs font-bold">
-                                <span className="text-indigo-950 font-black">🎓 {g.grade}</span>
-                                <span className="text-[11px] font-extrabold text-gray-600">{g.count} Students ({g.online} On / {g.physical} Phys)</span>
+                                <span className="text-indigo-950 dark:text-white font-black">🎓 {g.grade}</span>
+                                <span className="text-[11px] font-extrabold text-gray-600 dark:text-gray-300">{g.count} Students ({g.online} On / {g.physical} Phys)</span>
                               </div>
 
                               <div className="w-full bg-indigo-950 h-5 rounded-xl overflow-hidden flex shadow-inner text-[10px] font-black text-white leading-5 text-center">
@@ -1366,7 +1371,7 @@ const Analytics = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] p-4 md:p-10 font-sans text-gray-800 space-y-10">
+    <div className="min-h-screen bg-[#f1f5f9] dark:bg-slate-950 p-4 md:p-10 font-sans text-gray-800 dark:text-gray-100 space-y-10 transition-colors duration-200">
       <div className="max-w-7xl mx-auto space-y-10">
         
         {/* Header Section */}
@@ -1422,12 +1427,12 @@ const Analytics = () => {
         </div>
 
         {/* ADMIN TEACHER FILTER RIBBON */}
-        <div className="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm space-y-3.5">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-purple-200/80 dark:border-slate-800 shadow-sm space-y-3.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-            <span className="text-xs font-black uppercase tracking-wider text-purple-950 flex items-center gap-2">
-              <FaUserTie className="text-purple-600" /> Filter Analytics by Teacher / Instructor:
+            <span className="text-xs font-black uppercase tracking-wider text-purple-950 dark:text-purple-300 flex items-center gap-2">
+              <FaUserTie className="text-purple-600 dark:text-purple-400" /> Filter Analytics by Teacher / Instructor:
             </span>
-            <span className="text-xs text-purple-700 font-bold bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+            <span className="text-xs text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/50 px-3 py-1 rounded-full border border-purple-100 dark:border-purple-800">
               {teacherBreakdownList.length} Active Instructors
             </span>
           </div>
@@ -1439,7 +1444,7 @@ const Analytics = () => {
               className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer border ${
                 selectedAdminTeacherId === 'all'
                   ? 'bg-purple-900 text-white border-purple-950 shadow-md ring-2 ring-amber-400 scale-[1.02]'
-                  : 'bg-purple-50/60 hover:bg-purple-100 text-purple-950 border-purple-100'
+                  : 'bg-purple-50/60 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-950 dark:text-purple-200 border-purple-100 dark:border-slate-700'
               }`}
             >
               <span>🌐 All Teachers (Institute Overview)</span>
@@ -1460,7 +1465,7 @@ const Analytics = () => {
                   className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer border ${
                     isSelected
                       ? 'bg-purple-900 text-white border-purple-950 shadow-md ring-2 ring-amber-400 scale-[1.02]'
-                      : 'bg-purple-50/60 hover:bg-purple-100 text-purple-950 border-purple-100'
+                      : 'bg-purple-50/60 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-950 dark:text-purple-200 border-purple-100 dark:border-slate-700'
                   }`}
                 >
                   <span>👨‍🏫 {teacher.name}</span>
@@ -1501,13 +1506,13 @@ const Analytics = () => {
 
         {/* Filter Indicator Badge */}
         {studentTypeFilter !== 'all' && (
-          <div className="bg-purple-100 border border-purple-200 text-purple-900 px-5 py-3 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm">
+          <div className="bg-purple-100 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-200 px-5 py-3 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm">
             <span>
               🔍 Currently showing analytics filtered for <strong>{studentTypeFilter.toUpperCase()} STUDENTS ONLY</strong>.
             </span>
             <button 
               onClick={() => setStudentTypeFilter('all')}
-              className="text-purple-700 underline font-extrabold hover:text-purple-950 cursor-pointer"
+              className="text-purple-700 dark:text-purple-400 underline font-extrabold hover:text-purple-950 dark:hover:text-purple-200 cursor-pointer"
             >
               Reset to All Students
             </button>
@@ -1517,108 +1522,108 @@ const Analytics = () => {
         {/* 6 Executive Summary Cards for Admin */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5">
           {/* Card 1: Total Lessons Published */}
-          <div className="bg-purple-50/90 p-5 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+          <div className="bg-purple-50/90 dark:bg-purple-950/30 p-5 rounded-3xl border border-purple-100 dark:border-purple-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[11px] text-purple-600 font-bold uppercase tracking-wider">Lessons Published</p>
-                <h3 className="text-2xl font-extrabold text-purple-950 mt-1">{metrics?.totalLessonsPublished || 0}</h3>
+                <p className="text-[11px] text-purple-600 dark:text-purple-400 font-bold uppercase tracking-wider">Lessons Published</p>
+                <h3 className="text-2xl font-extrabold text-purple-950 dark:text-white mt-1">{metrics?.totalLessonsPublished || 0}</h3>
               </div>
-              <div className="w-10 h-10 bg-purple-200/60 text-[#2d1b64] rounded-2xl flex items-center justify-center text-lg shadow-inner">
+              <div className="w-10 h-10 bg-purple-200/60 dark:bg-purple-900/50 text-[#2d1b64] dark:text-purple-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                 <FaBookOpen />
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-purple-100 text-[10px] font-bold text-purple-900 flex items-center justify-between">
+            <div className="mt-3 pt-3 border-t border-purple-100 dark:border-purple-900/40 text-[10px] font-bold text-purple-900 dark:text-purple-300 flex items-center justify-between">
               <span>{metrics?.totalVideosCount || 0} Videos • {metrics?.totalPdfsCount || 0} PDFs</span>
               <span>{metrics?.totalAssignmentsCount || 0} Tasks</span>
             </div>
           </div>
 
           {/* Card 2: Attendance Compliance */}
-          <div className="bg-blue-50/90 p-5 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+          <div className="bg-blue-50/90 dark:bg-blue-950/30 p-5 rounded-3xl border border-blue-100 dark:border-blue-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[11px] text-blue-700 font-bold uppercase tracking-wider">Attendance Rate</p>
-                <h3 className="text-2xl font-extrabold text-blue-900 mt-1">{metrics?.attendanceRate || 100}%</h3>
+                <p className="text-[11px] text-blue-700 dark:text-blue-400 font-bold uppercase tracking-wider">Attendance Rate</p>
+                <h3 className="text-2xl font-extrabold text-blue-900 dark:text-white mt-1">{metrics?.attendanceRate || 100}%</h3>
               </div>
-              <div className="w-10 h-10 bg-blue-200/60 text-blue-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+              <div className="w-10 h-10 bg-blue-200/60 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                 <FaCheckCircle />
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-blue-100 text-[10px] font-bold text-blue-900 flex items-center justify-between">
+            <div className="mt-3 pt-3 border-t border-blue-100 dark:border-blue-900/40 text-[10px] font-bold text-blue-900 dark:text-blue-300 flex items-center justify-between">
               <span>{metrics?.attendanceBreakdown?.present || 0} Present</span>
               <span>{metrics?.attendanceBreakdown?.total || 0} Logged</span>
             </div>
           </div>
 
           {/* Card 3: Active Timetable Hours */}
-          <div className="bg-amber-50/90 p-5 rounded-3xl border border-amber-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+          <div className="bg-amber-50/90 dark:bg-amber-950/30 p-5 rounded-3xl border border-amber-100 dark:border-amber-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[11px] text-amber-700 font-bold uppercase tracking-wider">Timetable Hours</p>
-                <h3 className="text-2xl font-extrabold text-amber-900 mt-1">{metrics?.activeTimetableHours || 0} <span className="text-xs font-semibold">Hrs/Wk</span></h3>
+                <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold uppercase tracking-wider">Timetable Hours</p>
+                <h3 className="text-2xl font-extrabold text-amber-900 dark:text-white mt-1">{metrics?.activeTimetableHours || 0} <span className="text-xs font-semibold">Hrs/Wk</span></h3>
               </div>
-              <div className="w-10 h-10 bg-amber-200/60 text-amber-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+              <div className="w-10 h-10 bg-amber-200/60 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                 <FaClock />
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-amber-100 text-[10px] font-bold text-amber-900 flex items-center justify-between">
+            <div className="mt-3 pt-3 border-t border-amber-100 dark:border-amber-900/40 text-[10px] font-bold text-amber-900 dark:text-amber-300 flex items-center justify-between">
               <span>Weekly Lecture Load</span>
               <span>Active</span>
             </div>
           </div>
 
           {/* Card 4: Total Students */}
-          <div className="bg-purple-50/90 p-5 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+          <div className="bg-purple-50/90 dark:bg-purple-950/30 p-5 rounded-3xl border border-purple-100 dark:border-purple-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[11px] text-purple-600 font-bold uppercase tracking-wider">
+                <p className="text-[11px] text-purple-600 dark:text-purple-400 font-bold uppercase tracking-wider">
                   {studentTypeFilter === 'all' ? 'Total Students' : `${studentTypeFilter} Students`}
                 </p>
-                <h3 className="text-2xl font-extrabold text-purple-950 mt-1">{totalCount}</h3>
+                <h3 className="text-2xl font-extrabold text-purple-950 dark:text-white mt-1">{totalCount}</h3>
               </div>
-              <div className="w-10 h-10 bg-purple-200/60 text-[#2d1b64] rounded-2xl flex items-center justify-center text-lg shadow-inner">
+              <div className="w-10 h-10 bg-purple-200/60 dark:bg-purple-900/50 text-[#2d1b64] dark:text-purple-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                 <FaUsers />
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-purple-100 text-[10px] font-bold text-purple-900 flex items-center justify-between">
+            <div className="mt-3 pt-3 border-t border-purple-100 dark:border-purple-900/40 text-[10px] font-bold text-purple-900 dark:text-purple-300 flex items-center justify-between">
               <span>{onlineCount} Online</span>
               <span>{physicalCount} Physical</span>
             </div>
           </div>
 
           {/* Card 5: Active Teachers & Courses */}
-          <div className="bg-indigo-50/90 p-5 rounded-3xl border border-indigo-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+          <div className="bg-indigo-50/90 dark:bg-indigo-950/30 p-5 rounded-3xl border border-indigo-100 dark:border-indigo-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wider">Active Teachers</p>
-                <h3 className="text-2xl font-extrabold text-indigo-950 mt-1">{metrics?.totalTeachers || 0}</h3>
+                <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">Active Teachers</p>
+                <h3 className="text-2xl font-extrabold text-indigo-950 dark:text-white mt-1">{metrics?.totalTeachers || 0}</h3>
               </div>
-              <div className="w-10 h-10 bg-indigo-200/60 text-indigo-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+              <div className="w-10 h-10 bg-indigo-200/60 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                 <FaChalkboardTeacher />
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-indigo-100 text-[10px] font-bold text-indigo-900 flex items-center justify-between">
+            <div className="mt-3 pt-3 border-t border-indigo-100 dark:border-indigo-900/40 text-[10px] font-bold text-indigo-900 dark:text-indigo-300 flex items-center justify-between">
               <span>{metrics?.totalCourses || 0} Active Courses</span>
-              <span className="text-indigo-700 font-extrabold">Curriculum</span>
+              <span className="text-indigo-700 dark:text-indigo-400 font-extrabold">Curriculum</span>
             </div>
           </div>
 
           {/* Card 6: Revenue Collected */}
-          <div className="bg-emerald-50/90 p-5 rounded-3xl border border-emerald-100 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+          <div className="bg-emerald-50/90 dark:bg-emerald-950/30 p-5 rounded-3xl border border-emerald-100 dark:border-emerald-900/40 shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[11px] text-emerald-700 font-bold uppercase tracking-wider">Revenue Collected</p>
-                <h3 className="text-2xl font-extrabold text-emerald-800 mt-1">
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">Revenue Collected</p>
+                <h3 className="text-2xl font-extrabold text-emerald-800 dark:text-white mt-1">
                   LKR {(metrics?.totalRevenue || 0).toLocaleString()}
                 </h3>
               </div>
-              <div className="w-10 h-10 bg-emerald-200/60 text-emerald-700 rounded-2xl flex items-center justify-center text-lg shadow-inner">
+              <div className="w-10 h-10 bg-emerald-200/60 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center text-lg shadow-inner">
                 <FaMoneyBillWave />
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-emerald-100 text-[10px] font-bold text-emerald-950 flex items-center justify-between">
+            <div className="mt-3 pt-3 border-t border-emerald-100 dark:border-emerald-900/40 text-[10px] font-bold text-emerald-950 dark:text-emerald-200 flex items-center justify-between">
               <span>{metrics?.totalPaymentsCount || 0} Payments</span>
-              <span className="text-emerald-700 font-extrabold">Verified ✓</span>
+              <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">Verified ✓</span>
             </div>
           </div>
         </div>
@@ -1627,13 +1632,13 @@ const Analytics = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Section 1: Interactive Weekly Growth Chart & Donut Mode Share Chart */}
-          <div className="lg:col-span-2 bg-[#fffaf5] p-6 sm:p-8 rounded-[30px] border border-amber-100 shadow-sm space-y-6 overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200/60 pb-4">
+          <div className="lg:col-span-2 bg-[#fffaf5] dark:bg-slate-900 p-6 sm:p-8 rounded-[30px] border border-amber-100 dark:border-slate-800 shadow-sm space-y-6 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200/60 dark:border-slate-800 pb-4">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <FaChartLine className="text-purple-700 text-lg" /> Weekly Student Growth Analysis
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <FaChartLine className="text-purple-700 dark:text-purple-400 text-lg" /> Weekly Student Growth Analysis
                 </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   {studentTypeFilter === 'all' 
                     ? 'Weekly breakdown of Online, Physical, and Total registrations' 
                     : `Weekly growth trend for ${studentTypeFilter.toUpperCase()} students`}
@@ -1641,13 +1646,13 @@ const Analytics = () => {
               </div>
 
               {/* Chart Style Switcher Buttons */}
-              <div className="flex bg-amber-100/70 p-1 rounded-2xl border border-amber-200/80 items-center gap-1 self-start sm:self-auto">
+              <div className="flex bg-amber-100/70 dark:bg-slate-800 p-1 rounded-2xl border border-amber-200/80 dark:border-slate-700 items-center gap-1 self-start sm:self-auto">
                 <button
                   onClick={() => setChartStyle('bars')}
                   className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1 ${
                     chartStyle === 'bars'
-                      ? 'bg-purple-900 text-white shadow-sm scale-105'
-                      : 'text-amber-900 hover:bg-white/60'
+                      ? 'bg-purple-900 dark:bg-purple-700 text-white shadow-sm scale-105'
+                      : 'text-amber-900 dark:text-amber-300 hover:bg-white/60 dark:hover:bg-slate-700'
                   }`}
                   title="Grouped Vertical Bar Pillars"
                 >
@@ -1657,8 +1662,8 @@ const Analytics = () => {
                   onClick={() => setChartStyle('area')}
                   className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1 ${
                     chartStyle === 'area'
-                      ? 'bg-purple-900 text-white shadow-sm scale-105'
-                      : 'text-amber-900 hover:bg-white/60'
+                      ? 'bg-purple-900 dark:bg-purple-700 text-white shadow-sm scale-105'
+                      : 'text-amber-900 dark:text-amber-300 hover:bg-white/60 dark:hover:bg-slate-700'
                   }`}
                   title="Smooth Wave Area Chart"
                 >
@@ -1668,8 +1673,8 @@ const Analytics = () => {
                   onClick={() => setChartStyle('lines')}
                   className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1 ${
                     chartStyle === 'lines'
-                      ? 'bg-purple-900 text-white shadow-sm scale-105'
-                      : 'text-amber-900 hover:bg-white/60'
+                      ? 'bg-purple-900 dark:bg-purple-700 text-white shadow-sm scale-105'
+                      : 'text-amber-900 dark:text-amber-300 hover:bg-white/60 dark:hover:bg-slate-700'
                   }`}
                   title="Compact Line Trend"
                 >
@@ -1679,21 +1684,21 @@ const Analytics = () => {
             </div>
 
             {/* Legend & Filter Badges */}
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-bold bg-white p-3 rounded-2xl border border-amber-100 shadow-xs">
-              <span className="text-gray-500 font-extrabold uppercase text-[10px] tracking-wider">Metrics Legend:</span>
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-bold bg-white dark:bg-slate-800 p-3 rounded-2xl border border-amber-100 dark:border-slate-700 shadow-xs">
+              <span className="text-gray-500 dark:text-gray-400 font-extrabold uppercase text-[10px] tracking-wider">Metrics Legend:</span>
               <div className="flex flex-wrap items-center gap-4">
                 {(studentTypeFilter === 'all' || studentTypeFilter === 'online') && (
-                  <span className="flex items-center gap-1.5 text-red-600 font-extrabold">
+                  <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-extrabold">
                     <span className="w-3 h-3 bg-red-500 rounded-full inline-block shadow-xs"></span> Online (Red)
                   </span>
                 )}
                 {(studentTypeFilter === 'all' || studentTypeFilter === 'physical') && (
-                  <span className="flex items-center gap-1.5 text-blue-700 font-extrabold">
+                  <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 font-extrabold">
                     <span className="w-3 h-3 bg-blue-600 rounded-full inline-block shadow-xs"></span> Physical (Blue)
                   </span>
                 )}
                 {studentTypeFilter === 'all' && (
-                  <span className="flex items-center gap-1.5 text-amber-700 font-extrabold">
+                  <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-extrabold">
                     <span className="w-3 h-3 bg-amber-400 rounded-full inline-block shadow-xs"></span> Combined Total
                   </span>
                 )}
@@ -1708,7 +1713,7 @@ const Analytics = () => {
                 {/* 1. BAR PILLARS VIEW */}
                 {chartStyle === 'bars' && (
                   <div className="space-y-4 animate-fadeIn">
-                    <div className="h-56 w-full flex items-end justify-between gap-3 pt-6 pb-2 px-2 bg-gradient-to-b from-white to-amber-50/40 rounded-2xl border border-amber-100/60 relative">
+                    <div className="h-56 w-full flex items-end justify-between gap-3 pt-6 pb-2 px-2 bg-gradient-to-b from-white to-amber-50/40 dark:from-slate-900 dark:to-slate-800 rounded-2xl border border-amber-100/60 dark:border-slate-700 relative">
                       {weeklyStudentTrend.map((t) => {
                         const onlineHeight = Math.max(Math.round(((t.online || 0) / maxWeeklyValue) * 100), 6);
                         const physicalHeight = Math.max(Math.round(((t.physical || 0) / maxWeeklyValue) * 100), 6);
@@ -1717,7 +1722,7 @@ const Analytics = () => {
                         return (
                           <div key={t.week} className="flex-1 flex flex-col items-center h-full justify-end group relative">
                             {/* Hover Tooltip */}
-                            <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none bg-gray-900 text-white text-[11px] font-bold py-1.5 px-3 rounded-xl shadow-xl z-20 whitespace-nowrap border border-gray-700">
+                            <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none bg-gray-900 dark:bg-slate-800 text-white text-[11px] font-bold py-1.5 px-3 rounded-xl shadow-xl z-20 whitespace-nowrap border border-gray-700">
                               {t.week}: {t.online || 0} Online • {t.physical || 0} Physical ({t.total || 0} Total)
                             </div>
 
@@ -1745,7 +1750,7 @@ const Analytics = () => {
                               )}
                             </div>
 
-                            <span className="text-[11px] font-extrabold text-gray-800 mt-2 truncate max-w-full">
+                            <span className="text-[11px] font-extrabold text-gray-800 dark:text-gray-200 mt-2 truncate max-w-full">
                               {t.week}
                             </span>
                           </div>
@@ -1758,7 +1763,7 @@ const Analytics = () => {
                 {/* 2. SMOOTH GRADIENT AREA VIEW */}
                 {chartStyle === 'area' && (
                   <div className="space-y-4 animate-fadeIn">
-                    <div className="relative h-56 w-full overflow-hidden bg-white p-2 rounded-2xl border border-amber-100">
+                    <div className="relative h-56 w-full overflow-hidden bg-white dark:bg-slate-900 p-2 rounded-2xl border border-amber-100 dark:border-slate-800">
                       <svg className="w-full h-full overflow-hidden" viewBox="0 0 500 180" preserveAspectRatio="none">
                         <defs>
                           <linearGradient id="onlineGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1846,10 +1851,10 @@ const Analytics = () => {
                       </svg>
                     </div>
 
-                    <div className="flex justify-between items-center text-xs font-bold text-gray-500 px-2">
+                    <div className="flex justify-between items-center text-xs font-bold text-gray-500 dark:text-gray-400 px-2">
                       {weeklyStudentTrend.map(t => (
                         <div key={t.week} className="text-center">
-                          <span className="block text-gray-900 font-extrabold">{t.week}</span>
+                          <span className="block text-gray-900 dark:text-white font-extrabold">{t.week}</span>
                         </div>
                       ))}
                     </div>
@@ -1859,7 +1864,7 @@ const Analytics = () => {
                 {/* 3. LINE TREND VIEW */}
                 {chartStyle === 'lines' && (
                   <div className="space-y-4 animate-fadeIn">
-                    <div className="relative h-56 w-full overflow-hidden bg-white p-2 rounded-2xl border border-amber-100">
+                    <div className="relative h-56 w-full overflow-hidden bg-white dark:bg-slate-900 p-2 rounded-2xl border border-amber-100 dark:border-slate-800">
                       <svg className="w-full h-full overflow-hidden" viewBox="0 0 500 180" preserveAspectRatio="none">
                         <line x1="0" y1="30" x2="500" y2="30" stroke="#f3e8dc" strokeWidth="1.5" strokeDasharray="3 3" />
                         <line x1="0" y1="90" x2="500" y2="90" stroke="#f3e8dc" strokeWidth="1.5" strokeDasharray="3 3" />
@@ -1947,17 +1952,17 @@ const Analytics = () => {
             )}
           </div>
 
-          <div className="bg-[#f8f5ff] p-8 rounded-[30px] border border-purple-100 shadow-sm flex flex-col justify-between space-y-6">
+          <div className="bg-[#f8f5ff] dark:bg-slate-900 p-8 rounded-[30px] border border-purple-100 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-6">
             <div>
-              <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
-                <FaChartPie className="text-purple-600" /> Mode Share (Pie Chart)
+              <h3 className="text-xl font-bold text-purple-950 dark:text-white flex items-center gap-2">
+                <FaChartPie className="text-purple-600 dark:text-purple-400" /> Mode Share (Pie Chart)
               </h3>
-              <p className="text-xs text-purple-400 mt-0.5">Visual ratio of Online vs Physical students</p>
+              <p className="text-xs text-purple-400 dark:text-gray-400 mt-0.5">Visual ratio of Online vs Physical students</p>
             </div>
 
             <div className="relative w-48 h-48 mx-auto flex items-center justify-center my-4">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="40" stroke="#1e1b4b" strokeWidth="16" fill="transparent" />
+                <circle cx="50" cy="50" r="40" stroke="#1e1b4b" strokeWidth="16" fill="transparent" className="dark:stroke-slate-800" />
                 <circle 
                   cx="50" 
                   cy="50" 
@@ -1971,26 +1976,26 @@ const Analytics = () => {
               </svg>
 
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-extrabold text-purple-950">{totalCount}</span>
-                <span className="text-[10px] text-purple-500 font-bold uppercase tracking-wider">Students</span>
+                <span className="text-2xl font-extrabold text-purple-950 dark:text-white">{totalCount}</span>
+                <span className="text-[10px] text-purple-500 dark:text-purple-400 font-bold uppercase tracking-wider">Students</span>
               </div>
             </div>
 
-            <div className="space-y-3 pt-2 border-t border-purple-100">
+            <div className="space-y-3 pt-2 border-t border-purple-100 dark:border-slate-800">
               <div className="flex justify-between items-center text-xs font-bold">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 bg-purple-600 rounded-full"></span>
-                  <span className="text-purple-950">Online Mode</span>
+                  <span className="text-purple-950 dark:text-gray-200">Online Mode</span>
                 </div>
-                <span className="text-purple-700 font-extrabold">{onlineCount} ({onlinePercent}%)</span>
+                <span className="text-purple-700 dark:text-purple-300 font-extrabold">{onlineCount} ({onlinePercent}%)</span>
               </div>
 
               <div className="flex justify-between items-center text-xs font-bold">
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-indigo-900 rounded-full"></span>
-                  <span className="text-purple-950">Physical Mode</span>
+                  <span className="w-3 h-3 bg-indigo-900 dark:bg-indigo-600 rounded-full"></span>
+                  <span className="text-purple-950 dark:text-gray-200">Physical Mode</span>
                 </div>
-                <span className="text-indigo-950 font-extrabold">{physicalCount} ({physicalPercent}%)</span>
+                <span className="text-indigo-950 dark:text-indigo-300 font-extrabold">{physicalCount} ({physicalPercent}%)</span>
               </div>
             </div>
           </div>
@@ -2081,16 +2086,16 @@ const Analytics = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               
               {/* LEFT CHART: Academic Level Donut & Stream Breakdown */}
-              <div className="bg-[#fcfaff] p-6 sm:p-8 rounded-[30px] border border-purple-100/90 shadow-sm space-y-6 flex flex-col justify-between">
+              <div className="bg-[#fcfaff] dark:bg-slate-900 p-6 sm:p-8 rounded-[30px] border border-purple-100/90 dark:border-slate-800 shadow-sm space-y-6 flex flex-col justify-between">
                 <div>
-                  <div className="flex justify-between items-center border-b border-purple-100 pb-3">
+                  <div className="flex justify-between items-center border-b border-purple-100 dark:border-slate-800 pb-3">
                     <div>
-                      <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
-                        <FaGraduationCap className="text-purple-600" /> Academic Level Distribution
+                      <h3 className="text-xl font-bold text-purple-950 dark:text-white flex items-center gap-2">
+                        <FaGraduationCap className="text-purple-600 dark:text-purple-400" /> Academic Level Distribution
                       </h3>
-                      <p className="text-xs text-purple-600/80 mt-0.5">Student population grouped by academic stage (Junior, O/L & A/L)</p>
+                      <p className="text-xs text-purple-600/80 dark:text-gray-400 mt-0.5">Student population grouped by academic stage (Junior, O/L & A/L)</p>
                     </div>
-                    <span className="text-xs bg-purple-100 text-purple-900 font-extrabold px-3 py-1 rounded-full border border-purple-200">
+                    <span className="text-xs bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 font-extrabold px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800">
                       {gradeDistribution.length} Active Grades
                     </span>
                   </div>
@@ -2101,7 +2106,7 @@ const Analytics = () => {
                     <div className="pt-4 space-y-6">
                       
                       {/* Donut Graphic & Center Metric */}
-                      <div className="flex flex-col sm:flex-row items-center justify-center gap-6 bg-white p-5 rounded-2xl border border-purple-100/80 shadow-2xs">
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-6 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-purple-100/80 dark:border-slate-700 shadow-2xs">
                         <div className="relative w-44 h-44 flex items-center justify-center shrink-0">
                           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
                             {/* Background Track Circle */}
@@ -2134,10 +2139,10 @@ const Analytics = () => {
 
                           {/* Center Donut Hole Content */}
                           <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                            <span className="text-3xl font-black text-purple-950 tracking-tight leading-none">
+                            <span className="text-3xl font-black text-purple-950 dark:text-white tracking-tight leading-none">
                               {totalCount}
                             </span>
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-600 mt-1">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-600 dark:text-purple-400 mt-1">
                               Students
                             </span>
                           </div>
@@ -2154,7 +2159,7 @@ const Analytics = () => {
                                 className={`p-2.5 rounded-xl border transition flex items-center justify-between cursor-pointer ${
                                   isSelected 
                                     ? 'bg-purple-900 text-white border-purple-900 shadow-sm' 
-                                    : 'bg-purple-50/50 hover:bg-purple-100/70 border-purple-100 text-purple-950'
+                                    : 'bg-purple-50/50 dark:bg-slate-900/60 hover:bg-purple-100/70 dark:hover:bg-slate-700/60 border-purple-100 dark:border-slate-700 text-purple-950 dark:text-gray-200'
                                 }`}
                               >
                                 <div className="flex items-center gap-2">
@@ -2164,7 +2169,7 @@ const Analytics = () => {
                                 <div className="flex items-center gap-2 font-black">
                                   <span>{seg.count} Students</span>
                                   <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
-                                    isSelected ? 'bg-white/20 text-white' : 'bg-white text-purple-900 border border-purple-200'
+                                    isSelected ? 'bg-white/20 text-white' : 'bg-white dark:bg-slate-800 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-slate-700'
                                   }`}>
                                     {seg.percent}%
                                   </span>
@@ -2190,30 +2195,30 @@ const Analytics = () => {
                               className={`p-3.5 rounded-2xl border transition flex flex-col justify-between cursor-pointer space-y-2 ${
                                 isSelected
                                   ? 'bg-purple-900 text-white border-purple-900 shadow-md ring-2 ring-purple-400'
-                                  : `${meta.lightBg} ${meta.border} hover:shadow-xs`
+                                  : `${meta.lightBg} ${meta.border} hover:shadow-xs dark:bg-slate-800 dark:border-slate-700`
                               }`}
                             >
                               <div>
                                 <div className="flex justify-between items-start">
-                                  <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-amber-300' : 'text-gray-500'}`}>
+                                  <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-amber-300' : 'text-gray-500 dark:text-gray-400'}`}>
                                     {meta.subtitle}
                                   </span>
                                   <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                                    isSelected ? 'bg-white/20 text-white' : 'bg-white text-purple-900 border border-purple-200'
+                                    isSelected ? 'bg-white/20 text-white' : 'bg-white dark:bg-slate-900 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-slate-700'
                                   }`}>
                                     {percent}%
                                   </span>
                                 </div>
-                                <h4 className={`text-xs font-black mt-1 ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                                <h4 className={`text-xs font-black mt-1 ${isSelected ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
                                   {meta.label}
                                 </h4>
                               </div>
 
-                              <div className="pt-2 border-t border-black/5">
-                                <div className={`text-base font-extrabold ${isSelected ? 'text-amber-300' : 'text-purple-950'}`}>
+                              <div className="pt-2 border-t border-black/5 dark:border-white/10">
+                                <div className={`text-base font-extrabold ${isSelected ? 'text-amber-300' : 'text-purple-950 dark:text-purple-200'}`}>
                                   {totals.count} <span className="text-[10px] font-bold">Students</span>
                                 </div>
-                                <div className={`text-[10px] font-semibold mt-0.5 ${isSelected ? 'text-purple-200' : 'text-purple-700'}`}>
+                                <div className={`text-[10px] font-semibold mt-0.5 ${isSelected ? 'text-purple-200' : 'text-purple-700 dark:text-purple-300'}`}>
                                   {totals.online} Online • {totals.physical} Physical
                                 </div>
                               </div>
@@ -2231,7 +2236,7 @@ const Analytics = () => {
                     <button
                       type="button"
                       onClick={() => setSelectedTier('all')}
-                      className="text-xs text-purple-700 underline font-extrabold hover:text-purple-950 cursor-pointer"
+                      className="text-xs text-purple-700 dark:text-purple-400 underline font-extrabold hover:text-purple-950 dark:hover:text-purple-200 cursor-pointer"
                     >
                       Clear Tier Filter (Show All Grades)
                     </button>
@@ -2240,24 +2245,24 @@ const Analytics = () => {
               </div>
 
               {/* RIGHT CHART: Mode Split Comparative Stream Bars */}
-              <div className="bg-[#f7f9ff] p-6 sm:p-8 rounded-[30px] border border-blue-100/90 shadow-sm space-y-6 flex flex-col justify-between">
+              <div className="bg-[#f7f9ff] dark:bg-slate-900 p-6 sm:p-8 rounded-[30px] border border-blue-100/90 dark:border-slate-800 shadow-sm space-y-6 flex flex-col justify-between">
                 <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-100 pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-100 dark:border-slate-800 pb-3">
                     <div>
-                      <h3 className="text-xl font-bold text-indigo-950 flex items-center gap-2">
-                        <FaGlobe className="text-indigo-600" /> Mode Split per Grade
+                      <h3 className="text-xl font-bold text-indigo-950 dark:text-white flex items-center gap-2">
+                        <FaGlobe className="text-indigo-600 dark:text-indigo-400" /> Mode Split per Grade
                       </h3>
-                      <p className="text-xs text-indigo-500 mt-0.5">Ratio of online vs physical learners across each grade stream</p>
+                      <p className="text-xs text-indigo-500 dark:text-gray-400 mt-0.5">Ratio of online vs physical learners across each grade stream</p>
                     </div>
 
                     {/* Sort Controls */}
-                    <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-blue-100 self-start sm:self-auto text-xs font-bold shadow-2xs">
-                      <span className="text-[10px] text-gray-400 font-extrabold uppercase px-1.5">Sort:</span>
+                    <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-blue-100 dark:border-slate-700 self-start sm:self-auto text-xs font-bold shadow-2xs">
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 font-extrabold uppercase px-1.5">Sort:</span>
                       <button
                         type="button"
                         onClick={() => setModeSortBy('grade')}
                         className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-[11px] ${
-                          modeSortBy === 'grade' ? 'bg-indigo-900 text-white' : 'text-indigo-900 hover:bg-blue-50'
+                          modeSortBy === 'grade' ? 'bg-indigo-900 dark:bg-purple-700 text-white' : 'text-indigo-900 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         Grade
@@ -2266,7 +2271,7 @@ const Analytics = () => {
                         type="button"
                         onClick={() => setModeSortBy('count')}
                         className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-[11px] ${
-                          modeSortBy === 'count' ? 'bg-indigo-900 text-white' : 'text-indigo-900 hover:bg-blue-50'
+                          modeSortBy === 'count' ? 'bg-indigo-900 dark:bg-purple-700 text-white' : 'text-indigo-900 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         Volume
@@ -2275,7 +2280,7 @@ const Analytics = () => {
                         type="button"
                         onClick={() => setModeSortBy('online')}
                         className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-[11px] ${
-                          modeSortBy === 'online' ? 'bg-indigo-900 text-white' : 'text-indigo-900 hover:bg-blue-50'
+                          modeSortBy === 'online' ? 'bg-indigo-900 dark:bg-purple-700 text-white' : 'text-indigo-900 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         Online %
@@ -2284,15 +2289,15 @@ const Analytics = () => {
                   </div>
 
                   {/* Mode Legend */}
-                  <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-blue-100 shadow-2xs my-4 text-xs font-extrabold">
-                    <span className="text-gray-500 uppercase text-[10px] tracking-wider">Mode Proportion:</span>
+                  <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-2xl border border-blue-100 dark:border-slate-700 shadow-2xs my-4 text-xs font-extrabold">
+                    <span className="text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">Mode Proportion:</span>
                     <div className="flex items-center gap-4">
-                      <span className="flex items-center gap-1.5 text-red-600">
+                      <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
                         <span className="w-3 h-3 bg-red-500 rounded-md inline-block"></span>
                         💻 Online ({onlinePercent}%)
                       </span>
-                      <span className="flex items-center gap-1.5 text-indigo-900">
-                        <span className="w-3 h-3 bg-indigo-900 rounded-md inline-block"></span>
+                      <span className="flex items-center gap-1.5 text-indigo-900 dark:text-indigo-300">
+                        <span className="w-3 h-3 bg-indigo-900 dark:bg-indigo-400 rounded-md inline-block"></span>
                         🏫 Physical ({physicalPercent}%)
                       </span>
                     </div>
@@ -2308,16 +2313,16 @@ const Analytics = () => {
                         const physicalRatio = 100 - onlineRatio;
 
                         return (
-                          <div key={g.grade} className="bg-white p-3.5 rounded-2xl border border-blue-100/80 shadow-2xs hover:shadow-xs transition space-y-2">
+                          <div key={g.grade} className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-blue-100/80 dark:border-slate-700 shadow-2xs hover:shadow-xs transition space-y-2">
                             <div className="flex justify-between items-center text-xs font-bold">
-                              <span className="text-indigo-950 font-black flex items-center gap-1.5">
+                              <span className="text-indigo-950 dark:text-white font-black flex items-center gap-1.5">
                                 🎓 {g.grade}
                               </span>
                               <div className="flex items-center gap-2">
-                                <span className="text-[11px] font-extrabold text-gray-600">
+                                <span className="text-[11px] font-extrabold text-gray-600 dark:text-gray-300">
                                   {g.count} Students
                                 </span>
-                                <span className="text-[10px] text-indigo-900 font-bold bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md">
+                                <span className="text-[10px] text-indigo-900 dark:text-indigo-300 font-bold bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-800 px-2 py-0.5 rounded-md">
                                   {g.online} Online • {g.physical} Physical
                                 </span>
                               </div>
@@ -2351,7 +2356,7 @@ const Analytics = () => {
                   )}
                 </div>
 
-                <div className="pt-2 flex items-center justify-between text-[11px] text-gray-500 font-semibold border-t border-blue-100">
+                <div className="pt-2 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 font-semibold border-t border-blue-100 dark:border-slate-800">
                   <span>Showing {sortedGrades.length} of {gradeDistribution.length} Grades</span>
                   <span>Interactive Real-time Breakdown</span>
                 </div>
@@ -2362,15 +2367,15 @@ const Analytics = () => {
         })()}
 
         {/* Section 3: Most Taken Courses Leaderboard */}
-        <div className="bg-[#fffdf7] p-8 rounded-[30px] border border-amber-200/80 shadow-sm space-y-6">
+        <div className="bg-[#fffdf7] dark:bg-slate-900 p-8 rounded-[30px] border border-amber-200/80 dark:border-slate-800 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
-              <h3 className="text-xl font-bold text-amber-950 flex items-center gap-2">
+              <h3 className="text-xl font-bold text-amber-950 dark:text-white flex items-center gap-2">
                 <FaTrophy className="text-amber-500" /> Most Taken Courses (Popularity Leaderboard)
               </h3>
-              <p className="text-xs text-amber-600/70 mt-0.5">Ranked courses based on enrolled student volume and popularity</p>
+              <p className="text-xs text-amber-600/70 dark:text-gray-400 mt-0.5">Ranked courses based on enrolled student volume and popularity</p>
             </div>
-            <span className="text-xs font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-full border border-amber-300">
+            <span className="text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 px-3 py-1 rounded-full border border-amber-300 dark:border-amber-800">
               🏆 Top Performing Educational Content
             </span>
           </div>
@@ -2382,35 +2387,35 @@ const Analytics = () => {
               {topCourses.map((c, index) => {
                 const rank = index + 1;
                 const marketShare = Math.round((c.enrolledCount / maxCourseEnrolled) * 100);
-                const medalColor = rank === 1 ? 'from-amber-400 to-amber-500 text-purple-950' : rank === 2 ? 'from-slate-300 to-slate-400 text-slate-900' : rank === 3 ? 'from-amber-700 to-amber-800 text-white' : 'bg-gray-100 text-gray-700';
+                const medalColor = rank === 1 ? 'from-amber-400 to-amber-500 text-purple-950' : rank === 2 ? 'from-slate-300 to-slate-400 text-slate-900' : rank === 3 ? 'from-amber-700 to-amber-800 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200';
 
                 return (
-                  <div key={c._id} className="relative bg-white p-6 rounded-3xl border border-amber-100 shadow-sm hover:shadow-md transition space-y-4">
+                  <div key={c._id} className="relative bg-white dark:bg-slate-800 p-6 rounded-3xl border border-amber-100 dark:border-slate-700 shadow-sm hover:shadow-md transition space-y-4">
                     <div className="flex justify-between items-center">
                       <span className={`w-8 h-8 rounded-full bg-gradient-to-r ${medalColor} flex items-center justify-center font-extrabold text-xs shadow`}>
                         #{rank}
                       </span>
-                      <span className="text-xs font-bold text-purple-900 bg-purple-100 px-2.5 py-0.5 rounded-full">
+                      <span className="text-xs font-bold text-purple-900 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
                         LKR {c.price.toLocaleString()} / Student
                       </span>
                     </div>
 
                     <div>
-                      <h4 className="text-lg font-extrabold text-gray-900 line-clamp-1">{c.title}</h4>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{c.description}</p>
+                      <h4 className="text-lg font-extrabold text-gray-900 dark:text-white line-clamp-1">{c.title}</h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{c.description}</p>
                     </div>
 
-                    <div className="pt-2 border-t border-amber-50 flex items-center justify-between text-xs">
-                      <span className="text-gray-400 font-semibold">Instructor:</span>
-                      <span className="font-bold text-purple-950">{c.instructorName}</span>
+                    <div className="pt-2 border-t border-amber-50 dark:border-slate-700 flex items-center justify-between text-xs">
+                      <span className="text-gray-400 dark:text-gray-400 font-semibold">Instructor:</span>
+                      <span className="font-bold text-purple-950 dark:text-purple-300">{c.instructorName}</span>
                     </div>
 
                     <div className="space-y-1 pt-1">
                       <div className="flex justify-between text-xs font-bold">
-                        <span className="text-gray-600">Enrolled Students</span>
-                        <span className="text-purple-700">{c.enrolledCount} Students</span>
+                        <span className="text-gray-600 dark:text-gray-300">Enrolled Students</span>
+                        <span className="text-purple-700 dark:text-purple-400">{c.enrolledCount} Students</span>
                       </div>
-                      <div className="w-full bg-amber-50 h-2.5 rounded-full overflow-hidden border border-amber-100">
+                      <div className="w-full bg-amber-50 dark:bg-slate-900 h-2.5 rounded-full overflow-hidden border border-amber-100 dark:border-slate-700">
                         <div 
                           className="bg-gradient-to-r from-purple-600 to-amber-500 h-full rounded-full transition-all duration-500" 
                           style={{ width: `${marketShare}%` }}
@@ -2425,12 +2430,12 @@ const Analytics = () => {
         </div>
 
         {/* Section 4: Revenue Contribution by Course Chart */}
-        <div className="bg-[#f0fdf4] p-8 rounded-[30px] border border-emerald-100 shadow-sm space-y-6">
+        <div className="bg-[#f0fdf4] dark:bg-slate-900 p-8 rounded-[30px] border border-emerald-100 dark:border-slate-800 shadow-sm space-y-6">
           <div>
-            <h3 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
-              <FaMoneyBillWave className="text-emerald-600" /> Course Financial Contribution (Revenue Breakdown)
+            <h3 className="text-xl font-bold text-emerald-950 dark:text-white flex items-center gap-2">
+              <FaMoneyBillWave className="text-emerald-600 dark:text-emerald-400" /> Course Financial Contribution (Revenue Breakdown)
             </h3>
-            <p className="text-xs text-emerald-600/70 mt-0.5">Financial performance and fee income generated per course from enrolled students</p>
+            <p className="text-xs text-emerald-600/70 dark:text-gray-400 mt-0.5">Financial performance and fee income generated per course from enrolled students</p>
           </div>
 
           {courseRevenueList.length === 0 ? (
@@ -2443,12 +2448,12 @@ const Analytics = () => {
                 const revPercentage = Math.round((totalCourseRevenue / totalAllRev) * 100);
 
                 return (
-                  <div key={item.title} className="p-4 bg-white rounded-2xl space-y-2 border border-emerald-100 shadow-sm">
+                  <div key={item.title} className="p-4 bg-white dark:bg-slate-800 rounded-2xl space-y-2 border border-emerald-100 dark:border-slate-700 shadow-sm">
                     <div className="flex justify-between items-center text-sm font-bold">
-                      <span className="text-emerald-950">{item.title}</span>
-                      <span className="text-emerald-700 font-extrabold">LKR {totalCourseRevenue.toLocaleString()}.00 ({revPercentage}%)</span>
+                      <span className="text-emerald-950 dark:text-emerald-300">{item.title}</span>
+                      <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">LKR {totalCourseRevenue.toLocaleString()}.00 ({revPercentage}%)</span>
                     </div>
-                    <div className="w-full bg-emerald-50 h-3 rounded-full overflow-hidden border border-emerald-100">
+                    <div className="w-full bg-emerald-50 dark:bg-slate-900 h-3 rounded-full overflow-hidden border border-emerald-100 dark:border-slate-700">
                       <div 
                         className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-500"
                         style={{ width: `${revPercentage}%` }}
@@ -2462,17 +2467,17 @@ const Analytics = () => {
         </div>
 
         {/* Section 5: Teachers & Instructors Operational Performance Breakdown */}
-        <div className="bg-white p-8 rounded-[30px] border border-purple-200/80 shadow-md space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-purple-100 pb-4">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[30px] border border-purple-200/80 dark:border-slate-800 shadow-md space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-purple-100 dark:border-slate-800 pb-4">
             <div>
-              <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
-                <FaChalkboardTeacher className="text-purple-600" /> Teachers & Instructors Operational Performance
+              <h3 className="text-xl font-bold text-purple-950 dark:text-white flex items-center gap-2">
+                <FaChalkboardTeacher className="text-purple-600 dark:text-purple-400" /> Teachers & Instructors Operational Performance
               </h3>
-              <p className="text-xs text-purple-600/80 mt-0.5">
+              <p className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-0.5">
                 Comparative workload and delivery metrics across all teachers and instructors (Lessons published, teaching hours, compliance, and revenues).
               </p>
             </div>
-            <span className="px-3.5 py-1.5 bg-purple-100 text-purple-950 font-black text-xs rounded-full border border-purple-200 shadow-2xs">
+            <span className="px-3.5 py-1.5 bg-purple-100 dark:bg-purple-950/50 text-purple-950 dark:text-purple-200 font-black text-xs rounded-full border border-purple-200 dark:border-purple-800 shadow-2xs">
               👨‍🏫 {teacherBreakdownList.length} Active Instructors
             </span>
           </div>
@@ -2486,10 +2491,10 @@ const Analytics = () => {
                 return (
                   <div
                     key={teacher._id}
-                    className={`bg-gradient-to-br from-purple-50/60 to-indigo-50/30 p-6 rounded-3xl border transition-all duration-300 space-y-4 relative ${
+                    className={`bg-gradient-to-br from-purple-50/60 to-indigo-50/30 dark:from-slate-800/80 dark:to-purple-950/30 p-6 rounded-3xl border transition-all duration-300 space-y-4 relative ${
                       isSelected
-                        ? 'border-purple-900 shadow-lg ring-2 ring-amber-400 scale-[1.02]'
-                        : 'border-purple-100 hover:shadow-md'
+                        ? 'border-purple-900 dark:border-purple-500 shadow-lg ring-2 ring-amber-400 scale-[1.02]'
+                        : 'border-purple-100 dark:border-slate-700/80 hover:shadow-md'
                     }`}
                   >
                     {/* Teacher Header */}
@@ -2499,8 +2504,8 @@ const Analytics = () => {
                           {teacher.name ? teacher.name.charAt(0).toUpperCase() : 'T'}
                         </div>
                         <div>
-                          <h4 className="font-extrabold text-gray-900 text-base leading-tight">{teacher.name}</h4>
-                          <span className="text-[11px] text-purple-700 font-semibold block">{teacher.email}</span>
+                          <h4 className="font-extrabold text-gray-900 dark:text-white text-base leading-tight">{teacher.name}</h4>
+                          <span className="text-[11px] text-purple-700 dark:text-purple-400 font-semibold block">{teacher.email}</span>
                         </div>
                       </div>
                       {isSelected && (
@@ -2511,49 +2516,49 @@ const Analytics = () => {
                     </div>
 
                     {/* Operational Metric Badges */}
-                    <div className="grid grid-cols-3 gap-2 bg-white p-3 rounded-2xl border border-purple-100 text-center">
+                    <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-purple-100 dark:border-slate-700 text-center">
                       <div className="p-1">
                         <span className="text-[10px] text-gray-400 font-bold uppercase block">Lessons</span>
-                        <span className="text-sm font-black text-purple-950">{teacher.totalLessonsPublished}</span>
-                        <span className="text-[9px] text-purple-600 font-semibold block">Modules</span>
+                        <span className="text-sm font-black text-purple-950 dark:text-purple-300">{teacher.totalLessonsPublished}</span>
+                        <span className="text-[9px] text-purple-600 dark:text-purple-400 font-semibold block">Modules</span>
                       </div>
-                      <div className="p-1 border-x border-purple-50">
+                      <div className="p-1 border-x border-purple-50 dark:border-slate-800">
                         <span className="text-[10px] text-gray-400 font-bold uppercase block">Hours</span>
-                        <span className="text-sm font-black text-amber-600">{teacher.activeTimetableHours}</span>
-                        <span className="text-[9px] text-amber-700 font-semibold block">Hrs / Wk</span>
+                        <span className="text-sm font-black text-amber-600 dark:text-amber-400">{teacher.activeTimetableHours}</span>
+                        <span className="text-[9px] text-amber-700 dark:text-amber-400 font-semibold block">Hrs / Wk</span>
                       </div>
                       <div className="p-1">
                         <span className="text-[10px] text-gray-400 font-bold uppercase block">Compliance</span>
-                        <span className="text-sm font-black text-blue-900">{teacher.attendanceRate}%</span>
-                        <span className="text-[9px] text-blue-600 font-semibold block">Presence</span>
+                        <span className="text-sm font-black text-blue-900 dark:text-blue-400">{teacher.attendanceRate}%</span>
+                        <span className="text-[9px] text-blue-600 dark:text-blue-400 font-semibold block">Presence</span>
                       </div>
                     </div>
 
                     {/* Courses and Revenue Details */}
                     <div className="space-y-1.5 text-xs">
-                      <div className="flex justify-between items-center text-gray-600 font-semibold">
+                      <div className="flex justify-between items-center text-gray-600 dark:text-slate-300 font-semibold">
                         <span>Assigned Courses:</span>
-                        <span className="font-bold text-purple-950">{teacher.coursesCount} Courses</span>
+                        <span className="font-bold text-purple-950 dark:text-white">{teacher.coursesCount} Courses</span>
                       </div>
-                      <div className="flex justify-between items-center text-gray-600 font-semibold">
+                      <div className="flex justify-between items-center text-gray-600 dark:text-slate-300 font-semibold">
                         <span>Enrolled Students:</span>
-                        <span className="font-bold text-indigo-900">{teacher.totalStudents} Learners</span>
+                        <span className="font-bold text-indigo-900 dark:text-indigo-300">{teacher.totalStudents} Learners</span>
                       </div>
-                      <div className="flex justify-between items-center text-gray-600 font-semibold">
+                      <div className="flex justify-between items-center text-gray-600 dark:text-slate-300 font-semibold">
                         <span>Revenue Handled:</span>
-                        <span className="font-extrabold text-emerald-700">LKR {(teacher.totalRevenue || 0).toLocaleString()}</span>
+                        <span className="font-extrabold text-emerald-700 dark:text-emerald-400">LKR {(teacher.totalRevenue || 0).toLocaleString()}</span>
                       </div>
                     </div>
 
                     {/* Action Button */}
-                    <div className="pt-2 border-t border-purple-100">
+                    <div className="pt-2 border-t border-purple-100 dark:border-slate-800">
                       <button
                         type="button"
                         onClick={() => setSelectedAdminTeacherId(prev => prev === teacher._id ? 'all' : teacher._id)}
                         className={`w-full py-2.5 rounded-xl font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-2 ${
                           isSelected
                             ? 'bg-amber-400 hover:bg-amber-300 text-purple-950 shadow-md'
-                            : 'bg-purple-900 hover:bg-purple-800 text-white shadow-xs'
+                            : 'bg-purple-900 dark:bg-purple-800 hover:bg-purple-800 text-white shadow-xs'
                         }`}
                       >
                         <FaUserTie /> {isSelected ? 'Reset to All Teachers' : `Inspect ${teacher.name.split(' ')[0]}'s Analytics`}
@@ -2567,13 +2572,13 @@ const Analytics = () => {
         </div>
 
         {/* Section 6: Comprehensive Course Operational Matrix Table */}
-        <div className="bg-white p-8 rounded-[30px] border border-purple-200/80 shadow-md space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-purple-100 pb-4">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[30px] border border-purple-200/80 dark:border-slate-800 shadow-md space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-purple-100 dark:border-slate-800 pb-4">
             <div>
-              <h3 className="text-xl font-bold text-purple-950 flex items-center gap-2">
-                <FaBookOpen className="text-purple-600" /> Comprehensive Course Operational Performance Matrix
+              <h3 className="text-xl font-bold text-purple-950 dark:text-white flex items-center gap-2">
+                <FaBookOpen className="text-purple-600 dark:text-purple-400" /> Comprehensive Course Operational Performance Matrix
               </h3>
-              <p className="text-xs text-purple-600/80 mt-0.5">
+              <p className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-0.5">
                 Complete institutional course breakdown comparing published curriculum modules, scheduled lecture hours, attendance rates, and revenue.
               </p>
             </div>
@@ -2585,7 +2590,7 @@ const Analytics = () => {
           {coursesDetailedList.length === 0 ? (
             <p className="text-sm text-gray-400 py-8 text-center">No courses match the current filter.</p>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-purple-100 shadow-2xs">
+            <div className="overflow-x-auto rounded-2xl border border-purple-100 dark:border-slate-800 shadow-2xs">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gradient-to-r from-purple-900 to-indigo-950 text-white text-xs font-black tracking-wider uppercase">
@@ -2598,40 +2603,40 @@ const Analytics = () => {
                     <th className="p-4 text-right rounded-tr-2xl">Revenue Generated</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-purple-50 text-xs font-semibold">
+                <tbody className="divide-y divide-purple-50 dark:divide-slate-800 text-xs font-semibold">
                   {coursesDetailedList.map((course) => (
-                    <tr key={course._id} className="hover:bg-purple-50/50 transition">
+                    <tr key={course._id} className="hover:bg-purple-50/50 dark:hover:bg-slate-800/60 transition">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-900 flex items-center justify-center font-black text-sm shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 flex items-center justify-center font-black text-sm shrink-0">
                             📖
                           </div>
                           <div>
-                            <span className="font-extrabold text-gray-900 text-sm block">{course.title}</span>
-                            <span className="text-[10px] text-gray-500 line-clamp-1">{course.description}</span>
+                            <span className="font-extrabold text-gray-900 dark:text-white text-sm block">{course.title}</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 line-clamp-1">{course.description}</span>
                           </div>
                         </div>
                       </td>
 
                       <td className="p-4">
-                        <span className="font-bold text-purple-950 flex items-center gap-1.5">
+                        <span className="font-bold text-purple-950 dark:text-purple-300 flex items-center gap-1.5">
                           <span>👨‍🏫</span> {course.instructorName}
                         </span>
                       </td>
 
                       <td className="p-4 text-center">
                         <div className="inline-flex flex-col items-center">
-                          <span className="px-2.5 py-1 bg-purple-100 text-purple-900 rounded-lg font-black text-xs">
+                          <span className="px-2.5 py-1 bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 rounded-lg font-black text-xs">
                             {course.lessonsPublished} Modules
                           </span>
-                          <span className="text-[9px] text-gray-500 mt-0.5">
+                          <span className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
                             {course.videosCount} Vids • {course.pdfsCount} PDFs
                           </span>
                         </div>
                       </td>
 
                       <td className="p-4 text-center">
-                        <span className="px-2.5 py-1 bg-amber-100 text-amber-900 rounded-lg font-black text-xs">
+                        <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 rounded-lg font-black text-xs">
                           ⏱️ {course.activeTimetableHours} Hrs/Wk
                         </span>
                       </td>
@@ -2639,23 +2644,23 @@ const Analytics = () => {
                       <td className="p-4 text-center">
                         <span className={`px-2.5 py-1 rounded-lg font-black text-xs ${
                           course.attendanceRate >= 80 
-                            ? 'bg-emerald-100 text-emerald-900' 
+                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300' 
                             : course.attendanceRate >= 60 
-                            ? 'bg-amber-100 text-amber-900' 
-                            : 'bg-red-100 text-red-900'
+                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300' 
+                            : 'bg-red-100 dark:bg-red-950/60 text-red-900 dark:text-red-300'
                         }`}>
                           ✓ {course.attendanceRate}%
                         </span>
                       </td>
 
                       <td className="p-4 text-center">
-                        <span className="font-extrabold text-indigo-950 text-sm">
+                        <span className="font-extrabold text-indigo-950 dark:text-indigo-300 text-sm">
                           {course.enrolledCount} Students
                         </span>
                       </td>
 
                       <td className="p-4 text-right">
-                        <span className="font-black text-emerald-700 text-sm">
+                        <span className="font-black text-emerald-700 dark:text-emerald-400 text-sm">
                           LKR {(course.revenue || 0).toLocaleString()}
                         </span>
                       </td>

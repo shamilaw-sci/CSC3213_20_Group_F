@@ -240,7 +240,7 @@ const Register = () => {
       </div>
 
       {/* Right Side - White Register Panel */}
-      <div className="flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto min-h-screen">
+      <div className="auth-light-panel flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto min-h-screen">
         <div className="w-full max-w-md py-4">
 
           {/* Header */}
@@ -460,9 +460,12 @@ const Register = () => {
       {/* ========================================================================= */}
       {/* VERIFICATION & PARENT PROMPT POPUP MODAL */}
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
+      {/* VERIFICATION & PARENT PROMPT POPUP MODAL */}
+      {/* ========================================================================= */}
       {showVerifyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800 text-gray-800 dark:text-gray-100">
 
             {/* Header */}
             <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white text-center relative">
@@ -498,7 +501,7 @@ const Register = () => {
             {modalStep === 'verify' && (
               <form onSubmit={handleProceedToParentPrompt} className="p-6 md:p-8 space-y-6">
                 <div>
-                  <label className="block text-center text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
+                  <label className="block text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2">
                     Enter 6-Digit Passcode
                   </label>
                   <input
@@ -507,14 +510,14 @@ const Register = () => {
                     value={verifyCode}
                     onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
                     placeholder="••••••"
-                    className="w-full text-center tracking-[12px] text-2xl font-mono font-black py-3.5 bg-purple-50/60 border-2 border-purple-200 focus:border-purple-600 rounded-2xl outline-none text-purple-950 transition-all shadow-inner"
+                    className="w-full text-center tracking-[12px] text-2xl font-mono font-black py-3.5 bg-purple-50/60 dark:bg-slate-800 border-2 border-purple-200 dark:border-slate-700 focus:border-purple-600 dark:focus:border-purple-400 rounded-2xl outline-none text-purple-950 dark:text-white transition-all shadow-inner"
                     autoFocus
                     required
                   />
-                  <p className="text-[11px] text-gray-400 text-center mt-2">
+                  <p className="text-[11px] text-gray-400 dark:text-gray-400 text-center mt-2">
                     Valid for 10 minutes.
                     {verifyChannel === 'phone' && (
-                      <span className="block text-amber-700 font-semibold mt-0.5">
+                      <span className="block text-amber-700 dark:text-amber-400 font-semibold mt-0.5">
                         (Check your mobile for OTP)
                       </span>
                     )}
@@ -534,9 +537,9 @@ const Register = () => {
                     type="button"
                     onClick={handleResendCode}
                     disabled={resending}
-                    className="w-full py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
-                    <FaSyncAlt className={`text-xs text-purple-700 ${resending ? 'animate-spin' : ''}`} />
+                    <FaSyncAlt className={`text-xs text-purple-700 dark:text-purple-400 ${resending ? 'animate-spin' : ''}`} />
                     {resending ? 'Resending Code...' : 'Resend Code'}
                   </button>
                 </div>
@@ -546,15 +549,15 @@ const Register = () => {
             {/* Modal Body: STEP 2 - Ask to Create Parent Account */}
             {modalStep === 'parentPrompt' && (
               <div className="p-6 md:p-8 space-y-5 animate-fadeIn">
-                <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 text-purple-950 text-xs leading-relaxed">
-                  <p className="font-bold text-sm text-purple-900 mb-1">
+                <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-900/60 rounded-2xl p-4 text-purple-950 dark:text-purple-200 text-xs leading-relaxed">
+                  <p className="font-bold text-sm text-purple-900 dark:text-purple-300 mb-1">
                     Would you like to create a Parent Account?
                   </p>
-                  <p className="text-purple-800">
+                  <p className="text-purple-800 dark:text-purple-300">
                     A parent account associated with phone number <strong>{currentParentPhone}</strong> allows parents to monitor attendance, fee payments, and exam reports online.
                   </p>
-                  <div className="mt-2.5 pt-2 border-t border-purple-200/80 text-[11px] text-purple-700">
-                    🔑 Default password on 1st login: <strong className="font-mono text-purple-900">Parent@123</strong> (Mandatory password change enforced on first login).
+                  <div className="mt-2.5 pt-2 border-t border-purple-200/80 dark:border-purple-800/60 text-[11px] text-purple-700 dark:text-purple-400">
+                    🔑 Default password on 1st login: <strong className="font-mono text-purple-900 dark:text-purple-300">Parent@123</strong> (Mandatory password change enforced on first login).
                   </div>
                 </div>
 
@@ -578,7 +581,7 @@ const Register = () => {
                     type="button"
                     disabled={verifying}
                     onClick={() => executeCompleteRegistration(false)}
-                    className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="w-full py-3 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     No, Skip & Create Student Only
                   </button>

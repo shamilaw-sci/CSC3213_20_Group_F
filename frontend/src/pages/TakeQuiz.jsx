@@ -162,8 +162,9 @@ const TakeQuiz = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-[65vh] gap-3">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 dark:border-purple-400"></div>
+        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 animate-pulse">Loading quiz...</span>
       </div>
     );
   }
@@ -174,16 +175,16 @@ const TakeQuiz = () => {
     const passThreshold = quiz.passingPercentage || 50;
 
     return (
-      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4 font-sans">
-        <div className="max-w-md w-full bg-white rounded-3xl border border-purple-100 shadow-xl p-8 space-y-6">
+      <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex items-center justify-center p-4 font-sans text-gray-800 dark:text-gray-100">
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 dark:border-slate-800 shadow-xl p-8 space-y-6">
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-black text-gray-900">{quiz.title}</h1>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white">{quiz.title}</h1>
             <div className="flex items-center justify-center gap-2">
-              <span className="inline-block px-3 py-1 bg-purple-100 text-purple-800 text-xs font-black rounded-full">
+              <span className="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 text-xs font-black rounded-full border border-purple-200 dark:border-purple-800">
                 Grade {quiz.grade}
               </span>
               {quiz.month && (
-                <span className="inline-block px-3 py-1 bg-amber-100 text-amber-900 text-xs font-black rounded-full">
+                <span className="inline-block px-3 py-1 bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 text-xs font-black rounded-full border border-amber-200 dark:border-amber-800">
                   {quiz.month} {quiz.weekNumber > 0 && `(Week ${quiz.weekNumber})`}
                 </span>
               )}
@@ -191,30 +192,30 @@ const TakeQuiz = () => {
           </div>
 
           {quiz.description && (
-            <div className="bg-purple-50/60 rounded-2xl p-4 text-xs text-purple-950 font-semibold border border-purple-100">
-              <p className="font-black text-purple-900 uppercase tracking-wider mb-1">Instructions:</p>
+            <div className="bg-purple-50/60 dark:bg-slate-800/80 rounded-2xl p-4 text-xs text-purple-950 dark:text-gray-300 font-semibold border border-purple-100 dark:border-slate-700">
+              <p className="font-black text-purple-900 dark:text-purple-300 uppercase tracking-wider mb-1">Instructions:</p>
               {quiz.description}
             </div>
           )}
 
-          <div className="space-y-3.5 border-t border-b border-gray-100 py-4 text-xs font-bold text-gray-600">
+          <div className="space-y-3.5 border-t border-b border-gray-100 dark:border-slate-800 py-4 text-xs font-bold text-gray-600 dark:text-gray-300">
             <div className="flex justify-between">
               <span>Total Questions:</span>
-              <span className="text-gray-900 font-extrabold">{quiz.questions.length}</span>
+              <span className="text-gray-900 dark:text-white font-extrabold">{quiz.questions.length}</span>
             </div>
             <div className="flex justify-between">
               <span>Time Limit:</span>
-              <span className="text-gray-900 font-extrabold">
+              <span className="text-gray-900 dark:text-white font-extrabold">
                 {quiz.timeLimit > 0 ? `${quiz.timeLimit} Minutes` : 'No Time Limit'}
               </span>
             </div>
             <div className="flex justify-between">
               <span>Total Points:</span>
-              <span className="text-purple-700 font-extrabold">{totalPoints} Points</span>
+              <span className="text-purple-700 dark:text-purple-400 font-extrabold">{totalPoints} Points</span>
             </div>
             <div className="flex justify-between">
               <span>Passing Criteria:</span>
-              <span className="text-emerald-700 font-extrabold">{passThreshold}% Score</span>
+              <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">{passThreshold}% Score</span>
             </div>
           </div>
 
@@ -222,14 +223,14 @@ const TakeQuiz = () => {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex-1 py-3 border border-gray-200 bg-white font-bold text-gray-700 rounded-2xl hover:bg-gray-50 transition cursor-pointer"
+              className="flex-1 py-3 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-gray-700 dark:text-gray-300 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleStartQuiz}
-              className="flex-1 py-3 bg-purple-700 text-white font-black rounded-2xl hover:bg-purple-800 shadow-md shadow-purple-200 transition cursor-pointer"
+              className="flex-1 py-3 bg-purple-700 text-white font-black rounded-2xl hover:bg-purple-800 shadow-md shadow-purple-200 dark:shadow-none transition cursor-pointer"
             >
               Start Assessment
             </button>
@@ -246,32 +247,32 @@ const TakeQuiz = () => {
     const passed = percentage >= passThreshold;
     
     return (
-      <div className="min-h-screen bg-[#f8fafc] py-8 px-4 sm:px-6 lg:px-8 font-sans">
+      <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 py-8 px-4 sm:px-6 lg:px-8 font-sans text-gray-800 dark:text-gray-100">
         <div className="max-w-3xl mx-auto space-y-8">
           
           {/* Trophy & Score Card */}
-          <div className="bg-white rounded-3xl shadow-xl border border-purple-100 p-8 text-center space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-purple-100 dark:border-slate-800 p-8 text-center space-y-4">
             <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full text-4xl mb-1 ${
-              passed ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+              passed ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800' : 'bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
             }`}>
               {passed ? <FaTrophy /> : <FaExclamationCircle />}
             </div>
             
-            <h1 className="text-3xl font-black text-gray-900">
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white">
               {passed ? 'Assessment Completed!' : 'Assessment Finished'}
             </h1>
-            <p className="text-gray-500 font-bold text-base">{quiz.title}</p>
+            <p className="text-gray-500 dark:text-gray-400 font-bold text-base">{quiz.title}</p>
             
-            <div className="max-w-xs mx-auto bg-gray-50 rounded-2xl p-6 border border-gray-100 space-y-2">
-              <div className="text-4xl font-black text-purple-700">
-                {result?.score} <span className="text-gray-400 text-lg font-bold">/ {result?.totalPoints}</span>
+            <div className="max-w-xs mx-auto bg-gray-50 dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 space-y-2">
+              <div className="text-4xl font-black text-purple-700 dark:text-purple-400">
+                {result?.score} <span className="text-gray-400 dark:text-gray-500 text-lg font-bold">/ {result?.totalPoints}</span>
               </div>
-              <div className="text-xs font-black text-gray-500 uppercase tracking-wider">
+              <div className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Score: {percentage}%
               </div>
               <div>
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-black ${
-                  passed ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                  passed ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
                 }`}>
                   {passed ? '✓ PASSED ASSESSMENT' : '✕ NEEDS IMPROVEMENT'} (Pass Mark: {passThreshold}%)
                 </span>
@@ -282,7 +283,7 @@ const TakeQuiz = () => {
               <button
                 type="button"
                 onClick={() => navigate(`/course/${quiz.course}`)}
-                className="px-8 py-3 bg-purple-700 text-white font-black rounded-2xl hover:bg-purple-800 transition cursor-pointer shadow-md shadow-purple-200"
+                className="px-8 py-3 bg-purple-700 text-white font-black rounded-2xl hover:bg-purple-800 transition cursor-pointer shadow-md shadow-purple-200 dark:shadow-none"
               >
                 Back to Course
               </button>
@@ -293,8 +294,8 @@ const TakeQuiz = () => {
           {reviewSubmission && reviewSubmission.quiz && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black text-gray-900">Detailed Answer Review</h2>
-                <span className="text-xs font-bold text-gray-400">Questions: {reviewSubmission.quiz.questions?.length}</span>
+                <h2 className="text-xl font-black text-gray-900 dark:text-white">Detailed Answer Review</h2>
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-500">Questions: {reviewSubmission.quiz.questions?.length}</span>
               </div>
               
               {reviewSubmission.quiz.questions.map((question, index) => {
@@ -314,8 +315,8 @@ const TakeQuiz = () => {
                 return (
                   <div
                     key={index}
-                    className={`bg-white rounded-3xl border-2 p-6 sm:p-7 space-y-4 transition ${
-                      isCorrect ? 'border-emerald-200 bg-emerald-50/10' : 'border-red-200 bg-red-50/10'
+                    className={`bg-white dark:bg-slate-900 rounded-3xl border-2 p-6 sm:p-7 space-y-4 transition ${
+                      isCorrect ? 'border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/10 dark:bg-emerald-950/20' : 'border-red-200 dark:border-red-900/60 bg-red-50/10 dark:bg-red-950/20'
                     }`}
                   >
                     <div className="flex justify-between items-center">
@@ -323,14 +324,14 @@ const TakeQuiz = () => {
                         <span className="w-7 h-7 rounded-xl bg-purple-900 text-white font-black text-xs flex items-center justify-center">
                           {index + 1}
                         </span>
-                        <span className="text-xs font-bold text-gray-400 uppercase">
+                        <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase">
                           {isMulti ? 'Multiple Select' : qType === 'true_false' ? 'True / False' : 'Single Choice'}
                         </span>
                       </div>
                       
                       <span
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${
-                          isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                          isCorrect ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
                         }`}
                       >
                         {isCorrect ? (
@@ -347,12 +348,12 @@ const TakeQuiz = () => {
 
                     {/* Question Text */}
                     {question.questionText && (
-                      <p className="text-base text-gray-900 font-extrabold">{question.questionText}</p>
+                      <p className="text-base text-gray-900 dark:text-white font-extrabold">{question.questionText}</p>
                     )}
 
                     {/* Question Image (if any) */}
                     {question.questionImage && (
-                      <div className="border border-gray-200 rounded-2xl overflow-hidden max-w-md bg-gray-50 p-2">
+                      <div className="border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden max-w-md bg-gray-50 dark:bg-slate-800 p-2">
                         <img 
                           src={question.questionImage.startsWith('http') ? question.questionImage : `http://localhost:5000${question.questionImage}`}
                           alt="Question diagram"
@@ -372,12 +373,12 @@ const TakeQuiz = () => {
                           ? Array.isArray(studentAnswer) && studentAnswer.includes(oIdx)
                           : studentAnswer === oIdx;
 
-                        let optionStyle = "border-gray-200 bg-white text-gray-700";
+                        let optionStyle = "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300";
                         
                         if (isOptionCorrect) {
-                          optionStyle = "border-emerald-500 bg-emerald-50 text-emerald-950 font-black";
+                          optionStyle = "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/80 text-emerald-950 dark:text-emerald-200 font-black";
                         } else if (isOptionChosen && !isOptionCorrect) {
-                          optionStyle = "border-red-500 bg-red-50 text-red-950 font-bold";
+                          optionStyle = "border-red-500 bg-red-50 dark:bg-red-950/80 text-red-950 dark:text-red-200 font-bold";
                         }
 
                         return (
@@ -388,17 +389,17 @@ const TakeQuiz = () => {
                             <span>{option}</span>
                             <div className="flex items-center gap-1.5 shrink-0">
                               {isOptionCorrect && (
-                                <span className="text-emerald-700 text-xs font-black flex items-center gap-1">
+                                <span className="text-emerald-700 dark:text-emerald-400 text-xs font-black flex items-center gap-1">
                                   <FaCheckCircle /> Correct
                                 </span>
                               )}
                               {isOptionChosen && !isOptionCorrect && (
-                                <span className="text-red-600 text-xs font-black flex items-center gap-1">
+                                <span className="text-red-600 dark:text-red-400 text-xs font-black flex items-center gap-1">
                                   <FaTimesCircle /> Your Choice
                                 </span>
                               )}
                               {isOptionChosen && isOptionCorrect && (
-                                <span className="text-emerald-700 text-xs font-black">
+                                <span className="text-emerald-700 dark:text-emerald-400 text-xs font-black">
                                   (Selected)
                                 </span>
                               )}
@@ -410,8 +411,8 @@ const TakeQuiz = () => {
 
                     {/* Explanation Box */}
                     {question.explanation && (
-                      <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 text-xs text-amber-950 space-y-1">
-                        <span className="font-black text-amber-900 flex items-center gap-1.5 uppercase tracking-wider">
+                      <div className="bg-amber-50/70 dark:bg-amber-950/40 p-4 rounded-2xl border border-amber-200/80 dark:border-amber-800 text-xs text-amber-950 dark:text-amber-300 space-y-1">
+                        <span className="font-black text-amber-900 dark:text-amber-200 flex items-center gap-1.5 uppercase tracking-wider">
                           <FaLightbulb className="text-amber-500" /> Explanation / Rationale:
                         </span>
                         <p className="font-semibold">{question.explanation}</p>
@@ -434,21 +435,21 @@ const TakeQuiz = () => {
   const isMulti = qType === 'multiple';
   
   return (
-    <div className="min-h-screen bg-[#f8fafc] py-8 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 py-8 px-4 sm:px-6 lg:px-8 font-sans text-gray-800 dark:text-gray-100">
       <div className="max-w-3xl mx-auto space-y-6">
         
         {/* Header with timer */}
-        <div className="bg-white rounded-3xl shadow-sm border border-purple-100 p-6 flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-purple-100 dark:border-slate-800 p-6 flex items-center justify-between">
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-gray-900 truncate max-w-xs sm:max-w-md">{quiz.title}</h1>
-            <p className="text-xs text-gray-400 font-bold mt-0.5">
-              Question {currentQuestionIndex + 1} of {quiz.questions.length} · <span className="text-purple-700">{isMulti ? 'Multiple Select' : qType === 'true_false' ? 'True / False' : 'Single Choice'}</span>
+            <h1 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate max-w-xs sm:max-w-md">{quiz.title}</h1>
+            <p className="text-xs text-gray-400 dark:text-gray-500 font-bold mt-0.5">
+              Question {currentQuestionIndex + 1} of {quiz.questions.length} · <span className="text-purple-700 dark:text-purple-400">{isMulti ? 'Multiple Select' : qType === 'true_false' ? 'True / False' : 'Single Choice'}</span>
             </p>
           </div>
           
           {quiz.timeLimit > 0 && (
             <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl font-black border transition ${
-              timeLeft < 60 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-purple-50 text-purple-700 border-purple-100'
+              timeLeft < 60 ? 'bg-red-50 dark:bg-red-950/80 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 animate-pulse' : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800'
             }`}>
               <FaClock />
               <span className="font-mono text-sm">{formatTime(timeLeft)}</span>
@@ -457,13 +458,13 @@ const TakeQuiz = () => {
         </div>
 
         {/* Question Panel */}
-        <div className="bg-white rounded-3xl shadow-sm border border-purple-100 p-6 sm:p-8 space-y-6">
-          <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-            <span className="px-3 py-1 bg-purple-100 text-purple-900 rounded-xl text-xs font-black">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-purple-100 dark:border-slate-800 p-6 sm:p-8 space-y-6">
+          <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-3">
+            <span className="px-3 py-1 bg-purple-100 dark:bg-purple-950/80 text-purple-900 dark:text-purple-300 rounded-xl text-xs font-black border border-purple-200 dark:border-purple-800">
               {currentQuestion.points || 1} Points
             </span>
             {isMulti && (
-              <span className="text-xs font-extrabold text-purple-700 bg-purple-50 px-3 py-1 rounded-xl border border-purple-100">
+              <span className="text-xs font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-3 py-1 rounded-xl border border-purple-100 dark:border-purple-800">
                 ☑️ Select all correct options
               </span>
             )}
@@ -471,14 +472,14 @@ const TakeQuiz = () => {
 
           {/* Question Text */}
           {currentQuestion.questionText && (
-            <h2 className="text-lg font-black text-gray-900 leading-relaxed">
+            <h2 className="text-lg font-black text-gray-900 dark:text-white leading-relaxed">
               {currentQuestion.questionText}
             </h2>
           )}
 
           {/* Question Image (if any) */}
           {currentQuestion.questionImage && (
-            <div className="border border-purple-100 rounded-2xl overflow-hidden max-w-lg mx-auto bg-gray-50 p-2 shadow-inner">
+            <div className="border border-purple-100 dark:border-slate-700 rounded-2xl overflow-hidden max-w-lg mx-auto bg-gray-50 dark:bg-slate-800 p-2 shadow-inner">
               <img 
                 src={currentQuestion.questionImage.startsWith('http') ? currentQuestion.questionImage : `http://localhost:5000${currentQuestion.questionImage}`}
                 alt="Question Diagram"
@@ -501,8 +502,8 @@ const TakeQuiz = () => {
                   onClick={() => handleSelectOption(oIdx, isMulti)}
                   className={`w-full text-left px-5 py-4 border-2 rounded-2xl transition flex items-center justify-between cursor-pointer group ${
                     isSelected
-                      ? 'border-purple-600 bg-purple-50/70 text-purple-950 font-black shadow-xs'
-                      : 'border-gray-200 bg-white text-gray-800 hover:border-purple-300'
+                      ? 'border-purple-600 dark:border-purple-500 bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 font-black shadow-xs'
+                      : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 hover:border-purple-300 dark:hover:border-purple-600'
                   }`}
                 >
                   <span className="text-sm font-semibold">{option}</span>
@@ -511,7 +512,7 @@ const TakeQuiz = () => {
                     <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition ${
                       isSelected
                         ? 'border-purple-600 bg-purple-600 text-white'
-                        : 'border-gray-300 group-hover:border-purple-400'
+                        : 'border-gray-300 dark:border-slate-600 group-hover:border-purple-400'
                     }`}>
                       {isSelected && <span className="text-xs font-bold">✓</span>}
                     </div>
@@ -519,7 +520,7 @@ const TakeQuiz = () => {
                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition ${
                       isSelected
                         ? 'border-purple-600 bg-purple-600 text-white'
-                        : 'border-gray-300 group-hover:border-purple-400'
+                        : 'border-gray-300 dark:border-slate-600 group-hover:border-purple-400'
                     }`}>
                       {isSelected && <span className="w-2 h-2 rounded-full bg-white"></span>}
                     </div>
@@ -531,16 +532,16 @@ const TakeQuiz = () => {
         </div>
 
         {/* Quick Question Selector & Navigation */}
-        <div className="bg-white rounded-3xl shadow-sm border border-purple-100 p-6 flex flex-col gap-5">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-purple-100 dark:border-slate-800 p-6 flex flex-col gap-5">
           {/* Question Grid */}
-          <div className="flex flex-wrap gap-2.5 justify-center border-b border-gray-100 pb-4">
+          <div className="flex flex-wrap gap-2.5 justify-center border-b border-gray-100 dark:border-slate-800 pb-4">
             {quiz.questions.map((_, index) => {
               const hasAnswered = isQuestionAnswered(index);
               const isCurrent = currentQuestionIndex === index;
               
-              let styleClass = "border-gray-200 text-gray-600 hover:border-purple-300";
-              if (hasAnswered) styleClass = "bg-purple-100 border-purple-300 text-purple-900 font-bold";
-              if (isCurrent) styleClass = "bg-purple-700 border-purple-700 text-white font-black shadow-md shadow-purple-200";
+              let styleClass = "border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:border-purple-300 dark:hover:border-purple-600 bg-white dark:bg-slate-800";
+              if (hasAnswered) styleClass = "bg-purple-100 dark:bg-purple-950/80 border-purple-300 dark:border-purple-800 text-purple-900 dark:text-purple-300 font-bold";
+              if (isCurrent) styleClass = "bg-purple-700 border-purple-700 text-white font-black shadow-md shadow-purple-200 dark:shadow-none";
 
               return (
                 <button
@@ -561,8 +562,8 @@ const TakeQuiz = () => {
               type="button"
               onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
               disabled={currentQuestionIndex === 0}
-              className={`flex items-center gap-2 px-5 py-2.5 text-xs font-black border border-gray-200 rounded-2xl transition ${
-                currentQuestionIndex === 0 ? 'text-gray-300 bg-gray-50 border-gray-100 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50 cursor-pointer'
+              className={`flex items-center gap-2 px-5 py-2.5 text-xs font-black border border-gray-200 dark:border-slate-700 rounded-2xl transition ${
+                currentQuestionIndex === 0 ? 'text-gray-300 dark:text-gray-600 bg-gray-50 dark:bg-slate-800/50 border-gray-100 dark:border-slate-800 cursor-not-allowed' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer'
               }`}
             >
               <FaArrowLeft /> Previous
@@ -573,7 +574,7 @@ const TakeQuiz = () => {
                 type="button"
                 onClick={handleSubmitQuiz}
                 disabled={submitting}
-                className="px-7 py-3 bg-emerald-600 text-white text-xs font-black rounded-2xl hover:bg-emerald-700 shadow-md shadow-emerald-200 transition cursor-pointer"
+                className="px-7 py-3 bg-emerald-600 text-white text-xs font-black rounded-2xl hover:bg-emerald-700 shadow-md shadow-emerald-200 dark:shadow-none transition cursor-pointer"
               >
                 {submitting ? "Submitting Assessment..." : "Submit Assessment"}
               </button>
@@ -581,7 +582,7 @@ const TakeQuiz = () => {
               <button
                 type="button"
                 onClick={() => setCurrentQuestionIndex(prev => Math.min(quiz.questions.length - 1, prev + 1))}
-                className="flex items-center gap-2 px-5 py-2.5 text-xs font-black border border-gray-200 rounded-2xl hover:bg-gray-50 transition cursor-pointer text-gray-800"
+                className="flex items-center gap-2 px-5 py-2.5 text-xs font-black border border-gray-200 dark:border-slate-700 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer text-gray-800 dark:text-gray-200"
               >
                 Next Question <FaArrowRight />
               </button>

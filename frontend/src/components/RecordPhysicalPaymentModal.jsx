@@ -117,7 +117,7 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 animate-fadeIn my-8">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800 animate-fadeIn my-8 text-gray-800 dark:text-gray-100">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white relative">
@@ -142,30 +142,30 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
         {loading ? (
           <div className="p-12 text-center">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#2d1b64] mx-auto"></div>
-            <p className="text-xs text-gray-500 mt-3 font-semibold">Loading student and course databases...</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 font-semibold">Loading student and course databases...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
             
             {/* Cashier Badge */}
-            <div className="flex justify-between items-center bg-amber-50/80 border border-amber-200/70 p-3.5 rounded-2xl">
+            <div className="flex justify-between items-center bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-900/60 p-3.5 rounded-2xl">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-extrabold text-amber-950">Institute Cashier Counter</span>
-                <span className="text-[10px] bg-amber-200 text-amber-950 px-2.5 py-0.5 rounded-full font-bold">
+                <span className="text-xs font-extrabold text-amber-950 dark:text-amber-300">Institute Cashier Counter</span>
+                <span className="text-[10px] bg-amber-200 dark:bg-amber-900/60 text-amber-950 dark:text-amber-200 px-2.5 py-0.5 rounded-full font-bold">
                   Official In-Person Receipt
                 </span>
               </div>
-              <span className="text-xs font-bold text-amber-800">
+              <span className="text-xs font-bold text-amber-800 dark:text-amber-300">
                 Mode: {paymentMethod.replace('_', ' ')}
               </span>
             </div>
 
             {/* Field 1: Select Student */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                 <span>Select Student <span className="text-red-500">*</span></span>
                 {selectedStudent && (
-                  <span className="text-purple-700 font-extrabold text-[11px] lowercase">
+                  <span className="text-purple-700 dark:text-purple-400 font-extrabold text-[11px] lowercase">
                     {selectedStudent.studentType === 'physical' ? '🏫 Physical Student' : '💻 Online Student'}
                   </span>
                 )}
@@ -179,14 +179,14 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
                   placeholder="Filter student by name, registration no. or grade..."
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-medium"
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-medium"
                 />
               </div>
 
               <select
                 value={selectedStudentId}
                 onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-800 font-semibold cursor-pointer"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-800 dark:text-white font-semibold cursor-pointer"
                 required
               >
                 <option value="">-- Choose Student ({filteredStudents.length} Available) --</option>
@@ -205,13 +205,13 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
 
             {/* Field 2: Select Course */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                 Select Course <span className="text-red-500">*</span>
               </label>
               <select
                 value={selectedCourseId}
                 onChange={handleCourseChange}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-800 font-semibold cursor-pointer"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-800 dark:text-white font-semibold cursor-pointer"
                 required
               >
                 <option value="">-- Choose Course ({courses.length} Active Courses) --</option>
@@ -228,13 +228,13 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
               
               {/* Payment Method */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                   Payment Method
                 </label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-bold cursor-pointer"
+                  className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-bold cursor-pointer"
                 >
                   <option value="CASH_COUNTER">💵 Cash (Counter)</option>
                   <option value="POS_CARD">💳 POS Card Terminal</option>
@@ -244,7 +244,7 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
 
               {/* Amount */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                   Amount Paid (LKR) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -252,21 +252,21 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
                   placeholder="2500"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-emerald-800 font-extrabold"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-emerald-800 dark:text-emerald-300 font-extrabold"
                   required
                 />
               </div>
 
               {/* Payment Date */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                   Payment Date
                 </label>
                 <input
                   type="date"
                   value={paymentDate}
                   onChange={(e) => setPaymentDate(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
+                  className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-semibold"
                   required
                 />
               </div>
@@ -277,7 +277,7 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                   Receipt / Transaction ID
                 </label>
                 <input
@@ -285,13 +285,13 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
                   placeholder="e.g. REC-PHYS-00481"
                   value={receiptNumber}
                   onChange={(e) => setReceiptNumber(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs font-mono font-bold text-purple-900"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs font-mono font-bold text-purple-900 dark:text-purple-300"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                   Cashier Remarks (Optional)
                 </label>
                 <input
@@ -299,18 +299,18 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
                   placeholder="e.g. Counter Cash Receipt #401"
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-medium"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-medium"
                 />
               </div>
 
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                className="px-5 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 Cancel
               </button>

@@ -211,7 +211,7 @@ const StudentIdCard = ({ user }) => {
       </div>
 
       {/* QR Code Container */}
-      <div ref={cardRef} className="bg-white p-4 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-inner border border-indigo-100">
+      <div ref={cardRef} className="bg-white dark:bg-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-inner border border-indigo-100 dark:border-slate-700">
         <div className="p-2 bg-white rounded-xl shadow-xs">
           <QRCodeSVG 
             value={qrPayload}
@@ -221,10 +221,10 @@ const StudentIdCard = ({ user }) => {
             fgColor="#1e1b4b"
           />
         </div>
-        <span className="text-[11px] font-black text-indigo-950 tracking-wider uppercase font-mono bg-indigo-50 px-3 py-1 rounded-md border border-indigo-100">
+        <span className="text-[11px] font-black text-indigo-950 dark:text-indigo-200 tracking-wider uppercase font-mono bg-indigo-50 dark:bg-indigo-950/60 px-3 py-1 rounded-md border border-indigo-100 dark:border-indigo-800">
           {regNo}
         </span>
-        <p className="text-[10px] text-gray-500 font-semibold">Scan QR code at Institute Counter for Attendance & Payment check</p>
+        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">Scan QR code at Institute Counter for Attendance & Payment check</p>
       </div>
 
       {/* Footer Actions */}

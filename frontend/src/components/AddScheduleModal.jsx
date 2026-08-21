@@ -263,7 +263,7 @@ export default function AddScheduleModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto animate-fadeIn">
-      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100/80 animate-fadeIn my-6 max-h-[92vh] flex flex-col">
+      <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-gray-100 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100/80 dark:border-slate-800 animate-fadeIn my-6 max-h-[92vh] flex flex-col">
 
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-5 sm:p-6 text-white relative flex-shrink-0">
@@ -293,17 +293,17 @@ export default function AddScheduleModal({
         <form onSubmit={handleSubmit} className="p-5 sm:p-7 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
 
           {/* Section 1: Course & Class Linking */}
-          <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 space-y-4">
+          <div className="bg-slate-50/80 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <FaBookOpen className="text-purple-600" /> Course & Class Linking
+              <span className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                <FaBookOpen className="text-purple-600 dark:text-purple-400" /> Course & Class Linking
               </span>
               {selectedCourseObj ? (
-                <span className="text-[11px] bg-purple-100 text-purple-800 font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <span className="text-[11px] bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-purple-200 dark:border-purple-800">
                   <FaLink className="text-[10px]" /> Linked to Course
                 </span>
               ) : (
-                <span className="text-[11px] bg-slate-200/80 text-slate-600 font-medium px-2 py-0.5 rounded-full">
+                <span className="text-[11px] bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-gray-300 font-medium px-2 py-0.5 rounded-full">
                   Standalone Session
                 </span>
               )}
@@ -311,11 +311,11 @@ export default function AddScheduleModal({
 
             {/* Link Course Dropdown */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
-                Select Course to Link <span className="text-purple-600 font-semibold text-[10px] lowercase">(links course, syllabus & teacher)</span>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1 uppercase tracking-wider">
+                Select Course to Link <span className="text-purple-600 dark:text-purple-400 font-semibold text-[10px] lowercase">(links course, syllabus & teacher)</span>
               </label>
               <select
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-medium text-slate-800 cursor-pointer shadow-xs transition"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-medium text-slate-800 dark:text-white cursor-pointer shadow-xs transition"
                 value={formData.courseId}
                 onChange={(e) => handleCourseChange(e.target.value)}
               >
@@ -329,7 +329,7 @@ export default function AddScheduleModal({
                   const teacherLabel = c.instructor?.name || (typeof c.instructor === 'string' ? 'Teacher Assigned' : '');
 
                   return (
-                    <option key={c._id} value={c._id}>
+                    <option key={c._id} value={c._id} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
                       {c.title} {gradeLabel ? `[${gradeLabel}]` : ''} {teacherLabel ? `— 👨‍🏫 ${teacherLabel}` : ''}
                     </option>
                   );
@@ -339,20 +339,20 @@ export default function AddScheduleModal({
 
             {/* If Course is Linked, show smart linking preview */}
             {selectedCourseObj && (
-              <div className="bg-purple-50/80 border border-purple-200/80 p-3 rounded-xl flex items-center justify-between gap-3 text-xs">
+              <div className="bg-purple-50/80 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800 p-3 rounded-xl flex items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 bg-purple-600 text-white rounded-lg">
                     <FaGraduationCap />
                   </div>
                   <div>
-                    <span className="font-extrabold text-purple-950 block">{selectedCourseObj.title}</span>
-                    <span className="text-purple-700 text-[11px]">
+                    <span className="font-extrabold text-purple-950 dark:text-white block">{selectedCourseObj.title}</span>
+                    <span className="text-purple-700 dark:text-purple-300 text-[11px]">
                       Instructor: <strong className="font-bold">{assignedTeacherObj?.name || 'Assigned Instructor'}</strong>
                       {courseSpecificGrades.length > 0 && ` • Available Grades: ${courseSpecificGrades.join(', ')}`}
                     </span>
                   </div>
                 </div>
-                <span className="text-[10px] bg-purple-200/80 text-purple-900 font-bold px-2 py-0.5 rounded-md">
+                <span className="text-[10px] bg-purple-200/80 dark:bg-purple-900/60 text-purple-900 dark:text-purple-200 font-bold px-2 py-0.5 rounded-md border border-purple-300 dark:border-purple-700">
                   Active
                 </span>
               </div>
@@ -361,14 +361,14 @@ export default function AddScheduleModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {/* Class Title */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1 uppercase tracking-wider">
                   Class / Session Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Grade 10 Science - Theory"
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs transition"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs transition"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
@@ -376,12 +376,12 @@ export default function AddScheduleModal({
 
               {/* Target Grade / Stream */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1 uppercase tracking-wider">
                   Target Grade / Class <span className="text-red-500">*</span>
                 </label>
                 <select
                   required
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs cursor-pointer transition"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs cursor-pointer transition"
                   value={typeof formData.className === 'string' ? formData.className : ''}
                   onChange={(e) => setFormData({ ...formData, className: e.target.value })}
                 >
@@ -389,14 +389,14 @@ export default function AddScheduleModal({
 
                   {/* Course specific grades group if applicable */}
                   {courseSpecificGrades.length > 0 && (
-                    <optgroup label="Course Enrolled Grades / Classes">
+                    <optgroup label="Course Enrolled Grades / Classes" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
                       {courseSpecificGrades.map(cg => (
                         <option key={cg} value={cg}>{cg} (Course Cohort)</option>
                       ))}
                     </optgroup>
                   )}
 
-                  <optgroup label="All Institute Grades">
+                  <optgroup label="All Institute Grades" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
                     {gradeOptions.map(g => (
                       <option key={g} value={g}>{g}</option>
                     ))}
@@ -407,19 +407,19 @@ export default function AddScheduleModal({
           </div>
 
           {/* Section 2: Day & Standardized Time Picker */}
-          <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 space-y-4">
+          <div className="bg-slate-50/80 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <FaCalendarAlt className="text-purple-600" /> Schedule & Time Slots
+              <span className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                <FaCalendarAlt className="text-purple-600 dark:text-purple-400" /> Schedule & Time Slots
               </span>
-              <span className="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full">
+              <span className="text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-3 py-1 rounded-full">
                 {formData.dayOfWeek} • {formatTimeString(startTimeParts)} – {formatTimeString(endTimeParts)}
               </span>
             </div>
 
             {/* Day of Week */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
                 Day of the Week <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-7 gap-1.5">
@@ -432,7 +432,7 @@ export default function AddScheduleModal({
                       onClick={() => setFormData({ ...formData, dayOfWeek: d })}
                       className={`py-2 text-center rounded-xl text-xs font-bold transition-all cursor-pointer ${isSelected
                           ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20'
-                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-purple-50 hover:border-purple-200'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-slate-700 hover:bg-purple-50 dark:hover:bg-slate-700'
                         }`}
                     >
                       {d.slice(0, 3)}
@@ -444,7 +444,7 @@ export default function AddScheduleModal({
 
             {/* Quick Presets */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
                 Popular Time Slot Presets
               </label>
               <div className="flex flex-wrap gap-2">
@@ -453,7 +453,7 @@ export default function AddScheduleModal({
                     key={idx}
                     type="button"
                     onClick={() => handleApplyPreset(slot)}
-                    className="text-xs bg-white border border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-slate-700 font-semibold px-2.5 py-1.5 rounded-xl transition cursor-pointer shadow-2xs"
+                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 font-semibold px-2.5 py-1.5 rounded-xl transition cursor-pointer shadow-2xs"
                   >
                     ⚡ {slot.start} – {slot.end}
                   </button>
@@ -465,21 +465,21 @@ export default function AddScheduleModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
               {/* START TIME */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+              <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <FaClock className="text-purple-600" /> Start Time <span className="text-red-500">*</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <FaClock className="text-purple-600 dark:text-purple-400" /> Start Time <span className="text-red-500">*</span>
                   </span>
-                  <span className="text-xs font-extrabold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-lg">
+                  <span className="text-xs font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-2.5 py-1 rounded-lg">
                     {formatTimeString(startTimeParts)}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-slate-400 mb-0.5 uppercase">Hour</label>
+                    <label className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 mb-0.5 uppercase">Hour</label>
                     <select
-                      className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                      className="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                       value={startTimeParts.hour}
                       onChange={(e) => updateStartTime('hour', e.target.value)}
                     >
@@ -487,12 +487,12 @@ export default function AddScheduleModal({
                     </select>
                   </div>
 
-                  <span className="text-slate-400 font-extrabold text-lg pt-4">:</span>
+                  <span className="text-slate-400 dark:text-gray-500 font-extrabold text-lg pt-4">:</span>
 
                   <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-slate-400 mb-0.5 uppercase">Minute</label>
+                    <label className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 mb-0.5 uppercase">Minute</label>
                     <select
-                      className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                      className="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                       value={startTimeParts.minute}
                       onChange={(e) => updateStartTime('minute', e.target.value)}
                     >
@@ -501,7 +501,7 @@ export default function AddScheduleModal({
                   </div>
 
                   <div className="pt-4">
-                    <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                    <div className="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
                       {PERIODS.map(p => (
                         <button
                           key={p}
@@ -509,7 +509,7 @@ export default function AddScheduleModal({
                           onClick={() => updateStartTime('period', p)}
                           className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition cursor-pointer ${startTimeParts.period === p
                               ? 'bg-purple-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
+                              : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
                             }`}
                         >
                           {p}
@@ -521,21 +521,21 @@ export default function AddScheduleModal({
               </div>
 
               {/* END TIME */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+              <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <FaClock className="text-indigo-600" /> End Time <span className="text-red-500">*</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <FaClock className="text-indigo-600 dark:text-indigo-400" /> End Time <span className="text-red-500">*</span>
                   </span>
-                  <span className="text-xs font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg">
+                  <span className="text-xs font-extrabold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-2.5 py-1 rounded-lg">
                     {formatTimeString(endTimeParts)}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-slate-400 mb-0.5 uppercase">Hour</label>
+                    <label className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 mb-0.5 uppercase">Hour</label>
                     <select
-                      className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                      className="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                       value={endTimeParts.hour}
                       onChange={(e) => updateEndTime('hour', e.target.value)}
                     >
@@ -543,12 +543,12 @@ export default function AddScheduleModal({
                     </select>
                   </div>
 
-                  <span className="text-slate-400 font-extrabold text-lg pt-4">:</span>
+                  <span className="text-slate-400 dark:text-gray-500 font-extrabold text-lg pt-4">:</span>
 
                   <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-slate-400 mb-0.5 uppercase">Minute</label>
+                    <label className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 mb-0.5 uppercase">Minute</label>
                     <select
-                      className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                      className="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                       value={endTimeParts.minute}
                       onChange={(e) => updateEndTime('minute', e.target.value)}
                     >
@@ -557,7 +557,7 @@ export default function AddScheduleModal({
                   </div>
 
                   <div className="pt-4">
-                    <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                    <div className="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
                       {PERIODS.map(p => (
                         <button
                           key={p}
@@ -565,7 +565,7 @@ export default function AddScheduleModal({
                           onClick={() => updateEndTime('period', p)}
                           className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition cursor-pointer ${endTimeParts.period === p
                               ? 'bg-indigo-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
+                              : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
                             }`}
                         >
                           {p}
@@ -578,9 +578,9 @@ export default function AddScheduleModal({
             </div>
 
             {/* Set End Time by Duration Bar */}
-            <div className="bg-white p-3 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                <FaClock className="text-indigo-500 text-xs" /> Set End Time by Duration:
+            <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-gray-300 flex items-center gap-1.5">
+                <FaClock className="text-indigo-500 dark:text-indigo-400 text-xs" /> Set End Time by Duration:
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {[
@@ -594,7 +594,7 @@ export default function AddScheduleModal({
                     key={item.mins}
                     type="button"
                     onClick={() => handleQuickDuration(item.mins)}
-                    className="px-2.5 py-1 text-xs bg-slate-50 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-slate-200 rounded-lg text-slate-700 font-bold transition active:scale-95 cursor-pointer"
+                    className="px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-900 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-gray-300 font-bold transition active:scale-95 cursor-pointer"
                   >
                     {item.label}
                   </button>
@@ -604,19 +604,19 @@ export default function AddScheduleModal({
           </div>
 
           {/* Section 3: Teacher & Venue */}
-          <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 space-y-4">
-            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-              <FaChalkboardTeacher className="text-purple-600" /> Instructor & Classroom Allocation
+          <div className="bg-slate-50/80 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-4">
+            <span className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+              <FaChalkboardTeacher className="text-purple-600 dark:text-purple-400" /> Instructor & Classroom Allocation
             </span>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {/* Assign Teacher */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1 uppercase tracking-wider">
                   Assign Teacher
                 </label>
                 <select
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs cursor-pointer transition"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs cursor-pointer transition"
                   value={typeof formData.teacherId === 'string' ? formData.teacherId : ''}
                   onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
                 >
@@ -624,7 +624,7 @@ export default function AddScheduleModal({
                   {teachers.map(t => {
                     if (!t) return null;
                     return (
-                      <option key={t._id} value={t._id}>
+                      <option key={t._id} value={t._id} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
                         {t.name} ({t.email})
                       </option>
                     );
@@ -634,14 +634,14 @@ export default function AddScheduleModal({
 
               {/* Room / Location */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1 uppercase tracking-wider">
                   Room / Location
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="e.g. Hall A, Lab 2"
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs transition"
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs transition"
                     value={formData.room}
                     onChange={(e) => setFormData({ ...formData, room: e.target.value })}
                   />
@@ -654,8 +654,8 @@ export default function AddScheduleModal({
                       type="button"
                       onClick={() => setFormData({ ...formData, room: roomName })}
                       className={`text-[10px] px-2 py-0.5 rounded-md border font-semibold transition cursor-pointer ${formData.room === roomName
-                          ? 'bg-purple-100 text-purple-900 border-purple-300'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                          ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border-purple-300 dark:border-purple-800'
+                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                         }`}
                     >
                       {roomName}
@@ -667,7 +667,7 @@ export default function AddScheduleModal({
           </div>
 
           {/* Timetable Entry Preview Card */}
-          <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-inner flex items-center justify-between gap-4">
+          <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-inner border border-slate-800 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-purple-500/20 border border-purple-400/30 rounded-xl text-purple-300">
                 <FaCalendarAlt className="text-lg" />
@@ -690,11 +690,11 @@ export default function AddScheduleModal({
           </div>
 
           {/* Modal Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-100 transition cursor-pointer"
+              className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-gray-300 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               Cancel
             </button>

@@ -349,16 +349,23 @@ const Enrollments = () => {
   const selectedCourse = courses.find(c => c._id === selectedCourseId);
   const assignedGrades = selectedCourse?.enrolledGrades || [];
 
-  if (loading) return <div className="text-center p-10 text-gray-500 font-bold">Loading enrollments data...</div>;
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-10 text-gray-500 dark:text-gray-400 font-bold gap-3">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 dark:border-purple-400"></div>
+        <span className="text-xs animate-pulse">Loading enrollments data...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 animate-fade-in font-sans">
+    <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 animate-fade-in font-sans text-gray-800 dark:text-gray-100 transition-colors duration-200">
       
       {/* Header & Trigger Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Enrollment & Bank Slip Management</h2>
-          <p className="text-gray-500 text-xs mt-1">Manage course enrollments and verify student bank deposit slips.</p>
+          <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">Enrollment & Bank Slip Management</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Manage course enrollments and verify student bank deposit slips.</p>
         </div>
 
         {/* Action Button to trigger New Enrollment Modal */}
@@ -374,13 +381,13 @@ const Enrollments = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 mb-6 space-x-6">
+      <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 space-x-6">
         <button
           onClick={() => setActiveTab('enrollments')}
           className={`pb-3 font-semibold text-xs sm:text-sm transition-all border-b-2 cursor-pointer ${
             activeTab === 'enrollments'
-              ? 'border-purple-700 text-purple-900 font-extrabold'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-purple-700 dark:border-purple-400 text-purple-900 dark:text-purple-300 font-extrabold'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
           }`}
         >
           🎓 Active Course Enrollments ({enrollments.length})
@@ -390,8 +397,8 @@ const Enrollments = () => {
           onClick={() => setActiveTab('pending_slips')}
           className={`pb-3 font-semibold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
             activeTab === 'pending_slips'
-              ? 'border-purple-700 text-purple-900 font-extrabold'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-purple-700 dark:border-purple-400 text-purple-900 dark:text-purple-300 font-extrabold'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
           }`}
         >
           <span>🏦 Bank Deposit Slips</span>
@@ -400,7 +407,7 @@ const Enrollments = () => {
               {pendingSlipsCount} Pending
             </span>
           ) : bankSlips.length > 0 ? (
-            <span className="bg-gray-200 text-gray-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+            <span className="bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
               {bankSlips.length}
             </span>
           ) : null}
@@ -414,7 +421,7 @@ const Enrollments = () => {
             <input
               type="text"
               placeholder="Search enrollments by student name, email, reg no, or course title..."
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-medium text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
               value={tableSearch}
               onChange={(e) => setTableSearch(e.target.value)}
             />
@@ -422,10 +429,10 @@ const Enrollments = () => {
           </div>
 
           {/* Enrollments Table */}
-          <div className="overflow-x-auto rounded-2xl border border-gray-200/80 shadow-xs">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-gray-50/80 text-gray-600 uppercase text-[11px] tracking-wider border-b border-gray-200 font-bold">
+                <tr className="bg-gray-50/80 dark:bg-slate-800/80 text-gray-600 dark:text-gray-300 uppercase text-[11px] tracking-wider border-b border-gray-200 dark:border-slate-700 font-bold">
                   <th className="p-3.5 pl-4">Student Name</th>
                   <th className="p-3.5">Email</th>
                   <th className="p-3.5">Reg No.</th>
@@ -436,27 +443,27 @@ const Enrollments = () => {
                   <th className="p-3.5 text-right pr-4">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                 {paginatedEnrollments.length > 0 ? (
                   paginatedEnrollments.map((e) => (
-                    <tr key={`${e.studentId}-${e.courseId}-${e.className}`} className="hover:bg-purple-50/30 transition-colors">
-                      <td className="p-3.5 pl-4 font-bold text-gray-900">{e.studentName}</td>
-                      <td className="p-3.5 text-gray-600 font-medium">{e.studentEmail}</td>
-                      <td className="p-3.5 font-mono text-gray-700 font-semibold">{e.studentRegNo || '-'}</td>
-                      <td className="p-3.5 font-bold text-purple-950">{e.courseTitle}</td>
+                    <tr key={`${e.studentId}-${e.courseId}-${e.className}`} className="hover:bg-purple-50/30 dark:hover:bg-slate-800/60 transition-colors">
+                      <td className="p-3.5 pl-4 font-bold text-gray-900 dark:text-white">{e.studentName}</td>
+                      <td className="p-3.5 text-gray-600 dark:text-gray-300 font-medium">{e.studentEmail}</td>
+                      <td className="p-3.5 font-mono text-gray-700 dark:text-gray-300 font-semibold">{e.studentRegNo || '-'}</td>
+                      <td className="p-3.5 font-bold text-purple-950 dark:text-purple-300">{e.courseTitle}</td>
                       <td className="p-3.5">
-                        <span className="bg-purple-50 text-[#2d1b64] font-bold px-2.5 py-1 rounded-lg text-[11px] border border-purple-100">
+                        <span className="bg-purple-50 dark:bg-purple-950/60 text-[#2d1b64] dark:text-purple-300 font-bold px-2.5 py-1 rounded-lg text-[11px] border border-purple-100 dark:border-purple-800">
                           {e.className}
                         </span>
                       </td>
-                      <td className="p-3.5 text-gray-600 font-medium">{e.studentPhone || '-'}</td>
-                      <td className="p-3.5 text-gray-600 font-medium whitespace-nowrap">
+                      <td className="p-3.5 text-gray-600 dark:text-gray-300 font-medium">{e.studentPhone || '-'}</td>
+                      <td className="p-3.5 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
                         {e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '-'}
                       </td>
                       <td className="p-3.5 text-right pr-4">
                         <button
                           onClick={() => handleUnenroll(e.studentId, e.courseId, e.className, e.studentName, e.courseTitle)}
-                          className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 cursor-pointer transition-colors border-none bg-transparent"
+                          className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer transition-colors border-none bg-transparent"
                           title="Unenroll student"
                         >
                           <FaTrash className="text-xs" />
@@ -466,7 +473,7 @@ const Enrollments = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="p-10 text-center text-gray-500 font-medium">
+                    <td colSpan="8" className="p-10 text-center text-gray-500 dark:text-gray-400 font-medium">
                       No enrollments found.
                     </td>
                   </tr>
@@ -476,18 +483,18 @@ const Enrollments = () => {
           </div>
 
           {/* Pagination Footer (25 records per page) */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-100">
-            <div className="text-xs font-semibold text-gray-500">
-              Showing <span className="font-extrabold text-gray-800">{filteredEnrollments.length === 0 ? 0 : startIndex + 1}</span> to{' '}
-              <span className="font-extrabold text-gray-800">{Math.min(startIndex + itemsPerPage, filteredEnrollments.length)}</span> of{' '}
-              <span className="font-extrabold text-gray-800">{filteredEnrollments.length}</span> enrollments
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-100 dark:border-slate-800">
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+              Showing <span className="font-extrabold text-gray-800 dark:text-white">{filteredEnrollments.length === 0 ? 0 : startIndex + 1}</span> to{' '}
+              <span className="font-extrabold text-gray-800 dark:text-white">{Math.min(startIndex + itemsPerPage, filteredEnrollments.length)}</span> of{' '}
+              <span className="font-extrabold text-gray-800 dark:text-white">{filteredEnrollments.length}</span> enrollments
             </div>
 
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
+                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
               >
                 <FaChevronLeft className="text-[10px]" /> Previous
               </button>
@@ -499,7 +506,7 @@ const Enrollments = () => {
                   className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${
                     currentPage === pageNum
                       ? 'bg-[#2d1b64] text-white shadow-sm'
-                      : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                      : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
                   }`}
                 >
                   {pageNum}
@@ -509,7 +516,7 @@ const Enrollments = () => {
               <button
                 onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || filteredEnrollments.length === 0}
-                className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
+                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
               >
                 Next <FaChevronRight className="text-[10px]" />
               </button>
@@ -520,12 +527,12 @@ const Enrollments = () => {
         /* BANK SLIPS MANAGEMENT & HISTORY VIEW */
         <div className="space-y-6 animate-fadeIn">
           {/* Header & Status Filter Pills */}
-          <div className="bg-gray-50 border border-gray-200 p-4 md:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 p-4 md:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
+              <h3 className="font-extrabold text-sm text-gray-900 dark:text-white flex items-center gap-2">
                 <span>🏦</span> Bank Deposit Slips Verification & History
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">Review pending slips for verification, or view previously approved and rejected deposit records.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Review pending slips for verification, or view previously approved and rejected deposit records.</p>
             </div>
 
             {/* Filter Pills */}
@@ -535,7 +542,7 @@ const Enrollments = () => {
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
                   bankSlipStatusFilter === 'ALL'
                     ? 'bg-purple-900 text-white border-purple-900 shadow-xs'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                    : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700'
                 }`}
               >
                 All ({bankSlips.length})
@@ -545,7 +552,7 @@ const Enrollments = () => {
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
                   bankSlipStatusFilter === 'PENDING_APPROVAL'
                     ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                    : 'bg-white text-amber-800 border-amber-200 hover:bg-amber-50'
+                    : 'bg-white dark:bg-slate-800 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/40'
                 }`}
               >
                 <span>Pending ({pendingSlipsCount})</span>
@@ -555,7 +562,7 @@ const Enrollments = () => {
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
                   bankSlipStatusFilter === 'COMPLETED'
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                    : 'bg-white text-emerald-800 border-emerald-200 hover:bg-emerald-50'
+                    : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
                 }`}
               >
                 <span>Approved ({approvedSlipsCount})</span>
@@ -565,7 +572,7 @@ const Enrollments = () => {
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
                   bankSlipStatusFilter === 'REJECTED'
                     ? 'bg-red-600 text-white border-red-600 shadow-xs'
-                    : 'bg-white text-red-800 border-red-200 hover:bg-red-50'
+                    : 'bg-white dark:bg-slate-800 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950/40'
                 }`}
               >
                 <span>Rejected ({rejectedSlipsCount})</span>
@@ -582,14 +589,14 @@ const Enrollments = () => {
                 return (
                   <div 
                     key={slip._id} 
-                    className={`bg-white border rounded-2xl transition shadow-xs overflow-hidden ${
-                      isExpanded ? 'border-purple-300 ring-2 ring-purple-500/10' : 'border-gray-200 hover:border-purple-200'
+                    className={`bg-white dark:bg-slate-800/90 border rounded-2xl transition shadow-xs overflow-hidden ${
+                      isExpanded ? 'border-purple-300 dark:border-purple-500 ring-2 ring-purple-500/10' : 'border-gray-200 dark:border-slate-700 hover:border-purple-200 dark:hover:border-purple-600'
                     }`}
                   >
                     {/* Collapsed Header / Summary Row */}
                     <div 
                       onClick={() => toggleExpandSlip(slip._id)}
-                      className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer select-none bg-gray-50/50 hover:bg-purple-50/20 transition"
+                      className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer select-none bg-gray-50/50 dark:bg-slate-800/50 hover:bg-purple-50/20 dark:hover:bg-slate-700/50 transition"
                     >
                       <div className="flex items-center gap-3.5 flex-1 min-w-0">
                         <button
@@ -598,7 +605,7 @@ const Enrollments = () => {
                             e.stopPropagation();
                             toggleExpandSlip(slip._id);
                           }}
-                          className="p-2 text-gray-400 hover:text-purple-700 bg-white border border-gray-200 rounded-xl transition cursor-pointer text-xs shrink-0"
+                          className="p-2 text-gray-400 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl transition cursor-pointer text-xs shrink-0"
                           title={isExpanded ? "Collapse details" : "Expand details"}
                         >
                           {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
@@ -606,39 +613,39 @@ const Enrollments = () => {
 
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-extrabold text-gray-900 text-sm sm:text-base truncate">
+                            <h4 className="font-extrabold text-gray-900 dark:text-white text-sm sm:text-base truncate">
                               {slip.student?.name || 'Unknown Student'}
                             </h4>
-                            <span className="px-2 py-0.5 bg-purple-100 text-purple-900 font-mono font-bold text-[10px] rounded-md">
+                            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 font-mono font-bold text-[10px] rounded-md border border-purple-200 dark:border-purple-800">
                               {slip.student?.registrationNumber || 'No Reg No'}
                             </span>
                           </div>
                           
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mt-1">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
                             <span>{slip.student?.email}</span>
                             <span>•</span>
-                            <span>Course: <strong className="text-purple-900 font-bold">{slip.course?.title || 'N/A'}</strong></span>
+                            <span>Course: <strong className="text-purple-900 dark:text-purple-300 font-bold">{slip.course?.title || 'N/A'}</strong></span>
                             <span>•</span>
                             <span>Date: {slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : 'N/A'}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-slate-700">
                         <div className="text-right">
-                          <span className="text-base sm:text-lg font-extrabold text-purple-950 block">LKR {slip.amount?.toLocaleString()}</span>
+                          <span className="text-base sm:text-lg font-extrabold text-purple-950 dark:text-purple-300 block">LKR {slip.amount?.toLocaleString()}</span>
                           {slip.status === 'PENDING_APPROVAL' && (
-                            <span className="text-[10px] font-extrabold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                            <span className="text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-amber-200 dark:border-amber-800">
                               Pending Approval
                             </span>
                           )}
                           {slip.status === 'COMPLETED' && (
-                            <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center justify-end gap-1">
-                              <FaCheckCircle className="text-emerald-600 text-[10px]" /> Approved
+                            <span className="text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center justify-end gap-1 border border-emerald-200 dark:border-emerald-800">
+                              <FaCheckCircle className="text-emerald-600 dark:text-emerald-400 text-[10px]" /> Approved
                             </span>
                           )}
                           {slip.status === 'REJECTED' && (
-                            <span className="text-[10px] font-extrabold bg-red-100 text-red-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                            <span className="text-[10px] font-extrabold bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-red-200 dark:border-red-800">
                               Rejected
                             </span>
                           )}
@@ -660,39 +667,39 @@ const Enrollments = () => {
 
                     {/* Expanded Detailed Section */}
                     {isExpanded && (
-                      <div className="p-5 border-t border-gray-100 bg-white space-y-4 animate-fadeIn">
+                      <div className="p-5 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4 animate-fadeIn">
                         
                         {/* Meta Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-xl text-xs text-gray-700 border border-gray-100">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-gray-50 dark:bg-slate-800/80 p-4 rounded-xl text-xs text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-slate-700">
                           <div>
-                            <span className="text-[10px] font-bold uppercase text-gray-400 block mb-0.5">Depositor Name</span>
-                            <span className="font-semibold text-gray-900">{slip.depositorName || slip.student?.name || '-'}</span>
+                            <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Depositor Name</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{slip.depositorName || slip.student?.name || '-'}</span>
                           </div>
                           <div>
-                            <span className="text-[10px] font-bold uppercase text-gray-400 block mb-0.5">Deposit Date</span>
-                            <span className="font-semibold text-gray-900">{slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : '-'}</span>
+                            <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Deposit Date</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : '-'}</span>
                           </div>
                           <div>
-                            <span className="text-[10px] font-bold uppercase text-gray-400 block mb-0.5">Reference / Tx ID</span>
-                            <span className="font-mono font-bold text-purple-950">{slip.transactionId || '-'}</span>
+                            <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Reference / Tx ID</span>
+                            <span className="font-mono font-bold text-purple-950 dark:text-purple-300">{slip.transactionId || '-'}</span>
                           </div>
                           <div>
-                            <span className="text-[10px] font-bold uppercase text-gray-400 block mb-0.5">Student Contact</span>
-                            <span className="font-semibold text-gray-900">{slip.student?.parentsPhoneNumber || slip.student?.phone || 'N/A'}</span>
+                            <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Student Contact</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{slip.student?.parentsPhoneNumber || slip.student?.phone || 'N/A'}</span>
                           </div>
                         </div>
 
                         {/* Bank Slip Attachment & View/Download options */}
-                        <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="bg-purple-50/50 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-100 dark:border-purple-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${isPdf ? 'bg-red-100 text-red-600' : 'bg-purple-100 text-purple-700'}`}>
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${isPdf ? 'bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-300' : 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'}`}>
                               {isPdf ? <FaFilePdf /> : <FaImage />}
                             </div>
                             <div>
-                              <h5 className="font-extrabold text-xs text-gray-900">
+                              <h5 className="font-extrabold text-xs text-gray-900 dark:text-white">
                                 Uploaded Bank Slip Attachment ({isPdf ? 'PDF Document' : 'Image File'})
                               </h5>
-                              <p className="text-[11px] text-gray-500 mt-0.5">
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                                 {slip.slipImage ? (isPdf ? 'PDF document ready to view/download' : 'Image file ready to preview/download') : 'No attachment file uploaded'}
                               </p>
                             </div>
@@ -703,9 +710,9 @@ const Enrollments = () => {
                               <button
                                 type="button"
                                 onClick={() => handleViewSlip(slip)}
-                                className="px-3.5 py-2 bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                                className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-slate-700 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-slate-700 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                               >
-                                <FaEye className="text-purple-600" />
+                                <FaEye className="text-purple-600 dark:text-purple-400" />
                                 <span>View Slip</span>
                               </button>
 
@@ -726,10 +733,10 @@ const Enrollments = () => {
                         {/* Image Preview Thumbnail inside expanded view if it's an image */}
                         {slip.slipImage && !isPdf && (
                           <div className="mt-2">
-                            <span className="text-[10px] font-extrabold uppercase text-gray-400 block mb-1.5">Slip Image Preview</span>
+                            <span className="text-[10px] font-extrabold uppercase text-gray-400 dark:text-gray-400 block mb-1.5">Slip Image Preview</span>
                             <div 
                               onClick={() => handleViewSlip(slip)}
-                              className="relative rounded-xl border border-gray-200 overflow-hidden cursor-pointer group max-h-48 max-w-md bg-gray-100 flex items-center justify-center"
+                              className="relative rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden cursor-pointer group max-h-48 max-w-md bg-gray-100 dark:bg-slate-800 flex items-center justify-center"
                             >
                               <img src={slip.slipImage} alt="Bank Slip Thumbnail" className="object-contain max-h-48 w-full group-hover:scale-105 transition duration-300" />
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-xs">
@@ -741,11 +748,11 @@ const Enrollments = () => {
 
                         {/* Action Buttons or Processed Status Footer */}
                         {slip.status === 'PENDING_APPROVAL' ? (
-                          <div className="flex gap-3 pt-3 border-t border-gray-100">
+                          <div className="flex gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
                             <button
                               onClick={() => handleOpenRejectModal(slip)}
                               disabled={actionLoadingId === slip._id}
-                              className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl transition border-none cursor-pointer"
+                              className="flex-1 py-2.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-700 dark:text-red-300 font-bold text-xs rounded-xl transition border border-red-200 dark:border-red-800 cursor-pointer"
                             >
                               ✕ Reject Slip
                             </button>
@@ -801,9 +808,12 @@ const Enrollments = () => {
       {/* ========================================================================= */}
       {/* POPUP MODAL: NEW COURSE ENROLLMENT (Est. Payment Recording Style) */}
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
+      {/* POPUP MODAL: NEW COURSE ENROLLMENT (Est. Payment Recording Style) */}
+      {/* ========================================================================= */}
       {showEnrollModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 animate-fadeIn my-8">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800 animate-fadeIn my-8 text-gray-800 dark:text-gray-100">
             
             {/* Header */}
             <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white relative">
@@ -832,20 +842,20 @@ const Enrollments = () => {
                 
                 {/* 1. Select Course */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     1. Select Course <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     placeholder="Search Course..."
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs bg-gray-50 outline-none focus:ring-2 focus:ring-purple-500 mb-2 font-medium"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl text-xs bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 mb-2 font-medium"
                     value={courseSearch}
                     onChange={(e) => setCourseSearch(e.target.value)}
                   />
                   <select
                     value={selectedCourseId}
                     onChange={(e) => handleCourseChange(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-bold cursor-pointer"
+                    className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-bold cursor-pointer"
                     required
                   >
                     <option value="">-- Choose Course --</option>
@@ -859,11 +869,11 @@ const Enrollments = () => {
 
                 {/* 2. Select Class (Grade) */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     2. Select Class <span className="text-red-500">*</span>
                   </label>
                   {selectedCourseId && assignedGrades.length === 0 ? (
-                    <div className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200 mt-8">
+                    <div className="text-xs font-bold text-red-600 bg-red-50 dark:bg-red-950/40 p-2.5 rounded-xl border border-red-200 dark:border-red-800 mt-8">
                       No grades assigned to this course.
                     </div>
                   ) : (
@@ -872,7 +882,7 @@ const Enrollments = () => {
                       <select
                         value={selectedClass}
                         onChange={(e) => handleGradeChange(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-bold cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-bold cursor-pointer disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
                         disabled={!selectedCourseId}
                         required
                       >
@@ -895,13 +905,13 @@ const Enrollments = () => {
 
                 {/* 3. Select Student */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     3. Select Student <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     placeholder="Search Student..."
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs bg-gray-50 outline-none focus:ring-2 focus:ring-purple-500 mb-2 disabled:bg-gray-100 disabled:cursor-not-allowed font-medium"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl text-xs bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 mb-2 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed font-medium"
                     value={studentSearch}
                     onChange={(e) => setStudentSearch(e.target.value)}
                     disabled={!selectedClass}
@@ -909,7 +919,7 @@ const Enrollments = () => {
                   <select
                     value={selectedStudentId}
                     onChange={(e) => setSelectedStudentId(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-bold cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-bold cursor-pointer disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
                     disabled={!selectedClass}
                     required
                   >
@@ -933,11 +943,11 @@ const Enrollments = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowEnrollModal(false)}
-                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                  className="px-5 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -968,14 +978,14 @@ const Enrollments = () => {
       {/* Delete Confirmation Custom Modal */}
       {showDeleteModal && enrollmentToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
-          <div className="bg-white p-6 rounded-3xl shadow-2xl border border-red-100 max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-2xl border border-red-100 dark:border-red-900/60 max-w-md w-full mx-4 text-gray-800 dark:text-gray-100">
             <div className="text-center font-sans">
-              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-red-200">
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-950/60 text-red-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-red-200 dark:border-red-800">
                 <FaTrash className="text-xl text-red-500" />
               </div>
-              <h3 className="text-xl font-extrabold text-gray-900 mb-2">Unenroll Student</h3>
-              <p className="text-gray-600 text-xs mb-6 leading-relaxed">
-                Are you sure you want to remove <strong className="text-[#2d1b64] font-bold">{enrollmentToDelete.studentName}</strong> from <strong className="text-purple-900 font-bold">{enrollmentToDelete.courseTitle} ({enrollmentToDelete.className})</strong>?
+              <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">Unenroll Student</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-xs mb-6 leading-relaxed">
+                Are you sure you want to remove <strong className="text-[#2d1b64] dark:text-purple-400 font-bold">{enrollmentToDelete.studentName}</strong> from <strong className="text-purple-900 dark:text-purple-300 font-bold">{enrollmentToDelete.courseTitle} ({enrollmentToDelete.className})</strong>?
               </p>
               <div className="flex gap-3 justify-center">
                 <button
@@ -984,7 +994,7 @@ const Enrollments = () => {
                     setShowDeleteModal(false);
                     setEnrollmentToDelete(null);
                   }}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer border-none"
+                  className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl text-xs transition cursor-pointer border-none"
                 >
                   Cancel
                 </button>
@@ -1004,7 +1014,7 @@ const Enrollments = () => {
       {/* Custom Rejection Reason Popup Modal */}
       {showRejectModal && slipToReject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl overflow-hidden border border-red-100 font-sans my-8">
+          <div className="bg-white dark:bg-slate-900 max-w-lg w-full rounded-3xl shadow-2xl overflow-hidden border border-red-100 dark:border-red-900/60 font-sans my-8 text-gray-800 dark:text-gray-100">
             {/* Header */}
             <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-5 text-white flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -1030,14 +1040,14 @@ const Enrollments = () => {
 
             {/* Modal Body */}
             <form onSubmit={executeRejectSlip} className="p-6 space-y-5">
-              <div className="bg-red-50/70 p-3.5 rounded-2xl border border-red-100 text-xs text-red-900 space-y-1">
+              <div className="bg-red-50/70 dark:bg-red-950/40 p-3.5 rounded-2xl border border-red-100 dark:border-red-900/60 text-xs text-red-900 dark:text-red-300 space-y-1">
                 <p><strong>Student Name:</strong> {slipToReject.student?.name || 'Student'}</p>
                 <p><strong>Course:</strong> {slipToReject.course?.title || 'Course'}</p>
                 <p><strong>Amount / Tx ID:</strong> LKR {slipToReject.amount?.toLocaleString()} ({slipToReject.transactionId})</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">
                   Quick Rejection Reasons (Click to select)
                 </label>
                 <div className="flex flex-wrap gap-1.5 mb-3">
@@ -1055,7 +1065,7 @@ const Enrollments = () => {
                       className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
                         rejectionReasonInput === presetReason
                           ? 'bg-red-600 text-white border-red-600 shadow-2xs'
-                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-red-50 hover:text-red-700'
+                          : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/60 hover:text-red-700'
                       }`}
                     >
                       {presetReason}
@@ -1063,7 +1073,7 @@ const Enrollments = () => {
                   ))}
                 </div>
 
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Detailed Rejection Reason <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -1072,19 +1082,19 @@ const Enrollments = () => {
                   placeholder="Enter rejection reason to notify student (e.g. Image resolution is too low, amount paid does not match course fee)..."
                   value={rejectionReasonInput}
                   onChange={(e) => setRejectionReasonInput(e.target.value)}
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-red-500 focus:bg-white text-gray-800 font-medium transition"
+                  className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-red-500 focus:bg-white dark:focus:bg-slate-800 text-gray-800 dark:text-white font-medium transition"
                 ></textarea>
               </div>
 
               {/* Action buttons */}
-              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
                     setShowRejectModal(false);
                     setSlipToReject(null);
                   }}
-                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                  className="px-5 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1097,11 +1107,11 @@ const Enrollments = () => {
                   {rejecting ? (
                     <>
                       <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
-                      Rejecting...
+                      Rejecting Slip...
                     </>
                   ) : (
                     <>
-                      ✕ Confirm Rejection
+                      <FaTimesCircle className="text-white" /> Reject Bank Slip
                     </>
                   )}
                 </button>
@@ -1117,8 +1127,8 @@ const Enrollments = () => {
           onClick={() => setSelectedSlipImage(null)}
           className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer animate-fadeIn"
         >
-          <div className="relative max-w-4xl w-full bg-white p-2 rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-3 bg-gray-900 text-white rounded-t-xl">
+          <div className="relative max-w-4xl w-full bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-3 bg-gray-900 dark:bg-slate-950 text-white rounded-t-xl">
               <span className="font-extrabold text-xs">🏦 Uploaded Bank Deposit Receipt Slip</span>
               <button 
                 onClick={() => setSelectedSlipImage(null)}
@@ -1127,7 +1137,7 @@ const Enrollments = () => {
                 ✕
               </button>
             </div>
-            <div className="p-4 max-h-[80vh] overflow-y-auto flex items-center justify-center bg-gray-100">
+            <div className="p-4 max-h-[80vh] overflow-y-auto flex items-center justify-center bg-gray-100 dark:bg-slate-950">
               <img src={selectedSlipImage} alt="Full Bank Slip" className="max-h-[70vh] object-contain rounded-lg shadow-lg" />
             </div>
           </div>
