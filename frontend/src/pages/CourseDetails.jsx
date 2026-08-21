@@ -66,6 +66,8 @@ import {
   FaPaperPlane,
   FaDownload,
   FaHourglassHalf,
+  FaQuestionCircle,
+  FaFileAlt,
   FaCog
 } from 'react-icons/fa';
 
@@ -1390,7 +1392,7 @@ const CourseDetails = () => {
 
           {/* Course Title & Description */}
           <div className="mt-6">
-            <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight mb-3">{course?.title}</h1>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-950 dark:text-white tracking-tight mb-3">{course?.title}</h1>
             <p className="text-gray-600 text-base leading-relaxed font-medium">{course?.description}</p>
           </div>
 
@@ -1510,192 +1512,174 @@ const CourseDetails = () => {
           </div>
         </div>
       ) : (
-        /* UPGRADED GRADE WORKSPACE HEADER WITH LINE SEPARATION & STRUCTURED DETAILS */
-        <div className="mb-8 space-y-4">
-          {/* Top Breadcrumb & Back Navigation */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+        /* UPGRADED PROFESSIONAL GRADE WORKSPACE HEADER HERO */
+        <div className="mb-8 space-y-3">
+          {/* Top Back Navigation (Outside the Hero Box) */}
+          <div className="flex items-center justify-start px-1">
             <button
               onClick={() => setSelectedGrade(null)}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#2d1b64] font-bold text-xs transition-all duration-200 border border-purple-200 shadow-2xs hover:shadow-xs group cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white hover:bg-purple-50 text-purple-950 font-black text-xs transition-all duration-200 border border-slate-200/90 hover:border-purple-300 shadow-2xs hover:shadow-xs group cursor-pointer"
             >
-              <FaArrowLeft className="text-[11px] group-hover:-translate-x-0.5 transition-transform text-purple-700" />
+              <FaArrowLeft className="text-xs group-hover:-translate-x-1 transition-transform text-purple-700" />
               <span>Back to Classes</span>
             </button>
-
-            <div className="text-xs font-semibold text-gray-500 hidden sm:flex items-center gap-2">
-              <span className="hover:text-purple-700 cursor-pointer" onClick={() => setSelectedGrade(null)}>Classes</span>
-              <span>/</span>
-              <span className="font-bold text-purple-900">{selectedGrade}</span>
-            </div>
           </div>
 
-          {/* Main Title, Badges & Action Hub */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+          {/* Main Hero Card Container */}
+          <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-5 relative overflow-hidden">
+            {/* Subtle Ambient Decorative Glow */}
+            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-gradient-to-br from-purple-400/10 via-indigo-400/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+            {/* Main Title & Badges */}
+            <div className="space-y-3 relative z-10">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-black text-slate-950 dark:text-white tracking-tight leading-[1.18] drop-shadow-2xs">
                 {course?.title}
               </h1>
 
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-xl bg-purple-100/90 text-purple-950 font-black text-sm border border-purple-300/80 shadow-2xs">
-                  <FaGraduationCap className="text-purple-700 text-sm" />
-                  <span>{selectedGrade} Workspace</span>
-                </div>
-
-                {currentLesson?.liveStream?.isLive ? (
-                  <span className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md shadow-red-500/20 flex items-center gap-1.5 border border-red-400 animate-pulse ring-2 ring-red-300">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
-                    LIVE NOW
-                  </span>
-                ) : currentLesson?.liveStream?.isScheduled ? (
-                  <span className="bg-gradient-to-r from-amber-600 to-orange-600 text-white text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md shadow-amber-500/20 flex items-center gap-1.5 border border-amber-400">
-                    <FaBroadcastTower className="text-[10px] animate-pulse" />
-                    SCHEDULED LIVE
-                  </span>
-                ) : (
-                  <span className="bg-emerald-100 text-emerald-900 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-300 shadow-2xs flex items-center gap-1.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    Workspace Active
-                  </span>
-                )}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-950 font-black text-xs sm:text-sm border border-purple-300/80 shadow-2xs">
+                <FaGraduationCap className="text-purple-700 text-sm" />
+                <span>{selectedGrade} Workspace</span>
               </div>
-            </div>
 
+              {currentLesson?.liveStream?.isLive ? (
+                <span className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider shadow-md shadow-red-500/25 flex items-center gap-2 border border-red-400 animate-pulse ring-2 ring-red-200">
+                  <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                  LIVE NOW
+                </span>
+              ) : currentLesson?.liveStream?.isScheduled ? (
+                <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider shadow-md shadow-orange-500/25 flex items-center gap-2 border border-orange-300 ring-2 ring-orange-100">
+                  <FaBroadcastTower className="text-xs animate-pulse" />
+                  SCHEDULED LIVE
+                </span>
+              ) : (
+                <span className="bg-emerald-100 text-emerald-900 text-xs font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider border border-emerald-300 shadow-2xs flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  Workspace Active
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Action Navigation & Activity Toolbar (Uniform Buttons Under Title Bar) */}
+          <div className="pt-3 pb-1 border-t border-slate-200/90 flex items-center gap-2 sm:gap-2.5 overflow-x-auto no-scrollbar flex-wrap relative z-10">
+            {/* 1. Live Class Action Buttons for Teacher/Admin */}
             {(user?.role === 'admin' || user?.role === 'teacher') && (
-              <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-                {currentLesson?.liveStream?.isScheduled && (
+              <>
+                {currentLesson?.liveStream?.isScheduled ? (
                   <button
                     type="button"
-                    onClick={() => handleGoLiveImmediately(currentLesson._id)}
-                    className="px-4 sm:px-5 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition-all duration-300 shadow-lg bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white border border-red-400 shadow-red-500/30 ring-2 ring-red-300 flex items-center gap-2 cursor-pointer transform hover:-translate-y-0.5 active:scale-95"
-                    title="Launch and start this scheduled live stream immediately"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <FaPlay className="text-xs text-white" />
-                      <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                      </span>
-                    </div>
-                    <span>Go Live Now</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const targetLesson = currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || [])[0];
-                    if (targetLesson?.liveStream?.isLive || targetLesson?.liveStream?.isScheduled) {
+                    onClick={() => {
+                      const targetLesson = currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || [])[0];
                       handleOpenEditScheduledLive(targetLesson);
-                    } else {
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-extrabold text-xs shadow-sm border border-amber-400 transition-all cursor-pointer transform hover:scale-105 active:scale-95 shrink-0"
+                    title="Edit or adjust scheduled live class"
+                  >
+                    <FaBroadcastTower className="text-xs" />
+                    <span>Manage Scheduled Live</span>
+                  </button>
+                ) : currentLesson?.liveStream?.isLive ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targetLesson = currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || [])[0];
+                      handleOpenEditScheduledLive(targetLesson);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 text-white font-extrabold text-xs shadow-md shadow-red-500/20 border border-red-400 transition-all cursor-pointer transform hover:scale-105 active:scale-95 shrink-0"
+                    title="Manage ongoing live stream"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    <span>Manage Live Stream</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
                       setLiveStreamTitle('');
                       setLiveYoutubeUrl('');
                       setLiveThumbnail('');
                       setIsScheduledLive(false);
                       setShowLiveModal(true);
-                    }
-                  }}
-                  className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition-all duration-300 shadow-lg flex items-center gap-2.5 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${
-                    currentLesson?.liveStream?.isLive
-                      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white border-red-400 shadow-red-500/30 ring-2 ring-red-300'
-                      : currentLesson?.liveStream?.isScheduled
-                      ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:to-orange-800 text-white border-amber-400 shadow-amber-500/30 ring-2 ring-amber-300'
-                      : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white border-red-500/40 shadow-red-600/30'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <FaYoutube className="text-xl sm:text-2xl text-white drop-shadow-sm" />
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                    </span>
-                  </div>
-                  <span className="tracking-tight">
-                    {currentLesson?.liveStream?.isLive 
-                      ? 'Manage Live Class' 
-                      : currentLesson?.liveStream?.isScheduled 
-                      ? 'Manage Scheduled Live' 
-                      : 'Start YouTube Live Class'}
-                  </span>
-                </button>
-              </div>
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-extrabold text-xs shadow-md shadow-red-500/20 border border-red-400 transition-all cursor-pointer transform hover:scale-105 active:scale-95 shrink-0"
+                    title="Start or schedule a YouTube Live Class"
+                  >
+                    <FaYoutube className="text-sm" />
+                    <span>+ Start / Schedule Live</span>
+                  </button>
+                )}
+              </>
             )}
+
+            {/* 2. Video Lessons / Watch Video Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('section-videos');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 font-extrabold text-xs border border-purple-200 shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:scale-105 active:scale-95 shrink-0"
+              title="Watch lecture recordings and video lessons"
+            >
+              <FaVideo className="text-purple-600 text-xs" />
+              <span>{isTeacherOrAdmin ? "+ Add / Watch Video" : "🎬 Watch Video Lessons"}</span>
+            </button>
+
+            {/* 3. Study Documents / Add Document (PDF) Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('section-materials');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 font-extrabold text-xs border border-blue-200 shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:scale-105 active:scale-95 shrink-0"
+              title="Download and read PDF lecture documents"
+            >
+              <FaBookOpen className="text-blue-600 text-xs" />
+              <span>{isTeacherOrAdmin ? "+ Add / View Documents" : "📄 Study Documents (PDF)"}</span>
+            </button>
+
+            {/* 4. Assignments Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('section-assignments');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-extrabold text-xs border border-emerald-200 shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:scale-105 active:scale-95 shrink-0"
+              title="View and upload class assignments"
+            >
+              <FaClipboardCheck className="text-emerald-600 text-xs" />
+              <span>{isTeacherOrAdmin ? "+ Add Assignment" : "📝 Class Assignments"}</span>
+            </button>
+
+            {/* 5. Quizzes / Add Quiz Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (isTeacherOrAdmin) {
+                  navigate(`/course/${courseId}/create-quiz`);
+                } else {
+                  const el = document.getElementById('section-quizzes');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold text-xs border border-amber-200 shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:scale-105 active:scale-95 shrink-0"
+              title={isTeacherOrAdmin ? "Create a new quiz assessment" : "Take weekly quiz assessments"}
+            >
+              <FaQuestionCircle className="text-amber-600 text-xs" />
+              <span>{isTeacherOrAdmin ? "+ Add Quiz" : "❓ Take Quizzes"}</span>
+            </button>
           </div>
-
-          {/* Structured Course & Grade Details (Cleanly Separated by Dividers) */}
-          <div className="pt-3 border-t border-gray-200/90 flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto no-scrollbar text-xs font-bold text-gray-700 flex-wrap">
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-              {course?.instructor?.name && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-gray-200/80 text-slate-800">
-                  <FaUserTie className="text-purple-600 text-xs" />
-                  <span className="text-gray-500 font-medium">Instructor:</span>
-                  <span className="font-extrabold text-slate-900">{course.instructor.name}</span>
-                </div>
-              )}
-
-              {course?.category && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-gray-200/80 text-slate-800">
-                  <FaLayerGroup className="text-indigo-600 text-xs" />
-                  <span className="text-gray-500 font-medium">Category:</span>
-                  <span className="font-extrabold text-slate-900">{course.category}</span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-gray-200/80 text-slate-800">
-                <FaCalendarAlt className="text-purple-600 text-xs" />
-                <span className="text-gray-500 font-medium">Curriculum:</span>
-                <span className="font-extrabold text-purple-900">{selectedMonth} (Week {activeWeek})</span>
-              </div>
-
-              {course?.enrolledStudents?.length !== undefined && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-gray-200/80 text-slate-800">
-                  <FaUsers className="text-emerald-600 text-xs" />
-                  <span className="text-gray-500 font-medium">Students:</span>
-                  <span className="font-extrabold text-slate-900">{course.enrolledStudents.length} Enrolled</span>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Action Management Buttons for Teacher & Admin */}
-            {(user?.role === 'admin' || user?.role === 'teacher') && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => openStudentPicker(selectedGrade)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-100/90 hover:bg-purple-200/90 text-purple-950 font-black text-xs border border-purple-300 shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:scale-105 active:scale-95"
-                  title="View and manage enrolled students for this grade"
-                >
-                  <FaUsers className="text-purple-700 text-xs" />
-                  <span>Manage Students</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const targetGradeObj = (course?.enrolledGrades || []).find(g => String(g.gradeNumber) === String(selectedGrade)) || { gradeNumber: selectedGrade, title: `Grade ${selectedGrade}` };
-                    setDeactivateConfirmGrade({
-                      gradeId: targetGradeObj._id || targetGradeObj.id || selectedGrade,
-                      gradeNumber: selectedGrade,
-                      title: targetGradeObj.title || `Grade ${selectedGrade}`,
-                      isDeactive: Boolean(targetGradeObj.isDeactive),
-                      deactivatedBy: targetGradeObj.deactivatedBy
-                    });
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs border border-slate-300 shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:scale-105 active:scale-95"
-                  title="Manage Grade Status & Activation"
-                >
-                  <span>⚙️ Grade Settings</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Separation line below header details */}
-          <div className="border-b border-gray-200/90 pb-1" />
         </div>
+      </div>
       )}
 
       {/* VIEW 1: GRID OF CLASS CARDS (Shown when no class is selected) */}
@@ -2362,7 +2346,7 @@ const CourseDetails = () => {
 
           {/* Video Lessons Section */}
           {/* Video Lessons & Recorded Lectures Section */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-5">
+          <div id="section-videos" className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-5 scroll-mt-20">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-slate-800 pb-4">
               <div>
                 <h4 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
@@ -2612,7 +2596,7 @@ const CourseDetails = () => {
           </div>
 
           {/* PDF Materials Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+          <div id="section-materials" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4 scroll-mt-20">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div>
                 <h4 className="font-bold text-lg text-gray-800">Study Materials — PDF Notes (Week {activeWeek} — {selectedMonth})</h4>
@@ -2841,7 +2825,7 @@ const CourseDetails = () => {
           </div>
 
           {/* Assignments Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+          <div id="section-assignments" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4 scroll-mt-20">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div>
                 <h4 className="font-bold text-lg text-gray-800">
@@ -3029,7 +3013,7 @@ const CourseDetails = () => {
           )}
 
           {/* Quizzes & Assessments Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+          <div id="section-quizzes" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4 scroll-mt-20">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div>
                 <h4 className="font-bold text-lg text-gray-800">
