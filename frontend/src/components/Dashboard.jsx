@@ -1299,7 +1299,7 @@ const StudentDashboard = ({ user }) => {
 
         {activeCourse ? (
           <button
-            onClick={() => navigate('/courses')}
+            onClick={() => navigate(`/course/${activeCourse._id || activeCourse.id}`)}
             className="bg-white text-slate-900 hover:bg-slate-150 px-6 py-3.5 rounded-xl font-bold text-xs transition shadow-lg flex items-center gap-2 cursor-pointer relative z-10 active:scale-95"
           >
             <FaPlayCircle className="text-base text-purple-700" /> Resume Learning

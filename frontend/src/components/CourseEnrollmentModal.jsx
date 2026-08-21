@@ -74,8 +74,8 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 8 * 1024 * 1024) {
-      setSlipError('File size exceeds 8MB limit. Please upload a smaller image.');
+    if (file.size > 5 * 1024 * 1024) {
+      setSlipError('File size exceeds 5MB limit. Please upload a smaller image under 5MB.');
       return;
     }
 

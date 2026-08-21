@@ -70,4 +70,8 @@ const courseSchema = new mongoose.Schema({
   timestamps: true
 });
 
+courseSchema.index({ instructor: 1 });
+courseSchema.index({ enrolledStudents: 1 });
+courseSchema.index({ status: 1 });
+
 module.exports = mongoose.model('Course', courseSchema);

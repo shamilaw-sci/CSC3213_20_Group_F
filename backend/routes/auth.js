@@ -1733,6 +1733,7 @@ router.get('/admin-stats', protect, async (req, res) => {
 
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
     const monthsList = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -1753,20 +1754,19 @@ router.get('/admin-stats', protect, async (req, res) => {
 
     const growthData = monthsList.map(m => ({ month: m, count: growthMap[m] }));
 
-    const payments = await Payment.find({ status: 'COMPLETED' });
-    const totalCollected = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
+    const [payments, allEnrollments, todayArrivalsCount] = await Promise.all([
+      Payment.find({ status: 'COMPLETED' }).select('amount').lean(),
+      Enrollment.find().select('course').populate('course', 'price').lean(),
+      Attendance.countDocuments({ date: { $gte: startOfToday }, status: 'Present' })
+    ]);
 
-    const allEnrollments = await Enrollment.find().populate('course', 'price');
+    const totalCollected = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
     let totalExpected = 0;
     allEnrollments.forEach(e => {
       totalExpected += (e.course?.price || 2500);
     });
 
     const pendingDues = Math.max(0, totalExpected - totalCollected);
-
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const todayArrivalsCount = await Attendance.countDocuments({ date: { $gte: startOfToday }, status: 'Present' });
 
     res.json({
       students: totalStudents,
@@ -1991,8 +1991,17 @@ router.get('/teacher-stats', protect, async (req, res) => {
 
     const uniqueStudents = Object.values(studentMap);
 
-    const coursesList = await Promise.all(teacherCourses.map(async (c) => {
-      const countDoc = await Enrollment.countDocuments({ course: c._id });
+    const enrollmentCountsByCourse = {};
+    enrollments.forEach(e => {
+      const cId = e.course ? e.course.toString() : null;
+      if (cId) {
+        enrollmentCountsByCourse[cId] = (enrollmentCountsByCourse[cId] || 0) + 1;
+      }
+    });
+
+    const coursesList = teacherCourses.map(c => {
+      const cIdStr = c._id.toString();
+      const countDoc = enrollmentCountsByCourse[cIdStr] || 0;
       const countEmb = Array.isArray(c.enrolledStudents) ? c.enrolledStudents.length : 0;
       return {
         id: c._id,
@@ -2003,7 +2012,7 @@ router.get('/teacher-stats', protect, async (req, res) => {
         cardImage: c.cardImage || '',
         enrolledCount: Math.max(countDoc, countEmb)
       };
-    }));
+    });
 
     const assignedSchedules = await Schedule.find({
       $or: [

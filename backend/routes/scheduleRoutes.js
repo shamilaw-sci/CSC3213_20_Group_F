@@ -65,7 +65,8 @@ router.get('/', protect, async (req, res) => {
         }
       })
       .populate('teacherId', 'name email profilePicture')
-      .sort({ dayOfWeek: 1, startTime: 1 });
+      .sort({ dayOfWeek: 1, startTime: 1 })
+      .lean();
 
     res.json(schedules);
   } catch (err) {

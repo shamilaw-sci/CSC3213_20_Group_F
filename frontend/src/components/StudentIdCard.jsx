@@ -7,7 +7,7 @@ const StudentIdCard = ({ user }) => {
   if (!user) return null;
 
   const regNo = user.registrationNumber || 'STU-REG-PENDING';
-  const gradeStr = user.grade ? (user.grade.toLowerCase().startsWith('grade') ? user.grade : `Grade ${user.grade}`) : 'Grade Active';
+  const gradeStr = user.grade ? (String(user.grade).toLowerCase().startsWith('grade') ? user.grade : `Grade ${user.grade}`) : 'Grade Active';
   const studentTypeStr = user.studentType === 'physical' ? '🏫 Physical Classroom Student' : '💻 Online Student';
 
   // Encrypted QR Payload containing registration number and student ID
