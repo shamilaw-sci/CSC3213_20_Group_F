@@ -15,6 +15,10 @@ const Attendance = require('../models/Attendance');
 const Schedule = require('../models/Schedule');
 const Notification = require('../models/Notification');
 const ReadingProgress = require('../models/ReadingProgress');
+const Quiz = require('../models/Quiz');
+const QuizSubmission = require('../models/QuizSubmission');
+const Assignment = require('../models/Assignment');
+const AssignmentSubmission = require('../models/AssignmentSubmission');
 const Lesson = require('../models/Lesson');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
@@ -2221,6 +2225,37 @@ const getStudentAnalyticsPayload = async (studentUser) => {
 
   const totalPaidAmount = studentPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
 
+  // Student Quiz Performance Metrics
+  const quizSubmissions = await QuizSubmission.find({ student: studentId })
+    .populate({
+      path: 'quiz',
+      select: 'title grade month weekNumber passingPercentage course',
+      populate: { path: 'course', select: 'title' }
+    })
+    .sort({ completedAt: -1 })
+    .lean();
+
+  const totalQuizzesAttempted = quizSubmissions.length;
+  const avgQuizScorePercent = totalQuizzesAttempted > 0
+    ? Math.round(quizSubmissions.reduce((sum, s) => sum + (s.totalPoints > 0 ? (s.score / s.totalPoints) * 100 : 0), 0) / totalQuizzesAttempted)
+    : 0;
+
+  // Student Assignment Performance Metrics
+  const assignmentSubmissions = await AssignmentSubmission.find({ student: studentId })
+    .populate({
+      path: 'assignment',
+      select: 'title grade month weekNumber maxMarks passingMarks course dueDate',
+      populate: { path: 'course', select: 'title' }
+    })
+    .sort({ submittedAt: -1 })
+    .lean();
+
+  const totalAssignmentsSubmitted = assignmentSubmissions.length;
+  const gradedAssignments = assignmentSubmissions.filter(s => s.status === 'graded' && s.marks !== null);
+  const avgAssignmentMarksPercent = gradedAssignments.length > 0
+    ? Math.round(gradedAssignments.reduce((sum, s) => sum + ((s.marks / (s.assignment?.maxMarks || 100)) * 100), 0) / gradedAssignments.length)
+    : 0;
+
   return {
     studentMetrics: {
       studentName: studentUser.name,
@@ -2230,6 +2265,10 @@ const getStudentAnalyticsPayload = async (studentUser) => {
       totalAvailableWeeks,
       totalPaymentsCount: studentPayments.length,
       totalPaidAmount,
+      totalQuizzesAttempted,
+      avgQuizScorePercent,
+      totalAssignmentsSubmitted,
+      avgAssignmentMarksPercent,
       userGrade: studentUser.grade || 'Unassigned',
       userType: studentUser.studentType || 'online'
     },
@@ -2243,7 +2282,20 @@ const getStudentAnalyticsPayload = async (studentUser) => {
     },
     weeklyRecords,
     enrolledCoursesList,
-    studentPayments
+    studentPayments,
+    quizSubmissions,
+    quizMetrics: {
+      totalQuizzesAttempted,
+      avgQuizScorePercent,
+      quizSubmissions
+    },
+    assignmentSubmissions,
+    assignmentMetrics: {
+      totalAssignmentsSubmitted,
+      avgAssignmentMarksPercent,
+      gradedCount: gradedAssignments.length,
+      assignmentSubmissions
+    }
   };
 };
 
@@ -3030,6 +3082,50 @@ router.get('/parent-summary', protect, async (req, res) => {
           .populate('course', 'title')
           .sort({ lastReadAt: -1 });
 
+        // 5. Quiz Assessment Submissions & Performance
+        const quizSubmissions = await QuizSubmission.find({ student: childId })
+          .populate({
+            path: 'quiz',
+            select: 'title grade month weekNumber passingPercentage course timeLimit',
+            populate: { path: 'course', select: 'title' }
+          })
+          .sort({ completedAt: -1 })
+          .lean();
+
+        const totalQuizzes = quizSubmissions.length;
+        const totalQuizScoreSum = quizSubmissions.reduce((sum, s) => sum + (s.score || 0), 0);
+        const totalQuizPointsSum = quizSubmissions.reduce((sum, s) => sum + (s.totalPoints || 0), 0);
+        const averageQuizPercent = totalQuizPointsSum > 0
+          ? Math.round((totalQuizScoreSum / totalQuizPointsSum) * 100)
+          : (totalQuizzes > 0 ? Math.round(quizSubmissions.reduce((sum, s) => sum + ((s.score / (s.totalPoints || 1)) * 100), 0) / totalQuizzes) : 0);
+
+        const passedQuizzesCount = quizSubmissions.filter(s => {
+          const passPct = s.quiz?.passingPercentage || 50;
+          const scorePct = s.totalPoints > 0 ? (s.score / s.totalPoints) * 100 : 0;
+          return scorePct >= passPct;
+        }).length;
+
+        // 6. Homework & Assignment Submissions & Performance
+        const assignmentSubmissions = await AssignmentSubmission.find({ student: childId })
+          .populate({
+            path: 'assignment',
+            select: 'title grade month weekNumber maxMarks passingMarks course dueDate',
+            populate: { path: 'course', select: 'title' }
+          })
+          .sort({ submittedAt: -1 })
+          .lean();
+
+        const totalAssignments = assignmentSubmissions.length;
+        const gradedAssignments = assignmentSubmissions.filter(s => s.status === 'graded' && s.marks !== null);
+        const averageAssignmentMarks = gradedAssignments.length > 0
+          ? Math.round(gradedAssignments.reduce((sum, s) => sum + ((s.marks / (s.assignment?.maxMarks || 100)) * 100), 0) / gradedAssignments.length)
+          : 0;
+
+        const passedAssignmentsCount = gradedAssignments.filter(s => {
+          const passMark = s.assignment?.passingMarks || 50;
+          return (s.marks || 0) >= passMark;
+        }).length;
+
         return {
           child: {
             _id: child._id,
@@ -3060,7 +3156,22 @@ router.get('/parent-summary', protect, async (req, res) => {
           attendanceLogs,
           payments,
           totalPaidAmount,
-          readingProgress
+          readingProgress,
+          quizSubmissions,
+          quizMetrics: {
+            totalQuizzes,
+            averageQuizPercent,
+            passedQuizzesCount,
+            passRate: totalQuizzes > 0 ? Math.round((passedQuizzesCount / totalQuizzes) * 100) : 0
+          },
+          assignmentSubmissions,
+          assignmentMetrics: {
+            totalAssignments,
+            gradedCount: gradedAssignments.length,
+            averageAssignmentMarks,
+            passedAssignmentsCount,
+            passRate: gradedAssignments.length > 0 ? Math.round((passedAssignmentsCount / gradedAssignments.length) * 100) : 0
+          }
         };
       })
     );

@@ -1,20 +1,152 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
 const Quiz = require('../models/Quiz');
 const QuizSubmission = require('../models/QuizSubmission');
 const Course = require('../models/Course');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { protect, isTeacherOrAdmin } = require('../middleware/authMiddleware');
+const { sendCourseUpdateEmail } = require('../utils/emailService');
+const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
+const { notifyParentsOfStudent, notifyParentsInBatch } = require('../utils/notificationHelper');
+
+// --- MULTER STORAGE FOR QUIZ QUESTION IMAGES (Max 1MB) ---
+const uploadDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const quizImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `quiz-q-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  }
+});
+
+const quizImageFilter = (req, file, cb) => {
+  const allowed = /jpeg|jpg|png|webp|gif|svg/;
+  const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+  const mime = allowed.test(file.mimetype);
+  if (ext && mime) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files (JPG, PNG, WebP, GIF, SVG) are allowed.'));
+  }
+};
+
+const uploadQuizImage = multer({
+  storage: quizImageStorage,
+  fileFilter: quizImageFilter,
+  limits: { fileSize: 1 * 1024 * 1024 } // Strict 1 MB per file limit
+});
+
+// Helper to validate questions structure
+const validateQuestions = (questions) => {
+  if (!questions || !Array.isArray(questions) || questions.length === 0) {
+    return "A quiz must have at least one question.";
+  }
+
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    const hasText = q.questionText && q.questionText.trim().length > 0;
+    const hasImage = q.questionImage && q.questionImage.trim().length > 0;
+
+    if (!hasText && !hasImage) {
+      return `Question ${i + 1} must have either question text or an uploaded diagram/image (or both).`;
+    }
+
+    if (!q.options || !Array.isArray(q.options) || q.options.length < 2) {
+      return `Question ${i + 1} must have at least two options.`;
+    }
+
+    for (let j = 0; j < q.options.length; j++) {
+      if (!q.options[j] || !q.options[j].trim()) {
+        return `Option ${j + 1} of Question ${i + 1} cannot be empty.`;
+      }
+    }
+
+    const qType = q.questionType || 'mcq';
+    if (qType === 'multiple') {
+      if (!q.correctAnswers || !Array.isArray(q.correctAnswers) || q.correctAnswers.length === 0) {
+        return `Please select at least one correct answer for Question ${i + 1}.`;
+      }
+      for (const ansIdx of q.correctAnswers) {
+        if (typeof ansIdx !== 'number' || ansIdx < 0 || ansIdx >= q.options.length) {
+          return `Invalid correct answer index in Question ${i + 1}.`;
+        }
+      }
+    } else {
+      if (q.correctAnswer === undefined || q.correctAnswer === null || q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
+        return `Please select a valid correct answer for Question ${i + 1}.`;
+      }
+    }
+  }
+  return null;
+};
+
+// Helper to sanitize questions for students before submission
+const sanitizeQuestionsForStudent = (questions) => {
+  if (!questions) return [];
+  return questions.map(q => {
+    const qObj = typeof q.toObject === 'function' ? q.toObject() : { ...q };
+    delete qObj.correctAnswer;
+    delete qObj.correctAnswers;
+    delete qObj.explanation;
+    return qObj;
+  });
+};
+
+// @route   POST /api/quizzes/upload-image
+// @desc    Upload an image for a quiz question (Max 1MB, Teachers & Admins only)
+router.post('/upload-image', protect, isTeacherOrAdmin, (req, res) => {
+  uploadQuizImage.single('image')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ message: 'Image size exceeds the 1MB limit. Please upload an image smaller than 1MB.' });
+      }
+      return res.status(400).json({ message: err.message });
+    } else if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'Please select an image file to upload.' });
+    }
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+    res.json({
+      success: true,
+      imageUrl,
+      filename: req.file.filename
+    });
+  });
+});
 
 // @route   POST /api/quizzes
 // @desc    Create a new quiz (Teachers & Admins only)
 router.post('/', protect, isTeacherOrAdmin, async (req, res) => {
   try {
-    const { title, description, course, grade, timeLimit, questions } = req.body;
+    const { 
+      title, 
+      description, 
+      course, 
+      grade, 
+      month, 
+      weekNumber, 
+      timeLimit, 
+      passingPercentage, 
+      questions 
+    } = req.body;
 
-    if (!title || !course || !grade || !questions || questions.length === 0) {
-      return res.status(400).json({ message: "Please provide all required fields." });
+    if (!title || !course || !grade) {
+      return res.status(400).json({ message: "Please provide title, course, and target grade." });
     }
 
     // Verify course exists
@@ -24,13 +156,9 @@ router.post('/', protect, isTeacherOrAdmin, async (req, res) => {
     }
 
     // Validate questions
-    for (const q of questions) {
-      if (!q.questionText || !q.options || q.options.length < 2 || q.correctAnswer === undefined) {
-        return res.status(400).json({ message: "Each question must have text, at least two options, and a correct answer index." });
-      }
-      if (q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
-        return res.status(400).json({ message: "correctAnswer index must be valid for the options array." });
-      }
+    const questionError = validateQuestions(questions);
+    if (questionError) {
+      return res.status(400).json({ message: questionError });
     }
 
     const quiz = new Quiz({
@@ -38,36 +166,56 @@ router.post('/', protect, isTeacherOrAdmin, async (req, res) => {
       description,
       course,
       grade,
+      month: month || '',
+      weekNumber: weekNumber !== undefined ? parseInt(weekNumber, 10) : 1,
       teacher: req.user._id,
-      timeLimit: timeLimit || 0,
+      timeLimit: parseInt(timeLimit, 10) || 0,
+      passingPercentage: parseInt(passingPercentage, 10) || 50,
       questions
     });
 
     await quiz.save();
 
-    // Trigger Notification for enrolled students
+    // Trigger Notification & Email for students and linked parents
     try {
-      const targetGradeStr = String(grade).trim();
-      const enrolledStudentIds = courseExists.enrolledStudents || [];
-      if (enrolledStudentIds.length > 0) {
-        const students = await User.find({
-          _id: { $in: enrolledStudentIds },
-          role: 'student',
-          grade: new RegExp(targetGradeStr, 'i')
-        }).select('_id');
-
-        const notifDocs = students.map(st => ({
+      const enrolledStudents = await getClassEnrolledStudents(course, grade);
+      if (enrolledStudents.length > 0) {
+        const notifDocs = enrolledStudents.map(st => ({
           recipient: st._id,
-          type: 'NEW_CONTENT',
-          title: `New Quiz Available: ${title}`,
-          message: `A new quiz '${title}' is now active for ${courseExists.title} (${grade}).`,
-          link: `/courses`,
+          type: 'QUIZ',
+          title: `📝 New Quiz Scheduled: ${title}`,
+          message: `A new quiz assessment '${title}' is now active for ${courseExists.title} (${grade}).`,
+          link: `/course/${courseExists._id}`,
           metadata: { courseId: courseExists._id, quizId: quiz._id }
         }));
 
-        if (notifDocs.length > 0) {
-          await Notification.insertMany(notifDocs);
-        }
+        await Notification.insertMany(notifDocs);
+
+        // Notify linked parents of enrolled students
+        await notifyParentsInBatch(enrolledStudents.map(st => ({
+          student: st,
+          type: 'QUIZ',
+          title: `📝 New Quiz Scheduled: ${title}`,
+          message: `A new quiz assessment '${title}' has been scheduled for your child ${st.name} (${courseExists.title} - Grade ${grade}).`,
+          link: '/parent-dashboard',
+          metadata: {
+            studentId: st._id,
+            quizId: quiz._id,
+            courseId: courseExists._id
+          }
+        })));
+
+        enrolledStudents.forEach(st => {
+          if (st.email) {
+            sendCourseUpdateEmail(
+              st.email,
+              st.name,
+              courseExists.title,
+              `New Quiz: ${title}`,
+              `A new quiz "${title}" is available for Grade ${grade}. Log in to test your knowledge!`
+            );
+          }
+        });
       }
     } catch (notifErr) {
       console.error('Quiz creation notification error:', notifErr.message);
@@ -77,6 +225,53 @@ router.post('/', protect, isTeacherOrAdmin, async (req, res) => {
   } catch (error) {
     console.error("Error creating quiz:", error);
     res.status(500).json({ message: "Server error creating quiz." });
+  }
+});
+
+// @route   PUT /api/quizzes/:quizId
+// @desc    Update an existing quiz (Teachers & Admins only)
+router.put('/:quizId', protect, isTeacherOrAdmin, async (req, res) => {
+  try {
+    const { 
+      title, 
+      description, 
+      grade, 
+      month, 
+      weekNumber, 
+      timeLimit, 
+      passingPercentage, 
+      questions 
+    } = req.body;
+
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (!quiz) {
+      return res.status(404).json({ message: "Quiz not found." });
+    }
+
+    if (!title || !grade) {
+      return res.status(400).json({ message: "Quiz title and grade are required." });
+    }
+
+    const questionError = validateQuestions(questions);
+    if (questionError) {
+      return res.status(400).json({ message: questionError });
+    }
+
+    quiz.title = title;
+    quiz.description = description !== undefined ? description : quiz.description;
+    quiz.grade = grade;
+    if (month !== undefined) quiz.month = month;
+    if (weekNumber !== undefined) quiz.weekNumber = parseInt(weekNumber, 10);
+    if (timeLimit !== undefined) quiz.timeLimit = parseInt(timeLimit, 10);
+    if (passingPercentage !== undefined) quiz.passingPercentage = parseInt(passingPercentage, 10);
+    quiz.questions = questions;
+
+    await quiz.save();
+
+    res.json({ message: "Quiz updated successfully.", quiz });
+  } catch (error) {
+    console.error("Error updating quiz:", error);
+    res.status(500).json({ message: "Server error updating quiz." });
   }
 });
 
@@ -107,10 +302,7 @@ router.get('/course/:courseId', protect, async (req, res) => {
       // If student, strip correctAnswer details from quiz list questions for security
       const quizObj = quiz.toObject();
       if (!isTeacher && quizObj.questions) {
-        quizObj.questions = quizObj.questions.map(q => {
-          const { correctAnswer, ...qWithoutAnswer } = q;
-          return qWithoutAnswer;
-        });
+        quizObj.questions = sanitizeQuestionsForStudent(quizObj.questions);
       }
 
       return {
@@ -131,7 +323,7 @@ router.get('/course/:courseId', protect, async (req, res) => {
 });
 
 // @route   GET /api/quizzes/:quizId
-// @desc    Get details of a specific quiz (Strips correct answer for students)
+// @desc    Get details of a specific quiz (Strips correct answers for students before submission)
 router.get('/:quizId', protect, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
@@ -142,16 +334,12 @@ router.get('/:quizId', protect, async (req, res) => {
     const isTeacher = req.user.role === 'teacher' || req.user.role === 'admin';
     const quizObj = quiz.toObject();
 
-    // Check if student has already submitted. If so, they can view their results separately.
+    // Check if student has already submitted. If not, strip correct answers & explanations
     if (!isTeacher) {
       const submission = await QuizSubmission.findOne({ quiz: quiz._id, student: req.user._id });
       
-      // If student hasn't submitted, strip correct answers to prevent devTools inspection
       if (!submission) {
-        quizObj.questions = quizObj.questions.map(q => {
-          const { correctAnswer, ...qWithoutAnswer } = q;
-          return qWithoutAnswer;
-        });
+        quizObj.questions = sanitizeQuestionsForStudent(quizObj.questions);
       }
     }
 
@@ -163,10 +351,10 @@ router.get('/:quizId', protect, async (req, res) => {
 });
 
 // @route   POST /api/quizzes/:quizId/submit
-// @desc    Submit answers for a quiz (Calculates score & records attempt)
+// @desc    Submit answers for a quiz (Calculates score for MCQ, Checkboxes & True/False)
 router.post('/:quizId/submit', protect, async (req, res) => {
   try {
-    const { answers } = req.body; // Array of selected option indices (0-based)
+    const { answers } = req.body; // Array of selected option indices (Number or [Number])
     const quiz = await Quiz.findById(req.params.quizId);
 
     if (!quiz) {
@@ -196,8 +384,26 @@ router.post('/:quizId/submit', protect, async (req, res) => {
       const points = question.points || 1;
       totalPoints += points;
 
-      if (studentAnswer !== undefined && studentAnswer === question.correctAnswer) {
-        score += points;
+      const qType = question.questionType || 'mcq';
+
+      if (qType === 'multiple') {
+        // Multi-select checkbox: studentAnswer should be an array of selected indices
+        if (Array.isArray(studentAnswer) && Array.isArray(question.correctAnswers)) {
+          const correctSet = new Set(question.correctAnswers.map(Number));
+          const studentSet = new Set(studentAnswer.map(Number));
+          
+          const isExactMatch = correctSet.size === studentSet.size && 
+            [...correctSet].every(val => studentSet.has(val));
+
+          if (isExactMatch) {
+            score += points;
+          }
+        }
+      } else {
+        // MCQ or True/False: single answer index
+        if (studentAnswer !== undefined && studentAnswer !== null && Number(studentAnswer) === Number(question.correctAnswer)) {
+          score += points;
+        }
       }
     });
 
@@ -211,18 +417,46 @@ router.post('/:quizId/submit', protect, async (req, res) => {
 
     await submission.save();
 
-    // Trigger Notification to Quiz Teacher / Admin
+    // Trigger Notification: Notify Teacher (only if role is 'teacher', never admin) & Notify Linked Parents
     try {
+      // 1. Notify Teacher (Skip if teacher is Admin to prevent spam)
       if (quiz.teacher && quiz.teacher.toString() !== req.user._id.toString()) {
-        await Notification.create({
-          recipient: quiz.teacher,
-          type: 'GENERAL',
-          title: `Quiz Submitted: ${quiz.title}`,
-          message: `${req.user.name || 'A student'} submitted '${quiz.title}' with score ${score}/${totalPoints}.`,
-          link: `/courses`,
-          metadata: { quizId: quiz._id, studentId: req.user._id, score }
-        });
+        const teacherDoc = await User.findById(quiz.teacher).select('role');
+        if (teacherDoc && teacherDoc.role === 'teacher') {
+          await Notification.create({
+            recipient: quiz.teacher,
+            type: 'QUIZ',
+            title: `Quiz Submitted: ${quiz.title}`,
+            message: `${req.user.name || 'A student'} submitted '${quiz.title}' with score ${score}/${totalPoints}.`,
+            link: `/course/${quiz.course}`,
+            metadata: { quizId: quiz._id, studentId: req.user._id, score, totalPoints }
+          });
+        }
       }
+
+      // 2. In-App Notification for Linked Parents
+      const pct = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
+      const passMark = quiz.passingPercentage || 50;
+      const isPassed = pct >= passMark;
+
+      await notifyParentsOfStudent({
+        studentIdOrDoc: req.user._id,
+        studentName: req.user.name,
+        type: 'QUIZ',
+        title: `🎯 Quiz Assessment Completed: ${req.user.name}`,
+        message: `${req.user.name} completed '${quiz.title}' with a score of ${score}/${totalPoints} (${pct}%). Assessment Result: ${isPassed ? 'Passed ✓' : 'Needs Work'}.`,
+        link: '/parent-dashboard',
+        metadata: {
+          studentId: req.user._id,
+          studentName: req.user.name,
+          quizId: quiz._id,
+          courseId: quiz.course,
+          score,
+          totalPoints,
+          percentage: pct,
+          isPassed
+        }
+      });
     } catch (notifErr) {
       console.error('Quiz submission notification error:', notifErr.message);
     }
@@ -258,13 +492,13 @@ router.get('/:quizId/submissions', protect, isTeacherOrAdmin, async (req, res) =
 });
 
 // @route   GET /api/quizzes/:quizId/my-submission
-// @desc    Get student's submission for a quiz (includes correct answers for review)
+// @desc    Get student's submission for a quiz (includes correct answers & explanations for review)
 router.get('/:quizId/my-submission', protect, async (req, res) => {
   try {
     const submission = await QuizSubmission.findOne({ quiz: req.params.quizId, student: req.user._id })
       .populate({
         path: 'quiz',
-        select: 'title description questions timeLimit'
+        select: 'title description questions timeLimit passingPercentage'
       });
 
     if (!submission) {

@@ -28,6 +28,7 @@ import {
   FaArrowRight
 } from 'react-icons/fa';
 import StudentIdCard from './StudentIdCard';
+import AddScheduleModal from './AddScheduleModal';
 
 // Grade options matching registration grade requirements
 const gradeOptions = [
@@ -237,18 +238,8 @@ const AdminDashboard = ({ user }) => {
   const [attendanceStats, setAttendanceStats] = useState({ today: { present: 0, late: 0, absent: 0, total: 0 } });
   const [loading, setLoading] = useState(true);
 
-  // Modal & Form state
+  // Modal state
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    className: '',
-    dayOfWeek: 'Saturday',
-    startTime: '10:00 AM',
-    endTime: '12:00 PM',
-    courseId: '',
-    teacherId: '',
-    room: 'Hall A'
-  });
 
   useEffect(() => {
     fetchAdminData();
@@ -279,30 +270,24 @@ const AdminDashboard = ({ user }) => {
     }
   };
 
-  const handleSaveSchedule = async (e) => {
-    e.preventDefault();
-    if (!formData.title || !formData.className || !formData.dayOfWeek || !formData.startTime || !formData.endTime) {
+  const handleSaveSchedule = async (scheduleData) => {
+    if (!scheduleData.title || !scheduleData.className || !scheduleData.dayOfWeek || !scheduleData.startTime || !scheduleData.endTime) {
       toast.error("Please fill in all required calendar details.");
       return;
     }
 
     try {
-      const res = await api.post('/schedule', formData);
+      const res = await api.post('/schedule', scheduleData);
       toast.success(res.data.message || "Class added to timetable successfully!");
-      setSchedule([...schedule, res.data.schedule]);
+      if (res.data.schedule) {
+        setSchedule(prev => [...prev, res.data.schedule]);
+      } else {
+        fetchAdminData();
+      }
       setShowModal(false);
-      setFormData({
-        title: '',
-        className: '',
-        dayOfWeek: 'Saturday',
-        startTime: '10:00 AM',
-        endTime: '12:00 PM',
-        courseId: '',
-        teacherId: '',
-        room: 'Hall A'
-      });
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to add class schedule");
+      throw err;
     }
   };
 
@@ -511,140 +496,14 @@ const AdminDashboard = ({ user }) => {
       </div>
 
       {/* CREATE SCHEDULE MODAL */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full mx-4 transform scale-100 transition-all">
-            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-800">Add Class to Timetable</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">×</button>
-            </div>
-
-            <form onSubmit={handleSaveSchedule} className="mt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Class Title *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Grade 10 Science"
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Target Grade *</label>
-                  <select
-                    required
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
-                    value={formData.className}
-                    onChange={(e) => setFormData({ ...formData, className: e.target.value })}
-                  >
-                    <option value="">-- Select Grade --</option>
-                    {gradeOptions.map(g => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Day of Week *</label>
-                  <select
-                    required
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
-                    value={formData.dayOfWeek}
-                    onChange={(e) => setFormData({ ...formData, dayOfWeek: e.target.value })}
-                  >
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Start Time *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 10:00 AM"
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">End Time *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 12:00 PM"
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Link Course</label>
-                  <select
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
-                    value={formData.courseId}
-                    onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
-                  >
-                    <option value="">-- No Link --</option>
-                    {courses.map(c => (
-                      <option key={c._id} value={c._id}>{c.title}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Assign Teacher</label>
-                  <select
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
-                    value={formData.teacherId}
-                    onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
-                  >
-                    <option value="">-- No Link --</option>
-                    {teachers.map(t => (
-                      <option key={t._id} value={t._id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-4xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Room / Location</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Hall A, Lab 2"
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-                  value={formData.room}
-                  onChange={(e) => setFormData({ ...formData, room: e.target.value })}
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm transition active:scale-95 cursor-pointer shadow-md"
-                >
-                  Add Class
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <AddScheduleModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSave={handleSaveSchedule}
+        courses={courses}
+        teachers={teachers}
+        gradeOptions={gradeOptions}
+      />
     </div>
   );
 };

@@ -4,7 +4,8 @@ import toast from 'react-hot-toast';
 import { 
   FaUserGraduate, FaCalendarCheck, FaReceipt, FaBookOpen, 
   FaUserFriends, FaPlus, FaCheckCircle, FaTimesCircle, FaClock, 
-  FaSync, FaIdCard, FaBuilding, FaChalkboardTeacher
+  FaSync, FaIdCard, FaBuilding, FaChalkboardTeacher, FaClipboardList, FaTrophy,
+  FaClipboardCheck, FaAward, FaCommentDots
 } from 'react-icons/fa';
 
 const ParentDashboard = () => {
@@ -272,6 +273,26 @@ const ParentDashboard = () => {
               <FaBookOpen className="text-purple-400" /> Reading Progress ({(currentChildObj?.readingProgress || []).length})
             </button>
             <button
+              onClick={() => setActiveTab('quizzes')}
+              className={`px-5 py-2.5 text-sm font-bold rounded-2xl transition cursor-pointer flex items-center gap-2 ${
+                activeTab === 'quizzes'
+                  ? 'bg-purple-900 text-white shadow-md'
+                  : 'bg-white text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <FaClipboardList className="text-amber-400" /> Quiz Marks & Assessments ({(currentChildObj?.quizSubmissions || []).length})
+            </button>
+            <button
+              onClick={() => setActiveTab('assignments')}
+              className={`px-5 py-2.5 text-sm font-bold rounded-2xl transition cursor-pointer flex items-center gap-2 ${
+                activeTab === 'assignments'
+                  ? 'bg-purple-900 text-white shadow-md'
+                  : 'bg-white text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <FaClipboardCheck className="text-indigo-400" /> Homework & Assignments ({(currentChildObj?.assignmentSubmissions || []).length})
+            </button>
+            <button
               onClick={() => setActiveTab('link')}
               className={`px-5 py-2.5 text-sm font-bold rounded-2xl transition cursor-pointer flex items-center gap-2 ${
                 activeTab === 'link'
@@ -495,6 +516,302 @@ const ParentDashboard = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB 5: QUIZ MARKS & ASSESSMENTS */}
+          {activeTab === 'quizzes' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <FaClipboardList className="text-amber-500" /> Child's Academic Quiz Marks & Assessments
+                  </h3>
+                  <p className="text-xs text-slate-500">Official quiz marks, completion timestamps, and grading criteria for weekly class assessments</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black bg-purple-100 text-purple-900 px-3.5 py-1.5 rounded-xl border border-purple-200">
+                    {(currentChildObj?.quizSubmissions || []).length} Completed Quizzes
+                  </span>
+                </div>
+              </div>
+
+              {/* Assessment Quick Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Assessments</span>
+                    <h4 className="text-2xl font-black text-slate-900 mt-0.5">
+                      {(currentChildObj?.quizSubmissions || []).length}
+                    </h4>
+                  </div>
+                  <div className="w-11 h-11 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg">
+                    <FaClipboardList />
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Average Score</span>
+                    <h4 className="text-2xl font-black text-purple-900 mt-0.5">
+                      {currentChildObj?.quizMetrics?.averageQuizPercent || 0}%
+                    </h4>
+                  </div>
+                  <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
+                    <FaTrophy />
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Pass Compliance</span>
+                    <h4 className="text-2xl font-black text-emerald-800 mt-0.5">
+                      {currentChildObj?.quizMetrics?.passedQuizzesCount || 0} Passed <span className="text-xs text-slate-400 font-bold">({currentChildObj?.quizMetrics?.passRate || 0}%)</span>
+                    </h4>
+                  </div>
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg">
+                    <FaCheckCircle />
+                  </div>
+                </div>
+              </div>
+
+              {/* Submissions List Table */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+                {(currentChildObj?.quizSubmissions || []).length === 0 ? (
+                  <p className="text-sm text-slate-400 py-12 text-center">No quiz assessments completed by this student yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-600 uppercase text-[10px] font-extrabold tracking-wider border-y border-slate-200">
+                          <th className="py-3 px-4">Quiz Title & Curriculum</th>
+                          <th className="py-3 px-4">Subject Course</th>
+                          <th className="py-3 px-4">Completed Date</th>
+                          <th className="py-3 px-4">Score / Total</th>
+                          <th className="py-3 px-4">Performance</th>
+                          <th className="py-3 px-4">Result</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {(currentChildObj?.quizSubmissions || []).map((sub) => {
+                          const pct = sub.totalPoints > 0 ? Math.round((sub.score / sub.totalPoints) * 100) : 0;
+                          const passMark = sub.quiz?.passingPercentage || 50;
+                          const isPassed = pct >= passMark;
+                          const dateStr = sub.completedAt ? new Date(sub.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+                          const timeStr = sub.completedAt ? new Date(sub.completedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+
+                          return (
+                            <tr key={sub._id} className="hover:bg-slate-50/80 transition">
+                              <td className="py-3.5 px-4">
+                                <div className="font-extrabold text-slate-900">{sub.quiz?.title || 'Academic Quiz'}</div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[10px] font-extrabold px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md border border-purple-100">
+                                    Grade {sub.quiz?.grade || child?.grade}
+                                  </span>
+                                  {sub.quiz?.month && (
+                                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-50 text-amber-800 rounded-md border border-amber-100">
+                                      {sub.quiz.month} {sub.quiz.weekNumber > 0 && `(W${sub.quiz.weekNumber})`}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4 text-xs font-bold text-slate-700">
+                                {sub.quiz?.course?.title || 'Course Assessment'}
+                              </td>
+                              <td className="py-3.5 px-4 font-mono text-xs text-slate-600">
+                                {dateStr} {timeStr && <span className="text-[10px] text-slate-400 block">{timeStr}</span>}
+                              </td>
+                              <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                                <span className="text-purple-700 text-base">{sub.score}</span> / {sub.totalPoints}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <div className="w-28 space-y-1">
+                                  <div className="flex justify-between text-xs font-black">
+                                    <span className={isPassed ? 'text-emerald-700' : 'text-red-600'}>{pct}%</span>
+                                    <span className="text-[10px] text-slate-400">Pass: {passMark}%</span>
+                                  </div>
+                                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full rounded-full ${isPassed ? 'bg-emerald-500' : 'bg-red-500'}`}
+                                      style={{ width: `${pct}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className={`px-3 py-1 text-xs font-extrabold rounded-full ${
+                                  isPassed ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-red-100 text-red-800 border border-red-300'
+                                }`}>
+                                  {isPassed ? '✓ Passed' : '✕ Needs Work'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: HOMEWORK & ASSIGNMENTS */}
+          {activeTab === 'assignments' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <FaClipboardCheck className="text-indigo-600" /> Child's Homework & Assignment Evaluations
+                  </h3>
+                  <p className="text-xs text-slate-500">Official marks, submission timeliness, and instructor feedback remarks on homework assignments</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black bg-indigo-100 text-indigo-950 px-3.5 py-1.5 rounded-xl border border-indigo-200">
+                    {(currentChildObj?.assignmentSubmissions || []).length} Submitted Homeworks
+                  </span>
+                </div>
+              </div>
+
+              {/* Assessment Quick Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Homeworks</span>
+                    <h4 className="text-2xl font-black text-slate-900 mt-0.5">
+                      {(currentChildObj?.assignmentSubmissions || []).length}
+                    </h4>
+                  </div>
+                  <div className="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg">
+                    <FaClipboardCheck />
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Average Marks</span>
+                    <h4 className="text-2xl font-black text-purple-900 mt-0.5">
+                      {currentChildObj?.assignmentMetrics?.averageAssignmentMarks || 0}%
+                    </h4>
+                  </div>
+                  <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
+                    <FaAward />
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Evaluated Tasks</span>
+                    <h4 className="text-2xl font-black text-emerald-800 mt-0.5">
+                      {currentChildObj?.assignmentMetrics?.gradedCount || 0} Graded <span className="text-xs text-slate-400 font-bold">({currentChildObj?.assignmentMetrics?.passRate || 0}% pass)</span>
+                    </h4>
+                  </div>
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg">
+                    <FaCheckCircle />
+                  </div>
+                </div>
+              </div>
+
+              {/* Submissions List Table */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+                {(currentChildObj?.assignmentSubmissions || []).length === 0 ? (
+                  <p className="text-sm text-slate-400 py-12 text-center">No homework assignments submitted by this student yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-600 uppercase text-[10px] font-extrabold tracking-wider border-y border-slate-200">
+                          <th className="py-3 px-4">Assignment Title & Curriculum</th>
+                          <th className="py-3 px-4">Subject Course</th>
+                          <th className="py-3 px-4">Submitted Date</th>
+                          <th className="py-3 px-4">Marks / Total</th>
+                          <th className="py-3 px-4">Performance</th>
+                          <th className="py-3 px-4">Teacher Feedback</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {(currentChildObj?.assignmentSubmissions || []).map((sub) => {
+                          const asgn = sub.assignment;
+                          const maxMarks = asgn?.maxMarks || 100;
+                          const isGraded = sub.status === 'graded' && sub.marks !== null;
+                          const pct = isGraded ? Math.round((sub.marks / maxMarks) * 100) : 0;
+                          const passMark = asgn?.passingMarks || 50;
+                          const isPassed = isGraded && sub.marks >= passMark;
+                          const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+                          const timeStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+
+                          return (
+                            <tr key={sub._id} className="hover:bg-slate-50/80 transition">
+                              <td className="py-3.5 px-4">
+                                <div className="font-extrabold text-slate-900">{asgn?.title || 'Homework Assignment'}</div>
+                                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                  <span className="text-[10px] font-extrabold px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md border border-purple-100">
+                                    Grade {asgn?.grade || child?.grade}
+                                  </span>
+                                  {asgn?.month && (
+                                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-50 text-amber-800 rounded-md border border-amber-100">
+                                      {asgn.month} {asgn.weekNumber > 0 && `(W${asgn.weekNumber})`}
+                                    </span>
+                                  )}
+                                  {sub.isLate && (
+                                    <span className="text-[9px] font-black px-1.5 py-0.5 bg-red-100 text-red-800 rounded border border-red-200">
+                                      Late
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4 text-xs font-bold text-slate-700">
+                                {asgn?.course?.title || 'Course Homework'}
+                              </td>
+                              <td className="py-3.5 px-4 font-mono text-xs text-slate-600">
+                                {dateStr} {timeStr && <span className="text-[10px] text-slate-400 block">{timeStr}</span>}
+                              </td>
+                              <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                                {isGraded ? (
+                                  <>
+                                    <span className="text-purple-700 text-base">{sub.marks}</span> / {maxMarks}
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded-md font-bold">
+                                    Pending Grade
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                {isGraded ? (
+                                  <div className="w-28 space-y-1">
+                                    <div className="flex justify-between text-xs font-black">
+                                      <span className={isPassed ? 'text-emerald-700' : 'text-red-600'}>{pct}%</span>
+                                      <span className="text-[10px] text-slate-400">Pass: {passMark}</span>
+                                    </div>
+                                    <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full rounded-full ${isPassed ? 'bg-emerald-500' : 'bg-red-500'}`}
+                                        style={{ width: `${pct}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400">Awaiting teacher review</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4 max-w-xs">
+                                {sub.feedback ? (
+                                  <p className="text-xs text-slate-700 font-medium italic line-clamp-2">
+                                    "{sub.feedback}"
+                                  </p>
+                                ) : (
+                                  <span className="text-xs text-slate-400">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

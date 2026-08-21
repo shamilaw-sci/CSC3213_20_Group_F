@@ -15,6 +15,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const progressRoutes = require('./routes/progressRoutes');
 const quizRoutes = require('./routes/quizRoutes');
+const assignmentRoutes = require('./routes/assignmentRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 
@@ -51,6 +52,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/quizzes', quizRoutes);
+app.use('/api/assignments', assignmentRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/settings', settingRoutes);
 

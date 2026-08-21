@@ -18,7 +18,10 @@ import {
   FaExclamationCircle,
   FaInfoCircle,
   FaPaperPlane,
-  FaComments
+  FaComments,
+  FaVideo,
+  FaAward,
+  FaClipboardCheck
 } from 'react-icons/fa';
 import api from '../utils/api';
 
@@ -170,8 +173,14 @@ const DashboardLayout = () => {
       case 'COURSE_ADDED':
       case 'NEW_CONTENT':
         return <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><FaBookOpen className="text-base" /></div>;
+      case 'LIVE_CLASS':
+        return <div className="p-2 bg-red-100 text-red-600 rounded-lg animate-pulse"><FaVideo className="text-base" /></div>;
       case 'CLASS_POSTPONED':
         return <div className="p-2 bg-amber-100 text-amber-600 rounded-lg"><FaExclamationCircle className="text-base" /></div>;
+      case 'QUIZ':
+        return <div className="p-2 bg-amber-100 text-amber-700 rounded-lg"><FaAward className="text-base" /></div>;
+      case 'ASSIGNMENT':
+        return <div className="p-2 bg-purple-100 text-purple-700 rounded-lg"><FaClipboardCheck className="text-base" /></div>;
       default:
         return <div className="p-2 bg-gray-100 text-gray-600 rounded-lg"><FaInfoCircle className="text-base" /></div>;
     }

@@ -37,7 +37,7 @@ const QuizSubmissions = () => {
   // Calculate statistics
   const totalSubmissions = submissions.length;
   const totalPossibleScore = quiz ? quiz.questions.reduce((sum, q) => sum + (q.points || 1), 0) : 0;
-  
+
   const averageScore = totalSubmissions > 0
     ? (submissions.reduce((sum, s) => sum + s.score, 0) / totalSubmissions).toFixed(1)
     : 0;
@@ -69,7 +69,7 @@ const QuizSubmissions = () => {
         {/* Back Button */}
         <button
           onClick={() => navigate(`/course/${quiz?.course}`)}
-          className="flex items-center gap-2 text-gray-600 hover:text-purple-600 font-medium transition"
+          className="flex items-center gap-2 text-gray-600 hover:text-purple-600 font-medium transition cursor-pointer"
         >
           <FaArrowLeft /> Back to Course details
         </button>
@@ -82,7 +82,7 @@ const QuizSubmissions = () => {
               Grade {quiz?.grade} · Total Questions: {quiz?.questions?.length} ({totalPossibleScore} points)
             </p>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="bg-purple-50 text-purple-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
               <FaUsers /> {totalSubmissions} Attempts
@@ -158,7 +158,7 @@ const QuizSubmissions = () => {
                   {submissions.map((sub) => {
                     const pct = totalPossibleScore > 0 ? (sub.score / totalPossibleScore) * 100 : 0;
                     const passed = pct >= 50;
-                    
+
                     return (
                       <tr key={sub._id} className="hover:bg-gray-50/50 transition">
                         <td className="px-6 py-4 font-mono text-gray-500">
@@ -175,9 +175,8 @@ const QuizSubmissions = () => {
                             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-2xs font-extrabold rounded">
                               Grade {sub.student?.grade || 'N/A'}
                             </span>
-                            <span className={`px-2 py-0.5 text-2xs font-extrabold rounded capitalize ${
-                              sub.student?.studentType === 'online' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
-                            }`}>
+                            <span className={`px-2 py-0.5 text-2xs font-extrabold rounded capitalize ${sub.student?.studentType === 'online' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
+                              }`}>
                               {sub.student?.studentType || 'Physical'}
                             </span>
                           </div>
@@ -191,9 +190,8 @@ const QuizSubmissions = () => {
                           <span className="text-xs text-gray-400 block mt-0.5">({pct.toFixed(0)}%)</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
-                            passed ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                          }`}>
+                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${passed ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                            }`}>
                             {passed ? (
                               <>
                                 <FaCheckCircle /> Pass
