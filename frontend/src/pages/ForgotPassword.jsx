@@ -111,7 +111,7 @@ const ForgotPassword = () => {
       </div>
 
       {/* Right Side - Form Panel */}
-      <div className="flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto">
+      <div className="auth-light-panel flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto">
         <div className="w-full max-w-md py-4">
 
           {/* Header */}

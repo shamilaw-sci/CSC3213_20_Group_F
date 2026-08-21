@@ -312,24 +312,24 @@ const ManageUsers = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 text-gray-500 font-bold">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#2d1b64] mb-3"></div>
-        <span>Loading system users...</span>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-16 text-gray-500 dark:text-gray-400 font-bold gap-3">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 dark:border-purple-400"></div>
+        <span className="text-xs animate-pulse">Loading system users...</span>
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 font-sans">
+    <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 font-sans text-gray-800 dark:text-gray-100 transition-colors duration-200">
 
       {/* Top Header & Actions Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-extrabold text-gray-900 font-sans tracking-tight flex items-center gap-2">
+          <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white font-sans tracking-tight flex items-center gap-2">
             User Management
           </h2>
-          <p className="text-gray-500 text-xs mt-1">
-            Total System Users: <span className="font-bold text-gray-800">{users.length}</span>
+          <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+            Total System Users: <span className="font-bold text-gray-800 dark:text-white">{users.length}</span>
           </p>
         </div>
 
@@ -345,32 +345,32 @@ const ManageUsers = () => {
 
           <button
             onClick={() => setShowBatchGradeModal(true)}
-            className="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200/80 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-900 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer"
           >
-            <FaSyncAlt className="text-indigo-600 text-xs" />
+            <FaSyncAlt className="text-indigo-600 dark:text-indigo-400 text-xs" />
             <span>Batch Grade Update</span>
           </button>
 
           <button
             onClick={() => setShowAllQrModal(true)}
-            className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/80 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer shadow-2xs"
+            className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-900 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer shadow-2xs"
           >
-            <FaQrcode className="text-emerald-700 text-xs" />
+            <FaQrcode className="text-emerald-700 dark:text-emerald-400 text-xs" />
             <span>View All Student QR Cards</span>
           </button>
 
           <button
             onClick={() => setShowAddStaffModal(true)}
-            className="px-4 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200/80 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer"
           >
-            <FaPlus className="text-purple-700 text-xs" />
+            <FaPlus className="text-purple-700 dark:text-purple-400 text-xs" />
             <span>Add Staff / Admin</span>
           </button>
         </div>
       </div>
 
       {/* Search & Role Filter Tabs */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-2 border-b border-gray-100">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-2 border-b border-gray-100 dark:border-slate-800">
 
         {/* Category Tabs */}
         <div className="flex space-x-2 overflow-x-auto pb-1 scrollbar-none">
@@ -387,11 +387,11 @@ const ManageUsers = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${activeTab === tab.id
                   ? 'bg-[#2d1b64] text-white shadow-sm'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white'
                 }`}
             >
               <span>{tab.label}</span>
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'
                 }`}>
                 {tab.count}
               </span>
@@ -407,7 +407,7 @@ const ManageUsers = () => {
             placeholder="Search name, email, reg no, grade..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-medium"
+            className="w-full pl-9 pr-3.5 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-medium"
           />
           {searchQuery && (
             <button
@@ -422,10 +422,10 @@ const ManageUsers = () => {
       </div>
 
       {/* Users Table */}
-      <div className="overflow-x-auto rounded-2xl border border-gray-200/80 shadow-xs">
+      <div className="overflow-x-auto rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-gray-50/80 text-gray-600 uppercase text-[11px] tracking-wider border-b border-gray-200 font-bold">
+            <tr className="bg-gray-50/80 dark:bg-slate-800/80 text-gray-600 dark:text-gray-300 uppercase text-[11px] tracking-wider border-b border-gray-200 dark:border-slate-700 font-bold">
               <th className="p-3.5 pl-4">User</th>
               <th className="p-3.5">Email</th>
               <th className="p-3.5">Type</th>
@@ -439,31 +439,31 @@ const ManageUsers = () => {
               <th className="p-3.5 text-right pr-4">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 text-xs">
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-xs">
             {paginatedUsers.length > 0 ? (
               paginatedUsers.map((u) => (
-                <tr key={u._id} className="hover:bg-purple-50/30 transition-colors">
+                <tr key={u._id} className="hover:bg-purple-50/30 dark:hover:bg-slate-800/60 transition-colors">
 
                   {/* User Name & Icon */}
                   <td className="p-3.5 pl-4 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-sm shadow-xs shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-sm shadow-xs shrink-0">
                       {getRoleIcon(u.role)}
                     </div>
                     <div>
-                      <span className="font-bold text-gray-900 block leading-tight">{u.name}</span>
+                      <span className="font-bold text-gray-900 dark:text-white block leading-tight">{u.name}</span>
                       <span className="text-[10px] text-gray-400 capitalize">{u.role}</span>
                     </div>
                   </td>
 
                   {/* Email */}
-                  <td className="p-3.5 text-gray-600 font-medium">{u.email}</td>
+                  <td className="p-3.5 text-gray-600 dark:text-gray-300 font-medium">{u.email}</td>
 
                   {/* Student Type */}
                   <td className="p-3.5">
                     {u.role === 'student' ? (
                       <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${u.studentType === 'online'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                          : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                         }`}>
                         {u.studentType === 'online' ? 'Online' : 'Physical'}
                       </span>
@@ -473,7 +473,7 @@ const ManageUsers = () => {
                   </td>
 
                   {/* Registration Number */}
-                  <td className="p-3.5 font-mono font-semibold text-gray-700">{u.registrationNumber || '-'}</td>
+                  <td className="p-3.5 font-mono font-semibold text-gray-700 dark:text-gray-300">{u.registrationNumber || '-'}</td>
 
                   {/* Grade Select for Students */}
                   <td className="p-3.5">
@@ -481,7 +481,7 @@ const ManageUsers = () => {
                       <select
                         value={u.grade || ''}
                         onChange={(e) => handleGradeChange(u._id, e.target.value)}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-800 font-medium outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                        className="text-xs border border-gray-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-800 text-gray-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                       >
                         <option value="">No Grade</option>
                         {gradeOptions.map(g => (
@@ -494,7 +494,7 @@ const ManageUsers = () => {
                   </td>
 
                   {/* Parent's Phone */}
-                  <td className="p-3.5 text-gray-600 font-medium">{u.parentsPhoneNumber || '-'}</td>
+                  <td className="p-3.5 text-gray-600 dark:text-gray-300 font-medium">{u.parentsPhoneNumber || '-'}</td>
 
                   {/* Current Role Select (Including Parent Role!) */}
                   <td className="p-3.5">
@@ -502,14 +502,14 @@ const ManageUsers = () => {
                       value={u.role}
                       onChange={(e) => handleRoleChange(u._id, e.target.value)}
                       className={`text-xs border rounded-xl px-3 py-1.5 font-bold outline-none cursor-pointer focus:ring-2 focus:ring-purple-500 transition-all ${u.role === 'admin'
-                          ? 'bg-red-50 text-red-700 border-red-200'
+                          ? 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
                           : u.role === 'teacher'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
                             : u.role === 'counter_staff'
-                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
                               : u.role === 'parent'
-                                ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                : 'bg-green-50 text-green-700 border-green-200'
+                                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                                : 'bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800'
                         }`}
                     >
                       <option value="student">Student</option>
@@ -523,15 +523,15 @@ const ManageUsers = () => {
                   {/* Password Status */}
                   <td className="p-3.5">
                     <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${u.mustChangePassword
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-green-100 text-green-800'
+                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
+                        : 'bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300'
                       }`}>
                       {u.mustChangePassword ? 'Temporary' : 'Updated'}
                     </span>
                   </td>
 
                   {/* Joined Date */}
-                  <td className="p-3.5 text-gray-500 text-xs">
+                  <td className="p-3.5 text-gray-500 dark:text-gray-400 text-xs">
                     {new Date(u.createdAt).toLocaleDateString()}
                   </td>
 
@@ -540,10 +540,10 @@ const ManageUsers = () => {
                     {u.role === 'student' ? (
                       <button
                         onClick={() => setSelectedQrStudent(u)}
-                        className="px-3 py-1 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200/80 font-bold text-[11px] rounded-lg transition flex items-center gap-1.5 mx-auto cursor-pointer shadow-2xs"
+                        className="px-3 py-1 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800 font-bold text-[11px] rounded-lg transition flex items-center gap-1.5 mx-auto cursor-pointer shadow-2xs"
                         title="View Official Student QR Pass"
                       >
-                        <FaQrcode className="text-purple-700 text-xs" />
+                        <FaQrcode className="text-purple-700 dark:text-purple-400 text-xs" />
                         <span>QR Pass</span>
                       </button>
                     ) : (
@@ -556,7 +556,7 @@ const ManageUsers = () => {
                     {currentUserId !== u._id && (
                       <button
                         onClick={() => handleDelete(u._id, u.name)}
-                        className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 cursor-pointer transition-colors"
+                        className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer transition-colors"
                         title="Delete User"
                       >
                         <FaTrash className="text-xs" />
@@ -568,7 +568,7 @@ const ManageUsers = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="10" className="p-10 text-center text-gray-500 font-medium">
+                <td colSpan="11" className="p-10 text-center text-gray-500 dark:text-gray-400 font-medium">
                   No users found matching your filters.
                 </td>
               </tr>
@@ -578,18 +578,18 @@ const ManageUsers = () => {
       </div>
 
       {/* Pagination Footer (25 records per page) */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-100">
-        <div className="text-xs font-semibold text-gray-500">
-          Showing <span className="font-extrabold text-gray-800">{filteredUsers.length === 0 ? 0 : startIndex + 1}</span> to{' '}
-          <span className="font-extrabold text-gray-800">{Math.min(startIndex + itemsPerPage, filteredUsers.length)}</span> of{' '}
-          <span className="font-extrabold text-gray-800">{filteredUsers.length}</span> users
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-100 dark:border-slate-800">
+        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+          Showing <span className="font-extrabold text-gray-800 dark:text-white">{filteredUsers.length === 0 ? 0 : startIndex + 1}</span> to{' '}
+          <span className="font-extrabold text-gray-800 dark:text-white">{Math.min(startIndex + itemsPerPage, filteredUsers.length)}</span> of{' '}
+          <span className="font-extrabold text-gray-800 dark:text-white">{filteredUsers.length}</span> users
         </div>
 
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
+            className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
           >
             <FaChevronLeft className="text-[10px]" /> Previous
           </button>
@@ -600,7 +600,7 @@ const ManageUsers = () => {
               onClick={() => setCurrentPage(pageNum)}
               className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${currentPage === pageNum
                   ? 'bg-[#2d1b64] text-white shadow-sm'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                  : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
                 }`}
             >
               {pageNum}
@@ -610,7 +610,7 @@ const ManageUsers = () => {
           <button
             onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages || filteredUsers.length === 0}
-            className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
+            className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1"
           >
             Next <FaChevronRight className="text-[10px]" />
           </button>
@@ -621,9 +621,12 @@ const ManageUsers = () => {
       {/* ========================================================================= */}
       {/* POPUP MODAL 1: REGISTER NEW STUDENT (Est. Payment Recording Style) */}
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
+      {/* POPUP MODAL 1: REGISTER NEW STUDENT (Est. Payment Recording Style) */}
+      {/* ========================================================================= */}
       {showRegisterStudentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 animate-fadeIn my-8">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800 animate-fadeIn my-8 text-gray-800 dark:text-gray-100">
 
             {/* Header */}
             <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white relative">
@@ -649,18 +652,18 @@ const ManageUsers = () => {
             <form onSubmit={handleOpenParentPrompt} className="p-6 md:p-8 space-y-4">
 
               {/* Registration Options Bar */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-purple-50/60 p-3 rounded-2xl border border-purple-100">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-purple-50/60 dark:bg-slate-800/60 p-3 rounded-2xl border border-purple-100 dark:border-slate-700">
                 {/* Email Option Toggle */}
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950 mb-1">
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950 dark:text-purple-300 mb-1">
                     Email Account Option
                   </label>
-                  <div className="flex bg-white p-1 rounded-xl border border-purple-200">
+                  <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-purple-200 dark:border-slate-700">
                     <button
                       type="button"
                       onClick={() => handleStudentFieldChange('hasEmail', true)}
                       className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
-                        studentForm.hasEmail ? 'bg-purple-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                        studentForm.hasEmail ? 'bg-purple-900 dark:bg-purple-600 text-white shadow-xs' : 'text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       ✉️ With Email
@@ -672,7 +675,7 @@ const ManageUsers = () => {
                         handleStudentFieldChange('email', '');
                       }}
                       className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
-                        !studentForm.hasEmail ? 'bg-purple-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                        !studentForm.hasEmail ? 'bg-purple-900 dark:bg-purple-600 text-white shadow-xs' : 'text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       📱 Phone Only
@@ -682,13 +685,13 @@ const ManageUsers = () => {
 
                 {/* Student Type Selector */}
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950 mb-1">
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-950 dark:text-purple-300 mb-1">
                     Student Type / Mode
                   </label>
                   <select
                     value={studentForm.studentType}
                     onChange={(e) => handleStudentFieldChange('studentType', e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-bold text-slate-800 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="physical">🏛️ Physical Classroom Student</option>
                     <option value="online">💻 Online Student</option>
@@ -700,7 +703,7 @@ const ManageUsers = () => {
 
                 {/* Full Name */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     Student Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -708,7 +711,7 @@ const ManageUsers = () => {
                     placeholder="e.g. Kasun Perera"
                     value={studentForm.name}
                     onChange={(e) => handleStudentFieldChange('name', e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-semibold"
                     required
                   />
                 </div>
@@ -716,7 +719,7 @@ const ManageUsers = () => {
                 {/* Email Address (Conditional) */}
                 {studentForm.hasEmail ? (
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                       Email Address <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -724,20 +727,20 @@ const ManageUsers = () => {
                       placeholder="kasun@example.com"
                       value={studentForm.email}
                       onChange={(e) => handleStudentFieldChange('email', e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-semibold"
                       required
                     />
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
                       Email Address (Optional)
                     </label>
                     <input
                       type="text"
                       disabled
                       placeholder="No email provided (Phone Registration)"
-                      className="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-xs text-gray-400 italic cursor-not-allowed"
+                      className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-xl text-xs text-gray-400 dark:text-gray-500 italic cursor-not-allowed"
                     />
                   </div>
                 )}
@@ -745,13 +748,13 @@ const ManageUsers = () => {
                 {/* Registration Number with Auto-Generate */}
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Registration Number
                     </label>
                     <button
                       type="button"
                       onClick={handleAutoGenerateRegNo}
-                      className="text-[10px] font-bold text-purple-700 hover:text-purple-900 bg-purple-100 hover:bg-purple-200 px-2 py-0.5 rounded-md transition cursor-pointer"
+                      className="text-[10px] font-bold text-purple-700 dark:text-purple-300 hover:text-purple-900 bg-purple-100 dark:bg-purple-950/60 hover:bg-purple-200 px-2 py-0.5 rounded-md transition cursor-pointer border border-purple-200 dark:border-purple-800"
                     >
                       ⚡ Auto-Generate
                     </button>
@@ -761,14 +764,14 @@ const ManageUsers = () => {
                     placeholder="e.g. REG-G10-2026-1234 or leave blank"
                     value={studentForm.registrationNumber}
                     onChange={(e) => handleStudentFieldChange('registrationNumber', e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-mono font-bold"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-mono font-bold"
                   />
-                  <p className="text-[10px] text-gray-400 mt-1">If left blank, system will auto-assign upon save.</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">If left blank, system will auto-assign upon save.</p>
                 </div>
 
                 {/* Parent's Phone */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     Parent's Phone Number <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -776,20 +779,20 @@ const ManageUsers = () => {
                     placeholder="0771234567"
                     value={studentForm.parentsPhoneNumber}
                     onChange={(e) => handleStudentFieldChange('parentsPhoneNumber', e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-semibold"
                     required
                   />
                 </div>
 
                 {/* Select Grade */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     Current Grade <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={studentForm.grade}
                     onChange={(e) => handleStudentFieldChange('grade', e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold cursor-pointer"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-semibold cursor-pointer"
                     required
                   >
                     <option value="">-- Choose Grade --</option>
@@ -801,7 +804,7 @@ const ManageUsers = () => {
 
                 {/* Date of Birth (Birthday) */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     Date of Birth (Birthday)
                   </label>
                   <input
@@ -809,13 +812,13 @@ const ManageUsers = () => {
                     max={new Date().toISOString().split('T')[0]}
                     value={studentForm.dateOfBirth}
                     onChange={(e) => handleStudentFieldChange('dateOfBirth', e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold cursor-pointer"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-semibold cursor-pointer"
                   />
                 </div>
 
                 {/* Temporary Password */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     Temporary Password <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -823,7 +826,7 @@ const ManageUsers = () => {
                     placeholder="Student@123"
                     value={studentForm.temporaryPassword}
                     onChange={(e) => handleStudentFieldChange('temporaryPassword', e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-semibold"
                     required
                   />
                 </div>
@@ -831,22 +834,22 @@ const ManageUsers = () => {
               </div>
 
               {/* Notice Box */}
-              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-900 text-xs flex gap-2 items-start">
+              <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 p-3 rounded-xl text-amber-900 dark:text-amber-300 text-xs flex gap-2 items-start">
                 <span className="text-base">👨‍👩‍👧</span>
                 <div>
-                  <p className="font-semibold text-amber-950">Parent Account Setup Option</p>
-                  <p className="text-[11px] text-amber-700 leading-relaxed mt-0.5">
+                  <p className="font-semibold text-amber-950 dark:text-amber-200">Parent Account Setup Option</p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed mt-0.5">
                     You will be prompted whether to create or link a parent account associated with this phone number after clicking the button below.
                   </p>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowRegisterStudentModal(false)}
-                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                  className="px-5 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -869,7 +872,7 @@ const ManageUsers = () => {
       {/* ========================================================================= */}
       {showParentPromptModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800 text-gray-800 dark:text-gray-100">
             {/* Header */}
             <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white text-center relative">
               <button
@@ -891,15 +894,15 @@ const ManageUsers = () => {
 
             {/* Body */}
             <div className="p-6 md:p-8 space-y-5">
-              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 text-purple-950 text-xs leading-relaxed">
-                <p className="font-bold text-sm text-purple-900 mb-1">
+              <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-900/60 rounded-2xl p-4 text-purple-950 dark:text-purple-200 text-xs leading-relaxed">
+                <p className="font-bold text-sm text-purple-900 dark:text-purple-300 mb-1">
                   Create Parent Account for this student?
                 </p>
-                <p className="text-purple-800">
+                <p className="text-purple-800 dark:text-purple-300">
                   Do you want to create or link a parent account associated with phone number <strong>{studentForm.parentsPhoneNumber}</strong>?
                 </p>
-                <div className="mt-2.5 pt-2 border-t border-purple-200/80 text-[11px] text-purple-700">
-                  🔑 Default temporary password: <strong className="font-mono text-purple-900">Parent@123</strong> (Mandatory password change on 1st login).
+                <div className="mt-2.5 pt-2 border-t border-purple-200/80 dark:border-purple-800/60 text-[11px] text-purple-700 dark:text-purple-400">
+                  🔑 Default temporary password: <strong className="font-mono text-purple-900 dark:text-purple-300">Parent@123</strong> (Mandatory password change on 1st login).
                 </div>
               </div>
 
@@ -923,7 +926,7 @@ const ManageUsers = () => {
                   type="button"
                   disabled={creating}
                   onClick={() => executeCreateStudent(false)}
-                  className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="w-full py-3 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   No, Create Student Account Only
                 </button>
@@ -940,7 +943,7 @@ const ManageUsers = () => {
       {/* ========================================================================= */}
       {showBatchGradeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 animate-fadeIn my-8">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800 animate-fadeIn my-8 text-gray-800 dark:text-gray-100">
 
             {/* Header */}
             <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white relative">
@@ -969,13 +972,13 @@ const ManageUsers = () => {
 
                 {/* Source Grade */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     Source Grade (Current) <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={batchSource}
                     onChange={(e) => setBatchSource(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-800 font-semibold cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-800 dark:text-white font-semibold cursor-pointer"
                     required
                   >
                     <option value="">-- Choose Current Grade --</option>
@@ -992,13 +995,13 @@ const ManageUsers = () => {
 
                 {/* Target Grade */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     Target Grade (Promoted To) <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={batchTarget}
                     onChange={(e) => setBatchTarget(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-800 font-semibold cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-800 dark:text-white font-semibold cursor-pointer"
                     required
                   >
                     <option value="">-- Choose New Grade --</option>
@@ -1011,11 +1014,11 @@ const ManageUsers = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowBatchGradeModal(false)}
-                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                  className="px-5 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1038,7 +1041,7 @@ const ManageUsers = () => {
       {/* ========================================================================= */}
       {showAddStaffModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 animate-fadeIn my-8">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800 animate-fadeIn my-8 text-gray-800 dark:text-gray-100">
 
             {/* Header */}
             <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white relative">
@@ -1065,13 +1068,13 @@ const ManageUsers = () => {
 
               {/* Account Role Selection */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Account Type / Role <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={adminForm.role}
                   onChange={(e) => handleAdminFieldChange('role', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-extrabold cursor-pointer"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-extrabold cursor-pointer"
                   required
                 >
                   <option value="admin">🔴 System Administrator (Full Access)</option>
@@ -1081,7 +1084,7 @@ const ManageUsers = () => {
 
               {/* Full Name */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1089,14 +1092,14 @@ const ManageUsers = () => {
                   placeholder="e.g. Nimal Fernando"
                   value={adminForm.name}
                   onChange={(e) => handleAdminFieldChange('name', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-semibold"
                   required
                 />
               </div>
 
               {/* Email Address */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Email Address <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1104,14 +1107,14 @@ const ManageUsers = () => {
                   placeholder="nimal@institute.lk"
                   value={adminForm.email}
                   onChange={(e) => handleAdminFieldChange('email', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-semibold"
                   required
                 />
               </div>
 
               {/* Temporary Password */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Temporary Password <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1119,17 +1122,17 @@ const ManageUsers = () => {
                   placeholder="••••••••"
                   value={adminForm.temporaryPassword}
                   onChange={(e) => handleAdminFieldChange('temporaryPassword', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 font-semibold"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs text-gray-800 dark:text-white font-semibold"
                   required
                 />
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowAddStaffModal(false)}
-                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                  className="px-5 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1162,20 +1165,20 @@ const ManageUsers = () => {
       {/* ========================================================================= */}
       {showConfirmBatchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
-          <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl border border-purple-100 max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl shadow-2xl border border-purple-100 dark:border-slate-800 max-w-md w-full mx-4 text-gray-800 dark:text-gray-100">
             <div className="text-center font-sans">
-              <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-amber-200">
+              <div className="w-16 h-16 bg-amber-50 dark:bg-amber-950/60 text-amber-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-amber-200 dark:border-amber-800">
                 ⚠️
               </div>
-              <h3 className="text-xl font-extrabold text-gray-900 mb-2">Confirm Batch Promotion</h3>
-              <p className="text-gray-600 text-xs mb-6 leading-relaxed">
-                Are you sure you want to promote/change all students currently in <strong className="text-purple-900 font-bold">{batchSource}</strong> to <strong className="text-purple-900 font-bold">{batchTarget}</strong>? This action will apply to all matching student accounts.
+              <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">Confirm Batch Promotion</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-xs mb-6 leading-relaxed">
+                Are you sure you want to promote/change all students currently in <strong className="text-purple-900 dark:text-purple-300 font-bold">{batchSource}</strong> to <strong className="text-purple-900 dark:text-purple-300 font-bold">{batchTarget}</strong>? This action will apply to all matching student accounts.
               </p>
               <div className="flex gap-3 justify-center">
                 <button
                   type="button"
                   onClick={() => setShowConfirmBatchModal(false)}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl text-xs transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1191,7 +1194,9 @@ const ManageUsers = () => {
                       Updating Batch...
                     </>
                   ) : (
-                    'Yes, Update Batch'
+                    <>
+                      <FaCheckCircle className="text-white text-xs" /> Yes, Update Batch
+                    </>
                   )}
                 </button>
               </div>
@@ -1200,20 +1205,19 @@ const ManageUsers = () => {
         </div>
       )}
 
-
       {/* ========================================================================= */}
       {/* DELETE USER CONFIRMATION MODAL */}
       {/* ========================================================================= */}
       {showDeleteModal && userToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
-          <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl border border-red-100 max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl shadow-2xl border border-red-100 dark:border-red-900/60 max-w-md w-full mx-4 text-gray-800 dark:text-gray-100">
             <div className="text-center font-sans">
-              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-red-200">
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-950/60 text-red-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-red-200 dark:border-red-800">
                 <FaTrash className="text-xl text-red-500" />
               </div>
-              <h3 className="text-xl font-extrabold text-gray-900 mb-2">Delete User Account</h3>
-              <p className="text-gray-600 text-xs mb-6 leading-relaxed">
-                Are you sure you want to permanently delete <strong className="text-red-600 font-bold">{userToDelete.name}</strong>? This action is irreversible.
+              <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">Delete User Account</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-xs mb-6 leading-relaxed">
+                Are you sure you want to permanently delete <strong className="text-red-600 dark:text-red-400 font-bold">{userToDelete.name}</strong>? This action is irreversible.
               </p>
               <div className="flex gap-3 justify-center">
                 <button
@@ -1222,7 +1226,7 @@ const ManageUsers = () => {
                     setShowDeleteModal(false);
                     setUserToDelete(null);
                   }}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl text-xs transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1241,14 +1245,14 @@ const ManageUsers = () => {
       {/* ========================================================================= */}
       {selectedQrStudent && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-purple-100 relative">
-            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
-                <FaQrcode className="text-purple-700 text-lg" /> Student Official QR Pass Card
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-purple-100 dark:border-slate-800 text-gray-800 dark:text-gray-100 relative">
+            <div className="flex justify-between items-center pb-2 border-b border-gray-100 dark:border-slate-800">
+              <h3 className="font-extrabold text-gray-900 dark:text-white text-base flex items-center gap-2">
+                <FaQrcode className="text-purple-700 dark:text-purple-400 text-lg" /> Student Official QR Pass Card
               </h3>
               <button
                 onClick={() => setSelectedQrStudent(null)}
-                className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:text-gray-900 flex items-center justify-center cursor-pointer transition-colors"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center justify-center cursor-pointer transition-colors"
               >
                 <FaTimes className="text-xs" />
               </button>
@@ -1266,17 +1270,17 @@ const ManageUsers = () => {
       {/* ========================================================================= */}
       {showAllQrModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 border border-purple-100 relative">
-            <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 border border-purple-100 dark:border-slate-800 text-gray-800 dark:text-gray-100 relative">
+            <div className="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-slate-800">
               <div>
-                <h3 className="font-black text-gray-900 text-xl flex items-center gap-2">
-                  <FaQrcode className="text-purple-700" /> Student QR Code Pass Directory
+                <h3 className="font-black text-gray-900 dark:text-white text-xl flex items-center gap-2">
+                  <FaQrcode className="text-purple-700 dark:text-purple-400" /> Student QR Code Pass Directory
                 </h3>
-                <p className="text-xs text-gray-500 mt-0.5">Overview of official QR code passes for all active institute students.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Overview of official QR code passes for all active institute students.</p>
               </div>
               <button
                 onClick={() => setShowAllQrModal(false)}
-                className="w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:text-gray-900 flex items-center justify-center cursor-pointer transition-colors"
+                className="w-9 h-9 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center justify-center cursor-pointer transition-colors"
               >
                 <FaTimes />
               </button>
@@ -1284,7 +1288,7 @@ const ManageUsers = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {users.filter(u => u.role === 'student').map((student) => (
-                <div key={student._id} className="p-2 bg-gray-50/60 rounded-3xl border border-purple-100/80 shadow-xs">
+                <div key={student._id} className="p-2 bg-gray-50/60 dark:bg-slate-800/60 rounded-3xl border border-purple-100/80 dark:border-slate-700 shadow-xs">
                   <StudentIdCard user={student} />
                 </div>
               ))}

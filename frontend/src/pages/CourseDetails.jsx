@@ -1261,7 +1261,14 @@ const CourseDetails = () => {
     }
   };
 
-  if (loading) return <div className="p-10 text-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-10 gap-3">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 dark:border-purple-400"></div>
+        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 animate-pulse">Loading course details...</span>
+      </div>
+    );
+  }
 
   const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
   const currentLesson = lessons.find(l => l.grade === selectedGrade);
@@ -1288,7 +1295,7 @@ const CourseDetails = () => {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans text-gray-800 space-y-6">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans text-gray-800 dark:text-gray-100 space-y-6 transition-colors duration-200">
 
       {/* Parent Read-Only Overview Banner */}
       {user?.role === 'parent' && (
@@ -1348,11 +1355,11 @@ const CourseDetails = () => {
                     <img
                       src={getImageUrl(course.instructor.profilePicture)}
                       alt={course.instructor.name || 'Instructor'}
-                      className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-4 ring-white shadow-2xl bg-white border-2 border-purple-100 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all duration-300"
+                      className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-4 ring-white dark:ring-slate-900 shadow-2xl bg-white dark:bg-slate-800 border-2 border-purple-100 dark:border-purple-800 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all duration-300"
                       onError={(e) => { e.target.style.display = 'none'; }}
                     />
                   ) : (
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-600 to-[#2d1b64] text-white rounded-full flex items-center justify-center font-black text-4xl sm:text-5xl ring-4 ring-white shadow-2xl border-2 border-purple-100 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all">
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-600 to-[#2d1b64] text-white rounded-full flex items-center justify-center font-black text-4xl sm:text-5xl ring-4 ring-white dark:ring-slate-900 shadow-2xl border-2 border-purple-100 dark:border-purple-800 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all">
                       {course.instructor.name ? course.instructor.name.charAt(0) : '?'}
                     </div>
                   )}
@@ -1363,7 +1370,7 @@ const CourseDetails = () => {
                   <span className="text-xs font-black text-white bg-purple-600 px-3.5 py-1 rounded-full shadow-md flex items-center gap-1.5 w-fit mb-1 border border-purple-400/40 uppercase tracking-widest">
                     <FaChalkboardTeacher /> INSTRUCTOR
                   </span>
-                  <h4 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight group-hover/teacher:text-purple-800 transition-colors">
+                  <h4 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight group-hover/teacher:text-purple-800 dark:group-hover/teacher:text-purple-400 transition-colors">
                     {course.instructor.name || 'Unassigned'}
                   </h4>
                 </div>
@@ -1373,8 +1380,8 @@ const CourseDetails = () => {
 
           {/* Course Title & Description */}
           <div className="mt-6">
-            <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight mb-3">{course?.title}</h1>
-            <p className="text-gray-600 text-base leading-relaxed font-medium">{course?.description}</p>
+            <h1 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tight mb-3">{course?.title}</h1>
+            <p className="text-gray-600 dark:text-gray-300 text-base leading-relaxed font-medium">{course?.description}</p>
           </div>
 
           {/* Class Timetables & Schedule Toggle Section */}
@@ -1443,44 +1450,44 @@ const CourseDetails = () => {
 
             {/* Collapsible Schedule Section */}
             {showSchedule && (
-              <div className="mt-3 p-6 bg-gradient-to-br from-purple-900/5 via-indigo-900/5 to-purple-950/10 rounded-3xl border border-purple-200/90 shadow-lg space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-purple-200/60">
+              <div className="mt-3 p-6 bg-gradient-to-br from-purple-900/5 via-indigo-900/5 to-purple-950/10 dark:from-slate-900 dark:via-purple-950/30 dark:to-slate-900 rounded-3xl border border-purple-200/90 dark:border-slate-800 shadow-lg space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-purple-200/60 dark:border-slate-800">
                   <div>
-                    <h3 className="text-lg font-black text-purple-950 flex items-center gap-2">
+                    <h3 className="text-lg font-black text-purple-950 dark:text-white flex items-center gap-2">
                       <span>📅</span> Class Timetables & Weekly Schedule
                     </h3>
-                    <p className="text-xs text-purple-800/80 font-medium">Live class session times, scheduled days, and venue locations for enrolled grades.</p>
+                    <p className="text-xs text-purple-800/80 dark:text-purple-300/80 font-medium">Live class session times, scheduled days, and venue locations for enrolled grades.</p>
                   </div>
-                  <span className="bg-purple-950 text-amber-300 text-xs font-black px-3.5 py-1 rounded-xl shadow-xs border border-purple-800">
+                  <span className="bg-purple-950 dark:bg-purple-900 text-amber-300 text-xs font-black px-3.5 py-1 rounded-xl shadow-xs border border-purple-800 dark:border-purple-700">
                     {courseSchedules.length} Timetable Sessions
                   </span>
                 </div>
 
                 {courseSchedules.length === 0 ? (
-                  <div className="p-6 bg-white/80 rounded-2xl border border-purple-100 text-center text-xs font-semibold text-purple-900 shadow-2xs">
+                  <div className="p-6 bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-purple-100 dark:border-slate-800 text-center text-xs font-semibold text-purple-900 dark:text-purple-300 shadow-2xs">
                     No specific live timetable schedules registered for this course yet.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {courseSchedules.map((sch) => (
-                      <div key={sch._id} className="p-4.5 bg-white rounded-2xl border border-purple-200/90 shadow-sm hover:shadow-md transform hover:-translate-y-1 hover:border-purple-300 transition-all duration-300 space-y-3 group cursor-pointer">
+                      <div key={sch._id} className="p-4.5 bg-white dark:bg-slate-900 rounded-2xl border border-purple-200/90 dark:border-slate-800 shadow-sm hover:shadow-md transform hover:-translate-y-1 hover:border-purple-300 dark:hover:border-purple-500 transition-all duration-300 space-y-3 group cursor-pointer">
                         <div className="flex justify-between items-center gap-1.5 flex-wrap">
-                          <span className="px-3 py-1 bg-gradient-to-r from-purple-900 to-indigo-950 text-amber-300 font-black text-[11px] rounded-xl uppercase tracking-wider shadow-xs">
+                          <span className="px-3 py-1 bg-gradient-to-r from-purple-900 to-indigo-950 dark:from-purple-800 dark:to-indigo-900 text-amber-300 font-black text-[11px] rounded-xl uppercase tracking-wider shadow-xs">
                             🎓 {sch.className || sch.grade || 'All Grades'}
                           </span>
-                          <span className="px-3 py-1 bg-amber-100 text-amber-950 font-black text-[11px] rounded-xl border border-amber-300 uppercase shadow-2xs">
+                          <span className="px-3 py-1 bg-amber-100 dark:bg-amber-950/60 text-amber-950 dark:text-amber-300 font-black text-[11px] rounded-xl border border-amber-300 dark:border-amber-800 uppercase shadow-2xs">
                             🗓️ {sch.dayOfWeek}
                           </span>
                         </div>
-                        <h5 className="font-extrabold text-slate-900 text-sm group-hover:text-purple-950 transition-colors line-clamp-2">
+                        <h5 className="font-extrabold text-slate-900 dark:text-white text-sm group-hover:text-purple-950 dark:group-hover:text-purple-300 transition-colors line-clamp-2">
                           {sch.title}
                         </h5>
-                        <div className="pt-2 border-t border-purple-100 text-xs font-extrabold text-purple-950 flex items-center justify-between gap-2 flex-wrap">
-                          <span className="inline-flex items-center gap-1.5 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200 text-purple-900">
-                            <FaClock className="text-purple-600" /> {sch.startTime} - {sch.endTime}
+                        <div className="pt-2 border-t border-purple-100 dark:border-slate-800 text-xs font-extrabold text-purple-950 dark:text-purple-300 flex items-center justify-between gap-2 flex-wrap">
+                          <span className="inline-flex items-center gap-1.5 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-300">
+                            <FaClock className="text-purple-600 dark:text-purple-400" /> {sch.startTime} - {sch.endTime}
                           </span>
-                          <span className="inline-flex items-center gap-1.5 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 text-indigo-950">
-                            <FaMapMarkerAlt className="text-indigo-600" /> {sch.room || 'Main Hall'}
+                          <span className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800 text-indigo-950 dark:text-indigo-300">
+                            <FaMapMarkerAlt className="text-indigo-600 dark:text-indigo-400" /> {sch.room || 'Main Hall'}
                           </span>
                         </div>
                       </div>
@@ -1496,12 +1503,12 @@ const CourseDetails = () => {
           <div>
             <button
               onClick={() => setSelectedGrade(null)}
-              className="mb-2 flex items-center gap-2 text-[#2d1b64] hover:underline font-bold transition cursor-pointer"
+              className="mb-2 flex items-center gap-2 text-[#2d1b64] dark:text-purple-400 hover:underline font-bold transition cursor-pointer"
             >
               ← Back to Classes
             </button>
-            <h1 className="text-3xl font-extrabold text-gray-800 mb-1">{course?.title}</h1>
-            <p className="text-purple-600 font-bold text-lg">{selectedGrade} Workspace</p>
+            <h1 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-1">{course?.title}</h1>
+            <p className="text-purple-600 dark:text-purple-400 font-bold text-lg">{selectedGrade} Workspace</p>
           </div>
 
           {(user?.role === 'admin' || user?.role === 'teacher') && (
@@ -1540,11 +1547,11 @@ const CourseDetails = () => {
 
           {/* Class Management Section */}
           {user?.role === 'admin' && (
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <h3 className="font-bold text-gray-700 mb-1">Assign/Remove Classes</h3>
-                  <p className="text-sm text-gray-500">
+                  <h3 className="font-bold text-gray-700 dark:text-white mb-1">Assign/Remove Classes</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Add grades that can access this course and remove them when needed.
                   </p>
                 </div>
@@ -1552,14 +1559,14 @@ const CourseDetails = () => {
                   <button
                     type="button"
                     onClick={() => setShowAddGrade(true)}
-                    className="rounded-full bg-purple-600 px-5 py-2 text-white font-semibold hover:bg-purple-700 transition cursor-pointer shadow-xs"
+                    className="rounded-full bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 font-semibold transition cursor-pointer shadow-xs"
                   >
                     + Add Grade
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="rounded-full bg-red-500 px-5 py-2 text-white font-semibold hover:bg-red-600 transition cursor-pointer shadow-xs"
+                    className="rounded-full bg-red-500 hover:bg-red-600 px-5 py-2 text-white font-semibold transition cursor-pointer shadow-xs"
                     disabled={isDeleting}
                   >
                     {isDeleting ? 'Deleting...' : 'Delete Course'}
@@ -1571,7 +1578,7 @@ const CourseDetails = () => {
                 {course?.enrolledGrades?.map((eg) => (
                   <div
                     key={eg.gradeNumber}
-                    className="relative bg-white p-5 rounded-2xl border border-gray-200 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-purple-300 cursor-pointer group"
+                    className="relative bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500 cursor-pointer group"
                   >
                     <div className="absolute right-4 top-4 flex flex-col gap-2 z-10">
                       <button
@@ -1580,7 +1587,7 @@ const CourseDetails = () => {
                           e.stopPropagation();
                           openStudentPicker(eg.gradeNumber);
                         }}
-                        className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-100 transition cursor-pointer shadow-xs"
+                        className="rounded-full border border-green-200 dark:border-green-800/60 bg-green-50 dark:bg-green-950/40 px-3 py-1 text-xs font-semibold text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60 transition cursor-pointer shadow-xs"
                       >
                         Manage Students
                       </button>
@@ -1590,14 +1597,14 @@ const CourseDetails = () => {
                           e.stopPropagation();
                           handleToggleGrade(eg.gradeNumber);
                         }}
-                        className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer shadow-xs"
+                        className="rounded-full border border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/40 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60 transition cursor-pointer shadow-xs"
                       >
                         Remove
                       </button>
                     </div>
-                    <div className="mb-2 text-xs text-gray-400 group-hover:text-purple-600 font-bold transition-colors">{eg.gradeNumber}</div>
-                    <h4 className="text-lg font-extrabold text-gray-800 mb-1 group-hover:text-purple-900 transition-colors">{eg.title || eg.gradeNumber}</h4>
-                    <p className="text-gray-500 text-xs font-medium">This class can enrol in the course when assigned.</p>
+                    <div className="mb-2 text-xs text-gray-400 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 font-bold transition-colors">{eg.gradeNumber}</div>
+                    <h4 className="text-lg font-extrabold text-gray-800 dark:text-white mb-1 group-hover:text-purple-900 dark:group-hover:text-purple-300 transition-colors">{eg.title || eg.gradeNumber}</h4>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">This class can enrol in the course when assigned.</p>
                   </div>
                 ))}
               </div>
@@ -1607,7 +1614,7 @@ const CourseDetails = () => {
           {/* Classes Grid */}
           <div>
             {course?.enrolledGrades?.length === 0 ? (
-              <div className="bg-white p-12 rounded-[30px] text-center border border-dashed border-gray-200">
+              <div className="bg-white dark:bg-slate-900 p-12 rounded-[30px] text-center border border-dashed border-gray-200 dark:border-slate-800">
                 <p className="text-gray-400 italic">No classes assigned to this course yet.</p>
               </div>
             ) : (
@@ -1662,26 +1669,26 @@ const CourseDetails = () => {
                           }
                           setSelectedGrade(eg.gradeNumber);
                         }}
-                        className={`bg-white p-6 rounded-2xl shadow-xs border transition-all duration-200 hover:-translate-y-1 hover:shadow-md relative ${isDeactive
-                            ? 'border-red-200 bg-red-50/40 cursor-pointer'
+                        className={`bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xs border transition-all duration-200 hover:-translate-y-1 hover:shadow-md relative ${isDeactive
+                            ? 'border-red-200 dark:border-red-900/60 bg-red-50/40 dark:bg-red-950/20 cursor-pointer'
                             : user?.role === 'student' && !alreadyEnrolled
-                              ? 'border-gray-200 bg-gray-50/60 cursor-pointer hover:border-purple-300'
-                              : 'border-purple-100/80 hover:border-purple-400 cursor-pointer group'
+                              ? 'border-gray-200 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/40 cursor-pointer hover:border-purple-300'
+                              : 'border-purple-100/80 dark:border-slate-800 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer group'
                           }`}
                       >
                         <div>
                           <div className="flex justify-between items-start mb-6">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-colors ${isDeactive
-                                ? 'bg-red-100 text-red-600'
+                                ? 'bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400'
                                 : user?.role === 'student' && !alreadyEnrolled
-                                  ? 'bg-gray-200 text-gray-500'
-                                  : 'bg-[#f3f4f6] group-hover:bg-[#2d1b64] group-hover:text-white'
+                                  ? 'bg-gray-200 dark:bg-slate-800 text-gray-500 dark:text-gray-400'
+                                  : 'bg-[#f3f4f6] dark:bg-slate-800 group-hover:bg-[#2d1b64] group-hover:text-white'
                               }`}>
                               {isDeactive ? '🔒' : user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
                             </div>
 
                             {user?.role === 'student' && !alreadyEnrolled ? (
-                              <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200">
+                              <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200 dark:border-amber-800">
                                 🔒 Enroll Required
                               </span>
                             ) : isDeactive ? (
@@ -1748,7 +1755,8 @@ const CourseDetails = () => {
                               )
                             )}
                           </div>
-                          <h3 className={`text-2xl font-bold mb-2 transition-colors ${user?.role === 'student' && !alreadyEnrolled ? 'text-gray-700' : 'text-gray-800 group-hover:text-[#2d1b64]'
+
+                          <h3 className={`text-2xl font-bold mb-2 transition-colors ${user?.role === 'student' && !alreadyEnrolled ? 'text-gray-700 dark:text-gray-300' : 'text-gray-800 dark:text-white group-hover:text-[#2d1b64] dark:group-hover:text-purple-300'
                             }`}>
                             {eg.title || eg.gradeNumber}
                           </h3>
@@ -1760,7 +1768,7 @@ const CourseDetails = () => {
                         </div>
 
                         {user?.role === 'teacher' && (
-                          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 flex justify-end" onClick={(e) => e.stopPropagation()}>
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1773,11 +1781,11 @@ const CourseDetails = () => {
                               }}
                               disabled={isDeactive && deactivatedByRole === 'admin'}
                               className={`rounded-xl border px-4 py-2 text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${isDeactive && deactivatedByRole === 'admin'
-                                  ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
-                                  : 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-300 cursor-pointer'
+                                  ? 'border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed opacity-60'
+                                  : 'border-green-200 dark:border-green-900/60 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60 hover:border-green-300 cursor-pointer'
                                 }`}
                             >
-                              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                               </svg>
                               View Students & Details
@@ -1807,13 +1815,13 @@ const CourseDetails = () => {
           )}
 
           {/* Month Selector Bar */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h4 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
+                <h4 className="font-extrabold text-gray-900 dark:text-white text-lg flex items-center gap-2">
                   <span>🗓️</span> Academic Month Selector
                 </h4>
-                <p className="text-xs text-gray-500 mt-0.5">Select a month to view weekly study materials and attendance logs. Future months are locked.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Select a month to view weekly study materials and attendance logs. Future months are locked.</p>
               </div>
 
               {/* Year Navigation */}
@@ -1822,17 +1830,17 @@ const CourseDetails = () => {
                   type="button"
                   onClick={handleNavYearPrev}
                   disabled={navYear <= MIN_NAV_YEAR}
-                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-purple-100 text-gray-600 hover:text-purple-800 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 hover:text-purple-800 dark:hover:text-purple-300 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   title="Previous Year"
                 >
                   ‹
                 </button>
-                <span className="font-black text-gray-900 text-base min-w-[56px] text-center tabular-nums">{navYear}</span>
+                <span className="font-black text-gray-900 dark:text-white text-base min-w-[56px] text-center tabular-nums">{navYear}</span>
                 <button
                   type="button"
                   onClick={handleNavYearNext}
                   disabled={navYear >= currentYear}
-                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-purple-100 text-gray-600 hover:text-purple-800 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 hover:text-purple-800 dark:hover:text-purple-300 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   title="Next Year"
                 >
                   ›
@@ -1851,15 +1859,16 @@ const CourseDetails = () => {
                     disabled={locked}
                     onClick={() => !locked && setSelectedMonth(label)}
                     title={locked ? 'This month is not available yet' : label}
-                    className={`relative px-2 py-2.5 text-xs font-bold rounded-xl transition text-center leading-tight ${locked
-                        ? 'bg-gray-50 text-gray-300 cursor-not-allowed border border-dashed border-gray-200'
+                    className={`relative px-2 py-2.5 text-xs font-bold rounded-xl transition text-center leading-tight ${
+                      locked
+                        ? 'bg-gray-50 dark:bg-slate-800/40 text-gray-300 dark:text-gray-600 cursor-not-allowed border border-dashed border-gray-200 dark:border-slate-800'
                         : isSelected
                           ? 'bg-purple-700 text-white shadow-md ring-2 ring-purple-400 ring-offset-1 scale-105 cursor-pointer'
-                          : 'bg-gray-100 text-gray-700 hover:bg-purple-100 hover:text-purple-900 cursor-pointer'
-                      }`}
+                          : 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-slate-700 hover:text-purple-900 dark:hover:text-white cursor-pointer'
+                    }`}
                   >
                     {locked && (
-                      <span className="absolute top-1 right-1 text-[9px] text-gray-300">🔒</span>
+                      <span className="absolute top-1 right-1 text-[9px] text-gray-300 dark:text-gray-600">🔒</span>
                     )}
                     {MONTH_NAMES[monthIdx].slice(0, 3)}
                     {isSelected && !locked && (
@@ -1872,21 +1881,21 @@ const CourseDetails = () => {
           </div>
 
           {/* Class Workspace Navigation Tabs */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
               <div>
-                <h4 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
+                <h4 className="font-extrabold text-gray-900 dark:text-white text-lg flex items-center gap-2">
                   <span>📅</span> Class Sessions & Workspace — {selectedMonth}
                 </h4>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   {activeSchedule ? (
-                    <span>Timetable: <strong className="text-purple-900 font-extrabold">{activeSchedule.dayOfWeek} ({activeSchedule.startTime} - {activeSchedule.endTime})</strong> • {currentMonthSessions.length} sessions in {selectedMonth}</span>
+                    <span>Timetable: <strong className="text-purple-900 dark:text-purple-300 font-extrabold">{activeSchedule.dayOfWeek} ({activeSchedule.startTime} - {activeSchedule.endTime})</strong> • {currentMonthSessions.length} sessions in {selectedMonth}</span>
                   ) : (
                     <span>Select a scheduled class date to access study materials and attendance logs. ({currentMonthSessions.length} sessions in {selectedMonth})</span>
                   )}
                 </p>
               </div>
-              <span className="bg-purple-100 text-purple-900 text-xs font-extrabold px-3 py-1 rounded-lg self-start sm:self-auto border border-purple-200">
+              <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 text-xs font-extrabold px-3 py-1 rounded-lg self-start sm:self-auto border border-purple-200 dark:border-purple-800">
                 Active: {activeSessionObj.label}
               </span>
             </div>
@@ -1902,30 +1911,31 @@ const CourseDetails = () => {
                     key={wNum}
                     type="button"
                     onClick={() => setActiveWeek(wNum)}
-                    className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden ${isActive
-                        ? 'border-purple-600 bg-purple-50/95 ring-2 ring-purple-400/50 shadow-md scale-[1.02]'
-                        : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50/70 shadow-2xs'
-                      }`}
+                    className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden ${
+                      isActive
+                        ? 'border-purple-600 bg-purple-50/95 dark:bg-purple-950/60 ring-2 ring-purple-400/50 shadow-md scale-[1.02]'
+                        : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:border-purple-300 dark:hover:border-slate-700 hover:bg-gray-50/70 dark:hover:bg-slate-700 shadow-2xs'
+                    }`}
                   >
                     <div className="flex justify-between items-center mb-1.5 gap-1">
-                      <span className={`text-xs font-black tracking-wide ${isActive ? 'text-purple-900' : 'text-slate-800'}`}>
+                      <span className={`text-xs font-black tracking-wide ${isActive ? 'text-purple-900 dark:text-purple-300' : 'text-slate-800 dark:text-gray-200'}`}>
                         📅 {session.label}
                       </span>
                       {isAttended ? (
-                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
+                        <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 shrink-0">
                           ✓ Attended
                         </span>
                       ) : (
-                        <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0">
+                        <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0">
                           Pending
                         </span>
                       )}
                     </div>
                     <div className="flex items-center justify-between mt-1 text-[11px]">
-                      <span className="text-purple-700 font-bold">
+                      <span className="text-purple-700 dark:text-purple-400 font-bold">
                         Session {wNum} {session.isFifthWeek ? '• 5th Class' : ''}
                       </span>
-                      <span className="text-gray-400 font-medium text-[10px]">
+                      <span className="text-gray-400 dark:text-gray-500 font-medium text-[10px]">
                         {isAttended ? 'Logged ✓' : 'View Lesson'}
                       </span>
                     </div>
@@ -1937,11 +1947,11 @@ const CourseDetails = () => {
 
           {/* Physical Student Notice Banner */}
           {user?.role === 'student' && alreadyEnrolled && user?.studentType === 'physical' && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-900 p-5 rounded-2xl flex items-start gap-3 shadow-xs">
+            <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 p-5 rounded-2xl flex items-start gap-3 shadow-xs">
               <span className="text-2xl shrink-0">🏫</span>
               <div>
-                <h4 className="font-extrabold text-amber-950 text-sm">Physical Classroom Student Mode</h4>
-                <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                <h4 className="font-extrabold text-amber-950 dark:text-amber-100 text-sm">Physical Classroom Student Mode</h4>
+                <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5 leading-relaxed">
                   You are registered as a <strong>Physical Classroom Student</strong>. Your class attendance is recorded in-person at the institute counter by the Admin/Cashier when attending physical lectures. Online weekly self-attendance submission is disabled for physical students.
                 </p>
               </div>
@@ -2005,10 +2015,10 @@ const CourseDetails = () => {
           )}
 
           {canEnroll && (
-            <div className="bg-white p-6 rounded-3xl border border-green-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-green-200 dark:border-green-800/60 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
               <div>
-                <h4 className="font-extrabold text-green-900 text-base">Course Recommended for Your Grade</h4>
-                <p className="text-green-700 text-xs mt-0.5 font-medium">This course is recommended for {studentGrade && (studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`)}. Enroll today to participate and access all live classes & assessments.</p>
+                <h4 className="font-extrabold text-green-900 dark:text-green-300 text-base">Course Recommended for Your Grade</h4>
+                <p className="text-green-700 dark:text-green-400 text-xs mt-0.5 font-medium">This course is recommended for {studentGrade && (studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`)}. Enroll today to participate and access all live classes & assessments.</p>
               </div>
               <button
                 type="button"
@@ -2106,8 +2116,8 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-gray-500">Learning Materials & Content</span>
-              <span className="bg-purple-100 text-purple-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-200">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-gray-500 dark:text-gray-400">Learning Materials & Content</span>
+              <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
                 Week {activeWeek} • {selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`}
               </span>
             </div>
@@ -2115,15 +2125,15 @@ const CourseDetails = () => {
               <button
                 type="button"
                 onClick={expandAllSections}
-                className="text-purple-700 hover:text-purple-900 hover:underline cursor-pointer flex items-center gap-1.5 transition"
+                className="text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 hover:underline cursor-pointer flex items-center gap-1.5 transition"
               >
                 <FaChevronDown className="text-[10px]" /> Expand All
               </button>
-              <span className="text-gray-300">|</span>
+              <span className="text-gray-300 dark:text-slate-700">|</span>
               <button
                 type="button"
                 onClick={collapseAllSections}
-                className="text-purple-700 hover:text-purple-900 hover:underline cursor-pointer flex items-center gap-1.5 transition"
+                className="text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 hover:underline cursor-pointer flex items-center gap-1.5 transition"
               >
                 <FaChevronUp className="text-[10px]" /> Collapse All
               </button>
@@ -2133,20 +2143,20 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 1: TEACHER'S ANNOUNCEMENT (Expandable) */}
           {/* ========================================================================= */}
-          <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
             <div
               onClick={() => toggleSection('announcement')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-gray-50/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
                   📢
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-extrabold text-base text-gray-900 leading-tight">
+                  <h4 className="font-extrabold text-base text-gray-900 dark:text-white leading-tight">
                     Teacher's Announcement (Week {activeWeek})
                   </h4>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
                     {currentLesson?.teacherMessage
                       ? 'Important guidelines, schedule reminders, and teacher notes for this class.'
                       : 'No announcement published for this class session yet.'}
@@ -2156,11 +2166,11 @@ const CourseDetails = () => {
 
               <div className="flex items-center gap-2.5 shrink-0">
                 {currentLesson?.teacherMessage ? (
-                  <span className="bg-purple-100 text-purple-900 text-xs font-extrabold px-2.5 py-1 rounded-xl border border-purple-200">
+                  <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 text-xs font-extrabold px-2.5 py-1 rounded-xl border border-purple-200 dark:border-purple-800">
                     Active Message
                   </span>
                 ) : (
-                  <span className="bg-gray-100 text-gray-500 text-xs font-semibold px-2.5 py-1 rounded-xl">
+                  <span className="bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs font-semibold px-2.5 py-1 rounded-xl border border-transparent dark:border-slate-700">
                     Empty
                   </span>
                 )}
@@ -2173,26 +2183,26 @@ const CourseDetails = () => {
                       setEditingMessage(currentLesson?.teacherMessage || '');
                       setShowAnnouncementModal(true);
                     }}
-                    className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-1.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                   >
                     <FaEdit className="text-xs" /> Edit
                   </button>
                 )}
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-xs transition">
+                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
                   {expandedSections.announcement ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
             </div>
 
             {expandedSections.announcement && (
-              <div className="p-5 pt-0 border-t border-gray-100 space-y-3 bg-white animate-fadeIn">
+              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900 animate-fadeIn">
                 {currentLesson?.teacherMessage ? (
-                  <div className="bg-purple-50/50 border border-purple-100 p-4 rounded-2xl text-gray-800 text-sm leading-relaxed whitespace-pre-line font-medium">
+                  <div className="bg-purple-50/50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-800/60 p-4 rounded-2xl text-gray-800 dark:text-purple-100 text-sm leading-relaxed whitespace-pre-line font-medium">
                     {currentLesson.teacherMessage}
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-gray-400 text-xs italic bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                  <div className="text-center py-6 text-gray-400 dark:text-gray-500 text-xs italic bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
                     No announcement or teacher message posted for Week {activeWeek} yet.
                     {isTeacherOrAdmin && (
                       <span
@@ -2200,7 +2210,7 @@ const CourseDetails = () => {
                           setEditingMessage('');
                           setShowAnnouncementModal(true);
                         }}
-                        className="block text-purple-600 font-bold not-italic mt-1.5 cursor-pointer hover:underline"
+                        className="block text-purple-600 dark:text-purple-400 font-bold not-italic mt-1.5 cursor-pointer hover:underline"
                       >
                         + Click here to write an announcement
                       </span>
@@ -2214,33 +2224,33 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 2: VIDEO LESSONS (Expandable) */}
           {/* ========================================================================= */}
-          <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
             <div
               onClick={() => toggleSection('videos')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-gray-50/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
                   🎬
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-extrabold text-base text-gray-900 leading-tight">
+                  <h4 className="font-extrabold text-base text-gray-900 dark:text-white leading-tight">
                     Video Lessons (Week {activeWeek} — {selectedMonth})
                   </h4>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">Recorded lecture streams and walkthrough explanations.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Recorded lecture streams and walkthrough explanations.</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
-                <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black px-2.5 py-1 rounded-xl">
+                <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-black px-2.5 py-1 rounded-xl">
                   {currentLesson?.videoLessons?.length || 0} {currentLesson?.videoLessons?.length === 1 ? 'Video' : 'Videos'}
                 </span>
 
                 {!isTeacherOrAdmin && currentLesson?.videoLessons && currentLesson.videoLessons.length > 0 && (
                   <span className={`text-xs font-extrabold px-3 py-1 rounded-xl border ${
                     isVideoWatched
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                      : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
                   }`}>
                     {isVideoWatched ? '✓ Watched' : 'Pending View'}
                   </span>
@@ -2257,26 +2267,26 @@ const CourseDetails = () => {
                       setVideoCustomUnlockDate('');
                       setShowAddVideoModal(true);
                     }}
-                    className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                   >
                     <FaPlus className="text-[10px]" /> Add Video
                   </button>
                 )}
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-xs transition">
+                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
                   {expandedSections.videos ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
             </div>
 
             {expandedSections.videos && (
-              <div className="p-5 pt-0 border-t border-gray-100 space-y-3 bg-white animate-fadeIn">
+              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900 animate-fadeIn">
                 {!currentLesson?.videoLessons || currentLesson.videoLessons.length === 0 ? (
-                  <div className="py-8 text-center text-gray-400 space-y-1 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                  <div className="py-8 text-center text-gray-400 dark:text-gray-500 space-y-1 bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
                     <p className="text-sm font-semibold">No video lessons uploaded for Week {activeWeek} yet.</p>
                     {isTeacherOrAdmin && (
                       <p
-                        className="text-xs text-emerald-700 font-bold cursor-pointer hover:underline mt-1"
+                        className="text-xs text-emerald-700 dark:text-emerald-400 font-bold cursor-pointer hover:underline mt-1"
                         onClick={() => {
                           setVideoTitle('');
                           setVideoUrl('');
@@ -2293,24 +2303,24 @@ const CourseDetails = () => {
                   currentLesson.videoLessons.map((vid) => {
                     const dlStatus = getMaterialDownloadStatus(vid);
                     return (
-                      <div key={vid._id || vid.url} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 rounded-2xl hover:bg-gray-50/70 transition-all gap-3 bg-white shadow-2xs">
+                      <div key={vid._id || vid.url} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 dark:border-slate-800 rounded-2xl hover:bg-gray-50/70 dark:hover:bg-slate-800/70 transition-all gap-3 bg-white dark:bg-slate-800/80 shadow-2xs">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-xl shrink-0 font-bold shadow-inner">
+                          <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 flex items-center justify-center text-xl shrink-0 font-bold shadow-inner">
                             🎬
                           </div>
                           <div className="min-w-0">
-                            <p className="font-extrabold text-gray-900 text-sm truncate">{vid.title}</p>
+                            <p className="font-extrabold text-gray-900 dark:text-white text-sm truncate">{vid.title}</p>
                             <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                              <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline truncate max-w-xs">
+                              <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 dark:text-purple-400 hover:underline truncate max-w-xs">
                                 {vid.url}
                               </a>
                               {isTeacherOrAdmin && (
                                 <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
                                   dlStatus.status === 'immediate'
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                                     : dlStatus.status === 'scheduled'
-                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-slate-700'
                                 }`}>
                                   {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
                                 </span>
@@ -2339,7 +2349,7 @@ const CourseDetails = () => {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   download
-                                  className="bg-purple-100 hover:bg-purple-200 text-purple-900 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                  className="bg-purple-100 dark:bg-purple-950/60 hover:bg-purple-200 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-purple-200 dark:border-purple-800"
                                   title="Download / Open Video"
                                 >
                                   <FaDownload className="text-[10px]" /> Download
@@ -2348,10 +2358,10 @@ const CourseDetails = () => {
 
                               {dlStatus.status === 'scheduled' && (
                                 <span
-                                  className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-2 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5"
+                                  className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-3 py-2 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5"
                                   title={`Download unlocks on ${dlStatus.formattedDate}`}
                                 >
-                                  <FaHourglassHalf className="text-amber-600 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
+                                  <FaHourglassHalf className="text-amber-600 dark:text-amber-400 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
                                 </span>
                               )}
                             </>
@@ -2362,7 +2372,7 @@ const CourseDetails = () => {
                               <button
                                 type="button"
                                 onClick={() => handleOpenDownloadSettingsModal('video', vid, currentLesson?._id)}
-                                className="text-purple-700 hover:bg-purple-50 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100"
+                                className="text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-slate-800 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100 dark:border-slate-700"
                                 title="Configure Download Access"
                               >
                                 <FaCog className="text-xs" /> Download Settings
@@ -2370,7 +2380,7 @@ const CourseDetails = () => {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteVideo(vid._id)}
-                                className="text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl transition text-xs font-bold cursor-pointer border border-red-100"
+                                className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 px-3 py-2 rounded-xl transition text-xs font-bold cursor-pointer border border-red-100 dark:border-red-900/60"
                               >
                                 Remove
                               </button>
@@ -2388,33 +2398,33 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 3: STUDY MATERIALS — PDF NOTES (Expandable) */}
           {/* ========================================================================= */}
-          <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
             <div
               onClick={() => toggleSection('pdfs')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-gray-50/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
                   📕
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-extrabold text-base text-gray-900 leading-tight">
+                  <h4 className="font-extrabold text-base text-gray-900 dark:text-white leading-tight">
                     Study Materials — PDF Notes (Week {activeWeek} — {selectedMonth})
                   </h4>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">Read lecture slides, revision summaries, and structured study booklets.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Read lecture slides, revision summaries, and structured study booklets.</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
-                <span className="bg-purple-50 text-purple-900 border border-purple-200 text-xs font-black px-2.5 py-1 rounded-xl">
+                <span className="bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-black px-2.5 py-1 rounded-xl">
                   {currentLesson?.pdfMaterials?.length || 0} {currentLesson?.pdfMaterials?.length === 1 ? 'PDF' : 'PDFs'}
                 </span>
 
                 {!isTeacherOrAdmin && currentLesson?.pdfMaterials && currentLesson.pdfMaterials.length > 0 && (
                   <span className={`text-xs font-extrabold px-3 py-1 rounded-xl border ${
                     isPdfDownloaded
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                      : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
                   }`}>
                     {isPdfDownloaded ? '✓ Completed' : 'Pending View'}
                   </span>
@@ -2431,26 +2441,26 @@ const CourseDetails = () => {
                       setPdfCustomUnlockDate('');
                       setShowAddPdfModal(true);
                     }}
-                    className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-1.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                   >
                     <FaPlus className="text-[10px]" /> Upload PDF
                   </button>
                 )}
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-xs transition">
+                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
                   {expandedSections.pdfs ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
             </div>
 
             {expandedSections.pdfs && (
-              <div className="p-5 pt-0 border-t border-gray-100 space-y-3 bg-white animate-fadeIn">
+              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900 animate-fadeIn">
                 {!currentLesson?.pdfMaterials || currentLesson.pdfMaterials.length === 0 ? (
-                  <div className="py-8 text-center text-gray-400 space-y-1 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                  <div className="py-8 text-center text-gray-400 dark:text-gray-500 space-y-1 bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
                     <p className="text-sm font-semibold">No PDF study materials uploaded for Week {activeWeek} yet.</p>
                     {isTeacherOrAdmin && (
                       <p
-                        className="text-xs text-purple-700 font-bold cursor-pointer hover:underline mt-1"
+                        className="text-xs text-purple-700 dark:text-purple-400 font-bold cursor-pointer hover:underline mt-1"
                         onClick={() => {
                           setPdfTitle('');
                           setPdfFile(null);
@@ -2474,20 +2484,20 @@ const CourseDetails = () => {
                     const dlStatus = getMaterialDownloadStatus(pdf);
 
                     return (
-                      <div key={pdf._id || pdf.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-2xl bg-white hover:bg-purple-50/20 transition-all gap-3 shadow-2xs">
+                      <div key={pdf._id || pdf.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-800/80 hover:bg-purple-50/20 dark:hover:bg-slate-800 transition-all gap-3 shadow-2xs">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl shrink-0 font-bold shadow-inner">
+                          <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 flex items-center justify-center text-xl shrink-0 font-bold shadow-inner">
                             📕
                           </div>
                           <div className="min-w-0">
-                            <p className="font-extrabold text-gray-900 text-sm truncate">{pdf.title}</p>
+                            <p className="font-extrabold text-gray-900 dark:text-white text-sm truncate">{pdf.title}</p>
                             <div className="flex flex-wrap items-center gap-2 mt-1">
-                              <span className="text-xs text-gray-500 font-medium">
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                                 Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '0.99 MB'}
                               </span>
 
                               <div className="flex items-center gap-2">
-                                <div className="w-20 bg-slate-200 h-2 rounded-full overflow-hidden border border-slate-300">
+                                <div className="w-20 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden border border-slate-300 dark:border-slate-600">
                                   <div
                                     className={`h-full rounded-full transition-all duration-500 ${pPercent >= 100 ? 'bg-emerald-500' : 'bg-purple-600'}`}
                                     style={{ width: `${pPercent}%` }}
@@ -2495,10 +2505,10 @@ const CourseDetails = () => {
                                 </div>
 
                                 <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${pPercent >= 100
-                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                                     : pPercent > 0
-                                      ? 'bg-purple-100 text-purple-900 border-purple-300'
-                                      : 'bg-slate-100 text-slate-600 border-slate-300'
+                                      ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border-purple-300 dark:border-purple-800'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-gray-300 border-slate-300 dark:border-slate-700'
                                   }`}>
                                   {pPercent >= 100
                                     ? '✓ 100% Completed'
@@ -2510,10 +2520,10 @@ const CourseDetails = () => {
 
                               {isTeacherOrAdmin && (
                                 <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${dlStatus.status === 'immediate'
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                                     : dlStatus.status === 'scheduled'
-                                      ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                                      ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-slate-700'
                                   }`}>
                                   {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
                                 </span>
@@ -2541,17 +2551,17 @@ const CourseDetails = () => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 download
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+                                className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs border border-slate-200 dark:border-slate-700"
                                 title="Download PDF File"
                               >
                                 <FaDownload className="text-[10px]" /> Download
                               </a>
                             ) : dlStatus.status === 'scheduled' ? (
                               <span
-                                className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
+                                className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
                                 title={`Download unlocks on ${dlStatus.formattedDate}`}
                               >
-                                <FaHourglassHalf className="text-amber-600 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
+                                <FaHourglassHalf className="text-amber-600 dark:text-amber-400 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
                               </span>
                             ) : null
                           )}
@@ -2563,7 +2573,7 @@ const CourseDetails = () => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 download
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                                className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200 dark:border-slate-700"
                                 title="Download File"
                               >
                                 <FaDownload className="text-[10px]" /> Download
@@ -2571,7 +2581,7 @@ const CourseDetails = () => {
                               <button
                                 type="button"
                                 onClick={() => handleOpenDownloadSettingsModal('pdf', pdf, currentLesson?._id)}
-                                className="text-purple-700 hover:bg-purple-50 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100"
+                                className="text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-slate-800 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100 dark:border-slate-700"
                                 title="Configure Download Access"
                               >
                                 <FaCog className="text-xs" /> Download Settings
@@ -2579,7 +2589,7 @@ const CourseDetails = () => {
                               <button
                                 type="button"
                                 onClick={() => handleDeletePdf(pdf._id)}
-                                className="text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl transition text-xs font-bold cursor-pointer border border-red-100"
+                                className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 px-3 py-2 rounded-xl transition text-xs font-bold cursor-pointer border border-red-100 dark:border-red-900/60"
                               >
                                 Remove
                               </button>
@@ -2597,25 +2607,25 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 4: ASSIGNMENTS & HOMEWORK (Expandable) */}
           {/* ========================================================================= */}
-          <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
             <div
               onClick={() => toggleSection('assignments')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-gray-50/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
                   📑
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-extrabold text-base text-gray-900 leading-tight">
+                  <h4 className="font-extrabold text-base text-gray-900 dark:text-white leading-tight">
                     Assignments & Homework ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
                   </h4>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">Submit homework solutions, question sheets, and review instructor grading.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Submit homework solutions, question sheets, and review instructor grading.</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
-                <span className="bg-amber-50 text-amber-900 border border-amber-200 text-xs font-black px-2.5 py-1 rounded-xl">
+                <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-black px-2.5 py-1 rounded-xl">
                   {assignments.filter(asgn => {
                     const matchesGrade = asgn.grade === selectedGrade;
                     const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
@@ -2634,29 +2644,29 @@ const CourseDetails = () => {
                       e.stopPropagation();
                       handleOpenCreateAssignment();
                     }}
-                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                   >
                     <FaPlus className="text-[10px]" /> Create Asgn
                   </button>
                 )}
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-xs transition">
+                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
                   {expandedSections.assignments ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
             </div>
 
             {expandedSections.assignments && (
-              <div className="p-5 pt-0 border-t border-gray-100 space-y-4 bg-white animate-fadeIn">
+              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-4 bg-white dark:bg-slate-900 animate-fadeIn">
                 {assignments.filter(asgn => {
                   const matchesGrade = asgn.grade === selectedGrade;
                   const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
                   return matchesGrade && matchesMonth;
                 }).length === 0 ? (
-                  <div className="py-8 text-center text-gray-400 space-y-1 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                  <div className="py-8 text-center text-gray-400 dark:text-gray-500 space-y-1 bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
                     <p className="text-sm font-semibold">No assignments posted for {selectedGrade} ({selectedMonth}) yet.</p>
                     {isTeacherOrAdmin && (
-                      <p className="text-xs text-amber-700 font-bold cursor-pointer hover:underline mt-1" onClick={handleOpenCreateAssignment}>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 font-bold cursor-pointer hover:underline mt-1" onClick={handleOpenCreateAssignment}>
                         + Click here to create the first assignment
                       </p>
                     )}
@@ -2674,25 +2684,25 @@ const CourseDetails = () => {
                     const isOverdue = asgn.dueDate ? new Date() > new Date(asgn.dueDate) : false;
 
                     return (
-                      <div key={asgn._id} className="p-5 border border-purple-100/80 rounded-2xl bg-white hover:bg-purple-50/20 transition-all space-y-4 shadow-xs">
+                      <div key={asgn._id} className="p-5 border border-purple-100/80 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-800/80 hover:bg-purple-50/20 dark:hover:bg-slate-800 transition-all space-y-4 shadow-xs">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xl">📑</span>
-                              <h5 className="font-extrabold text-gray-900 text-base">{asgn.title}</h5>
+                              <h5 className="font-extrabold text-gray-900 dark:text-white text-base">{asgn.title}</h5>
                               {asgn.weekNumber > 0 && (
-                                <span className="bg-purple-100 text-purple-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-200">
+                                <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
                                   Week {asgn.weekNumber}
                                 </span>
                               )}
                               {!asgn.isActive && (
-                                <span className="bg-gray-100 text-gray-600 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-gray-200">
+                                <span className="bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-gray-200 dark:border-slate-600">
                                   Closed / Inactive
                                 </span>
                               )}
                             </div>
                             {asgn.description && (
-                              <p className="text-xs text-gray-600 font-medium pl-7 line-clamp-2 leading-relaxed">
+                              <p className="text-xs text-gray-600 dark:text-gray-300 font-medium pl-7 line-clamp-2 leading-relaxed">
                                 {asgn.description}
                               </p>
                             )}
@@ -2700,12 +2710,12 @@ const CourseDetails = () => {
 
                           {/* Badges / Due Date / Points */}
                           <div className="flex items-center gap-2 flex-wrap text-xs shrink-0 self-end sm:self-auto">
-                            <span className="px-3 py-1 bg-amber-50 text-amber-900 font-black rounded-xl border border-amber-200/60">
+                            <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 font-black rounded-xl border border-amber-200/60 dark:border-amber-800">
                               Max: {asgn.maxMarks || 100} Marks
                             </span>
                             {asgn.dueDate && (
                               <span className={`px-3 py-1 font-bold rounded-xl border flex items-center gap-1 ${
-                                isOverdue ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-700 border-slate-200'
+                                isOverdue ? 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-slate-700'
                               }`}>
                                 <FaClock /> Due: {new Date(asgn.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                               </span>
@@ -2714,14 +2724,14 @@ const CourseDetails = () => {
                         </div>
 
                         {/* Action Bar / Status */}
-                        <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="pt-3 border-t border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                           <div className="flex items-center gap-2 flex-wrap">
                             {asgn.attachmentUrl && (
                               <a
                                 href={asgn.attachmentUrl.startsWith('http') ? asgn.attachmentUrl : `http://localhost:5000${asgn.attachmentUrl}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-800 hover:bg-purple-100 rounded-xl text-xs font-extrabold transition border border-purple-200"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 rounded-xl text-xs font-extrabold transition border border-purple-200 dark:border-purple-800"
                               >
                                 <FaCloudDownloadAlt className="text-sm" /> Question Sheet ({asgn.attachmentName || 'Download'})
                               </a>
@@ -2730,15 +2740,15 @@ const CourseDetails = () => {
                             {!isTeacher && (
                               <div>
                                 {isGraded ? (
-                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300">
-                                    <FaAward className="text-emerald-600" /> Graded: {mySub.marks}/{asgn.maxMarks || 100} Marks ({Math.round((mySub.marks / (asgn.maxMarks || 100)) * 100)}%)
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                                    <FaAward className="text-emerald-600 dark:text-emerald-400" /> Graded: {mySub.marks}/{asgn.maxMarks || 100} Marks ({Math.round((mySub.marks / (asgn.maxMarks || 100)) * 100)}%)
                                   </span>
                                 ) : isSubmitted ? (
-                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-900 border border-blue-200">
-                                    <FaCheckCircle className="text-blue-600" /> Submitted (Awaiting Teacher Grading)
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                    <FaCheckCircle className="text-blue-600 dark:text-blue-400" /> Submitted (Awaiting Teacher Grading)
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                                     ⏳ Pending Solution Submission
                                   </span>
                                 )}
@@ -2753,21 +2763,21 @@ const CourseDetails = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenTeacherSubmissions(asgn)}
-                                  className="px-3.5 py-1.5 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 rounded-xl text-xs font-black transition cursor-pointer border border-indigo-200 flex items-center gap-1.5"
+                                  className="px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-xl text-xs font-black transition cursor-pointer border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5"
                                 >
                                   <FaClipboardCheck /> Submissions ({asgn.submissionsCount || 0})
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditAssignment(asgn)}
-                                  className="px-3 py-1.5 bg-purple-50 text-purple-800 hover:bg-purple-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                                  className="px-3.5 py-1.5 bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 rounded-xl text-xs font-bold transition cursor-pointer border border-purple-200 dark:border-purple-800"
                                 >
                                   Edit
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteAssignment(asgn._id)}
-                                  className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                                  className="px-3.5 py-1.5 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60 rounded-xl text-xs font-bold transition cursor-pointer border border-red-200 dark:border-red-800"
                                 >
                                   Delete
                                 </button>
@@ -2778,7 +2788,7 @@ const CourseDetails = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleOpenFeedbackModal(mySub)}
-                                    className="px-4 py-2 bg-emerald-700 text-white hover:bg-emerald-800 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5"
                                   >
                                     <FaCommentDots /> View Remarks & Feedback
                                   </button>
@@ -2788,7 +2798,7 @@ const CourseDetails = () => {
                                   onClick={() => handleOpenSubmitModal(asgn)}
                                   className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 ${
                                     isSubmitted
-                                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+                                      ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-white'
                                       : 'bg-purple-700 hover:bg-purple-800 text-white'
                                   }`}
                                 >
@@ -2809,25 +2819,25 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 5: QUIZZES & ASSESSMENTS (Expandable) */}
           {/* ========================================================================= */}
-          <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
             <div
               onClick={() => toggleSection('quizzes')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-gray-50/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                <div className="w-10 h-10 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
                   📝
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-extrabold text-base text-gray-900 leading-tight">
+                  <h4 className="font-extrabold text-base text-gray-900 dark:text-white leading-tight">
                     Quizzes & Assessments ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
                   </h4>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">Test your knowledge by attempting weekly interactive quiz assessments.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Test your knowledge by attempting weekly interactive quiz assessments.</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
-                <span className="bg-blue-50 text-blue-900 border border-blue-200 text-xs font-black px-2.5 py-1 rounded-xl">
+                <span className="bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-black px-2.5 py-1 rounded-xl">
                   {quizzes.filter(q => {
                     const matchesGrade = q.grade === selectedGrade;
                     const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
@@ -2846,30 +2856,30 @@ const CourseDetails = () => {
                       e.stopPropagation();
                       navigate(`/course/${courseId}/create-quiz`);
                     }}
-                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                   >
                     <FaPlus className="text-[10px]" /> Create Quiz
                   </button>
                 )}
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-xs transition">
+                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
                   {expandedSections.quizzes ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
             </div>
 
             {expandedSections.quizzes && (
-              <div className="p-5 pt-0 border-t border-gray-100 space-y-3 bg-white animate-fadeIn">
+              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900 animate-fadeIn">
                 {quizzes.filter(q => {
                   const matchesGrade = q.grade === selectedGrade;
                   const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
                   return matchesGrade && matchesMonth;
                 }).length === 0 ? (
-                  <div className="py-8 text-center text-gray-400 space-y-1 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                  <div className="py-8 text-center text-gray-400 dark:text-gray-500 space-y-1 bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
                     <p className="text-sm font-semibold">No quizzes available for {selectedGrade} ({selectedMonth}) yet.</p>
                     {isTeacherOrAdmin && (
                       <p
-                        className="text-xs text-blue-600 font-bold cursor-pointer hover:underline mt-1"
+                        className="text-xs text-blue-600 dark:text-blue-400 font-bold cursor-pointer hover:underline mt-1"
                         onClick={() => navigate(`/course/${courseId}/create-quiz`)}
                       >
                         + Click here to create a new quiz assessment
@@ -2884,26 +2894,26 @@ const CourseDetails = () => {
                   }).map((quiz) => {
                     const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
                     return (
-                      <div key={quiz._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 rounded-2xl hover:bg-gray-50/70 transition-all gap-4 bg-white shadow-2xs">
+                      <div key={quiz._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 dark:border-slate-800 rounded-2xl hover:bg-gray-50/70 dark:hover:bg-slate-800/70 transition-all gap-4 bg-white dark:bg-slate-800/80 shadow-2xs">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-2xl bg-yellow-100 text-yellow-700 text-xl flex items-center justify-center font-bold shrink-0 shadow-inner">
+                          <div className="w-10 h-10 rounded-2xl bg-yellow-100 dark:bg-yellow-950/60 text-yellow-700 dark:text-yellow-300 text-xl flex items-center justify-center font-bold shrink-0 shadow-inner">
                             📝
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-extrabold text-gray-900 text-sm truncate">{quiz.title}</p>
+                              <p className="font-extrabold text-gray-900 dark:text-white text-sm truncate">{quiz.title}</p>
                               {quiz.weekNumber !== undefined && quiz.weekNumber > 0 && (
-                                <span className="bg-purple-50 text-purple-700 text-[10px] font-extrabold px-2 py-0.5 rounded border border-purple-200">
+                                <span className="bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
                                   Week {quiz.weekNumber}
                                 </span>
                               )}
                               {!quiz.isActive && (
-                                <span className="bg-gray-100 text-gray-600 text-[10px] font-extrabold px-2 py-0.5 rounded border border-gray-200">
+                                <span className="bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-gray-200 dark:border-slate-600">
                                   Inactive
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               Questions: {quiz.questions?.length} · Time: {quiz.timeLimit > 0 ? `${quiz.timeLimit} mins` : 'No limit'} · Pass Mark: {quiz.passingPercentage || 50}%
                             </p>
                           </div>
@@ -2915,27 +2925,27 @@ const CourseDetails = () => {
                               <button
                                 onClick={() => handleToggleQuizActive(quiz._id)}
                                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${quiz.isActive
-                                    ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
-                                    : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
+                                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800'
+                                    : 'bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60 border border-green-200 dark:border-green-800'
                                   }`}
                               >
                                 {quiz.isActive ? 'Deactivate' : 'Activate'}
                               </button>
                               <button
                                 onClick={() => navigate(`/course/${courseId}/quiz/${quiz._id}/edit`)}
-                                className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border border-purple-200"
+                                className="bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border border-purple-200 dark:border-purple-800"
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => navigate(`/quiz/${quiz._id}/submissions`)}
-                                className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border border-blue-200"
+                                className="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border border-blue-200 dark:border-blue-800"
                               >
                                 Submissions
                               </button>
                               <button
                                 onClick={() => handleDeleteQuiz(quiz._id)}
-                                className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border border-red-200"
+                                className="bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border border-red-200 dark:border-red-800"
                               >
                                 Delete
                               </button>
@@ -2944,12 +2954,12 @@ const CourseDetails = () => {
                             <>
                               {quiz.hasAttempted ? (
                                 <div className="flex items-center gap-3">
-                                  <span className="text-xs font-bold text-gray-500">
-                                    Score: <strong className="text-purple-600">{quiz.score}</strong> / {quiz.totalPoints}
+                                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                                    Score: <strong className="text-purple-600 dark:text-purple-400">{quiz.score}</strong> / {quiz.totalPoints}
                                   </span>
                                   <button
                                     onClick={() => navigate(`/quiz/${quiz._id}/take`)}
-                                    className="bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer"
+                                    className="bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/60 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer"
                                   >
                                     Review Answers
                                   </button>
@@ -2978,17 +2988,17 @@ const CourseDetails = () => {
 
       {showStudentPicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-6xl h-[650px] rounded-3xl bg-white p-6 shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-fadeIn">
+          <div className="w-full max-w-6xl h-[650px] rounded-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-6 shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-slate-800 animate-fadeIn">
             {/* Modal Header */}
-            <div className="mb-4 flex items-center justify-between border-b pb-4">
+            <div className="mb-4 flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-4">
               <div>
-                <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">{selectedEnrollGrade && (selectedEnrollGrade.toLowerCase().startsWith('grade') ? selectedEnrollGrade : `Grade ${selectedEnrollGrade}`)} Student Management</h3>
-                <p className="text-sm text-gray-500">Manage enrollment, view real-time class attendance, and monitor fee payments.</p>
+                <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{selectedEnrollGrade && (selectedEnrollGrade.toLowerCase().startsWith('grade') ? selectedEnrollGrade : `Grade ${selectedEnrollGrade}`)} Student Management</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Manage enrollment, view real-time class attendance, and monitor fee payments.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowStudentPicker(false)}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+                className="rounded-xl border border-gray-300 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 Close Dashboard
               </button>
@@ -2998,7 +3008,7 @@ const CourseDetails = () => {
             <div className="flex-1 flex overflow-hidden">
 
               {/* LEFT PANE: Student List & Search & Filters */}
-              <div className="w-5/12 flex flex-col border-r border-gray-150 pr-4 overflow-hidden">
+              <div className="w-5/12 flex flex-col border-r border-gray-150 dark:border-slate-800 pr-4 overflow-hidden">
                 {/* Search Bar */}
                 <div className="relative">
                   <input
@@ -3006,7 +3016,7 @@ const CourseDetails = () => {
                     value={pickerSearchQuery}
                     onChange={(e) => setPickerSearchQuery(e.target.value)}
                     placeholder="Search name or registration number..."
-                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm"
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm"
                   />
                   <div className="absolute left-3 top-1/2 -translate-y-1/2">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3016,25 +3026,25 @@ const CourseDetails = () => {
                 </div>
 
                 {/* Quick Filters */}
-                <div className="grid grid-cols-3 gap-1.5 mt-3 bg-gray-100 p-1 rounded-xl text-xs font-bold text-gray-600">
+                <div className="grid grid-cols-3 gap-1.5 mt-3 bg-gray-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300">
                   <button
                     type="button"
                     onClick={() => setPickerFilter("all")}
-                    className={`py-1.5 rounded-lg transition-all ${pickerFilter === "all" ? "bg-white text-purple-700 shadow-sm" : "hover:text-gray-900"}`}
+                    className={`py-1.5 rounded-lg transition-all cursor-pointer ${pickerFilter === "all" ? "bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm" : "hover:text-gray-900 dark:hover:text-white"}`}
                   >
                     All
                   </button>
                   <button
                     type="button"
                     onClick={() => setPickerFilter("due")}
-                    className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 ${pickerFilter === "due" ? "bg-white text-red-600 shadow-sm" : "hover:text-red-600"}`}
+                    className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${pickerFilter === "due" ? "bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 shadow-sm" : "hover:text-red-600 dark:hover:text-red-400"}`}
                   >
                     Due Fees
                   </button>
                   <button
                     type="button"
                     onClick={() => setPickerFilter("absent")}
-                    className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 ${pickerFilter === "absent" ? "bg-white text-orange-600 shadow-sm" : "hover:text-orange-600"}`}
+                    className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${pickerFilter === "absent" ? "bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 shadow-sm" : "hover:text-orange-600 dark:hover:text-orange-400"}`}
                   >
                     Abs. &gt;2 Days
                   </button>
@@ -3042,26 +3052,27 @@ const CourseDetails = () => {
 
                 {/* Student Scroll List */}
                 {isLoadingGradeStudents ? (
-                  <div className="flex-1 flex items-center justify-center text-sm text-gray-500">Loading grade list...</div>
+                  <div className="flex-1 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">Loading grade list...</div>
                 ) : (
                   <div className="flex-1 overflow-y-auto space-y-4 mt-4 pr-1">
                     {/* Section 1: Enrolled Students */}
                     <div>
-                      <div className="bg-purple-100/80 text-purple-900 font-bold px-3 py-2 rounded-xl text-xs flex justify-between items-center mb-2 sticky top-0 z-10 border border-purple-200">
+                      <div className="bg-purple-100/80 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 font-bold px-3 py-2 rounded-xl text-xs flex justify-between items-center mb-2 sticky top-0 z-10 border border-purple-200 dark:border-purple-800">
                         <span>Enrolled Students ({filteredPickerStudents.filter(s => s.isEnrolled).length})</span>
                       </div>
 
                       <div className="space-y-2">
                         {filteredPickerStudents.filter(s => s.isEnrolled).length === 0 ? (
-                          <p className="text-xs text-gray-400 italic pl-3">No students currently enrolled in this grade.</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 italic pl-3">No students currently enrolled in this grade.</p>
                         ) : (
                           filteredPickerStudents.filter(s => s.isEnrolled).map((student) => (
                             <div
                               key={student._id}
-                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${selectedStudentDetail?._id === student._id
-                                  ? "bg-purple-50/70 border-purple-300 shadow-sm"
-                                  : "bg-white border-gray-150 hover:bg-gray-50"
-                                }`}
+                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
+                                selectedStudentDetail?._id === student._id
+                                  ? "bg-purple-50/70 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800 shadow-sm"
+                                  : "bg-white dark:bg-slate-800 border-gray-150 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/60"
+                              }`}
                             >
                               {user?.role === 'admin' && (
                                 <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
@@ -3075,24 +3086,23 @@ const CourseDetails = () => {
                                           : [...prev, student._id]
                                       );
                                     }}
-                                    className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                    className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 text-purple-600 focus:ring-purple-500 cursor-pointer"
                                   />
                                 </div>
                               )}
 
                               <div className="flex-1 min-w-0" onClick={() => setSelectedStudentDetail(student)}>
-                                <p className="font-semibold text-gray-905 text-sm truncate">{student.name}</p>
-                                <p className="text-[11px] text-gray-500 truncate">Reg: {student.registrationNumber || 'N/A'}</p>
-
+                                <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{student.name}</p>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">Reg: {student.registrationNumber || 'N/A'}</p>
                                 <div className="flex flex-wrap gap-1 mt-1 text-[9px] font-extrabold uppercase">
-                                  <span className="px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                                  <span className="px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                                     Enrolled
                                   </span>
-                                  <span className={`px-1.5 py-0.5 rounded-full ${student.payment?.status === "Due" ? "bg-red-50 text-red-700 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
+                                  <span className={`px-1.5 py-0.5 rounded-full ${student.payment?.status === "Due" ? "bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800" : "bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800"}`}>
                                     {student.payment?.status || "Paid"}
                                   </span>
                                   {student.attendance?.isChronicallyAbsent && (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold border border-red-200 animate-pulse">
+                                    <span className="px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 font-bold border border-red-200 dark:border-red-800 animate-pulse">
                                       Absent &gt;2 Days
                                     </span>
                                   )}
@@ -3106,21 +3116,22 @@ const CourseDetails = () => {
 
                     {/* Section 2: Available Students (Not Enrolled) */}
                     <div>
-                      <div className="bg-gray-100 text-gray-700 font-bold px-3 py-2 rounded-xl text-xs flex justify-between items-center mb-2 sticky top-0 z-10 border border-gray-200">
+                      <div className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-bold px-3 py-2 rounded-xl text-xs flex justify-between items-center mb-2 sticky top-0 z-10 border border-gray-200 dark:border-slate-700">
                         <span>Available Students ({filteredPickerStudents.filter(s => !s.isEnrolled).length})</span>
                       </div>
 
                       <div className="space-y-2">
                         {filteredPickerStudents.filter(s => !s.isEnrolled).length === 0 ? (
-                          <p className="text-xs text-gray-400 italic pl-3">No additional students available in this grade.</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 italic pl-3">No additional students available in this grade.</p>
                         ) : (
                           filteredPickerStudents.filter(s => !s.isEnrolled).map((student) => (
                             <div
                               key={student._id}
-                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${selectedStudentDetail?._id === student._id
-                                  ? "bg-purple-50/70 border-purple-300 shadow-sm"
-                                  : "bg-white border-gray-150 hover:bg-gray-50"
-                                }`}
+                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
+                                selectedStudentDetail?._id === student._id
+                                  ? "bg-purple-50/70 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800 shadow-sm"
+                                  : "bg-white dark:bg-slate-800 border-gray-150 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/60"
+                              }`}
                             >
                               {user?.role === 'admin' && (
                                 <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
@@ -3134,24 +3145,23 @@ const CourseDetails = () => {
                                           : [...prev, student._id]
                                       );
                                     }}
-                                    className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                    className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 text-purple-600 focus:ring-purple-500 cursor-pointer"
                                   />
                                 </div>
                               )}
 
                               <div className="flex-1 min-w-0" onClick={() => setSelectedStudentDetail(student)}>
-                                <p className="font-semibold text-gray-905 text-sm truncate">{student.name}</p>
-                                <p className="text-[11px] text-gray-500 truncate">Reg: {student.registrationNumber || 'N/A'}</p>
-
+                                <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{student.name}</p>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">Reg: {student.registrationNumber || 'N/A'}</p>
                                 <div className="flex flex-wrap gap-1 mt-1 text-[9px] font-extrabold uppercase">
-                                  <span className="px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-200">
+                                  <span className="px-1.5 py-0.5 rounded-full bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-700">
                                     Not Enrolled
                                   </span>
-                                  <span className={`px-1.5 py-0.5 rounded-full ${student.payment?.status === "Due" ? "bg-red-50 text-red-700 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
+                                  <span className={`px-1.5 py-0.5 rounded-full ${student.payment?.status === "Due" ? "bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800" : "bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800"}`}>
                                     {student.payment?.status || "Paid"}
                                   </span>
                                   {student.attendance?.isChronicallyAbsent && (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold border border-red-200 animate-pulse">
+                                    <span className="px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 font-bold border border-red-200 dark:border-red-800 animate-pulse">
                                       Absent &gt;2 Days
                                     </span>
                                   )}
@@ -3167,14 +3177,14 @@ const CourseDetails = () => {
 
                 {/* Batch Action Buttons Panel (Admin only) */}
                 {user?.role === 'admin' && (
-                  <div className="pt-4 border-t flex flex-col gap-2 mt-auto">
-                    <div className="flex justify-between items-center text-xs text-gray-500 font-semibold px-1">
+                  <div className="pt-4 border-t border-gray-200 dark:border-slate-800 flex flex-col gap-2 mt-auto">
+                    <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 font-semibold px-1">
                       <span>{selectedStudentIds.length} Selected for Batch Actions</span>
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => setSelectedStudentIds(gradeStudents.map((s) => s._id))}
-                          className="text-purple-600 hover:underline cursor-pointer"
+                          className="text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
                         >
                           Select All
                         </button>
@@ -3182,7 +3192,7 @@ const CourseDetails = () => {
                         <button
                           type="button"
                           onClick={() => setSelectedStudentIds([])}
-                          className="text-purple-600 hover:underline cursor-pointer"
+                          className="text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
                         >
                           Clear
                         </button>
@@ -3213,27 +3223,27 @@ const CourseDetails = () => {
               {/* RIGHT PANE: Selected Student Detailed Overview */}
               <div className="w-7/12 flex flex-col pl-6 overflow-hidden">
                 {!selectedStudentDetail ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gray-50 dark:bg-slate-800/60 rounded-2xl border border-dashed border-gray-200 dark:border-slate-700">
                     <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    <h4 className="font-bold text-gray-700">No Student Selected</h4>
+                    <h4 className="font-bold text-gray-700 dark:text-gray-200">No Student Selected</h4>
                     <p className="text-xs text-gray-400 mt-1 max-w-xs">Click on any student card in the list to inspect their attendance history and billing records.</p>
                   </div>
                 ) : (
                   <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Header Detail Card */}
-                    <div className="bg-gray-50 border border-gray-150 p-4 rounded-2xl flex items-center justify-between gap-4">
+                    <div className="bg-gray-50 dark:bg-slate-800/80 border border-gray-150 dark:border-slate-700 p-4 rounded-2xl flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-12 h-12 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-extrabold text-lg shrink-0">
+                        <div className="w-12 h-12 bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 rounded-full flex items-center justify-center font-extrabold text-lg shrink-0 border border-purple-200 dark:border-purple-800">
                           {selectedStudentDetail.name.charAt(0)}
                         </div>
                         <div className="min-w-0">
-                          <h4 className="font-bold text-gray-900 text-base leading-tight truncate">{selectedStudentDetail.name}</h4>
-                          <p className="text-xs text-gray-500 font-medium">Reg No: {selectedStudentDetail.registrationNumber || 'N/A'}</p>
+                          <h4 className="font-bold text-gray-900 dark:text-white text-base leading-tight truncate">{selectedStudentDetail.name}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Reg No: {selectedStudentDetail.registrationNumber || 'N/A'}</p>
                           <p className="text-xs text-gray-400 truncate">{selectedStudentDetail.email}</p>
                           {selectedStudentDetail.parentsPhoneNumber && (
-                            <p className="text-[11px] text-purple-600 font-semibold mt-0.5 flex items-center gap-1">
+                            <p className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold mt-0.5 flex items-center gap-1">
                               <svg className="w-3 h-3 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h2.28a1 1 0 01.63.23l2.87 2.87a1 1 0 01-.18 1.54l-1.31.87a11.03 11.03 0 005.47 5.47l.87-1.31a1 1 0 011.54-.18l2.87 2.87a1 1 0 01.23.63V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                               </svg>
@@ -3251,7 +3261,7 @@ const CourseDetails = () => {
                               type="button"
                               onClick={() => handleSingleStudentEnrollRemove('remove', selectedStudentDetail._id)}
                               disabled={isUpdatingGradeStudents}
-                              className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer"
+                              className="bg-red-50 dark:bg-red-950/60 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800 text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer"
                             >
                               Remove
                             </button>
@@ -3270,12 +3280,13 @@ const CourseDetails = () => {
                     </div>
 
                     {/* Tab Navigation */}
-                    <div className="flex border-b border-gray-200 mt-4 text-xs font-bold uppercase tracking-wider text-gray-500">
+                    <div className="flex border-b border-gray-200 dark:border-slate-800 mt-4 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                       <button
                         type="button"
                         onClick={() => setStudentDetailTab("attendance")}
-                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${studentDetailTab === "attendance" ? "border-purple-600 text-purple-700 font-extrabold" : "border-transparent hover:text-gray-700"
-                          }`}
+                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                          studentDetailTab === "attendance" ? "border-purple-600 text-purple-700 dark:text-purple-400 font-extrabold" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300"
+                        }`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -3285,8 +3296,9 @@ const CourseDetails = () => {
                       <button
                         type="button"
                         onClick={() => setStudentDetailTab("payments")}
-                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${studentDetailTab === "payments" ? "border-purple-600 text-purple-700 font-extrabold" : "border-transparent hover:text-gray-700"
-                          }`}
+                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                          studentDetailTab === "payments" ? "border-purple-600 text-purple-700 dark:text-purple-400 font-extrabold" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300"
+                        }`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -3303,7 +3315,7 @@ const CourseDetails = () => {
                         <div className="space-y-4">
                           {/* Alert Notice for high absences */}
                           {selectedStudentDetail.attendance?.isChronicallyAbsent && (
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 flex gap-2.5 text-red-800 text-xs animate-pulse">
+                            <div className="bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 rounded-xl p-3.5 flex gap-2.5 text-red-800 dark:text-red-300 text-xs animate-pulse">
                               <svg className="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                               </svg>
@@ -3316,38 +3328,39 @@ const CourseDetails = () => {
 
                           {/* Quick Stats */}
                           <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-center">
-                              <p className="text-[10px] text-green-700 font-extrabold uppercase tracking-wider">Attended Sessions</p>
-                              <p className="text-xl font-black text-green-800 mt-0.5">{selectedStudentDetail.attendance?.totalPresent || 0}</p>
+                            <div className="bg-green-50 dark:bg-green-950/60 border border-green-100 dark:border-green-800 rounded-xl p-3 text-center">
+                              <p className="text-[10px] text-green-700 dark:text-green-300 font-extrabold uppercase tracking-wider">Attended Sessions</p>
+                              <p className="text-xl font-black text-green-800 dark:text-green-200 mt-0.5">{selectedStudentDetail.attendance?.totalPresent || 0}</p>
                             </div>
-                            <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-center">
-                              <p className="text-[10px] text-red-700 font-extrabold uppercase tracking-wider">Absent Sessions</p>
-                              <p className="text-xl font-black text-red-800 mt-0.5">{selectedStudentDetail.attendance?.totalAbsent || 0}</p>
+                            <div className="bg-red-50 dark:bg-red-950/60 border border-red-100 dark:border-red-800 rounded-xl p-3 text-center">
+                              <p className="text-[10px] text-red-700 dark:text-red-300 font-extrabold uppercase tracking-wider">Absent Sessions</p>
+                              <p className="text-xl font-black text-red-800 dark:text-red-200 mt-0.5">{selectedStudentDetail.attendance?.totalAbsent || 0}</p>
                             </div>
                           </div>
 
                           {/* History Table */}
-                          <div className="rounded-xl border border-gray-150 overflow-hidden">
-                            <table className="min-w-full divide-y divide-gray-200 text-left text-xs">
-                              <thead className="bg-gray-50 font-bold uppercase tracking-wider text-gray-500 border-b">
+                          <div className="rounded-xl border border-gray-150 dark:border-slate-800 overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 text-left text-xs">
+                              <thead className="bg-gray-50 dark:bg-slate-800 font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-slate-700">
                                 <tr>
                                   <th className="p-3">Session Date</th>
                                   <th className="p-3 text-right">Status</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-gray-150 text-gray-700">
+                              <tbody className="divide-y divide-gray-150 dark:divide-slate-800 text-gray-700 dark:text-gray-300">
                                 {!selectedStudentDetail.attendance?.history || selectedStudentDetail.attendance.history.length === 0 ? (
                                   <tr>
-                                    <td colSpan="2" className="p-6 text-center text-gray-400 italic">No attendance records found for this student.</td>
+                                    <td colSpan="2" className="p-6 text-center text-gray-400 dark:text-gray-500 italic">No attendance records found for this student.</td>
                                   </tr>
                                 ) : (
                                   selectedStudentDetail.attendance.history.map((record, index) => (
-                                    <tr key={index} className="hover:bg-gray-50/50 transition-colors">
-                                      <td className="p-3 font-semibold text-gray-800">{new Date(record.date).toLocaleDateString()}</td>
+                                    <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                      <td className="p-3 font-semibold text-gray-800 dark:text-gray-200">{new Date(record.date).toLocaleDateString()}</td>
                                       <td className="p-3 text-right whitespace-nowrap">
-                                        <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${record.status === 'Present' ? 'bg-green-100 text-green-800' :
-                                            'bg-red-100 text-red-800'
-                                          }`}>
+                                        <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
+                                          record.status === 'Present' ? 'bg-green-100 dark:bg-green-950/80 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800' :
+                                          'bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
+                                        }`}>
                                           {record.status}
                                         </span>
                                       </td>
@@ -3365,49 +3378,49 @@ const CourseDetails = () => {
                         <div className="space-y-4">
                           {/* Alert Notice for overdue bills */}
                           {selectedStudentDetail.payment?.status === "Due" ? (
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 flex gap-2.5 text-red-800 text-xs">
+                            <div className="bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 rounded-xl p-3.5 flex gap-2.5 text-red-800 dark:text-red-300 text-xs">
                               <svg className="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               <div>
-                                <p className="font-bold text-red-800">Fees Pending Alert</p>
-                                <p className="mt-0.5 font-semibold text-red-700">
+                                <p className="font-bold text-red-800 dark:text-red-300">Fees Pending Alert</p>
+                                <p className="mt-0.5 font-semibold text-red-700 dark:text-red-400">
                                   Course Tuition Fees of LKR {selectedStudentDetail.payment.amountDue.toLocaleString()}.00 are UNPAID for this course.
                                 </p>
                               </div>
                             </div>
                           ) : (
-                            <div className="bg-green-50 border border-green-200 rounded-xl p-3.5 flex gap-2.5 text-green-800 text-xs">
+                            <div className="bg-green-50 dark:bg-green-950/60 border border-green-200 dark:border-green-800 rounded-xl p-3.5 flex gap-2.5 text-green-800 dark:text-green-300 text-xs">
                               <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               <div>
-                                <p className="font-bold">Account Good Standing</p>
+                                <p className="font-bold text-green-800 dark:text-green-200">Account Good Standing</p>
                                 <p className="mt-0.5 font-medium">Course payment for this student is fully settled and active.</p>
                               </div>
                             </div>
                           )}
 
                           {/* Payment Ledger */}
-                          <div className="rounded-xl border border-gray-150 overflow-hidden">
-                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-150 flex justify-between items-center">
-                              <h5 className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Transaction History Log</h5>
-                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Live Office Ledger</span>
+                          <div className="rounded-xl border border-gray-150 dark:border-slate-800 overflow-hidden">
+                            <div className="bg-gray-50 dark:bg-slate-800 px-4 py-3 border-b border-gray-150 dark:border-slate-700 flex justify-between items-center">
+                              <h5 className="text-[10px] font-extrabold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Transaction History Log</h5>
+                              <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Live Office Ledger</span>
                             </div>
-                            <div className="divide-y divide-gray-150 text-xs">
+                            <div className="divide-y divide-gray-150 dark:divide-slate-800 text-xs">
                               {!selectedStudentDetail.payment?.history || selectedStudentDetail.payment.history.length === 0 ? (
-                                <div className="p-6 text-center text-gray-400 italic">No payment receipts logged for this student yet.</div>
+                                <div className="p-6 text-center text-gray-400 dark:text-gray-500 italic">No payment receipts logged for this student yet.</div>
                               ) : (
                                 selectedStudentDetail.payment.history.map((invoice, index) => (
-                                  <div key={index} className="p-3 flex justify-between items-center hover:bg-gray-50/50">
+                                  <div key={index} className="p-3 flex justify-between items-center hover:bg-gray-50/50 dark:hover:bg-slate-800/50">
                                     <div>
-                                      <p className="font-bold text-gray-800">LKR {invoice.amount.toLocaleString()}.00 - {invoice.courseTitle}</p>
-                                      <p className="text-[10px] text-purple-700 font-mono mt-0.5">
+                                      <p className="font-bold text-gray-800 dark:text-white">LKR {invoice.amount.toLocaleString()}.00 - {invoice.courseTitle}</p>
+                                      <p className="text-[10px] text-purple-700 dark:text-purple-400 font-mono mt-0.5">
                                         Receipt: {invoice.transactionId} • Method: {invoice.paymentMethod} ({invoice.status})
                                       </p>
                                     </div>
                                     <div className="text-right">
-                                      <span className="text-gray-500 font-semibold">{invoice.date}</span>
+                                      <span className="text-gray-500 dark:text-gray-400 font-semibold">{invoice.date}</span>
                                     </div>
                                   </div>
                                 ))
@@ -3430,16 +3443,16 @@ const CourseDetails = () => {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Course</h3>
-            <p className="text-gray-500 text-sm mb-6 animate-pulse-subtle">
-              Are you sure you want to delete the course <strong className="text-gray-800">"{course?.title}"</strong>? This will permanently delete the course and all related lessons and file assets.
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-6 shadow-2xl transition-all border border-gray-100 dark:border-slate-800">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Delete Course</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 animate-pulse-subtle">
+              Are you sure you want to delete the course <strong className="text-gray-800 dark:text-white">"{course?.title}"</strong>? This will permanently delete the course and all related lessons and file assets.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="rounded-xl border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                className="rounded-xl border border-gray-300 dark:border-slate-700 px-5 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -3447,7 +3460,7 @@ const CourseDetails = () => {
                 type="button"
                 onClick={handleDeleteCourse}
                 disabled={isDeleting}
-                className="rounded-xl bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-50"
+                className="rounded-xl bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-50 cursor-pointer shadow-sm"
               >
                 {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
@@ -3459,14 +3472,14 @@ const CourseDetails = () => {
       {/* Delete Success Modal */}
       {showDeleteSuccess && (
         <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl text-center border border-gray-100">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600 mb-4 animate-bounce-subtle">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-6 shadow-2xl text-center border border-gray-100 dark:border-slate-800">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-950/80 text-green-600 dark:text-green-300 mb-4 animate-bounce-subtle border border-green-200 dark:border-green-800">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Course Deleted</h3>
-            <p className="text-gray-500 text-sm mb-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Course Deleted</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
               {deleteSuccessMsg || "The course has been successfully deleted."}
             </p>
             <button
@@ -3475,7 +3488,7 @@ const CourseDetails = () => {
                 setShowDeleteSuccess(false);
                 window.location.href = '/courses';
               }}
-              className="w-full rounded-xl bg-purple-600 py-2.5 text-sm font-semibold text-white hover:bg-purple-700 transition"
+              className="w-full rounded-xl bg-purple-600 hover:bg-purple-700 py-2.5 text-sm font-semibold text-white transition shadow-sm cursor-pointer"
             >
               OK
             </button>
@@ -3486,27 +3499,28 @@ const CourseDetails = () => {
       {/* Grade Deactivation / Activation Confirmation Modal */}
       {deactivateConfirmGrade && (
         <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-purple-100 space-y-4 animate-in fade-in zoom-in duration-200">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-6 sm:p-7 shadow-2xl border border-purple-100 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3.5">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-md ${deactivateConfirmGrade.isDeactive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
-                }`}>
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-md ${
+                deactivateConfirmGrade.isDeactive ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-300'
+              }`}>
                 {deactivateConfirmGrade.isDeactive ? <FaLockOpen /> : <FaLock />}
               </div>
               <div>
-                <h3 className="text-base font-black text-gray-900">
+                <h3 className="text-base font-black text-gray-900 dark:text-white">
                   Confirm {deactivateConfirmGrade.isDeactive ? 'Activation' : 'Deactivation'}
                 </h3>
-                <p className="text-xs text-gray-500 font-medium mt-0.5">
-                  Grade Stream: <span className="font-extrabold text-purple-900">{deactivateConfirmGrade.title || deactivateConfirmGrade.gradeNumber}</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                  Grade Stream: <span className="font-extrabold text-purple-900 dark:text-purple-300">{deactivateConfirmGrade.title || deactivateConfirmGrade.gradeNumber}</span>
                 </p>
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200/80 text-xs font-semibold text-gray-700 leading-relaxed">
+            <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-2xl border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-300 leading-relaxed">
               {deactivateConfirmGrade.isDeactive ? (
-                <span>Are you sure you want to <strong className="text-emerald-700">activate</strong> this grade stream? Students and teachers will be able to access all lessons and workspace announcements.</span>
+                <span>Are you sure you want to <strong className="text-emerald-700 dark:text-emerald-300">activate</strong> this grade stream? Students and teachers will be able to access all lessons and workspace announcements.</span>
               ) : (
-                <span>Are you sure you want to <strong className="text-red-600">deactivate</strong> this grade stream? Deactivating will lock this grade stream and restrict access for non-admin users.</span>
+                <span>Are you sure you want to <strong className="text-red-600 dark:text-red-400">deactivate</strong> this grade stream? Deactivating will lock this grade stream and restrict access for non-admin users.</span>
               )}
             </div>
 
@@ -3514,7 +3528,7 @@ const CourseDetails = () => {
               <button
                 type="button"
                 onClick={() => setDeactivateConfirmGrade(null)}
-                className="px-4 py-2.5 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
+                className="px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition cursor-pointer border border-transparent dark:border-slate-700"
               >
                 Cancel
               </button>
@@ -3582,16 +3596,16 @@ const CourseDetails = () => {
       {/* Add Grade Modal */}
       {showAddGrade && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-gray-100 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-6 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
               <div>
-                <h3 className="text-lg font-extrabold text-gray-900">Add Grade Assignment</h3>
-                <p className="text-xs text-gray-500">Select a grade or combination to access this course.</p>
+                <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">Add Grade Assignment</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Select a grade or combination to access this course.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddGrade(false)}
-                className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+                className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 ✕
               </button>
@@ -3599,19 +3613,19 @@ const CourseDetails = () => {
 
             <form onSubmit={handleAddGrade} className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <label className="text-xs font-bold text-gray-700">Assignment Mode</label>
-                <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Assignment Mode</label>
+                <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-xl gap-1">
                   <button
                     type="button"
                     onClick={() => { setGradeMode('single'); setCombinationGrades([]); setCustomGradeInput(''); }}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer ${gradeMode === 'single' ? 'bg-[#2d1b64] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'}`}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer ${gradeMode === 'single' ? 'bg-[#2d1b64] dark:bg-lumina-purple text-white shadow-xs' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
                   >
                     Single Grade
                   </button>
                   <button
                     type="button"
                     onClick={() => { setGradeMode('combination'); setNewGradeNumber(''); }}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer ${gradeMode === 'combination' ? 'bg-[#2d1b64] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'}`}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer ${gradeMode === 'combination' ? 'bg-[#2d1b64] dark:bg-lumina-purple text-white shadow-xs' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
                   >
                     Combination Grade
                   </button>
@@ -3620,23 +3634,23 @@ const CourseDetails = () => {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Grade Title</label>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Grade Title</label>
                   <input
                     value={newGradeTitle}
                     onChange={(e) => setNewGradeTitle(e.target.value)}
                     placeholder="e.g. Grade 8 or Theory Class"
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                    className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-white px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
                     required
                   />
                 </div>
 
                 {gradeMode === 'single' ? (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Select Grade</label>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Select Grade</label>
                     <select
                       value={newGradeNumber}
                       onChange={(e) => setNewGradeNumber(e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                      className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-white px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
                       required
                     >
                       <option value="">Choose grade</option>
@@ -3647,12 +3661,12 @@ const CourseDetails = () => {
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Custom Combination Name</label>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Custom Combination Name</label>
                     <input
                       value={customGradeInput}
                       onChange={(e) => setCustomGradeInput(e.target.value)}
                       placeholder="e.g. Grade 10 & 11"
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                      className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-white px-3.5 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
                     />
                   </div>
                 )}
@@ -3660,12 +3674,12 @@ const CourseDetails = () => {
 
               {gradeMode === 'combination' && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Select Grades to Combine</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 max-h-36 overflow-y-auto">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Select Grades to Combine</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700 max-h-36 overflow-y-auto">
                     {allGrades.map((g) => {
                       const isChecked = combinationGrades.includes(g);
                       return (
-                        <label key={g} className={`flex items-center gap-2 p-1.5 rounded-lg text-xs font-medium cursor-pointer transition ${isChecked ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'hover:bg-gray-100 text-gray-700'}`}>
+                        <label key={g} className={`flex items-center gap-2 p-1.5 rounded-lg text-xs font-medium cursor-pointer transition ${isChecked ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800' : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300'}`}>
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -3684,24 +3698,24 @@ const CourseDetails = () => {
                     })}
                   </div>
                   {combinationGrades.length > 0 && (
-                    <p className="mt-1.5 text-xs text-purple-700 font-semibold">
+                    <p className="mt-1.5 text-xs text-purple-700 dark:text-purple-400 font-semibold">
                       Combined Result: <span className="underline">{combinationGrades.join(' & ')}</span>
                     </p>
                   )}
                 </div>
               )}
 
-              <div className="flex justify-end gap-2.5 pt-2 border-t border-gray-100">
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowAddGrade(false)}
-                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer"
+                  className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-[#2d1b64] px-5 py-2 text-sm font-semibold text-white hover:bg-purple-900 transition shadow-xs cursor-pointer"
+                  className="rounded-xl bg-[#2d1b64] dark:bg-lumina-purple px-5 py-2 text-sm font-semibold text-white hover:bg-purple-900 transition shadow-xs cursor-pointer"
                 >
                   Save Grade Assignment
                 </button>
@@ -3714,23 +3728,23 @@ const CourseDetails = () => {
       {/* Live Stream Setup & Management Modal */}
       {showLiveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-gray-100 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-6 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#FF0000] to-[#CC0000] text-white flex items-center justify-center shadow-md shadow-red-500/20 shrink-0">
                   <FaYoutube className="text-2xl" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-gray-900">
+                  <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">
                     {currentLesson?.liveStream?.isLive ? 'Manage Active Live Class' : 'Start YouTube Live Class'}
                   </h3>
-                  <p className="text-xs text-gray-500 font-medium">Grade: {selectedGrade} • {course?.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Grade: {selectedGrade} • {course?.title}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowLiveModal(false)}
-                className="rounded-xl p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+                className="rounded-xl p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 ✕
               </button>
@@ -3738,18 +3752,18 @@ const CourseDetails = () => {
 
             <form onSubmit={handleStartLiveStream} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Live Class Title (Optional)</label>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Live Class Title (Optional)</label>
                 <input
                   type="text"
                   value={liveStreamTitle}
                   onChange={(e) => setLiveStreamTitle(e.target.value)}
                   placeholder="e.g. Unit 4 Live Revision Class"
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 font-medium"
+                  className="w-full rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-white px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
                   <span>YouTube Live Stream Link or Video ID <span className="text-red-500">*</span></span>
                   <span className="text-[10px] text-red-600 font-extrabold uppercase">Required</span>
                 </label>
@@ -3759,19 +3773,19 @@ const CourseDetails = () => {
                     value={liveYoutubeUrl}
                     onChange={(e) => setLiveYoutubeUrl(e.target.value)}
                     placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtu.be/..."
-                    className="w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 font-medium"
+                    className="w-full rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-white pl-10 pr-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 font-medium"
                     required
                   />
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-red-600">
                     <FaYoutube className="text-lg" />
                   </div>
                 </div>
-                <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
                   💡 Tip: Set your YouTube Live Stream to <strong>Unlisted</strong> on YouTube Studio so only enrolled students inside LuminaLearn can access it.
                 </p>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-slate-800 gap-2">
                 {currentLesson?.liveStream?.isLive ? (
                   <button
                     type="button"
@@ -3788,7 +3802,7 @@ const CourseDetails = () => {
                   <button
                     type="button"
                     onClick={() => setShowLiveModal(false)}
-                    className="rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 cursor-pointer"
+                    className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -3816,30 +3830,30 @@ const CourseDetails = () => {
       {/* ========================================================================= */}
       {showAnnouncementModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3.5">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-5">
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-3.5">
               <div className="flex items-center gap-2.5">
-                <span className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 text-xl flex items-center justify-center font-black">
+                <span className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 text-xl flex items-center justify-center font-black">
                   📢
                 </span>
                 <div>
-                  <h3 className="text-lg font-black text-gray-900">
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white">
                     {currentLesson?.teacherMessage ? 'Update Announcement' : 'Post New Announcement'}
                   </h3>
-                  <p className="text-xs text-gray-500 font-bold">Week {activeWeek} • Grade {selectedGrade}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-bold">Week {activeWeek} • Grade {selectedGrade}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAnnouncementModal(false)}
-                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-3">
-              <label className="block text-xs font-bold text-gray-700">
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
                 Announcement Message <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -3847,26 +3861,26 @@ const CourseDetails = () => {
                 placeholder="Type your message, homework expectations, or classroom notices here..."
                 value={editingMessage}
                 onChange={(e) => setEditingMessage(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-medium text-xs leading-relaxed resize-none"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-purple-600 font-medium text-xs leading-relaxed resize-none"
                 required
               />
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">
                 💡 This announcement will be visible to all enrolled students for Week {activeWeek}.
               </p>
             </div>
 
-            <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+            <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowAnnouncementModal(false)}
-                className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer text-xs"
+                className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-slate-700 transition cursor-pointer text-xs"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveMessage}
-                className="px-6 py-2.5 bg-purple-700 text-white font-black rounded-xl hover:bg-purple-800 transition shadow-md shadow-purple-200 cursor-pointer text-xs"
+                className="px-6 py-2.5 bg-purple-700 text-white font-black rounded-xl hover:bg-purple-800 transition shadow-md shadow-purple-200 dark:shadow-none cursor-pointer text-xs"
               >
                 Save Announcement
               </button>
@@ -3880,59 +3894,59 @@ const CourseDetails = () => {
       {/* ========================================================================= */}
       {showAddVideoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3.5">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-5">
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-3.5">
               <div className="flex items-center gap-2.5">
-                <span className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 text-xl flex items-center justify-center font-black">
+                <span className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xl flex items-center justify-center font-black">
                   🎬
                 </span>
                 <div>
-                  <h3 className="text-lg font-black text-gray-900">Add Video Lesson</h3>
-                  <p className="text-xs text-gray-500 font-bold">Week {activeWeek} • Grade {selectedGrade}</p>
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white">Add Video Lesson</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-bold">Week {activeWeek} • Grade {selectedGrade}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddVideoModal(false)}
-                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleAddVideo} className="space-y-4 text-xs font-bold text-gray-700">
+            <form onSubmit={handleAddVideo} className="space-y-4 text-xs font-bold text-gray-700 dark:text-gray-300">
               <div>
-                <label className="block text-gray-800 mb-1">Video Title <span className="text-red-500">*</span></label>
+                <label className="block text-gray-800 dark:text-gray-200 mb-1">Video Title <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   placeholder="e.g. Unit 3 - Lecture 1 (Theory)"
                   value={videoTitle}
                   onChange={(e) => setVideoTitle(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-emerald-600 font-semibold text-sm"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-emerald-600 font-semibold text-sm"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-gray-800 mb-1">Video Link (YouTube URL or Direct Link) <span className="text-red-500">*</span></label>
+                <label className="block text-gray-800 dark:text-gray-200 mb-1">Video Link (YouTube URL or Direct Link) <span className="text-red-500">*</span></label>
                 <input
                   type="url"
                   placeholder="https://www.youtube.com/watch?v=..."
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-emerald-600 font-medium text-xs"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-emerald-600 font-medium text-xs"
                   required
                 />
               </div>
 
-              <div className="bg-purple-50/60 p-3.5 rounded-2xl border border-purple-100 space-y-2">
-                <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                  <FaDownload className="text-purple-600" /> Student Download Policy:
+              <div className="bg-purple-50/60 dark:bg-slate-800/80 p-3.5 rounded-2xl border border-purple-100 dark:border-slate-700 space-y-2">
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <FaDownload className="text-purple-600 dark:text-purple-400" /> Student Download Policy:
                 </label>
                 <select
                   value={videoDownloadType}
                   onChange={(e) => setVideoDownloadType(e.target.value)}
-                  className="w-full bg-white border border-gray-200 text-xs font-bold text-gray-800 rounded-xl p-2.5 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                  className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-800 dark:text-white rounded-xl p-2.5 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
                 >
                   <option value="immediate">🟢 Immediate Download (Available Now)</option>
                   <option value="one_month">⏳ After 1 Month (30 Days)</option>
@@ -3945,23 +3959,23 @@ const CourseDetails = () => {
                     value={videoCustomUnlockDate}
                     onChange={(e) => setVideoCustomUnlockDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full bg-white border border-purple-200 text-xs font-bold rounded-xl p-2.5 outline-none"
+                    className="w-full bg-white dark:bg-slate-900 border border-purple-200 dark:border-slate-700 text-xs font-bold rounded-xl p-2.5 outline-none text-gray-800 dark:text-white"
                     required
                   />
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowAddVideoModal(false)}
-                  className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer text-xs"
+                  className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-slate-700 transition cursor-pointer text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl transition shadow-md shadow-emerald-200 cursor-pointer text-xs"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl transition shadow-md shadow-emerald-200 dark:shadow-none cursor-pointer text-xs"
                 >
                   + Add Video Lesson
                 </button>
@@ -3976,57 +3990,57 @@ const CourseDetails = () => {
       {/* ========================================================================= */}
       {showAddPdfModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3.5">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-5">
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-3.5">
               <div className="flex items-center gap-2.5">
-                <span className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 text-xl flex items-center justify-center font-black">
+                <span className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 text-xl flex items-center justify-center font-black">
                   📕
                 </span>
                 <div>
-                  <h3 className="text-lg font-black text-gray-900">Upload PDF Note / Material</h3>
-                  <p className="text-xs text-gray-500 font-bold">Week {activeWeek} • Grade {selectedGrade}</p>
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white">Upload PDF Note / Material</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-bold">Week {activeWeek} • Grade {selectedGrade}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddPdfModal(false)}
-                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleUploadPdf} className="space-y-4 text-xs font-bold text-gray-700">
+            <form onSubmit={handleUploadPdf} className="space-y-4 text-xs font-bold text-gray-700 dark:text-gray-300">
               <div>
-                <label className="block text-gray-800 mb-1">Document Title (Optional)</label>
+                <label className="block text-gray-800 dark:text-gray-200 mb-1">Document Title (Optional)</label>
                 <input
                   type="text"
                   placeholder="e.g. Unit 3 - Summary Note & Formulas"
                   value={pdfTitle}
                   onChange={(e) => setPdfTitle(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-semibold text-sm"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-purple-600 font-semibold text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-800 mb-1">PDF File (Max 5MB) <span className="text-red-500">*</span></label>
+                <label className="block text-gray-800 dark:text-gray-200 mb-1">PDF File (Max 5MB) <span className="text-red-500">*</span></label>
                 <input
                   type="file"
                   accept="application/pdf"
                   onChange={(e) => setPdfFile(e.target.files[0])}
-                  className="w-full px-4 py-2.5 bg-gray-50 rounded-2xl border border-gray-200 outline-none text-xs"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none text-xs"
                   required
                 />
               </div>
 
-              <div className="bg-purple-50/60 p-3.5 rounded-2xl border border-purple-100 space-y-2">
-                <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                  <FaDownload className="text-purple-600" /> Student Download Policy:
+              <div className="bg-purple-50/60 dark:bg-slate-800/80 p-3.5 rounded-2xl border border-purple-100 dark:border-slate-700 space-y-2">
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <FaDownload className="text-purple-600 dark:text-purple-400" /> Student Download Policy:
                 </label>
                 <select
                   value={pdfDownloadType}
                   onChange={(e) => setPdfDownloadType(e.target.value)}
-                  className="w-full bg-white border border-gray-200 text-xs font-bold text-gray-800 rounded-xl p-2.5 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                  className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-800 dark:text-white rounded-xl p-2.5 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
                 >
                   <option value="immediate">🟢 Immediate Download (Available Now)</option>
                   <option value="one_month">⏳ After 1 Month (30 Days)</option>
@@ -4039,24 +4053,24 @@ const CourseDetails = () => {
                     value={pdfCustomUnlockDate}
                     onChange={(e) => setPdfCustomUnlockDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full bg-white border border-purple-200 text-xs font-bold rounded-xl p-2.5 outline-none"
+                    className="w-full bg-white dark:bg-slate-900 border border-purple-200 dark:border-slate-700 text-xs font-bold rounded-xl p-2.5 outline-none text-gray-800 dark:text-white"
                     required
                   />
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowAddPdfModal(false)}
-                  className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer text-xs"
+                  className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-slate-700 transition cursor-pointer text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUploadingPdf}
-                  className="px-6 py-2.5 bg-purple-700 hover:bg-purple-800 text-white font-black rounded-xl transition shadow-md shadow-purple-200 cursor-pointer text-xs disabled:opacity-50"
+                  className="px-6 py-2.5 bg-purple-700 hover:bg-purple-800 text-white font-black rounded-xl transition shadow-md shadow-purple-200 dark:shadow-none cursor-pointer text-xs disabled:opacity-50"
                 >
                   {isUploadingPdf ? 'Uploading...' : '+ Upload PDF'}
                 </button>
@@ -4071,59 +4085,59 @@ const CourseDetails = () => {
       {/* ========================================================================= */}
       {showAssignmentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto space-y-6">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-2.5">
-                <span className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 text-xl flex items-center justify-center font-black">
+                <span className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 text-xl flex items-center justify-center font-black">
                   📑
                 </span>
                 <div>
-                  <h3 className="text-xl font-black text-gray-900">
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white">
                     {editingAssignment ? 'Edit Homework Assignment' : 'Create New Class Assignment'}
                   </h3>
-                  <p className="text-xs text-gray-500 font-bold">Grade: {selectedGrade} • {course?.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-bold">Grade: {selectedGrade} • {course?.title}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowAssignmentModal(false); setEditingAssignment(null); }}
-                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveAssignment} className="space-y-4 text-xs font-bold text-gray-700">
+            <form onSubmit={handleSaveAssignment} className="space-y-4 text-xs font-bold text-gray-700 dark:text-gray-300">
               <div>
-                <label className="block text-gray-800 mb-1">Assignment Title <span className="text-red-500">*</span></label>
+                <label className="block text-gray-800 dark:text-gray-200 mb-1">Assignment Title <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   placeholder="e.g. Unit 3 Mechanics & Kinetics Homework"
                   value={asgnFormData.title}
                   onChange={(e) => setAsgnFormData({ ...asgnFormData, title: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-semibold text-sm"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-purple-600 font-semibold text-sm"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-gray-800 mb-1">Instructions / Description (Optional)</label>
+                <label className="block text-gray-800 dark:text-gray-200 mb-1">Instructions / Description (Optional)</label>
                 <textarea
                   rows={3}
                   placeholder="Detailed guidelines, reference textbook pages, or formatting rules..."
                   value={asgnFormData.description}
                   onChange={(e) => setAsgnFormData({ ...asgnFormData, description: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-medium text-xs resize-none"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-purple-600 font-medium text-xs resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-gray-800 mb-1">Curriculum Month</label>
+                  <label className="block text-gray-800 dark:text-gray-200 mb-1">Curriculum Month</label>
                   <select
                     value={asgnFormData.month}
                     onChange={(e) => setAsgnFormData({ ...asgnFormData, month: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-bold text-xs"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-purple-600 font-bold text-xs"
                   >
                     <option value="">All Months</option>
                     {MONTH_NAMES.map(m => (
@@ -4133,11 +4147,11 @@ const CourseDetails = () => {
                 </div>
 
                 <div>
-                  <label className="block text-gray-800 mb-1">Session Week</label>
+                  <label className="block text-gray-800 dark:text-gray-200 mb-1">Session Week</label>
                   <select
                     value={asgnFormData.weekNumber}
                     onChange={(e) => setAsgnFormData({ ...asgnFormData, weekNumber: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-bold text-xs"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-purple-600 font-bold text-xs"
                   >
                     <option value={0}>All Weeks (General)</option>
                     <option value={1}>Week 1</option>
@@ -4148,52 +4162,52 @@ const CourseDetails = () => {
                 </div>
 
                 <div>
-                  <label className="block text-gray-800 mb-1">Maximum Marks</label>
+                  <label className="block text-gray-800 dark:text-gray-200 mb-1">Maximum Marks</label>
                   <input
                     type="number"
                     min="1"
                     max="1000"
                     value={asgnFormData.maxMarks}
                     onChange={(e) => setAsgnFormData({ ...asgnFormData, maxMarks: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-bold text-xs"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-purple-600 font-bold text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-800 mb-1">Passing Marks Threshold</label>
+                  <label className="block text-gray-800 dark:text-gray-200 mb-1">Passing Marks Threshold</label>
                   <input
                     type="number"
                     min="1"
                     max={asgnFormData.maxMarks || 100}
                     value={asgnFormData.passingMarks}
                     onChange={(e) => setAsgnFormData({ ...asgnFormData, passingMarks: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-bold text-xs"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-purple-600 font-bold text-xs"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-gray-800 mb-1">Submission Due Date & Time (Optional)</label>
+                <label className="block text-gray-800 dark:text-gray-200 mb-1">Submission Due Date & Time (Optional)</label>
                 <input
                   type="datetime-local"
                   value={asgnFormData.dueDate}
                   onChange={(e) => setAsgnFormData({ ...asgnFormData, dueDate: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-bold text-xs"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-purple-600 font-bold text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-800 mb-1">
+                <label className="block text-gray-800 dark:text-gray-200 mb-1">
                   Question Sheet / Resource Attachment (PDF, Word, Image up to 10MB)
                 </label>
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.zip"
                   onChange={(e) => setAsgnFormData({ ...asgnFormData, attachmentFile: e.target.files[0] })}
-                  className="w-full px-4 py-2 bg-gray-50 rounded-2xl border border-gray-200 outline-none text-xs"
+                  className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none text-xs"
                 />
                 {editingAssignment?.attachmentName && !asgnFormData.attachmentFile && (
-                  <p className="text-[11px] text-purple-700 font-bold mt-1">
+                  <p className="text-[11px] text-purple-700 dark:text-purple-400 font-bold mt-1">
                     Current attachment: {editingAssignment.attachmentName}
                   </p>
                 )}
@@ -4221,18 +4235,18 @@ const CourseDetails = () => {
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => { setShowAssignmentModal(false); setEditingAssignment(null); }}
-                  className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-slate-700 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingAssignment}
-                  className="px-6 py-2.5 bg-purple-700 text-white font-black rounded-xl hover:bg-purple-800 transition shadow-md shadow-purple-200 cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 bg-purple-700 text-white font-black rounded-xl hover:bg-purple-800 transition shadow-md shadow-purple-200 dark:shadow-none cursor-pointer disabled:opacity-50"
                 >
                   {isSavingAssignment ? 'Saving...' : editingAssignment ? 'Update Assignment' : 'Create Assignment'}
                 </button>
@@ -4247,22 +4261,22 @@ const CourseDetails = () => {
       {/* ========================================================================= */}
       {showSubmitModal && selectedAssignmentForSubmit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 space-y-6">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-4">
               <div>
-                <h3 className="text-xl font-black text-gray-900">Submit Homework Solution</h3>
-                <p className="text-xs text-purple-700 font-bold mt-0.5">{selectedAssignmentForSubmit.title}</p>
+                <h3 className="text-xl font-black text-gray-900 dark:text-white">Submit Homework Solution</h3>
+                <p className="text-xs text-purple-700 dark:text-purple-400 font-bold mt-0.5">{selectedAssignmentForSubmit.title}</p>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowSubmitModal(false); setSelectedAssignmentForSubmit(null); }}
-                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-purple-50/60 p-4 rounded-2xl border border-purple-100 text-xs space-y-1.5 text-purple-950 font-medium">
+            <div className="bg-purple-50/60 dark:bg-purple-950/40 p-4 rounded-2xl border border-purple-100 dark:border-purple-800/60 text-xs space-y-1.5 text-purple-950 dark:text-purple-200 font-medium">
               <div className="flex justify-between">
                 <span>Maximum Marks:</span>
                 <span className="font-extrabold">{selectedAssignmentForSubmit.maxMarks || 100} Marks</span>
@@ -4270,50 +4284,50 @@ const CourseDetails = () => {
               {selectedAssignmentForSubmit.dueDate && (
                 <div className="flex justify-between">
                   <span>Deadline:</span>
-                  <span className="font-extrabold text-red-700">
+                  <span className="font-extrabold text-red-700 dark:text-red-400">
                     {new Date(selectedAssignmentForSubmit.dueDate).toLocaleString()}
                   </span>
                 </div>
               )}
             </div>
 
-            <form onSubmit={handleSubmitSolution} className="space-y-4 text-xs font-bold text-gray-700">
+            <form onSubmit={handleSubmitSolution} className="space-y-4 text-xs font-bold text-gray-700 dark:text-gray-300">
               <div>
-                <label className="block text-gray-800 mb-1">
+                <label className="block text-gray-800 dark:text-gray-200 mb-1">
                   Attach Solution File (PDF, Word, Image, Zip up to 10MB) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.zip"
                   onChange={(e) => setSolutionFile(e.target.files[0])}
-                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none text-xs"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none text-xs"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-gray-800 mb-1">Note to Instructor (Optional)</label>
+                <label className="block text-gray-800 dark:text-gray-200 mb-1">Note to Instructor (Optional)</label>
                 <textarea
                   rows={3}
                   placeholder="Any questions or explanatory notes regarding your solution..."
                   value={studentNote}
                   onChange={(e) => setStudentNote(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 rounded-2xl border border-gray-200 outline-none focus:border-purple-600 font-medium text-xs resize-none"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-2xl border border-gray-200 dark:border-slate-700 outline-none focus:border-purple-600 font-medium text-xs resize-none"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => { setShowSubmitModal(false); setSelectedAssignmentForSubmit(null); }}
-                  className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-slate-700 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingSolution}
-                  className="px-6 py-2.5 bg-purple-700 text-white font-black rounded-xl hover:bg-purple-800 transition shadow-md shadow-purple-200 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  className="px-6 py-2.5 bg-purple-700 text-white font-black rounded-xl hover:bg-purple-800 transition shadow-md shadow-purple-200 dark:shadow-none cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
                   <FaPaperPlane /> {isSubmittingSolution ? 'Submitting...' : 'Upload & Submit'}
                 </button>
@@ -4328,52 +4342,52 @@ const CourseDetails = () => {
       {/* ========================================================================= */}
       {showFeedbackModal && selectedSubmissionForFeedback && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 space-y-6">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-2">
-                <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
+                <span className="w-9 h-9 rounded-2xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 flex items-center justify-center text-lg">
                   🏆
                 </span>
                 <div>
-                  <h3 className="text-lg font-black text-gray-900">Assignment Evaluation</h3>
-                  <p className="text-xs text-gray-500 font-bold">Grading Marks & Teacher Remarks</p>
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white">Assignment Evaluation</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-bold">Grading Marks & Teacher Remarks</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowFeedbackModal(false); setSelectedSubmissionForFeedback(null); }}
-                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-emerald-50/70 p-5 rounded-2xl border border-emerald-200 text-center space-y-2">
-              <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider">Score Achieved</span>
-              <div className="text-3xl font-black text-emerald-950">
+            <div className="bg-emerald-50/70 dark:bg-emerald-950/40 p-5 rounded-2xl border border-emerald-200 dark:border-emerald-800 text-center space-y-2">
+              <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Score Achieved</span>
+              <div className="text-3xl font-black text-emerald-950 dark:text-emerald-200">
                 {selectedSubmissionForFeedback.marks} <span className="text-base text-gray-400 font-bold">/ {selectedSubmissionForFeedback.assignment?.maxMarks || 100}</span>
               </div>
-              <div className="text-xs font-black text-emerald-800">
+              <div className="text-xs font-black text-emerald-800 dark:text-emerald-300">
                 {Math.round((selectedSubmissionForFeedback.marks / (selectedSubmissionForFeedback.assignment?.maxMarks || 100)) * 100)}% Grade
               </div>
             </div>
 
             {selectedSubmissionForFeedback.feedback ? (
-              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 space-y-1.5">
-                <span className="text-xs font-black text-amber-900 flex items-center gap-1.5">
+              <div className="bg-amber-50/70 dark:bg-amber-950/40 p-4 rounded-2xl border border-amber-200/80 dark:border-amber-800/80 space-y-1.5">
+                <span className="text-xs font-black text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
                   <FaCommentDots className="text-amber-500" /> Instructor's Remarks:
                 </span>
-                <p className="text-xs text-amber-950 font-semibold leading-relaxed">
+                <p className="text-xs text-amber-950 dark:text-amber-200 font-semibold leading-relaxed">
                   "{selectedSubmissionForFeedback.feedback}"
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-gray-400 italic text-center">No additional remarks written by instructor.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 italic text-center">No additional remarks written by instructor.</p>
             )}
 
-            <div className="text-[11px] text-gray-500 font-medium space-y-1 border-t border-gray-100 pt-3">
+            <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium space-y-1 border-t border-gray-100 dark:border-slate-800 pt-3">
               <div>Graded on: {selectedSubmissionForFeedback.gradedAt ? new Date(selectedSubmissionForFeedback.gradedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recently'}</div>
-              <div>Submitted file: <span className="font-bold text-gray-700">{selectedSubmissionForFeedback.fileName}</span></div>
+              <div>Submitted file: <span className="font-bold text-gray-700 dark:text-gray-300">{selectedSubmissionForFeedback.fileName}</span></div>
             </div>
 
             <div className="flex justify-end">
@@ -4394,23 +4408,23 @@ const CourseDetails = () => {
       {/* ========================================================================= */}
       {showTeacherSubmissionsDrawer && selectedAssignmentForTeacherSubmissions && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto space-y-6">
-            <div className="flex justify-between items-start border-b border-gray-100 pb-4 gap-4">
+          <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto space-y-6">
+            <div className="flex justify-between items-start border-b border-gray-100 dark:border-slate-800 pb-4 gap-4">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">📋</span>
-                  <h3 className="text-xl font-black text-gray-900">
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white">
                     Submissions: {selectedAssignmentForTeacherSubmissions.title}
                   </h3>
                 </div>
-                <p className="text-xs text-gray-500 font-bold mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-bold mt-1">
                   Grade {selectedAssignmentForTeacherSubmissions.grade} • Max Marks: {selectedAssignmentForTeacherSubmissions.maxMarks || 100} • Total Submissions: {teacherSubmissionsData.totalSubmissions || 0} ({teacherSubmissionsData.gradedCount || 0} Graded)
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowTeacherSubmissionsDrawer(false); setSelectedAssignmentForTeacherSubmissions(null); }}
-                className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
               >
                 ✕
               </button>
@@ -4422,7 +4436,7 @@ const CourseDetails = () => {
                 <button
                   type="button"
                   onClick={() => setTeacherSubmissionsFilter('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${teacherSubmissionsFilter === 'all' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${teacherSubmissionsFilter === 'all' ? 'bg-purple-900 dark:bg-purple-700 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300'
                     }`}
                 >
                   All ({teacherSubmissionsData.totalSubmissions || 0})
@@ -4430,7 +4444,7 @@ const CourseDetails = () => {
                 <button
                   type="button"
                   onClick={() => setTeacherSubmissionsFilter('submitted')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${teacherSubmissionsFilter === 'submitted' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${teacherSubmissionsFilter === 'submitted' ? 'bg-purple-900 dark:bg-purple-700 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300'
                     }`}
                 >
                   Pending Grading ({(teacherSubmissionsData.totalSubmissions || 0) - (teacherSubmissionsData.gradedCount || 0)})
@@ -4438,7 +4452,7 @@ const CourseDetails = () => {
                 <button
                   type="button"
                   onClick={() => setTeacherSubmissionsFilter('graded')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${teacherSubmissionsFilter === 'graded' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${teacherSubmissionsFilter === 'graded' ? 'bg-purple-900 dark:bg-purple-700 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300'
                     }`}
                 >
                   Graded ({teacherSubmissionsData.gradedCount || 0})
@@ -4450,7 +4464,7 @@ const CourseDetails = () => {
                 placeholder="Search student name or reg no..."
                 value={teacherSubmissionsSearch}
                 onChange={(e) => setTeacherSubmissionsSearch(e.target.value)}
-                className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-200 outline-none text-xs font-medium w-full sm:w-60"
+                className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-slate-700 outline-none text-xs font-medium w-full sm:w-60"
               />
             </div>
 
@@ -4460,7 +4474,7 @@ const CourseDetails = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
               </div>
             ) : (teacherSubmissionsData.submissions || []).length === 0 ? (
-              <div className="py-12 text-center text-gray-400 font-semibold text-sm">
+              <div className="py-12 text-center text-gray-400 dark:text-gray-500 font-semibold text-sm">
                 No student submissions found for this filter.
               </div>
             ) : (
@@ -4484,25 +4498,25 @@ const CourseDetails = () => {
                     const isSaving = isSavingGradeMap[sub._id];
 
                     return (
-                      <div key={sub._id} className="p-5 border border-gray-200 rounded-2xl bg-gray-50/50 space-y-4">
+                      <div key={sub._id} className="p-5 border border-gray-200 dark:border-slate-800 rounded-2xl bg-gray-50/50 dark:bg-slate-800/60 space-y-4">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-purple-200 text-purple-900 font-black text-sm flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-purple-200 dark:bg-purple-900 text-purple-900 dark:text-purple-200 font-black text-sm flex items-center justify-center">
                               {student?.name?.charAt(0) || 'S'}
                             </div>
                             <div>
-                              <h5 className="font-black text-gray-900 text-sm">{student?.name || 'Enrolled Student'}</h5>
-                              <p className="text-xs text-gray-500 font-mono">Reg: {student?.registrationNumber || 'N/A'} • {student?.email}</p>
+                              <h5 className="font-black text-gray-900 dark:text-white text-sm">{student?.name || 'Enrolled Student'}</h5>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">Reg: {student?.registrationNumber || 'N/A'} • {student?.email}</p>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 flex-wrap text-xs">
                             {sub.isLate && (
-                              <span className="px-2.5 py-0.5 bg-red-100 text-red-800 font-black rounded-full border border-red-200">
+                              <span className="px-2.5 py-0.5 bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 font-black rounded-full border border-red-200 dark:border-red-800">
                                 ⏰ LATE SUBMISSION
                               </span>
                             )}
-                            <span className="text-gray-500 font-medium">
+                            <span className="text-gray-500 dark:text-gray-400 font-medium">
                               Submitted: {new Date(sub.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
@@ -4510,8 +4524,8 @@ const CourseDetails = () => {
 
                         {/* Student Note */}
                         {sub.studentNote && (
-                          <div className="bg-white p-3 rounded-xl border border-gray-200 text-xs text-gray-700">
-                            <span className="font-bold text-gray-500 block mb-0.5">Student Note:</span>
+                          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-gray-200 dark:border-slate-700 text-xs text-gray-700 dark:text-gray-300">
+                            <span className="font-bold text-gray-500 dark:text-gray-400 block mb-0.5">Student Note:</span>
                             "{sub.studentNote}"
                           </div>
                         )}
@@ -4529,13 +4543,13 @@ const CourseDetails = () => {
                         </div>
 
                         {/* Inline Grading Form */}
-                        <div className="bg-white p-4 rounded-2xl border border-purple-100 space-y-3">
-                          <span className="text-xs font-black text-purple-950 uppercase tracking-wider block">
+                        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-purple-100 dark:border-slate-800 space-y-3">
+                          <span className="text-xs font-black text-purple-950 dark:text-purple-300 uppercase tracking-wider block">
                             Grade & Evaluation (Max: {selectedAssignmentForTeacherSubmissions.maxMarks || 100} Marks)
                           </span>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
-                              <label className="block text-[11px] font-bold text-gray-700 mb-1">Awarded Marks</label>
+                              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Awarded Marks</label>
                               <input
                                 type="number"
                                 min="0"
@@ -4546,11 +4560,11 @@ const CourseDetails = () => {
                                   ...prev,
                                   [sub._id]: { ...prev[sub._id], marks: e.target.value }
                                 }))}
-                                className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 font-extrabold text-sm outline-none focus:border-purple-600"
+                                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-slate-700 font-extrabold text-sm outline-none focus:border-purple-600"
                               />
                             </div>
                             <div className="sm:col-span-2">
-                              <label className="block text-[11px] font-bold text-gray-700 mb-1">Teacher Remarks / Feedback</label>
+                              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Teacher Remarks / Feedback</label>
                               <input
                                 type="text"
                                 placeholder="e.g. Great structured arguments! Check question 4 calculation."
@@ -4559,7 +4573,7 @@ const CourseDetails = () => {
                                   ...prev,
                                   [sub._id]: { ...prev[sub._id], feedback: e.target.value }
                                 }))}
-                                className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs font-medium outline-none focus:border-purple-600"
+                                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-medium outline-none focus:border-purple-600"
                               />
                             </div>
                           </div>
@@ -4589,38 +4603,38 @@ const CourseDetails = () => {
       {/* ========================================================================= */}
       {editingDownloadModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-purple-100 space-y-6">
+          <div className="bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-purple-100 dark:border-slate-800 space-y-6">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-                  <FaDownload className="text-purple-700" /> Material Download Access
+                <h3 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                  <FaDownload className="text-purple-700 dark:text-purple-400" /> Material Download Access
                 </h3>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Configure when and how students can download this {editingDownloadModal.materialType === 'pdf' ? 'PDF Note' : editingDownloadModal.materialType === 'assignment' ? 'Assignment PDF' : 'Video Lesson'}.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingDownloadModal({ isOpen: false, materialType: null, material: null, lessonId: null })}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-sm cursor-pointer"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 flex items-center justify-center font-bold text-sm cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-100">
-              <p className="text-xs text-purple-900 font-extrabold truncate">
+            <div className="p-4 bg-purple-50/70 dark:bg-purple-950/40 rounded-2xl border border-purple-100 dark:border-purple-800">
+              <p className="text-xs text-purple-900 dark:text-purple-300 font-extrabold truncate">
                 📄 {editingDownloadModal.material?.title || 'Selected Study Material'}
               </p>
             </div>
 
             <div className="space-y-3">
-              <label className="text-xs font-extrabold text-gray-700 uppercase tracking-wider block">
+              <label className="text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider block">
                 Choose Download Policy:
               </label>
 
               <div className="space-y-2.5">
-                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'immediate' ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
+                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'immediate' ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-300 font-bold shadow-xs' : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
                   <input
                     type="radio"
                     name="editDownloadType"
@@ -4631,11 +4645,11 @@ const CourseDetails = () => {
                   />
                   <div>
                     <p className="text-sm font-bold">🟢 Immediate Download</p>
-                    <p className="text-[11px] text-gray-500">Students can download this material immediately.</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Students can download this material immediately.</p>
                   </div>
                 </label>
 
-                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'one_month' ? 'bg-amber-50 border-amber-300 text-amber-950 font-bold shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
+                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'one_month' ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-300 font-bold shadow-xs' : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
                   <input
                     type="radio"
                     name="editDownloadType"
@@ -4646,11 +4660,11 @@ const CourseDetails = () => {
                   />
                   <div>
                     <p className="text-sm font-bold">⏳ After 1 Month (30 Days)</p>
-                    <p className="text-[11px] text-gray-500">Download button will automatically unlock in 30 days.</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Download button will automatically unlock in 30 days.</p>
                   </div>
                 </label>
 
-                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'custom_date' ? 'bg-blue-50 border-blue-300 text-blue-950 font-bold shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
+                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'custom_date' ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-800 text-blue-950 dark:text-blue-300 font-bold shadow-xs' : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
                   <input
                     type="radio"
                     name="editDownloadType"
@@ -4661,7 +4675,7 @@ const CourseDetails = () => {
                   />
                   <div className="flex-1">
                     <p className="text-sm font-bold">📅 Custom Scheduled Date</p>
-                    <p className="text-[11px] text-gray-500">Pick a specific calendar date when download unlocks.</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Pick a specific calendar date when download unlocks.</p>
                   </div>
                 </label>
 
@@ -4672,13 +4686,13 @@ const CourseDetails = () => {
                       value={editCustomUnlockDate}
                       onChange={(e) => setEditCustomUnlockDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full p-2.5 bg-white border border-blue-200 rounded-xl text-xs font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full p-2.5 bg-white dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                       required
                     />
                   </div>
                 )}
 
-                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'disabled' ? 'bg-red-50 border-red-300 text-red-950 font-bold shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
+                <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'disabled' ? 'bg-red-50 dark:bg-red-950/60 border-red-300 dark:border-red-800 text-red-950 dark:text-red-300 font-bold shadow-xs' : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
                   <input
                     type="radio"
                     name="editDownloadType"
@@ -4689,7 +4703,7 @@ const CourseDetails = () => {
                   />
                   <div>
                     <p className="text-sm font-bold">🚫 Disable Download (View Online Only)</p>
-                    <p className="text-[11px] text-gray-500">Students can only view or read online in browser.</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Students can only view or read online in browser.</p>
                   </div>
                 </label>
               </div>
@@ -4699,7 +4713,7 @@ const CourseDetails = () => {
               <button
                 type="button"
                 onClick={() => setEditingDownloadModal({ isOpen: false, materialType: null, material: null, lessonId: null })}
-                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold text-xs hover:bg-gray-100 transition cursor-pointer"
+                className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 Cancel
               </button>

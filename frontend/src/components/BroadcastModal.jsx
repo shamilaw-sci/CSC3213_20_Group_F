@@ -123,7 +123,7 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
-      <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-purple-100 overflow-hidden transform transition-all">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-2xl shadow-2xl border border-purple-100 dark:border-slate-800 overflow-hidden transform transition-all text-gray-800 dark:text-gray-100">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-700 via-purple-800 to-indigo-900 p-6 text-white flex justify-between items-center">
@@ -150,8 +150,8 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
           {feedback && (
             <div className={`p-4 rounded-xl text-sm font-semibold flex items-center gap-2 ${
               feedback.type === 'success' 
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                : 'bg-red-50 text-red-700 border border-red-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
+                : 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
             }`}>
               {feedback.text}
             </div>
@@ -160,11 +160,11 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
           {/* Announcement Type, Target Course & Target Grade */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Category</label>
+              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2">Category</label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-xs font-medium text-gray-800 outline-none transition-all cursor-pointer"
+                className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 text-xs font-medium text-gray-800 dark:text-white outline-none transition-all cursor-pointer"
               >
                 <option value="CLASS_POSTPONED">Class Postponed / Rescheduled</option>
                 <option value="NEW_CONTENT">New Content / Material Alert</option>
@@ -174,11 +174,11 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Target Course (Optional)</label>
+              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2">Target Course (Optional)</label>
               <select
                 value={targetCourseId}
                 onChange={(e) => setTargetCourseId(e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-xs font-medium text-gray-800 outline-none transition-all cursor-pointer truncate"
+                className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 text-xs font-medium text-gray-800 dark:text-white outline-none transition-all cursor-pointer truncate"
               >
                 <option value="">All / Any Course</option>
                 {courses.map((c) => (
@@ -190,11 +190,11 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Target Grade (Optional)</label>
+              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2">Target Grade (Optional)</label>
               <select
                 value={targetGrade}
                 onChange={(e) => setTargetGrade(e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-xs font-medium text-gray-800 outline-none transition-all cursor-pointer"
+                className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 text-xs font-medium text-gray-800 dark:text-white outline-none transition-all cursor-pointer"
               >
                 <option value="">All Grades</option>
                 {availableGrades.map((g) => (
@@ -208,33 +208,33 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
 
           {/* Title */}
           <div>
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Announcement Title *</label>
+            <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2">Announcement Title *</label>
             <input
               type="text"
               placeholder="e.g. Science Class Postponed to Next Thursday"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-sm font-medium text-gray-800 outline-none transition-all"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 text-sm font-medium text-gray-800 dark:text-white outline-none transition-all"
             />
           </div>
 
           {/* Message Content */}
           <div>
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Message Body *</label>
+            <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2">Message Body *</label>
             <textarea
               rows={4}
               placeholder="Provide details about the update, revised dates/times, or instructions..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               required
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white text-sm font-medium text-gray-800 outline-none transition-all"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 text-sm font-medium text-gray-800 dark:text-white outline-none transition-all"
             />
           </div>
 
           {/* Channel Selector with Checkboxes */}
           <div>
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2">
               Dispatch Channels (Select at least one)
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -244,16 +244,16 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
                 onClick={() => toggleChannel('in_app')}
                 className={`p-3 rounded-xl border font-semibold text-xs flex items-center gap-3 transition-all cursor-pointer select-none ${
                   channels.includes('in_app')
-                    ? 'bg-purple-50 border-purple-500 text-purple-800 shadow-sm'
-                    : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
+                    ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-500 text-purple-800 dark:text-purple-300 shadow-sm'
+                    : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-750'
                 }`}
               >
-                <div className="text-base text-purple-600">
-                  {channels.includes('in_app') ? <FaCheckSquare className="text-purple-600 text-lg" /> : <FaSquare className="text-gray-300 text-lg" />}
+                <div className="text-base text-purple-600 dark:text-purple-400">
+                  {channels.includes('in_app') ? <FaCheckSquare className="text-purple-600 dark:text-purple-400 text-lg" /> : <FaSquare className="text-gray-300 dark:text-gray-600 text-lg" />}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <FaBell className={`text-sm ${channels.includes('in_app') ? 'text-purple-600' : 'text-gray-400'}`} />
-                  <span>In-App Notice</span>
+                  <FaBell className={`text-sm ${channels.includes('in_app') ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400 dark:text-gray-500'}`} />
+                  <span className="text-gray-800 dark:text-gray-200">In-App Notice</span>
                 </div>
               </div>
 
@@ -263,29 +263,29 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
                 title={!smsEnabled ? 'SMS Service is currently turned OFF in Admin Settings' : 'Toggle Parent SMS'}
                 className={`p-3 rounded-xl border font-semibold text-xs flex items-center justify-between transition-all select-none ${
                   !smsEnabled
-                    ? 'bg-gray-100/90 border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                    ? 'bg-gray-100/90 dark:bg-slate-800/50 border-gray-200 dark:border-slate-800 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-60'
                     : channels.includes('sms')
-                    ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm cursor-pointer'
-                    : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100 cursor-pointer'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-300 shadow-sm cursor-pointer'
+                    : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-750 cursor-pointer'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="text-base">
                     {!smsEnabled ? (
-                      <FaBan className="text-gray-400 text-lg" />
+                      <FaBan className="text-gray-400 dark:text-gray-600 text-lg" />
                     ) : channels.includes('sms') ? (
-                      <FaCheckSquare className="text-emerald-600 text-lg" />
+                      <FaCheckSquare className="text-emerald-600 dark:text-emerald-400 text-lg" />
                     ) : (
-                      <FaSquare className="text-gray-300 text-lg" />
+                      <FaSquare className="text-gray-300 dark:text-gray-600 text-lg" />
                     )}
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <FaSms className={`text-sm ${!smsEnabled ? 'text-gray-400' : channels.includes('sms') ? 'text-emerald-600' : 'text-gray-400'}`} />
-                    <span>Parent SMS</span>
+                    <FaSms className={`text-sm ${!smsEnabled ? 'text-gray-400 dark:text-gray-600' : channels.includes('sms') ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`} />
+                    <span className="text-gray-800 dark:text-gray-200">Parent SMS</span>
                   </div>
                 </div>
                 {!smsEnabled && (
-                  <span className="text-[9px] font-extrabold uppercase bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-md">
+                  <span className="text-[9px] font-extrabold uppercase bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-md">
                     OFF
                   </span>
                 )}
@@ -296,16 +296,16 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
                 onClick={() => toggleChannel('email')}
                 className={`p-3 rounded-xl border font-semibold text-xs flex items-center gap-3 transition-all cursor-pointer select-none ${
                   channels.includes('email')
-                    ? 'bg-blue-50 border-blue-500 text-blue-800 shadow-sm'
-                    : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
+                    ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-800 dark:text-blue-300 shadow-sm'
+                    : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-750'
                 }`}
               >
-                <div className="text-base text-blue-600">
-                  {channels.includes('email') ? <FaCheckSquare className="text-blue-600 text-lg" /> : <FaSquare className="text-gray-300 text-lg" />}
+                <div className="text-base text-blue-600 dark:text-blue-400">
+                  {channels.includes('email') ? <FaCheckSquare className="text-blue-600 dark:text-blue-400 text-lg" /> : <FaSquare className="text-gray-300 dark:text-gray-600 text-lg" />}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <FaEnvelope className={`text-sm ${channels.includes('email') ? 'text-blue-600' : 'text-gray-400'}`} />
-                  <span>Email Notice</span>
+                  <FaEnvelope className={`text-sm ${channels.includes('email') ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`} />
+                  <span className="text-gray-800 dark:text-gray-200">Email Notice</span>
                 </div>
               </div>
 
@@ -313,11 +313,11 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+          <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Cancel
             </button>

@@ -135,16 +135,17 @@ const SmsSettings = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn pb-12">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans text-gray-800 dark:text-gray-100 transition-colors duration-200">
 
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 rounded-3xl shadow-xl p-8 text-white relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl"></div>
+      <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 rounded-3xl p-6 md:p-8 text-white shadow-xl border border-purple-800/40 relative overflow-hidden">
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/15">
-                <FaSms className="text-3xl text-purple-300" />
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-2xl text-amber-400 shadow-inner border border-white/20">
+                <FaSms />
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">SMS Gateway Settings</h1>
@@ -181,13 +182,13 @@ const SmsSettings = () => {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Master Switch Card */}
-          <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-slate-800 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-slate-800">
               <div className="space-y-1">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <FaShieldAlt className="text-purple-600" /> Master SMS Notification Switch
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <FaShieldAlt className="text-purple-600 dark:text-purple-400" /> Master SMS Notification Switch
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Global toggle for automated SMS alerts across the entire LuminaLearn platform.
                 </p>
               </div>
@@ -197,7 +198,7 @@ const SmsSettings = () => {
                 type="button"
                 onClick={handleToggle}
                 disabled={toggling}
-                className={`relative inline-flex h-10 w-20 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${settings.smsEnabled ? 'bg-emerald-600' : 'bg-gray-300'
+                className={`relative inline-flex h-10 w-20 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${settings.smsEnabled ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-slate-700'
                   }`}
               >
                 <span className="sr-only">Toggle SMS Service</span>
@@ -212,8 +213,8 @@ const SmsSettings = () => {
 
             {/* Explanatory Banner */}
             <div className={`p-4 rounded-2xl text-xs flex items-start gap-3 border ${settings.smsEnabled
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              : 'bg-amber-50 text-amber-900 border-amber-200'
+              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+              : 'bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-200 dark:border-amber-800'
               }`}>
               <FaInfoCircle className="text-base shrink-0 mt-0.5" />
               <div>
@@ -232,7 +233,7 @@ const SmsSettings = () => {
 
             {/* Notification Modules Status Matrix */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                 Managed SMS Notification Flows
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -242,14 +243,14 @@ const SmsSettings = () => {
                   { title: 'Teacher Broadcasts', desc: 'Bulk SMS for class postponement & notes' },
                   { title: 'Security OTPs', desc: 'Registration & password reset codes' }
                 ].map((item, idx) => (
-                  <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
+                  <div key={idx} className="p-3 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-bold text-gray-800">{item.title}</p>
-                      <p className="text-[11px] text-gray-500">{item.desc}</p>
+                      <p className="text-xs font-bold text-gray-800 dark:text-white">{item.title}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">{item.desc}</p>
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${settings.smsEnabled
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-gray-200 text-gray-500'
+                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                      : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400'
                       }`}>
                       {settings.smsEnabled ? 'Active' : 'Paused'}
                     </span>
@@ -261,13 +262,13 @@ const SmsSettings = () => {
           </div>
 
           {/* SMS Dispatcher Tool */}
-          <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 space-y-5">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-slate-800 space-y-5">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-4">
               <div>
-                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                  <FaPaperPlane className="text-purple-600 text-sm" /> Manual SMS Dispatcher
+                <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <FaPaperPlane className="text-purple-600 dark:text-purple-400 text-sm" /> Manual SMS Dispatcher
                 </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   Send a SMS message to verify Text.lk gateway connectivity.
                 </p>
               </div>
@@ -275,14 +276,14 @@ const SmsSettings = () => {
 
             {testResult && (
               <div className={`p-4 rounded-2xl text-xs font-medium border flex items-start gap-2.5 ${testResult.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-red-50 text-red-800 border-red-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                : 'bg-red-50 dark:bg-red-950/60 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800'
                 }`}>
-                {testResult.type === 'success' ? <FaCheckCircle className="text-base text-emerald-600 shrink-0 mt-0.5" /> : <FaExclamationTriangle className="text-base text-red-600 shrink-0 mt-0.5" />}
+                {testResult.type === 'success' ? <FaCheckCircle className="text-base text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" /> : <FaExclamationTriangle className="text-base text-red-600 dark:text-red-400 shrink-0 mt-0.5" />}
                 <div className="space-y-1">
                   <p className="font-bold">{testResult.message}</p>
                   {testResult.details && (
-                    <pre className="text-[11px] bg-white/60 p-2 rounded-lg font-mono overflow-x-auto">
+                    <pre className="text-[11px] bg-white/60 dark:bg-slate-800 p-2 rounded-lg font-mono overflow-x-auto">
                       {JSON.stringify(testResult.details, null, 2)}
                     </pre>
                   )}
@@ -293,7 +294,7 @@ const SmsSettings = () => {
             <form onSubmit={handleSendTestSMS} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
                     Recipient Phone Number *
                   </label>
                   <input
@@ -301,36 +302,36 @@ const SmsSettings = () => {
                     placeholder="e.g. 0771234567 or +94771234567"
                     value={testPhone}
                     onChange={(e) => setTestPhone(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none transition"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-purple-500 outline-none transition"
                     required
                   />
-                  <span className="text-[10px] text-gray-400 mt-1 block">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">
                     Auto-normalizes standard 07X, +94, or 94 formats.
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
                     Sender ID
                   </label>
                   <input
                     type="text"
                     value={settings.senderId || 'Kirula Edu'}
                     disabled
-                    className="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 cursor-not-allowed"
+                    className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-500 dark:text-gray-400 cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
                   Message Content *
                 </label>
                 <textarea
                   rows={2}
                   value={testMessage}
                   onChange={(e) => setTestMessage(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none transition resize-none"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-medium text-gray-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-purple-500 outline-none transition resize-none"
                   required
                 />
               </div>
@@ -339,7 +340,7 @@ const SmsSettings = () => {
                 <button
                   type="submit"
                   disabled={sendingTest}
-                  className="px-6 py-2.5 bg-lumina-purple hover:bg-purple-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <FaPaperPlane className="text-xs" />
                   {sendingTest ? 'Sending...' : 'Send SMS'}
@@ -353,9 +354,9 @@ const SmsSettings = () => {
         {/* Right Column: Text.lk Account & Balance Card */}
         <div className="space-y-6">
 
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-2">
                 <FaCoins className="text-amber-500" /> Text.lk Account Status
               </h3>
 
@@ -364,52 +365,52 @@ const SmsSettings = () => {
                 onClick={() => fetchSettings(true)}
                 disabled={refreshingBalance}
                 title="Refresh live balance"
-                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition cursor-pointer"
+                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
               >
                 <FaSyncAlt className={`text-xs ${refreshingBalance ? 'animate-spin text-purple-600' : ''}`} />
               </button>
             </div>
 
             {/* Units Balance Highlight */}
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-2xl border border-amber-200 text-center space-y-1">
-              <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-5 rounded-2xl border border-amber-200 dark:border-amber-900/60 text-center space-y-1">
+              <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
                 Available SMS Units
               </span>
-              <div className="text-4xl font-black text-amber-900 tracking-tight">
+              <div className="text-4xl font-black text-amber-900 dark:text-amber-300 tracking-tight">
                 {getRemainingUnits() !== null ? getRemainingUnits() : (settings.isConfigured ? 'Loading...' : '0')}
               </div>
-              <span className="text-[11px] text-amber-700 font-medium block">
+              <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium block">
                 {settings.isConfigured ? 'Live balance from Text.lk Gateway' : 'Configure token in .env for live units'}
               </span>
             </div>
 
             {/* Account Details List */}
             <div className="space-y-3 text-xs">
-              <div className="flex justify-between py-2 border-b border-gray-50">
-                <span className="text-gray-500 font-medium">Gateway Service</span>
-                <span className="font-bold text-gray-800 font-mono">Text.lk (v3 / HTTP)</span>
+              <div className="flex justify-between py-2 border-b border-gray-50 dark:border-slate-800">
+                <span className="text-gray-500 dark:text-gray-400 font-medium">Gateway Service</span>
+                <span className="font-bold text-gray-800 dark:text-white font-mono">Text.lk (v3 / HTTP)</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-gray-50">
-                <span className="text-gray-500 font-medium">Sender ID</span>
-                <span className="font-bold text-purple-700 font-mono bg-purple-50 px-2 py-0.5 rounded-lg">
+              <div className="flex justify-between py-2 border-b border-gray-50 dark:border-slate-800">
+                <span className="text-gray-500 dark:text-gray-400 font-medium">Sender ID</span>
+                <span className="font-bold text-purple-700 dark:text-purple-300 font-mono bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-lg border border-purple-200 dark:border-purple-800">
                   {settings.senderId || 'Kirula Edu'}
                 </span>
               </div>
               {getExpiryDate() && (
-                <div className="flex justify-between py-2 border-b border-gray-50">
-                  <span className="text-gray-500 font-medium">Units Valid Until</span>
-                  <span className="font-bold text-amber-700">{getExpiryDate()}</span>
+                <div className="flex justify-between py-2 border-b border-gray-50 dark:border-slate-800">
+                  <span className="text-gray-500 dark:text-gray-400 font-medium">Units Valid Until</span>
+                  <span className="font-bold text-amber-700 dark:text-amber-300">{getExpiryDate()}</span>
                 </div>
               )}
-              <div className="flex justify-between py-2 border-b border-gray-50">
-                <span className="text-gray-500 font-medium">API Token Status</span>
-                <span className={`font-bold ${settings.isConfigured ? 'text-emerald-600' : 'text-amber-600'}`}>
+              <div className="flex justify-between py-2 border-b border-gray-50 dark:border-slate-800">
+                <span className="text-gray-500 dark:text-gray-400 font-medium">API Token Status</span>
+                <span className={`font-bold ${settings.isConfigured ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                   {settings.isConfigured ? '✓ Active & Connected' : '⚠ Missing in .env'}
                 </span>
               </div>
-              <div className="flex justify-between py-2 border-b border-gray-50">
-                <span className="text-gray-500 font-medium">Country Standard</span>
-                <span className="font-bold text-gray-800">Sri Lanka (+94)</span>
+              <div className="flex justify-between py-2 border-b border-gray-50 dark:border-slate-800">
+                <span className="text-gray-500 dark:text-gray-400 font-medium">Country Standard</span>
+                <span className="font-bold text-gray-800 dark:text-white">Sri Lanka (+94)</span>
               </div>
             </div>
 
@@ -424,7 +425,7 @@ const SmsSettings = () => {
                 <span>Visit Text.lk Dashboard</span>
                 <FaExternalLinkAlt className="text-[10px] group-hover:translate-x-0.5 transition-transform" />
               </a>
-              <span className="text-[10px] text-gray-400 text-center block mt-2">
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 text-center block mt-2">
                 Top up units, register custom Sender IDs, and view delivery logs on Text.lk.
               </span>
             </div>
@@ -432,11 +433,11 @@ const SmsSettings = () => {
           </div>
 
           {/* Quick Help Card */}
-          <div className="bg-purple-50/70 rounded-3xl p-5 border border-purple-100 text-xs space-y-2 text-purple-900">
-            <h4 className="font-bold flex items-center gap-1.5 text-purple-950">
+          <div className="bg-purple-50/70 dark:bg-slate-800/80 rounded-3xl p-5 border border-purple-100 dark:border-slate-700 text-xs space-y-2 text-purple-900 dark:text-purple-300">
+            <h4 className="font-bold flex items-center gap-1.5 text-purple-950 dark:text-white">
               <FaInfoCircle /> Need to top up or change Sender ID?
             </h4>
-            <p className="text-[11px] leading-relaxed text-purple-800">
+            <p className="text-[11px] leading-relaxed text-purple-800 dark:text-purple-300">
               Your SMS units and custom Sender ID requests (e.g. your institute's name) are managed directly inside the Text.lk dashboard.
             </p>
           </div>

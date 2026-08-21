@@ -204,7 +204,7 @@ const Settings = () => {
   const hasVerifiedEmail = !!currentUser?.isEmailVerified && !!currentUser?.email;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 text-gray-800 dark:text-gray-100 transition-colors duration-200">
       
       {/* Email Verification Reminder Banner for unverified users */}
       {!hasVerifiedEmail && (
@@ -268,14 +268,14 @@ const Settings = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Profile Picture Card */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-6 w-full text-left border-b border-gray-50 pb-3">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-6 w-full text-left border-b border-gray-50 dark:border-slate-800 pb-3">
             Profile Photo
           </h3>
 
           <div className="relative group cursor-pointer mb-4" onClick={handleAvatarClick}>
             {/* Avatar Circle */}
-            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-purple-100 shadow-inner flex items-center justify-center bg-purple-50 transition-transform duration-300 group-hover:scale-[1.02] relative">
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-purple-100 dark:border-slate-700 shadow-inner flex items-center justify-center bg-purple-50 dark:bg-slate-800 transition-transform duration-300 group-hover:scale-[1.02] relative">
               {profilePicture ? (
                 <img 
                   src={profilePicture} 
@@ -284,7 +284,7 @@ const Settings = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-purple-700 text-5xl font-bold bg-purple-100">
+                <div className="w-full h-full flex items-center justify-center text-purple-700 dark:text-purple-300 text-5xl font-bold bg-purple-100 dark:bg-slate-800">
                   {name ? name.charAt(0).toUpperCase() : 'U'}
                 </div>
               )}
@@ -293,7 +293,7 @@ const Settings = () => {
             {/* Verified Badge on Avatar */}
             {hasVerifiedEmail && (
               <div 
-                className="absolute bottom-1 right-1 bg-emerald-500 text-white w-7 h-7 rounded-full border-2 border-white flex items-center justify-center shadow-md"
+                className="absolute bottom-1 right-1 bg-emerald-500 text-white w-7 h-7 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-md"
                 title="Email Verified User"
               >
                 <FaCheckCircle className="text-xs" />
@@ -319,7 +319,7 @@ const Settings = () => {
             <button 
               type="button"
               onClick={handleAvatarClick}
-              className="text-xs font-semibold px-3 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg transition-colors cursor-pointer"
+              className="text-xs font-semibold px-3 py-1.5 bg-purple-50 dark:bg-slate-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             >
               Upload New
             </button>
@@ -327,25 +327,25 @@ const Settings = () => {
               <button 
                 type="button"
                 onClick={handleRemovePhoto}
-                className="text-xs font-semibold px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                className="text-xs font-semibold px-3 py-1.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <FaTrash className="text-[10px]" /> Remove
               </button>
             )}
           </div>
 
-          <p className="text-[11px] text-gray-400 mt-4 leading-relaxed max-w-[200px]">
-            PNG, JPG, or GIF allowed. Size limit: <span className="font-semibold text-gray-500">1MB</span>.
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-4 leading-relaxed max-w-[200px]">
+            PNG, JPG, or GIF allowed. Size limit: <span className="font-semibold text-gray-500 dark:text-gray-400">1MB</span>.
           </p>
         </div>
 
         {/* Main Forms Card */}
-        <div className="md:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+        <div className="md:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800">
           <form onSubmit={handleUpdate} className="space-y-6">
             
             {/* Form Section: Profile Details */}
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4 border-b border-gray-50 pb-2">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4 border-b border-gray-50 dark:border-slate-800 pb-2">
                 Personal Information
               </h3>
               
@@ -354,9 +354,9 @@ const Settings = () => {
                 {/* Email Field with Verified Status & Add Button */}
                 <div className="space-y-1">
                   <div className="flex justify-between items-center">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Email Address</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Email Address</label>
                     {hasVerifiedEmail ? (
-                      <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                         <FaCheckCircle /> Verified
                       </span>
                     ) : (
@@ -366,7 +366,7 @@ const Settings = () => {
                           setEmailStep(1);
                           setShowEmailModal(true);
                         }}
-                        className="text-[10px] font-bold text-purple-700 hover:underline cursor-pointer flex items-center gap-1"
+                        className="text-[10px] font-bold text-purple-700 dark:text-purple-400 hover:underline cursor-pointer flex items-center gap-1"
                       >
                         <FaPlus className="text-[9px]" /> {email ? 'Verify Email' : 'Add Email'}
                       </button>
@@ -382,8 +382,8 @@ const Settings = () => {
                       disabled 
                       className={`w-full pl-10 pr-4 py-3 border rounded-xl cursor-not-allowed text-xs font-medium focus:outline-none ${
                         hasVerifiedEmail 
-                          ? 'bg-gray-50 text-gray-700 border-gray-200' 
-                          : 'bg-amber-50/60 text-amber-900 border-amber-200 italic'
+                          ? 'bg-gray-50 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-slate-700' 
+                          : 'bg-amber-50/60 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-200 dark:border-amber-800 italic'
                       }`} 
                     />
                   </div>
@@ -391,7 +391,7 @@ const Settings = () => {
 
                 {/* System Role */}
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">System Role</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">System Role</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
                       <FaUserShield />
@@ -400,7 +400,7 @@ const Settings = () => {
                       type="text" 
                       value={currentUser?.role?.toUpperCase() || ''} 
                       disabled 
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 text-gray-500 border border-gray-200 rounded-xl cursor-not-allowed text-xs font-semibold tracking-wide focus:outline-none" 
+                      className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-700 rounded-xl cursor-not-allowed text-xs font-semibold tracking-wide focus:outline-none" 
                     />
                   </div>
                 </div>
@@ -408,24 +408,24 @@ const Settings = () => {
                 {/* Student Registration Number (Student Only) */}
                 {isStudent && (
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Registration Number</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Registration Number</label>
                     <div className="relative flex items-center">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-purple-700">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-purple-700 dark:text-purple-400">
                         <FaIdCard />
                       </span>
                       <input 
                         type="text" 
                         value={currentUser?.registrationNumber || 'Not Assigned'} 
                         disabled 
-                        className="w-full pl-10 pr-12 py-3 bg-purple-50/50 text-purple-950 font-mono font-bold border border-purple-200 rounded-xl cursor-not-allowed text-xs focus:outline-none" 
+                        className="w-full pl-10 pr-12 py-3 bg-purple-50/50 dark:bg-slate-800/80 text-purple-950 dark:text-purple-300 font-mono font-bold border border-purple-200 dark:border-slate-700 rounded-xl cursor-not-allowed text-xs focus:outline-none" 
                       />
                       {currentUser?.registrationNumber && (
                         <button
                           type="button"
                           onClick={handleCopyRegNo}
-                          className="absolute right-2.5 px-2 py-1 bg-white hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-lg text-[10px] font-bold transition cursor-pointer flex items-center gap-1"
+                          className="absolute right-2.5 px-2 py-1 bg-white dark:bg-slate-700 hover:bg-purple-100 dark:hover:bg-slate-600 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-slate-600 rounded-lg text-[10px] font-bold transition cursor-pointer flex items-center gap-1"
                         >
-                          {copiedRegNo ? <FaCheck className="text-emerald-600" /> : <FaCopy />}
+                          {copiedRegNo ? <FaCheck className="text-emerald-600 dark:text-emerald-400" /> : <FaCopy />}
                           <span>{copiedRegNo ? 'Copied' : 'Copy'}</span>
                         </button>
                       )}
@@ -436,7 +436,7 @@ const Settings = () => {
                 {/* Parent's Phone Number (Student Only) */}
                 {isStudent && (
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Parent's Phone Number</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Parent's Phone Number</label>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
                         <FaPhone />
@@ -445,7 +445,7 @@ const Settings = () => {
                         type="text" 
                         value={currentUser?.parentsPhoneNumber || currentUser?.phoneNumber || 'Not Available'} 
                         disabled 
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50 text-gray-600 border border-gray-200 rounded-xl cursor-not-allowed text-xs font-medium focus:outline-none" 
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-700 rounded-xl cursor-not-allowed text-xs font-medium focus:outline-none" 
                       />
                     </div>
                   </div>
@@ -455,16 +455,16 @@ const Settings = () => {
 
               {/* Editable: Full Name */}
               <div className="space-y-1 mt-4">
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Full Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Full Name</label>
                 <div className="relative group">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 group-focus-within:text-purple-600 transition-colors">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 group-focus-within:text-purple-600 dark:group-focus-within:text-purple-400 transition-colors">
                     <FaUser />
                   </span>
                   <input 
                     type="text" 
                     value={name} 
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-xs transition-all shadow-sm font-semibold text-slate-800"
+                    className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-xs transition-all shadow-sm font-semibold text-slate-800 dark:text-white"
                     placeholder="Enter your name"
                     required
                   />
@@ -474,16 +474,16 @@ const Settings = () => {
 
             {/* Form Section: Security */}
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4 border-b border-gray-50 pb-2">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4 border-b border-gray-50 dark:border-slate-800 pb-2">
                 Security & Password
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* New Password */}
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">New Password</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">New Password</label>
                   <div className="relative group">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 group-focus-within:text-purple-600 transition-colors">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 group-focus-within:text-purple-600 dark:group-focus-within:text-purple-400 transition-colors">
                       <FaLock />
                     </span>
                     <input 
@@ -491,16 +491,16 @@ const Settings = () => {
                       value={newPassword} 
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-xs transition-all shadow-sm"
+                      className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-xs text-gray-900 dark:text-white transition-all shadow-sm"
                     />
                   </div>
                 </div>
 
                 {/* Confirm New Password */}
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Confirm Password</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Confirm Password</label>
                   <div className="relative group">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 group-focus-within:text-purple-600 transition-colors">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 group-focus-within:text-purple-600 dark:group-focus-within:text-purple-400 transition-colors">
                       <FaLock />
                     </span>
                     <input 
@@ -508,12 +508,12 @@ const Settings = () => {
                       value={confirmPassword} 
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-xs transition-all shadow-sm"
+                      className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-xs text-gray-900 dark:text-white transition-all shadow-sm"
                     />
                   </div>
                 </div>
               </div>
-              <p className="text-[11px] text-gray-400 mt-2">Leave blank to keep your current password.</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">Leave blank to keep your current password.</p>
             </div>
 
             {/* Save Button */}
@@ -538,7 +538,7 @@ const Settings = () => {
       {/* ========================================================================= */}
       {showEmailModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800">
             
             {/* Header */}
             <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white text-center relative">
@@ -565,17 +565,17 @@ const Settings = () => {
             {emailStep === 1 ? (
               <form onSubmit={handleSendEmailCode} className="p-6 md:p-8 space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     Email Address
                   </label>
-                  <div className="relative rounded-xl bg-slate-100 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
+                  <div className="relative rounded-xl bg-slate-100 dark:bg-slate-800 p-3 border border-transparent focus-within:border-purple-300 focus-within:bg-white dark:focus-within:bg-slate-800 transition-colors">
                     <FaEnvelope className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
                     <input
                       type="email"
                       placeholder="student@example.com"
                       value={newEmailInput}
                       onChange={(e) => setNewEmailInput(e.target.value)}
-                      className="w-full bg-transparent pl-8 text-xs text-slate-900 outline-none font-medium"
+                      className="w-full bg-transparent pl-8 text-xs text-slate-900 dark:text-white outline-none font-medium"
                       required
                       autoFocus
                     />
@@ -586,7 +586,7 @@ const Settings = () => {
                   <button
                     type="button"
                     onClick={() => setShowEmailModal(false)}
-                    className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                    className="flex-1 py-3 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -602,7 +602,7 @@ const Settings = () => {
             ) : (
               <form onSubmit={handleVerifyEmailCode} className="p-6 md:p-8 space-y-5">
                 <div>
-                  <label className="block text-center text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
+                  <label className="block text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2">
                     Enter 6-Digit Passcode
                   </label>
                   <input
@@ -611,11 +611,11 @@ const Settings = () => {
                     value={emailCodeInput}
                     onChange={(e) => setEmailCodeInput(e.target.value.replace(/\D/g, ''))}
                     placeholder="••••••"
-                    className="w-full text-center tracking-[12px] text-2xl font-mono font-black py-3 bg-purple-50 border-2 border-purple-200 focus:border-purple-600 rounded-2xl outline-none text-purple-950 transition-all shadow-inner"
+                    className="w-full text-center tracking-[12px] text-2xl font-mono font-black py-3 bg-purple-50 dark:bg-slate-800 border-2 border-purple-200 dark:border-slate-700 focus:border-purple-600 rounded-2xl outline-none text-purple-950 dark:text-purple-300 transition-all shadow-inner"
                     autoFocus
                     required
                   />
-                  <p className="text-[11px] text-gray-400 text-center mt-2">
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-2">
                     Check your inbox (and spam folder) for the 6-digit code.
                   </p>
                 </div>
@@ -631,7 +631,7 @@ const Settings = () => {
                   <button
                     type="button"
                     onClick={() => setEmailStep(1)}
-                    className="text-xs text-gray-500 hover:text-gray-800 transition text-center mt-1 cursor-pointer"
+                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition text-center mt-1 cursor-pointer"
                   >
                     ← Change Email Address
                   </button>
