@@ -642,9 +642,6 @@ const Courses = () => {
                                 </div>
                               </div>
                             </td>
-                                </div>
-                              </div>
-                            </td>
 
                             {/* Available Grades */}
                             <td className="py-4 px-6 align-middle">

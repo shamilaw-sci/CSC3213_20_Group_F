@@ -666,14 +666,13 @@ router.post('/:lessonId/live-stream', protect, isTeacherOrAdmin, async (req, res
                     }));
 
                     await Notification.insertMany(notifDocs);
-                    }
 
                     enrolledStudents.forEach(st => {
                         if (st.email) {
                             sendCourseUpdateEmail(
                                 st.email,
                                 st.name,
-                                course.title,
+                                course?.title || 'Course Update',
                                 isNowLive ? `🔴 LIVE CLASS: ${streamTitle}` : `📅 SCHEDULED LIVE CLASS: ${streamTitle}`,
                                 isNowLive
                                     ? `Grade ${lesson.grade} live streaming session is live now on LuminaLearn!`
