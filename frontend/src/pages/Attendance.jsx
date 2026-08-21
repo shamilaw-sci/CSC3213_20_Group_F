@@ -395,28 +395,28 @@ const Attendance = () => {
   const renderQrScannerKiosk = () => (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-        <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-md space-y-4">
-          <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-md space-y-4">
+          <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-3">
             <div>
-              <h3 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
-                <FaQrcode className="text-purple-600" /> Counter QR Code Scanner
+              <h3 className="font-extrabold text-gray-900 dark:text-white text-lg flex items-center gap-2">
+                <FaQrcode className="text-purple-600 dark:text-purple-400" /> Counter QR Code Scanner
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">Point student digital ID card at the camera for 1-second auto check-in.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Point student digital ID card at the camera for 1-second auto check-in.</p>
             </div>
-            <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 border border-emerald-200">
+            <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
               Camera Active
             </span>
           </div>
 
-          <div className="bg-purple-50 p-3.5 rounded-2xl border border-purple-200 space-y-1">
-            <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900">
+          <div className="bg-purple-50 dark:bg-slate-800/80 p-3.5 rounded-2xl border border-purple-200 dark:border-slate-700 space-y-1">
+            <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300">
               Target Session / Class Schedule
             </label>
             <select
               value={kioskScheduleId}
               onChange={(e) => setKioskScheduleId(e.target.value)}
-              className="w-full bg-white p-2.5 rounded-xl border border-purple-300 font-bold text-xs text-purple-950 focus:ring-2 focus:ring-purple-600 outline-none cursor-pointer"
+              className="w-full bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-purple-300 dark:border-slate-700 font-bold text-xs text-purple-950 dark:text-white focus:ring-2 focus:ring-purple-600 outline-none cursor-pointer"
             >
               <option value="AUTO">⚡ Auto-Detect Active Class (By Current Time & Student Grade)</option>
               {schedules.map(sch => (
@@ -428,7 +428,7 @@ const Attendance = () => {
           </div>
 
           <div className="relative">
-            <div id="qr-reader" className="w-full max-w-md mx-auto rounded-2xl overflow-hidden shadow-inner border border-purple-200"></div>
+            <div id="qr-reader" className="w-full max-w-md mx-auto rounded-2xl overflow-hidden shadow-inner border border-purple-200 dark:border-slate-700"></div>
           </div>
 
           <form 
@@ -436,14 +436,14 @@ const Attendance = () => {
               e.preventDefault();
               if (manualQrCode) processQrCheckIn(manualQrCode);
             }}
-            className="flex gap-2 pt-2 border-t border-gray-100"
+            className="flex gap-2 pt-2 border-t border-gray-100 dark:border-slate-800"
           >
             <input
               type="text"
               placeholder="Enter Student Reg No manually (e.g. STU-2026-G06-0042)..."
               value={manualQrCode}
               onChange={(e) => setManualQrCode(e.target.value)}
-              className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs font-mono font-bold"
+              className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs font-mono font-bold text-gray-900 dark:text-white"
             />
             <button
               type="submit"
@@ -485,12 +485,12 @@ const Attendance = () => {
         )}
       </div>
 
-      <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-md space-y-4">
-        <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-          <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-md space-y-4">
+        <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-3">
+          <h3 className="font-extrabold text-gray-900 dark:text-white text-sm flex items-center gap-2">
             📋 Today's Check-ins Feed
           </h3>
-          <span className="text-xs bg-purple-100 text-purple-900 font-extrabold px-2.5 py-0.5 rounded-full">
+          <span className="text-xs bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 font-extrabold px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
             {recentScans.length} Check-ins
           </span>
         </div>
@@ -508,7 +508,7 @@ const Attendance = () => {
               const scheduleTime = scan.timeRange ? `Session: ${scan.timeRange}` : '';
 
               return (
-                <div key={scan._id || idx} className="p-3.5 bg-purple-50/60 rounded-2xl border border-purple-100 flex flex-col gap-2 hover:bg-purple-100/50 transition">
+                <div key={scan._id || idx} className="p-3.5 bg-purple-50/60 dark:bg-slate-800/80 rounded-2xl border border-purple-100 dark:border-slate-700/80 flex flex-col gap-2 hover:bg-purple-100/50 dark:hover:bg-slate-700/50 transition">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-purple-700 text-white font-extrabold flex items-center justify-center text-sm shrink-0">
@@ -516,28 +516,28 @@ const Attendance = () => {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-extrabold text-xs text-gray-900">{studentName}</p>
+                          <p className="font-extrabold text-xs text-gray-900 dark:text-white">{studentName}</p>
                           {grade && (
-                            <span className="text-[9px] font-bold bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-md">
+                            <span className="text-[9px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 px-1.5 py-0.2 rounded-md">
                               {grade}
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] font-mono text-purple-700 font-bold">{regNumber}</p>
+                        <p className="text-[10px] font-mono text-purple-700 dark:text-purple-400 font-bold">{regNumber}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${scan.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${scan.paymentStatus === 'PAID' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'}`}>
                         {scan.paymentStatus === 'PAID' ? 'Paid ✓' : 'Unsettled'}
                       </span>
                     </div>
                   </div>
 
-                  <div className="pt-1.5 border-t border-purple-100/70 flex items-center justify-between text-[11px] font-semibold text-slate-600">
-                    <span className="truncate max-w-[210px] text-purple-900 font-bold" title={courseTitle}>
+                  <div className="pt-1.5 border-t border-purple-100/70 dark:border-slate-700/70 flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                    <span className="truncate max-w-[210px] text-purple-900 dark:text-purple-300 font-bold" title={courseTitle}>
                       📚 {courseTitle}
                     </span>
-                    <span className="text-[10px] text-gray-500 font-mono shrink-0 ml-2">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 font-mono shrink-0 ml-2">
                       🕒 {timeStr} {scheduleTime ? `• ${scheduleTime}` : ''}
                     </span>
                   </div>
@@ -553,12 +553,12 @@ const Attendance = () => {
   const renderManualRosterWorkspace = () => (
     <div className="space-y-6">
       {/* Student Search Box */}
-      <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-          <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
-            <FaSearch className="text-purple-600" /> Search Student Roster for Attendance & Records
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+          <h3 className="font-extrabold text-gray-900 dark:text-white text-base flex items-center gap-2">
+            <FaSearch className="text-purple-600 dark:text-purple-400" /> Search Student Roster for Attendance & Records
           </h3>
-          <span className="text-xs text-gray-500 font-semibold">Search by Name, Registration Number, or Email</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Search by Name, Registration Number, or Email</span>
         </div>
 
         <form onSubmit={handleSearchSubmit} className="flex gap-3">
@@ -569,7 +569,7 @@ const Attendance = () => {
               placeholder="Search by student name or registration number (e.g. Sakindu or IT22047724)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-purple-600 outline-none text-xs font-semibold text-gray-900"
+              className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-purple-600 outline-none text-xs font-semibold text-gray-900 dark:text-white"
             />
           </div>
           <button
@@ -582,11 +582,11 @@ const Attendance = () => {
         </form>
 
         {searchResults.length > 0 && (
-          <div className="divide-y divide-gray-100 border border-purple-100 rounded-2xl overflow-hidden mt-3 bg-purple-50/20">
+          <div className="divide-y divide-gray-100 dark:divide-slate-800 border border-purple-100 dark:border-slate-800 rounded-2xl overflow-hidden mt-3 bg-purple-50/20 dark:bg-slate-800/50">
             {searchResults.map(s => (
               <div
                 key={s._id}
-                className="p-3.5 flex justify-between items-center hover:bg-purple-100/50 transition cursor-pointer"
+                className="p-3.5 flex justify-between items-center hover:bg-purple-100/50 dark:hover:bg-slate-700/50 transition cursor-pointer"
                 onClick={() => handleSelectStudent(s)}
               >
                 <div className="flex items-center gap-3">
@@ -598,8 +598,8 @@ const Attendance = () => {
                     )}
                   </div>
                   <div>
-                    <p className="font-extrabold text-gray-900 text-sm">{s.name}</p>
-                    <p className="text-xs text-purple-700 font-mono font-bold">
+                    <p className="font-extrabold text-gray-900 dark:text-white text-sm">{s.name}</p>
+                    <p className="text-xs text-purple-700 dark:text-purple-400 font-mono font-bold">
                       {s.registrationNumber || s.email} • {s.grade} {s.studentType ? `(${s.studentType})` : ''}
                     </p>
                   </div>
@@ -615,7 +615,7 @@ const Attendance = () => {
 
       {/* Selected Student Complete Profile & Attendance Workspace */}
       {selectedStudent && (
-        <div className="bg-white rounded-3xl border border-purple-200 shadow-md overflow-hidden space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-200 dark:border-slate-800 shadow-md overflow-hidden space-y-6">
           
           {/* 1. Rich Student Profile Header & Contact Details Card */}
           <div className="bg-gradient-to-br from-slate-900 via-purple-950 to-indigo-950 p-6 text-white relative overflow-hidden">
@@ -702,26 +702,26 @@ const Attendance = () => {
 
           <div className="p-6 space-y-6">
             {/* 2. Mark Attendance Form */}
-            <div className="bg-purple-50/50 p-5 rounded-2xl border border-purple-200 space-y-4">
-              <h4 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
-                <FaEdit className="text-purple-600" /> Record Attendance Entry for {selectedStudent.name}
+            <div className="bg-purple-50/50 dark:bg-slate-800/60 p-5 rounded-2xl border border-purple-200 dark:border-slate-700 space-y-4">
+              <h4 className="font-extrabold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                <FaEdit className="text-purple-600 dark:text-purple-400" /> Record Attendance Entry for {selectedStudent.name}
               </h4>
 
               <form onSubmit={handleMarkAttendance} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                 {/* Select Class Schedule */}
                 <div className="md:col-span-4">
-                  <label className="block text-[10px] font-extrabold text-purple-900 uppercase tracking-wider mb-1">
+                  <label className="block text-[10px] font-extrabold text-purple-900 dark:text-purple-300 uppercase tracking-wider mb-1">
                     Select Class Schedule
                   </label>
                   <select
                     value={selectedScheduleId}
                     onChange={(e) => setSelectedScheduleId(e.target.value)}
-                    className="w-full p-2.5 bg-white border border-purple-300 rounded-xl text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-sm"
+                    className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-300 dark:border-slate-600 rounded-xl text-xs font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-sm"
                     required
                   >
-                    <option value="">-- Choose Class Schedule --</option>
+                    <option value="" className="dark:bg-slate-800">-- Choose Class Schedule --</option>
                     {schedules.map(sch => (
-                      <option key={sch._id} value={sch._id}>
+                      <option key={sch._id} value={sch._id} className="dark:bg-slate-800">
                         {sch.title} ({sch.className}) — {sch.dayOfWeek} {sch.startTime}-{sch.endTime}
                       </option>
                     ))}
@@ -730,20 +730,20 @@ const Attendance = () => {
 
                 {/* Attendance Date */}
                 <div className="md:col-span-3">
-                  <label className="block text-[10px] font-extrabold text-purple-900 uppercase tracking-wider mb-1">
+                  <label className="block text-[10px] font-extrabold text-purple-900 dark:text-purple-300 uppercase tracking-wider mb-1">
                     Attendance Date
                   </label>
                   <input
                     type="date"
                     value={attendanceDate}
                     onChange={(e) => setAttendanceDate(e.target.value)}
-                    className="w-full p-2.5 bg-white border border-purple-300 rounded-xl text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-sm"
+                    className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-300 dark:border-slate-600 rounded-xl text-xs font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-sm"
                   />
                 </div>
 
                 {/* Status Toggle Buttons: PRESENT & ABSENT (NO LATE) */}
                 <div className="md:col-span-3">
-                  <label className="block text-[10px] font-extrabold text-purple-900 uppercase tracking-wider mb-1">
+                  <label className="block text-[10px] font-extrabold text-purple-900 dark:text-purple-300 uppercase tracking-wider mb-1">
                     Attendance Status
                   </label>
                   <div className="flex gap-2">
@@ -753,7 +753,7 @@ const Attendance = () => {
                       className={`flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         attendanceStatus === 'Present'
                           ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400'
-                          : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-50'
+                          : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-slate-700'
                       }`}
                     >
                       <FaCheckCircle className="text-xs" /> Present ✓
@@ -764,7 +764,7 @@ const Attendance = () => {
                       className={`flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         attendanceStatus === 'Absent'
                           ? 'bg-red-600 text-white shadow-md ring-2 ring-red-400'
-                          : 'bg-white text-red-800 border border-red-300 hover:bg-red-50'
+                          : 'bg-white dark:bg-slate-800 text-red-800 dark:text-red-300 border border-red-300 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-slate-700'
                       }`}
                     >
                       <FaTimesCircle className="text-xs" /> Absent ✗
@@ -787,7 +787,7 @@ const Attendance = () => {
 
             {/* 3. Sub-Tabs: Attendance Logs & Payment Records */}
             <div className="space-y-4 pt-2">
-              <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-2">
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -795,7 +795,7 @@ const Attendance = () => {
                     className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
                       activeTab === 'attendance' || activeTab === 'mark'
                         ? 'bg-purple-700 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-900'
+                        : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-slate-700 hover:text-purple-900 dark:hover:text-white'
                     }`}
                   >
                     <FaCalendarAlt /> Attendance History ({attendanceHistory.length})
@@ -807,7 +807,7 @@ const Attendance = () => {
                     className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
                       activeTab === 'payments'
                         ? 'bg-purple-700 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-900'
+                        : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-slate-700 hover:text-purple-900 dark:hover:text-white'
                     }`}
                   >
                     <FaCreditCard /> Payment Records ({studentPayments.length})
@@ -829,32 +829,32 @@ const Attendance = () => {
               {(activeTab === 'attendance' || activeTab === 'mark') && (
                 <div className="space-y-2">
                   {loadingHistory ? (
-                    <div className="p-8 text-center text-purple-600 space-y-2">
+                    <div className="p-8 text-center text-purple-600 dark:text-purple-400 space-y-2">
                       <FaSpinner className="animate-spin text-2xl mx-auto" />
                       <p className="text-xs font-semibold">Loading attendance records...</p>
                     </div>
                   ) : attendanceHistory.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-8">No attendance records found for this student.</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-8">No attendance records found for this student.</p>
                   ) : (
-                    <div className="divide-y divide-gray-100 border border-gray-200 rounded-2xl overflow-hidden text-xs bg-white">
+                    <div className="divide-y divide-gray-100 dark:divide-slate-700/80 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden text-xs bg-white dark:bg-slate-800">
                       {attendanceHistory.map(rec => (
-                        <div key={rec._id} className="p-3.5 flex justify-between items-center hover:bg-purple-50/40 transition">
+                        <div key={rec._id} className="p-3.5 flex justify-between items-center hover:bg-purple-50/40 dark:hover:bg-slate-700/50 transition">
                           <div>
-                            <p className="font-extrabold text-gray-900 text-xs">
+                            <p className="font-extrabold text-gray-900 dark:text-white text-xs">
                               {rec.scheduleId?.title || rec.courseId?.title || 'Class Session'}
                             </p>
-                            <p className="text-[10px] text-purple-700 font-mono font-semibold mt-0.5">
+                            <p className="text-[10px] text-purple-700 dark:text-purple-300 font-mono font-semibold mt-0.5">
                               📅 {new Date(rec.date).toLocaleDateString()} • {rec.remarks || `${rec.month || 'August'} - Week ${rec.weekNumber || 1}`}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-bold text-gray-500 uppercase bg-gray-100 px-2 py-0.5 rounded-md">
+                            <span className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
                               {rec.mode || 'PHYSICAL_QR'}
                             </span>
                             <span className={`px-2.5 py-1 rounded-full font-extrabold text-[10px] flex items-center gap-1 ${
                               rec.status === 'Present'
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : 'bg-red-100 text-red-800 border border-red-200'
+                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                                : 'bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
                             }`}>
                               {rec.status === 'Present' ? <FaCheckCircle className="text-[10px]" /> : <FaTimesCircle className="text-[10px]" />}
                               {rec.status}
@@ -871,36 +871,36 @@ const Attendance = () => {
               {activeTab === 'payments' && (
                 <div className="space-y-2">
                   {loadingPayments ? (
-                    <div className="p-8 text-center text-purple-600 space-y-2">
+                    <div className="p-8 text-center text-purple-600 dark:text-purple-400 space-y-2">
                       <FaSpinner className="animate-spin text-2xl mx-auto" />
                       <p className="text-xs font-semibold">Loading payment records...</p>
                     </div>
                   ) : studentPayments.length === 0 ? (
-                    <div className="p-8 text-center text-gray-400 space-y-1 bg-gray-50 rounded-2xl border border-gray-100">
-                      <FaCreditCard className="text-2xl mx-auto text-gray-300" />
-                      <p className="text-xs font-bold text-gray-600">No payment transactions found for this student.</p>
-                      <p className="text-[10px] text-gray-400">Payments made online or logged at the counter will appear here.</p>
+                    <div className="p-8 text-center text-gray-400 dark:text-gray-500 space-y-1 bg-gray-50 dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700">
+                      <FaCreditCard className="text-2xl mx-auto text-gray-300 dark:text-gray-600" />
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-300">No payment transactions found for this student.</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500">Payments made online or logged at the counter will appear here.</p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-100 border border-gray-200 rounded-2xl overflow-hidden text-xs bg-white">
+                    <div className="divide-y divide-gray-100 dark:divide-slate-700/80 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden text-xs bg-white dark:bg-slate-800">
                       {studentPayments.map(p => (
-                        <div key={p._id} className="p-3.5 flex justify-between items-center hover:bg-purple-50/40 transition">
+                        <div key={p._id} className="p-3.5 flex justify-between items-center hover:bg-purple-50/40 dark:hover:bg-slate-700/50 transition">
                           <div>
-                            <p className="font-extrabold text-gray-900 text-xs">
+                            <p className="font-extrabold text-gray-900 dark:text-white text-xs">
                               {p.course?.title || p.remarks || 'Tuition Fee Payment'}
                             </p>
-                            <p className="text-[10px] text-gray-500 font-mono mt-0.5">
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">
                               💳 Method: {p.paymentMethod || 'CARD_OTP'} • Ref: {p.transactionId || p.receiptNumber || p._id}
                             </p>
-                            <p className="text-[10px] text-purple-700 font-mono font-semibold">
+                            <p className="text-[10px] text-purple-700 dark:text-purple-300 font-mono font-semibold">
                               📅 Paid on: {new Date(p.createdAt || p.paymentDate).toLocaleDateString()} at {new Date(p.createdAt || p.paymentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
                           <div className="text-right space-y-1">
-                            <p className="font-extrabold text-xs text-purple-950">
+                            <p className="font-extrabold text-xs text-purple-950 dark:text-white">
                               LKR {p.amount ? p.amount.toLocaleString() : '0'}
                             </p>
-                            <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full font-extrabold text-[10px] inline-block">
+                            <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2.5 py-0.5 rounded-full font-extrabold text-[10px] inline-block">
                               {p.status || 'COMPLETED'} ✓
                             </span>
                           </div>
@@ -945,7 +945,7 @@ const Attendance = () => {
       {/* Main Workspace Container */}
       <div className="space-y-6">
         {/* Navigation Tabs */}
-        <div className="flex bg-white p-2 rounded-2xl border border-gray-200 shadow-sm gap-2">
+        <div className="flex bg-white dark:bg-slate-900 p-2 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm gap-2">
           {/* Admin & Counter Staff Only: Manual Marking & QR Kiosk */}
           {!isTeacher && (
             <>
@@ -956,7 +956,7 @@ const Attendance = () => {
                 className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   adminMode === 'manual'
                     ? 'bg-purple-700 text-white shadow-md'
-                    : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+                    : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-slate-700 hover:text-purple-900 dark:hover:text-white'
                 }`}
               >
                 <FaEdit className="text-base" /> Mark Student Daily Attendance
@@ -969,7 +969,7 @@ const Attendance = () => {
                 className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   adminMode === 'qr'
                     ? 'bg-purple-700 text-white shadow-md'
-                    : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+                    : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-slate-700 hover:text-purple-900 dark:hover:text-white'
                 }`}
               >
                 <FaCamera className="text-base" /> Live QR Scanning
@@ -984,7 +984,7 @@ const Attendance = () => {
             className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
               adminMode === 'daily'
                 ? 'bg-purple-700 text-white shadow-md'
-                : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+                : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-slate-700 hover:text-purple-900 dark:hover:text-white'
             }`}
           >
             <FaCalendarDay className="text-base" /> {isTeacher ? "Daily Class Attendance (By Date)" : "Daily Attendance Log (By Date)"}
@@ -997,7 +997,7 @@ const Attendance = () => {
             className={`flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
               adminMode === 'history'
                 ? 'bg-purple-700 text-white shadow-md'
-                : 'bg-gray-50 text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+                : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-slate-700 hover:text-purple-900 dark:hover:text-white'
             }`}
           >
             <FaHistory className="text-base" /> {isTeacher ? "All-Time Class Attendance History" : "All-Time Attendance History"}
@@ -1012,13 +1012,13 @@ const Attendance = () => {
           <div className="space-y-6">
             
             {/* Filter Control Bar */}
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
-                  <FaFilter className="text-purple-600" /> 
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+                <h3 className="font-extrabold text-gray-900 dark:text-white text-sm flex items-center gap-2">
+                  <FaFilter className="text-purple-600 dark:text-purple-400" /> 
                   {adminMode === 'daily' ? 'Select Date & Filter Daily Roster' : 'Search & Filter All-Time Master History'}
                 </h3>
-                <span className="text-xs text-purple-700 font-bold bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+                <span className="text-xs text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/60 px-3 py-1 rounded-full border border-purple-100 dark:border-purple-800">
                   {adminLogs.length} Records Found
                 </span>
               </div>
@@ -1027,27 +1027,27 @@ const Attendance = () => {
                 {/* Date Selector (Daily Mode) */}
                 {adminMode === 'daily' && (
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 mb-1">
+                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">
                       Select Target Date
                     </label>
                     <input
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-purple-50/70 border border-purple-300 rounded-xl text-xs font-bold text-purple-950 focus:ring-2 focus:ring-purple-600 outline-none cursor-pointer"
+                      className="w-full px-3 py-2.5 bg-purple-50/70 dark:bg-slate-800 border border-purple-300 dark:border-slate-700 rounded-xl text-xs font-bold text-purple-950 dark:text-white focus:ring-2 focus:ring-purple-600 outline-none cursor-pointer"
                     />
                   </div>
                 )}
 
                 {/* Grade Filter */}
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-500 mb-1">
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
                     Filter by Grade
                   </label>
                   <select
                     value={adminGradeFilter}
                     onChange={(e) => setAdminGradeFilter(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-purple-600 outline-none cursor-pointer"
+                    className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-600 outline-none cursor-pointer"
                   >
                     <option value="">All Grades</option>
                     <option value="Grade 6">Grade 6</option>
@@ -1062,13 +1062,13 @@ const Attendance = () => {
 
                 {/* Course Filter */}
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-500 mb-1">
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
                     Filter by Course
                   </label>
                   <select
                     value={adminCourseFilter}
                     onChange={(e) => setAdminCourseFilter(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-purple-600 outline-none cursor-pointer"
+                    className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-600 outline-none cursor-pointer"
                   >
                     <option value="">All Courses</option>
                     {coursesList.map(c => (
@@ -1079,7 +1079,7 @@ const Attendance = () => {
 
                 {/* Search Box */}
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-500 mb-1">
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
                     Student Search
                   </label>
                   <div className="flex gap-2">
@@ -1088,7 +1088,7 @@ const Attendance = () => {
                       placeholder="Search student name / Reg No..."
                       value={adminSearchQuery}
                       onChange={(e) => setAdminSearchQuery(e.target.value)}
-                      className="flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 outline-none focus:ring-2 focus:ring-purple-600"
+                      className="flex-1 px-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
                     />
                     <button
                       type="submit"
@@ -1102,27 +1102,27 @@ const Attendance = () => {
             </div>
 
             {/* Attendance Table */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h4 className="font-extrabold text-xs uppercase tracking-wider text-gray-700 flex items-center gap-2">
-                  <FaListAlt className="text-purple-600" />
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50 dark:bg-slate-800/80">
+                <h4 className="font-extrabold text-xs uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <FaListAlt className="text-purple-600 dark:text-purple-400" />
                   {adminMode === 'daily' ? `Daily Attendance Log for ${selectedDate}` : 'Master All-Time Attendance History'}
                 </h4>
-                <span className="text-xs text-purple-700 font-bold bg-purple-100 px-3 py-1 rounded-full">
+                <span className="text-xs text-purple-700 dark:text-purple-300 font-bold bg-purple-100 dark:bg-purple-950/60 px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800">
                   {adminLogs.length} Checked In
                 </span>
               </div>
 
               {loadingAdminLogs ? (
-                <div className="p-12 text-center text-purple-600 space-y-2">
+                <div className="p-12 text-center text-purple-600 dark:text-purple-400 space-y-2">
                   <FaSpinner className="animate-spin text-3xl mx-auto" />
                   <p className="text-xs font-semibold">Loading attendance records...</p>
                 </div>
               ) : adminLogs.length === 0 ? (
-                <div className="p-12 text-center text-gray-400 space-y-2">
-                  <FaCalendarAlt className="text-4xl mx-auto text-gray-300" />
-                  <p className="text-sm font-bold text-gray-600">No attendance records found for this query.</p>
-                  <p className="text-xs text-gray-400">Select another date or clear your search filters.</p>
+                <div className="p-12 text-center text-gray-400 dark:text-gray-500 space-y-2">
+                  <FaCalendarAlt className="text-4xl mx-auto text-gray-300 dark:text-gray-600" />
+                  <p className="text-sm font-bold text-gray-600 dark:text-gray-300">No attendance records found for this query.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Select another date or clear your search filters.</p>
                 </div>
               ) : (
                 <div>
@@ -1135,7 +1135,7 @@ const Attendance = () => {
                       <>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left text-xs">
-                            <thead className="bg-gray-100 text-gray-600 font-extrabold uppercase text-[10px] tracking-wider border-b border-gray-200">
+                            <thead className="bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-extrabold uppercase text-[10px] tracking-wider border-b border-gray-200 dark:border-slate-700">
                               <tr>
                                 <th className="p-3.5">Student Name & Reg No</th>
                                 <th className="p-3.5">Grade</th>
@@ -1146,50 +1146,50 @@ const Attendance = () => {
                                 <th className="p-3.5">Status</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
+                            <tbody className="divide-y divide-gray-100 dark:divide-slate-800 font-medium text-gray-700 dark:text-gray-300">
                               {paginatedLogs.map((log) => (
-                                <tr key={log._id} className="hover:bg-purple-50/40 transition-colors">
+                                <tr key={log._id} className="hover:bg-purple-50/40 dark:hover:bg-slate-800/60 transition-colors">
                                   <td className="p-3.5 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-800 font-extrabold flex items-center justify-center text-xs border border-purple-200 shrink-0">
+                                    <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 font-extrabold flex items-center justify-center text-xs border border-purple-200 dark:border-purple-800 shrink-0">
                                       {log.studentId?.name ? log.studentId.name.charAt(0).toUpperCase() : 'S'}
                                     </div>
                                     <div>
-                                      <p className="font-bold text-gray-900">{log.studentId?.name || 'Unknown Student'}</p>
-                                      <p className="text-[10px] text-purple-700 font-mono font-bold">
+                                      <p className="font-bold text-gray-900 dark:text-white">{log.studentId?.name || 'Unknown Student'}</p>
+                                      <p className="text-[10px] text-purple-700 dark:text-purple-400 font-mono font-bold">
                                         {log.studentId?.registrationNumber || log.studentId?.email || 'N/A'}
                                       </p>
                                     </div>
                                   </td>
                                   <td className="p-3.5">
-                                    <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-bold text-[10px]">
+                                    <span className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-md font-bold text-[10px] border border-gray-200 dark:border-slate-700">
                                       {log.studentId?.grade || 'Grade 7'}
                                     </span>
                                   </td>
                                   <td className="p-3.5">
-                                    <p className="font-bold text-gray-900">{new Date(log.date).toLocaleDateString()}</p>
-                                    <p className="text-[10px] text-gray-500 font-mono">
+                                    <p className="font-bold text-gray-900 dark:text-white">{new Date(log.date).toLocaleDateString()}</p>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">
                                       {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                   </td>
-                                  <td className="p-3.5 font-bold text-purple-950">
+                                  <td className="p-3.5 font-bold text-purple-950 dark:text-purple-300">
                                     {log.courseId?.title || log.scheduleId?.title || 'Class Session'}
                                   </td>
                                   <td className="p-3.5">
-                                    <span className="bg-purple-100 text-purple-900 px-2.5 py-1 rounded-md font-extrabold text-[10px]">
+                                    <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 px-2.5 py-1 rounded-md font-extrabold text-[10px] border border-purple-200 dark:border-purple-800">
                                       {log.remarks || `${log.month || 'August'} - Week ${log.weekNumber || 2}`}
                                     </span>
                                   </td>
                                   <td className="p-3.5">
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                                       log.mode === 'PHYSICAL_QR' 
-                                        ? 'bg-amber-100 text-amber-900 border border-amber-200' 
-                                        : 'bg-blue-100 text-blue-900 border border-blue-200'
+                                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800' 
+                                        : 'bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
                                     }`}>
                                       {log.mode || 'PHYSICAL_QR'}
                                     </span>
                                   </td>
                                   <td className="p-3.5">
-                                    <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-extrabold text-[10px] flex items-center gap-1 w-max border border-emerald-200">
+                                    <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-full font-extrabold text-[10px] flex items-center gap-1 w-max border border-emerald-200 dark:border-emerald-800">
                                       <FaCheckCircle className="text-emerald-600 text-[10px]" />
                                       {log.status || 'Present'}
                                     </span>
@@ -1201,11 +1201,11 @@ const Attendance = () => {
                         </div>
 
                         {/* Pagination Footer (25 records per page) */}
-                        <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
-                          <div className="text-xs font-semibold text-gray-500">
-                            Showing <span className="font-extrabold text-gray-800">{adminLogs.length === 0 ? 0 : startIndex + 1}</span> to{' '}
-                            <span className="font-extrabold text-gray-800">{Math.min(startIndex + itemsPerPage, adminLogs.length)}</span> of{' '}
-                            <span className="font-extrabold text-gray-800">{adminLogs.length}</span> records
+                        <div className="p-4 border-t border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50 dark:bg-slate-800/50">
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                            Showing <span className="font-extrabold text-gray-800 dark:text-white">{adminLogs.length === 0 ? 0 : startIndex + 1}</span> to{' '}
+                            <span className="font-extrabold text-gray-800 dark:text-white">{Math.min(startIndex + itemsPerPage, adminLogs.length)}</span> of{' '}
+                            <span className="font-extrabold text-gray-800 dark:text-white">{adminLogs.length}</span> records
                           </div>
 
                           <div className="flex items-center gap-1.5">
@@ -1213,7 +1213,7 @@ const Attendance = () => {
                               type="button"
                               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                               disabled={currentPage === 1}
-                              className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1 bg-white"
+                              className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1 bg-white dark:bg-slate-800"
                             >
                               <FaChevronLeft className="text-[10px]" /> Previous
                             </button>
@@ -1225,8 +1225,8 @@ const Attendance = () => {
                                 onClick={() => setCurrentPage(pageNum)}
                                 className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${
                                   currentPage === pageNum
-                                    ? 'bg-purple-900 text-white shadow-sm'
-                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                                    ? 'bg-purple-900 dark:bg-purple-700 text-white shadow-sm'
+                                    : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
                                 }`}
                               >
                                 {pageNum}
@@ -1237,7 +1237,7 @@ const Attendance = () => {
                               type="button"
                               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                               disabled={currentPage === totalPages || adminLogs.length === 0}
-                              className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1 bg-white"
+                              className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer flex items-center gap-1 bg-white dark:bg-slate-800"
                             >
                               Next <FaChevronRight className="text-[10px]" />
                             </button>

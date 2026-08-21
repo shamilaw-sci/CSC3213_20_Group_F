@@ -1,11 +1,85 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-lumina-purple: #2d1b64;
   --color-lumina-light: #f3f4f6;
+  --color-slate-850: #172033;
 }
 
-/* Custom Sleek Scrollbar styling */
+/* System Color Scheme */
+html.dark,
+:root.dark {
+  color-scheme: dark;
+}
+
+html:not(.dark),
+:root:not(.dark) {
+  color-scheme: light;
+}
+
+/* Global Modern Scrollbars (Light Mode default) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.35);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.65);
+}
+
+/* Global Modern Scrollbars (Dark Mode) */
+.dark ::-webkit-scrollbar,
+html.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dark ::-webkit-scrollbar-track,
+html.dark ::-webkit-scrollbar-track {
+  background: #0b1120;
+}
+
+.dark ::-webkit-scrollbar-thumb,
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+  border: 1px solid #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover,
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.dark ::-webkit-scrollbar-corner,
+html.dark ::-webkit-scrollbar-corner {
+  background: #0b1120;
+}
+
+/* Firefox scrollbar support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.35) transparent;
+}
+
+.dark *,
+html.dark * {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 #0b1120;
+}
+
+/* Custom Sleek Scrollbar utility */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -20,7 +94,66 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 92, 246, 0.65);
 }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb,
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(139, 92, 246, 0.4) transparent;
+}
+.dark .custom-scrollbar,
+html.dark .custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+/* Clean browser autofill styling */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #1e1b4b !important;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover, 
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active,
+.dark textarea:-webkit-autofill,
+.dark select:-webkit-autofill {
+  -webkit-text-fill-color: #f8fafc !important;
+  -webkit-box-shadow: 0 0 0 1000px #1e293b inset !important;
+}
+
+/* Force light auth panels (Login, Register, Forgot Password) to ALWAYS stay pure white */
+.auth-light-panel,
+.auth-light-panel input,
+.auth-light-panel textarea,
+.auth-light-panel select {
+  color-scheme: light !important;
+}
+
+.auth-light-panel input:-webkit-autofill,
+.auth-light-panel input:-webkit-autofill:hover, 
+.auth-light-panel input:-webkit-autofill:focus,
+.auth-light-panel input:-webkit-autofill:active,
+.dark .auth-light-panel input:-webkit-autofill,
+.dark .auth-light-panel input:-webkit-autofill:hover, 
+.dark .auth-light-panel input:-webkit-autofill:focus,
+.dark .auth-light-panel input:-webkit-autofill:active {
+  -webkit-text-fill-color: #0f172a !important;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
 }

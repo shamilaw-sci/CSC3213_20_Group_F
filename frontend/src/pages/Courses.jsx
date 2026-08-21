@@ -256,15 +256,15 @@ const Courses = () => {
       <div 
         key={course._id} 
         onClick={() => handleCourseClick(course)} 
-        className={`bg-white rounded-[32px] overflow-hidden shadow-sm border transition-all duration-300 group flex flex-col justify-between ${
+        className={`bg-white dark:bg-slate-900 rounded-[32px] overflow-hidden shadow-sm border transition-all duration-300 group flex flex-col justify-between ${
           isParent
-            ? 'cursor-default border-gray-200/90'
-            : 'cursor-pointer transform hover:-translate-y-1 ' + (isDeactive ? 'border-red-200/90 bg-red-50/20' : 'border-gray-200/80 hover:border-purple-300 hover:shadow-2xl')
+            ? 'cursor-default border-gray-200/90 dark:border-slate-800'
+            : 'cursor-pointer transform hover:-translate-y-1 ' + (isDeactive ? 'border-red-200/90 dark:border-red-900/50 bg-red-50/20 dark:bg-red-950/20' : 'border-gray-200/80 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-500 hover:shadow-2xl')
         }`}
       >
         <div>
           {/* Card Hero Box (Card Picture in 100% Pure Original Color) */}
-          <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-gray-100">
+          <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-gray-100 dark:bg-slate-800">
             {courseImg ? (
               <img
                 src={courseImg}
@@ -351,14 +351,14 @@ const Courses = () => {
         </div>
 
         {/* Card Footer (Instructor Info) */}
-        <div className="flex items-center justify-between p-4 px-6 bg-white border-t border-gray-100 group/teacher transition-colors">
+        <div className="flex items-center justify-between p-4 px-6 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 group/teacher transition-colors">
           <div className="flex items-center gap-3.5">
             <div className="relative shrink-0">
               {course.instructor?.profilePicture ? (
                 <img
                   src={getImageUrl(course.instructor.profilePicture)}
                   alt={course.instructor.name || 'Instructor'}
-                  className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-600/30 transition-all duration-300 shadow-md bg-white"
+                  className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-600/30 transition-all duration-300 shadow-md bg-white dark:bg-slate-800"
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               ) : (
@@ -368,10 +368,10 @@ const Courses = () => {
               )}
             </div>
             <div>
-              <p className="text-[10px] text-purple-700 font-extrabold uppercase tracking-widest leading-none mb-1">
+              <p className="text-[10px] text-purple-700 dark:text-purple-400 font-extrabold uppercase tracking-widest leading-none mb-1">
                 INSTRUCTOR
               </p>
-              <p className="text-slate-900 font-black text-sm transition-colors">
+              <p className="text-slate-900 dark:text-white font-black text-sm transition-colors">
                 {course.instructor ? course.instructor.name : 'Unassigned'}
               </p>
             </div>
@@ -388,11 +388,11 @@ const Courses = () => {
       <div 
         key={course._id} 
         onClick={() => navigate(`/course/${course._id}`)} 
-        className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-200/80 hover:border-purple-300 hover:shadow-2xl transition-all duration-300 group flex flex-col justify-between cursor-pointer transform hover:-translate-y-1"
+        className="bg-white dark:bg-slate-900 rounded-[32px] overflow-hidden shadow-sm border border-gray-200/80 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-500 hover:shadow-2xl transition-all duration-300 group flex flex-col justify-between cursor-pointer transform hover:-translate-y-1"
       >
         <div>
           {/* Card Hero Box (Card Picture in 100% Pure Original Color) */}
-          <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-gray-100">
+          <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-gray-100 dark:bg-slate-800">
             {courseImg ? (
               <img
                 src={courseImg}
@@ -439,14 +439,14 @@ const Courses = () => {
         </div>
 
         {/* Card Footer (Instructor Info) */}
-        <div className="flex items-center justify-between p-4 px-6 bg-white border-t border-gray-100 group/teacher transition-colors">
+        <div className="flex items-center justify-between p-4 px-6 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 group/teacher transition-colors">
           <div className="flex items-center gap-3.5">
             <div className="relative shrink-0">
               {course.instructor?.profilePicture ? (
                 <img
                   src={getImageUrl(course.instructor.profilePicture)}
                   alt={course.instructor.name || 'Instructor'}
-                  className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-600/30 group-hover/teacher:ring-purple-600 transition-all duration-300 shadow-md bg-white"
+                  className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-600/30 group-hover/teacher:ring-purple-600 transition-all duration-300 shadow-md bg-white dark:bg-slate-800"
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               ) : (
@@ -456,10 +456,10 @@ const Courses = () => {
               )}
             </div>
             <div>
-              <p className="text-[10px] text-purple-700 font-extrabold uppercase tracking-widest leading-none mb-1">
+              <p className="text-[10px] text-purple-700 dark:text-purple-400 font-extrabold uppercase tracking-widest leading-none mb-1">
                 INSTRUCTOR
               </p>
-              <p className="text-slate-900 font-black text-sm group-hover/teacher:text-purple-900 transition-colors">
+              <p className="text-slate-900 dark:text-white font-black text-sm group-hover/teacher:text-purple-900 transition-colors">
                 {course.instructor ? course.instructor.name : 'Unassigned'}
               </p>
             </div>
@@ -485,23 +485,24 @@ const Courses = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#2d1b64]"></div>
+      <div className="min-h-[65vh] flex flex-col items-center justify-center gap-3">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 dark:border-purple-400"></div>
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 animate-pulse">Loading Courses Catalog...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] p-4 md:p-10 font-sans text-gray-800">
+    <div className="min-h-screen bg-[#f3f4f6] dark:bg-slate-950 p-4 md:p-10 font-sans text-gray-800 dark:text-gray-100 transition-colors duration-200">
       <div className="max-w-7xl mx-auto">
         
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <h2 className="text-3xl font-extrabold text-gray-800">
+            <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white">
               {user?.role === 'admin' ? 'All Courses' : user?.role === 'teacher' ? 'My Teaching Courses' : user?.role === 'parent' ? 'Institute Courses Catalogue' : 'Courses'}
             </h2>
-            <p className="text-gray-500 mt-1">
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
               {user?.role === 'admin' ? 'Manage all courses and educational content' : user?.role === 'teacher' ? 'View and manage your assigned courses' : user?.role === 'parent' ? 'Browse all institute courses, assigned instructors, and grade offerings' : 'Browse your enrolled and available courses'}
             </p>
           </div>
@@ -514,7 +515,7 @@ const Courses = () => {
             placeholder="Search courses by title, description or teacher..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none shadow-sm transition"
+            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none shadow-sm text-gray-900 dark:text-white transition"
           />
         </div>
 
@@ -526,7 +527,7 @@ const Courses = () => {
                 <FaGraduationCap className="text-[#2d1b64]" /> My Enrolled Courses
               </h3>
               {enrolledCourses.length === 0 ? (
-                <div className="bg-white p-14 rounded-[30px] text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                <div className="bg-white dark:bg-slate-900 p-14 rounded-[30px] text-center shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col items-center justify-center">
                   <FaBookOpen className="text-4xl text-[#2d1b64] mb-3" />
                   <p className="text-gray-500 text-lg">You haven't enrolled in any courses yet.</p>
                 </div>
@@ -551,7 +552,7 @@ const Courses = () => {
           </>
         ) : user?.role === 'parent' ? (
           /* Parent Role Table View */
-          <div className="bg-white rounded-[28px] border border-purple-200/80 shadow-md overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-purple-200/80 dark:border-slate-800 shadow-md overflow-hidden">
             <div className="p-6 bg-gradient-to-r from-purple-950 via-indigo-900 to-purple-900 text-white flex justify-between items-center flex-wrap gap-3">
               <div>
                 <h3 className="text-xl font-black text-white flex items-center gap-2">
@@ -565,15 +566,15 @@ const Courses = () => {
             </div>
 
             {filteredCourses.length === 0 ? (
-              <div className="p-16 text-center text-gray-500">
-                <FaBookOpen className="text-5xl text-[#2d1b64] mx-auto mb-3" />
+              <div className="p-16 text-center text-gray-500 dark:text-gray-400">
+                <FaBookOpen className="text-5xl text-[#2d1b64] dark:text-purple-400 mx-auto mb-3" />
                 <p className="text-base font-semibold">No courses found matching your search criteria.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-purple-50/80 text-purple-950 text-xs font-black uppercase tracking-wider border-b border-purple-200/80">
+                    <tr className="bg-purple-50/80 dark:bg-slate-800/80 text-purple-950 dark:text-purple-300 text-xs font-black uppercase tracking-wider border-b border-purple-200/80 dark:border-slate-700">
                       <th className="py-4 px-6">Course Name</th>
                       <th className="py-4 px-6">Available Grades</th>
                       <th className="py-4 px-6">Teacher / Instructor</th>
@@ -581,7 +582,7 @@ const Courses = () => {
                       <th className="py-4 px-6 text-center">Course Details</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 text-sm">
+                  <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
                     {filteredCourses.map((course) => {
                       const linkedChild = getLinkedChildEnrollment(course);
                       const cSchedules = getCourseSchedules(course._id);
@@ -593,24 +594,24 @@ const Courses = () => {
                           <tr 
                             onClick={() => toggleCourseExpand(course._id)}
                             className={`transition-colors cursor-pointer ${
-                              isExpanded ? 'bg-purple-50/60' : 'hover:bg-purple-50/30'
+                              isExpanded ? 'bg-purple-50/60 dark:bg-slate-800/60' : 'hover:bg-purple-50/30 dark:hover:bg-slate-800/40'
                             }`}
                           >
                             {/* Course Name */}
-                            <td className="py-4 px-6 font-extrabold text-slate-900 align-middle">
+                            <td className="py-4 px-6 font-extrabold text-slate-900 dark:text-white align-middle">
                               <div className="space-y-1">
-                                <span className="text-base font-black text-purple-950 block">{course.title}</span>
+                                <span className="text-base font-black text-purple-950 dark:text-white block">{course.title}</span>
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   {course.studentType === 'online' ? (
-                                    <span className="bg-blue-100 text-blue-800 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-blue-200">
+                                    <span className="bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
                                       💻 Online
                                     </span>
                                   ) : course.studentType === 'physical' ? (
-                                    <span className="bg-amber-100 text-amber-900 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-200">
+                                    <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
                                       🏫 Physical
                                     </span>
                                   ) : (
-                                    <span className="bg-indigo-100 text-indigo-900 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-200">
+                                    <span className="bg-indigo-100 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
                                       🌐 Online & Physical
                                     </span>
                                   )}
@@ -620,7 +621,7 @@ const Courses = () => {
 
                             {/* Available Grades */}
                             <td className="py-4 px-6 align-middle">
-                              <span className="inline-block px-3.5 py-1.5 bg-purple-50 text-purple-950 border border-purple-200 text-xs font-black rounded-xl shadow-2xs">
+                              <span className="inline-block px-3.5 py-1.5 bg-purple-50 dark:bg-purple-950/60 text-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-black rounded-xl shadow-2xs">
                                 🎓 {getGradesDisplay(course)}
                               </span>
                             </td>
@@ -632,7 +633,7 @@ const Courses = () => {
                                   <img
                                     src={getImageUrl(course.instructor.profilePicture)}
                                     alt={course.instructor.name || 'Teacher'}
-                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-600/20 shadow-xs shrink-0 bg-white"
+                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-600/20 shadow-xs shrink-0 bg-white dark:bg-slate-800"
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                   />
                                 ) : (
@@ -641,8 +642,8 @@ const Courses = () => {
                                   </div>
                                 )}
                                 <div>
-                                  <p className="font-extrabold text-slate-900 text-sm">{course.instructor ? course.instructor.name : 'Unassigned'}</p>
-                                  <p className="text-[11px] text-purple-700 font-bold uppercase tracking-wider">Instructor</p>
+                                  <p className="font-extrabold text-slate-900 dark:text-white text-sm">{course.instructor ? course.instructor.name : 'Unassigned'}</p>
+                                  <p className="text-[11px] text-purple-700 dark:text-purple-400 font-bold uppercase tracking-wider">Instructor</p>
                                 </div>
                               </div>
                             </td>
@@ -650,11 +651,11 @@ const Courses = () => {
                             {/* Child Status */}
                             <td className="py-4 px-6 align-middle">
                               {linkedChild ? (
-                                <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-black px-3 py-1 rounded-full inline-block shadow-2xs">
+                                <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black px-3 py-1 rounded-full inline-block shadow-2xs">
                                   ✓ Enrolled by {linkedChild.name} ({linkedChild.grade})
                                 </span>
                               ) : (
-                                <span className="bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1 rounded-full inline-block">
+                                <span className="bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs font-bold px-3 py-1 rounded-full inline-block border border-gray-200 dark:border-slate-700">
                                   Not Enrolled
                                 </span>
                               )}
@@ -671,7 +672,7 @@ const Courses = () => {
                                 className={`px-3.5 py-1.5 rounded-xl font-black text-xs transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-xs ${
                                   isExpanded
                                     ? 'bg-purple-700 text-white shadow-purple-200'
-                                    : 'bg-purple-100/90 text-purple-950 hover:bg-purple-200'
+                                    : 'bg-purple-100/90 dark:bg-slate-800 text-purple-950 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-slate-700'
                                 }`}
                               >
                                 <span>{isExpanded ? 'Hide Details' : 'View Details'}</span>
@@ -682,35 +683,35 @@ const Courses = () => {
 
                           {/* Collapsible Details Row */}
                           {isExpanded && (
-                            <tr className="bg-purple-50/40 border-b-2 border-purple-200">
+                            <tr className="bg-purple-50/40 dark:bg-slate-900/90 border-b-2 border-purple-200 dark:border-slate-800">
                               <td colSpan="5" className="p-4 md:p-6">
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 bg-white p-5 rounded-2xl border border-purple-100 shadow-sm">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 bg-white dark:bg-slate-800/90 p-5 rounded-2xl border border-purple-100 dark:border-slate-700 shadow-sm">
                                   
                                   {/* Card 1: Course Overview & Description */}
-                                  <div className="space-y-3 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-purple-100 pb-4 lg:pb-0 lg:pr-5">
-                                    <div className="flex items-center gap-2 text-purple-900 font-extrabold text-xs uppercase tracking-wider">
-                                      <FaBookOpen className="text-purple-700 text-sm" /> Course Overview & Description
+                                  <div className="space-y-3 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-purple-100 dark:border-slate-700 pb-4 lg:pb-0 lg:pr-5">
+                                    <div className="flex items-center gap-2 text-purple-900 dark:text-purple-300 font-extrabold text-xs uppercase tracking-wider">
+                                      <FaBookOpen className="text-purple-700 dark:text-purple-400 text-sm" /> Course Overview & Description
                                     </div>
-                                    <p className="text-xs text-gray-700 leading-relaxed font-medium whitespace-pre-line">
+                                    <p className="text-xs text-gray-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-line">
                                       {course.description || 'No detailed syllabus or description provided.'}
                                     </p>
                                     <div className="pt-2 flex flex-wrap gap-2 text-xs">
-                                      <div className="bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-200 text-purple-950 font-bold flex items-center gap-1.5">
-                                        <FaMoneyBillWave className="text-amber-600" /> Monthly Fee: <span className="font-extrabold text-amber-700">LKR {course.price?.toLocaleString() || '2,500'}</span>
+                                      <div className="bg-purple-50 dark:bg-purple-950/60 px-3 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800 text-purple-950 dark:text-purple-300 font-bold flex items-center gap-1.5">
+                                        <FaMoneyBillWave className="text-amber-600 dark:text-amber-400" /> Monthly Fee: <span className="font-extrabold text-amber-700 dark:text-amber-400">LKR {course.price?.toLocaleString() || '2,500'}</span>
                                       </div>
-                                      <div className="bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-200 text-indigo-900 font-bold flex items-center gap-1.5">
-                                        <FaGraduationCap className="text-indigo-600" /> Target Grades: <span className="font-extrabold">{getGradesDisplay(course)}</span>
+                                      <div className="bg-indigo-50 dark:bg-indigo-950/60 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-300 font-bold flex items-center gap-1.5">
+                                        <FaGraduationCap className="text-indigo-600 dark:text-indigo-400" /> Target Grades: <span className="font-extrabold">{getGradesDisplay(course)}</span>
                                       </div>
                                     </div>
                                   </div>
 
                                   {/* Card 2: Class Timetables & Schedules */}
-                                  <div className="space-y-3 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-purple-100 pb-4 lg:pb-0 lg:pr-5">
+                                  <div className="space-y-3 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-purple-100 dark:border-slate-700 pb-4 lg:pb-0 lg:pr-5">
                                     <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-2 text-purple-900 font-extrabold text-xs uppercase tracking-wider">
-                                        <FaClock className="text-purple-700 text-sm" /> Class Timetables & Schedules
+                                      <div className="flex items-center gap-2 text-purple-900 dark:text-purple-300 font-extrabold text-xs uppercase tracking-wider">
+                                        <FaClock className="text-purple-700 dark:text-purple-400 text-sm" /> Class Timetables & Schedules
                                       </div>
-                                      <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                                      <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
                                         {cSchedules.length} Sessions
                                       </span>
                                     </div>
@@ -719,12 +720,12 @@ const Courses = () => {
                                     ) : (
                                       <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                                         {cSchedules.map((sch) => (
-                                          <div key={sch._id} className="text-xs font-semibold text-gray-800 bg-purple-50/70 border border-purple-200/90 p-2.5 rounded-xl flex items-center justify-between gap-2 hover:bg-purple-100/70 transition">
+                                          <div key={sch._id} className="text-xs font-semibold text-gray-800 dark:text-gray-200 bg-purple-50/70 dark:bg-slate-900/80 border border-purple-200/90 dark:border-slate-700 p-2.5 rounded-xl flex items-center justify-between gap-2 hover:bg-purple-100/70 dark:hover:bg-slate-700 transition">
                                             <div>
-                                              <span className="font-extrabold text-purple-950 block">🎓 {sch.className || sch.grade}</span>
-                                              <span className="text-[11px] text-gray-600">⏱️ {sch.startTime} - {sch.endTime}</span>
+                                              <span className="font-extrabold text-purple-950 dark:text-purple-300 block">🎓 {sch.className || sch.grade}</span>
+                                              <span className="text-[11px] text-gray-600 dark:text-gray-400">⏱️ {sch.startTime} - {sch.endTime}</span>
                                             </div>
-                                            <span className="bg-amber-100 text-amber-900 font-extrabold text-[11px] px-2.5 py-1 rounded-lg border border-amber-200 whitespace-nowrap">
+                                            <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 font-extrabold text-[11px] px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800 whitespace-nowrap">
                                               📅 {sch.dayOfWeek}
                                             </span>
                                           </div>
@@ -735,35 +736,35 @@ const Courses = () => {
 
                                   {/* Card 3: Child Enrollment & Instructor Details */}
                                   <div className="space-y-3 lg:col-span-1">
-                                    <div className="flex items-center gap-2 text-purple-900 font-extrabold text-xs uppercase tracking-wider">
-                                      <FaCheckCircle className="text-emerald-600 text-sm" /> Child Enrollment Status
+                                    <div className="flex items-center gap-2 text-purple-900 dark:text-purple-300 font-extrabold text-xs uppercase tracking-wider">
+                                      <FaCheckCircle className="text-emerald-600 dark:text-emerald-400 text-sm" /> Child Enrollment Status
                                     </div>
                                     {linkedChild ? (
-                                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-1.5">
-                                        <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                                      <div className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 space-y-1.5">
+                                        <span className="text-xs font-extrabold text-emerald-950 dark:text-emerald-300 flex items-center gap-1.5">
                                           <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
                                           Active Student Enrollment
                                         </span>
-                                        <p className="text-xs text-emerald-800 font-medium leading-relaxed">
-                                          Your child <strong className="text-emerald-950 font-black">{linkedChild.name}</strong> is enrolled in this course for <strong className="text-emerald-950">{linkedChild.grade}</strong>.
+                                        <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
+                                          Your child <strong className="text-emerald-950 dark:text-white font-black">{linkedChild.name}</strong> is enrolled in this course for <strong className="text-emerald-950 dark:text-white">{linkedChild.grade}</strong>.
                                         </p>
                                       </div>
                                     ) : (
-                                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
-                                        <p className="text-xs text-gray-500 font-medium">
+                                      <div className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-3">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                                           None of your registered children are currently enrolled in this course.
                                         </p>
                                       </div>
                                     )}
 
-                                    <div className="pt-2 border-t border-purple-50">
-                                      <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Teaching Faculty</span>
+                                    <div className="pt-2 border-t border-purple-50 dark:border-slate-700">
+                                      <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Teaching Instructor</span>
                                       <div className="flex items-center gap-2.5">
                                         {course.instructor?.profilePicture ? (
                                           <img
                                             src={getImageUrl(course.instructor.profilePicture)}
                                             alt={course.instructor.name || 'Instructor'}
-                                            className="w-9 h-9 rounded-full object-cover border border-purple-200 shrink-0"
+                                            className="w-9 h-9 rounded-full object-cover border border-purple-200 dark:border-purple-700 shrink-0"
                                             onError={(e) => { e.target.style.display = 'none'; }}
                                           />
                                         ) : (
@@ -772,8 +773,8 @@ const Courses = () => {
                                           </div>
                                         )}
                                         <div>
-                                          <p className="text-xs font-bold text-gray-900">{course.instructor?.name || 'Assigned Instructor'}</p>
-                                          <p className="text-[10px] text-purple-700 font-semibold">{course.instructor?.email || 'Institute Teacher'}</p>
+                                          <p className="text-xs font-bold text-gray-900 dark:text-white">{course.instructor?.name || 'Assigned Instructor'}</p>
+                                          <p className="text-[10px] text-purple-700 dark:text-purple-400 font-semibold">{course.instructor?.email || 'Institute Teacher'}</p>
                                         </div>
                                       </div>
                                     </div>
@@ -795,9 +796,9 @@ const Courses = () => {
           <>
             {/* Admin / Teacher Catalogue View */}
             {filteredCourses.length === 0 ? (
-              <div className="bg-white p-20 rounded-[30px] text-center shadow-sm flex flex-col items-center justify-center">
-                <FaBookOpen className="text-5xl text-[#2d1b64] mb-4" />
-                <p className="text-gray-500 text-lg">No courses found matching your criteria.</p>
+              <div className="bg-white dark:bg-slate-900 p-20 rounded-[30px] text-center shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col items-center justify-center">
+                <FaBookOpen className="text-5xl text-[#2d1b64] dark:text-purple-400 mb-4" />
+                <p className="text-gray-500 dark:text-gray-400 text-lg">No courses found matching your criteria.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -828,28 +829,28 @@ const Courses = () => {
       {/* Full Course Deactivation / Activation Confirmation Modal */}
       {confirmFullCourseModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-purple-100 space-y-4 animate-in fade-in zoom-in duration-200">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-2xl border border-purple-100 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3.5">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-md ${
-                confirmFullCourseModal.isDeactive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
+                confirmFullCourseModal.isDeactive ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400'
               }`}>
                 {confirmFullCourseModal.isDeactive ? <FaLockOpen /> : <FaLock />}
               </div>
               <div>
-                <h3 className="text-base font-black text-gray-900">
+                <h3 className="text-base font-black text-gray-900 dark:text-white">
                   Confirm {confirmFullCourseModal.isDeactive ? 'Course Activation' : 'Course Deactivation'}
                 </h3>
-                <p className="text-xs text-gray-500 font-medium mt-0.5">
-                  Course: <span className="font-extrabold text-purple-900">{confirmFullCourseModal.title}</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                  Course: <span className="font-extrabold text-purple-900 dark:text-purple-300">{confirmFullCourseModal.title}</span>
                 </p>
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200/80 text-xs font-semibold text-gray-700 leading-relaxed">
+            <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-2xl border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-300 leading-relaxed">
               {confirmFullCourseModal.isDeactive ? (
-                <span>Are you sure you want to <strong className="text-emerald-700">activate</strong> this course? Students and teachers will be able to access the course workspace and its grade streams.</span>
+                <span>Are you sure you want to <strong className="text-emerald-700 dark:text-emerald-400">activate</strong> this course? Students and teachers will be able to access the course workspace and its grade streams.</span>
               ) : (
-                <span>Are you sure you want to <strong className="text-red-600">deactivate</strong> this course? Deactivating will set all grades inside to deactive and restrict access for students and teachers.</span>
+                <span>Are you sure you want to <strong className="text-red-600 dark:text-red-400">deactivate</strong> this course? Deactivating will set all grades inside to deactive and restrict access for students and teachers.</span>
               )}
             </div>
 
@@ -857,7 +858,7 @@ const Courses = () => {
               <button
                 type="button"
                 onClick={() => setConfirmFullCourseModal(null)}
-                className="px-4 py-2.5 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
+                className="px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition cursor-pointer"
               >
                 Cancel
               </button>

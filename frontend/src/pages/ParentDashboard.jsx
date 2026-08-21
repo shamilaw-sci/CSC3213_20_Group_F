@@ -52,9 +52,9 @@ const ParentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
-        <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-sm font-semibold text-purple-900">Loading Parent Portal...</p>
+      <div className="flex flex-col items-center justify-center min-h-[65vh] p-6 gap-3">
+        <div className="w-12 h-12 border-4 border-purple-600 dark:border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-xs font-semibold text-purple-900 dark:text-purple-300 animate-pulse">Loading Parent Portal...</p>
       </div>
     );
   }
@@ -68,7 +68,7 @@ const ParentDashboard = () => {
   const courses = currentChildObj?.courses || [];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-800 dark:text-gray-100 p-4 sm:p-8 space-y-8 max-w-7xl mx-auto transition-colors duration-200">
       
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white p-6 sm:p-8 rounded-[32px] shadow-xl border border-purple-800/40 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -116,12 +116,12 @@ const ParentDashboard = () => {
 
       {/* No Children Banner */}
       {childrenData.length === 0 ? (
-        <div className="bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center space-y-4">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 text-2xl mx-auto">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-amber-200 dark:border-amber-900/50 shadow-sm text-center space-y-4">
+          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/60 rounded-full flex items-center justify-center text-amber-600 dark:text-amber-400 text-2xl mx-auto">
             👨‍👩‍👧
           </div>
-          <h3 className="text-xl font-bold text-slate-900">No Child Linked to Your Parent Account</h3>
-          <p className="text-sm text-slate-500 max-w-md mx-auto">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Child Linked to Your Parent Account</h3>
+          <p className="text-sm text-slate-500 dark:text-gray-400 max-w-md mx-auto">
             Link your child by entering their unique Student Registration Number (e.g. <strong>OL-G06-2012-4829</strong> or physical Reg No).
           </p>
           
@@ -131,12 +131,12 @@ const ParentDashboard = () => {
               placeholder="Enter Child Reg No"
               value={linkRegNo}
               onChange={(e) => setLinkRegNo(e.target.value)}
-              className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-sm font-mono font-bold outline-none border border-slate-200 focus:border-purple-500"
+              className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl text-sm font-mono font-bold outline-none border border-slate-200 dark:border-slate-700 focus:border-purple-500"
             />
             <button
               type="submit"
               disabled={linking}
-              className="px-6 py-3 bg-purple-900 text-white font-bold text-sm rounded-xl hover:bg-purple-800 transition cursor-pointer flex items-center justify-center gap-2"
+              className="px-6 py-3 bg-purple-900 hover:bg-purple-800 text-white font-bold text-sm rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
             >
               <FaPlus /> {linking ? 'Linking...' : 'Link Child'}
             </button>
@@ -148,9 +148,9 @@ const ParentDashboard = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
             {/* Student Profile Card (High Prominence & Large Visible Typography) */}
-            <div className="bg-gradient-to-br from-purple-50 via-white to-purple-100/50 p-6 rounded-3xl border-2 border-purple-200/90 shadow-md space-y-4 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-purple-50 via-white to-purple-100/50 dark:from-slate-900 dark:via-purple-950/40 dark:to-slate-900 p-6 rounded-3xl border-2 border-purple-200/90 dark:border-purple-900/60 shadow-md space-y-4 relative overflow-hidden">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-purple-900 uppercase tracking-widest bg-purple-200/70 px-2.5 py-1 rounded-md border border-purple-300/60">
+                <span className="text-[11px] font-black text-purple-900 dark:text-purple-300 uppercase tracking-widest bg-purple-200/70 dark:bg-purple-950/80 px-2.5 py-1 rounded-md border border-purple-300/60 dark:border-purple-800">
                   ACTIVE STUDENT PROFILE
                 </span>
                 <span className="p-2 bg-purple-900 text-white rounded-xl text-lg shadow-sm">
@@ -163,7 +163,7 @@ const ParentDashboard = () => {
                   {child?.name ? child.name.charAt(0).toUpperCase() : '🎓'}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-2xl sm:text-3xl font-black text-purple-950 tracking-tight leading-none truncate" title={child?.name}>
+                  <h4 className="text-2xl sm:text-3xl font-black text-purple-950 dark:text-white tracking-tight leading-none truncate" title={child?.name}>
                     {child?.name}
                   </h4>
                   <div className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-purple-900 text-amber-300 font-mono font-black text-xs rounded-md shadow-xs">
@@ -182,18 +182,18 @@ const ParentDashboard = () => {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Attendance Rate</span>
-                <span className="p-2 bg-emerald-100 text-emerald-700 rounded-xl text-lg">
+                <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Attendance Rate</span>
+                <span className="p-2 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-xl text-lg">
                   <FaCalendarCheck />
                 </span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold text-slate-900">{metrics.attendanceRate}%</span>
-                <span className="text-xs text-slate-500 font-semibold">Overall Presence</span>
+                <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{metrics.attendanceRate}%</span>
+                <span className="text-xs text-slate-500 dark:text-gray-400 font-semibold">Overall Presence</span>
               </div>
-              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
                 <div 
                   className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                   style={{ width: `${metrics.attendanceRate}%` }}
@@ -201,42 +201,42 @@ const ParentDashboard = () => {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Course Fees Settled</span>
-                <span className="p-2 bg-blue-100 text-blue-700 rounded-xl text-lg">
+                <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Course Fees Settled</span>
+                <span className="p-2 bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded-xl text-lg">
                   <FaReceipt />
                 </span>
               </div>
               <div>
-                <span className="text-2xl font-extrabold text-slate-900">LKR {currentChildObj?.totalPaidAmount?.toLocaleString() || 0}.00</span>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">{payments.length} Fee Transactions</p>
+                <span className="text-2xl font-extrabold text-slate-900 dark:text-white">LKR {currentChildObj?.totalPaidAmount?.toLocaleString() || 0}.00</span>
+                <p className="text-xs text-slate-500 dark:text-gray-400 font-medium mt-0.5">{payments.length} Fee Transactions</p>
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Enrolled Courses</span>
-                <span className="p-2 bg-amber-100 text-amber-700 rounded-xl text-lg">
+                <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Enrolled Courses</span>
+                <span className="p-2 bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 rounded-xl text-lg">
                   <FaBookOpen />
                 </span>
               </div>
               <div>
-                <span className="text-3xl font-extrabold text-slate-900">{courses.length}</span>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Active Academic Classes</p>
+                <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{courses.length}</span>
+                <p className="text-xs text-slate-500 dark:text-gray-400 font-medium mt-0.5">Active Academic Classes</p>
               </div>
             </div>
 
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex flex-wrap border-b border-slate-200 gap-2 pb-2">
+          <div className="flex flex-wrap border-b border-slate-200 dark:border-slate-800 gap-2 pb-2">
             <button
               onClick={() => setActiveTab('attendance')}
               className={`px-5 py-2.5 text-sm font-bold rounded-2xl transition cursor-pointer flex items-center gap-2 ${
                 activeTab === 'attendance'
                   ? 'bg-purple-900 text-white shadow-md'
-                  : 'bg-white text-slate-600 hover:bg-slate-100'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800'
               }`}
             >
               <FaCalendarCheck /> Live Attendance Logs ({logs.length})
@@ -246,7 +246,7 @@ const ParentDashboard = () => {
               className={`px-5 py-2.5 text-sm font-bold rounded-2xl transition cursor-pointer flex items-center gap-2 ${
                 activeTab === 'payments'
                   ? 'bg-purple-900 text-white shadow-md'
-                  : 'bg-white text-slate-600 hover:bg-slate-100'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800'
               }`}
             >
               <FaReceipt /> Payments & Receipts ({payments.length})
@@ -256,7 +256,7 @@ const ParentDashboard = () => {
               className={`px-5 py-2.5 text-sm font-bold rounded-2xl transition cursor-pointer flex items-center gap-2 ${
                 activeTab === 'courses'
                   ? 'bg-purple-900 text-white shadow-md'
-                  : 'bg-white text-slate-600 hover:bg-slate-100'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800'
               }`}
             >
               <FaBookOpen /> Enrolled Courses ({courses.length})
@@ -266,7 +266,7 @@ const ParentDashboard = () => {
               className={`px-5 py-2.5 text-sm font-bold rounded-2xl transition cursor-pointer flex items-center gap-2 ${
                 activeTab === 'reading'
                   ? 'bg-purple-900 text-white shadow-md'
-                  : 'bg-white text-slate-600 hover:bg-slate-100'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800'
               }`}
             >
               <FaBookOpen className="text-purple-400" /> Reading Progress ({(currentChildObj?.readingProgress || []).length})
@@ -276,7 +276,7 @@ const ParentDashboard = () => {
               className={`px-5 py-2.5 text-sm font-bold rounded-2xl transition cursor-pointer flex items-center gap-2 ${
                 activeTab === 'link'
                   ? 'bg-purple-900 text-white shadow-md'
-                  : 'bg-white text-slate-600 hover:bg-slate-100'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800'
               }`}
             >
               <FaPlus /> Link Another Child
@@ -285,19 +285,19 @@ const ParentDashboard = () => {
 
           {/* TAB 1: ATTENDANCE LOGS */}
           {activeTab === 'attendance' && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 animate-fadeIn">
-              <div className="flex justify-between items-center">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 animate-fadeIn">
+              <div className="flex justify-between items-center flex-wrap gap-2">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <FaCalendarCheck className="text-purple-600" /> Class Session Attendance History
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <FaCalendarCheck className="text-purple-600 dark:text-purple-400" /> Class Session Attendance History
                   </h3>
-                  <p className="text-xs text-slate-500">Live check-in timestamps and arrival status recorded at institute entry</p>
+                  <p className="text-xs text-slate-500 dark:text-gray-400">Live check-in timestamps and arrival status recorded at institute entry</p>
                 </div>
 
                 <div className="flex gap-2 text-xs font-bold">
-                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full">{metrics.present} Present</span>
-                  <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full">{metrics.late} Late</span>
-                  <span className="px-2.5 py-1 bg-red-100 text-red-800 rounded-full">{metrics.absent} Absent</span>
+                  <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-full">{metrics.present} Present</span>
+                  <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-full">{metrics.late} Late</span>
+                  <span className="px-2.5 py-1 bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-full">{metrics.absent} Absent</span>
                 </div>
               </div>
 
@@ -307,34 +307,34 @@ const ParentDashboard = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 text-slate-600 uppercase text-[10px] font-extrabold tracking-wider border-y border-slate-200">
+                      <tr className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-gray-300 uppercase text-[10px] font-extrabold tracking-wider border-y border-slate-200 dark:border-slate-700">
                         <th className="py-3 px-4">Date & Day</th>
                         <th className="py-3 px-4">Check-In Time</th>
                         <th className="py-3 px-4">Status</th>
                         <th className="py-3 px-4">Subject / Remarks</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {logs.map((log) => {
                         const dateStr = log.createdAt ? new Date(log.createdAt).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
                         const timeStr = log.createdAt ? new Date(log.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
                         
                         const statusBadge = log.status === 'Present' 
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' 
                           : log.status === 'Late' 
-                          ? 'bg-amber-100 text-amber-800 border-amber-300' 
-                          : 'bg-red-100 text-red-800 border-red-300';
+                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800' 
+                          : 'bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border-red-300 dark:border-red-800';
 
                         return (
-                          <tr key={log._id} className="hover:bg-slate-50/80 transition">
-                            <td className="py-3.5 px-4 font-extrabold text-slate-900">{dateStr}</td>
-                            <td className="py-3.5 px-4 font-mono text-xs font-semibold text-slate-700">{timeStr}</td>
+                          <tr key={log._id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition">
+                            <td className="py-3.5 px-4 font-extrabold text-slate-900 dark:text-white">{dateStr}</td>
+                            <td className="py-3.5 px-4 font-mono text-xs font-semibold text-slate-700 dark:text-gray-300">{timeStr}</td>
                             <td className="py-3.5 px-4">
                               <span className={`px-3 py-1 text-xs font-extrabold rounded-full border ${statusBadge}`}>
                                 {log.status === 'Present' ? '✓ Present' : log.status === 'Late' ? '⏱️ Late' : '✕ Absent'}
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-xs font-medium text-slate-600">
+                            <td className="py-3.5 px-4 text-xs font-medium text-slate-600 dark:text-gray-300">
                               {log.remarks || 'Standard Class Attendance Scan'}
                             </td>
                           </tr>
@@ -349,12 +349,12 @@ const ParentDashboard = () => {
 
           {/* TAB 2: PAYMENTS & RECEIPTS */}
           {activeTab === 'payments' && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 animate-fadeIn">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <FaReceipt className="text-blue-600" /> Settled Course Fees & Payment Receipts
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FaReceipt className="text-blue-600 dark:text-blue-400" /> Settled Course Fees & Payment Receipts
                 </h3>
-                <p className="text-xs text-slate-500">Official fee payment history and direct bank transfer receipt records</p>
+                <p className="text-xs text-slate-500 dark:text-gray-400">Official fee payment history and direct bank transfer receipt records</p>
               </div>
 
               {payments.length === 0 ? (
@@ -363,7 +363,7 @@ const ParentDashboard = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 text-slate-600 uppercase text-[10px] font-extrabold tracking-wider border-y border-slate-200">
+                      <tr className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-gray-300 uppercase text-[10px] font-extrabold tracking-wider border-y border-slate-200 dark:border-slate-700">
                         <th className="py-3 px-4">Date</th>
                         <th className="py-3 px-4">Course Title</th>
                         <th className="py-3 px-4">Amount</th>
@@ -371,21 +371,21 @@ const ParentDashboard = () => {
                         <th className="py-3 px-4">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {payments.map((p) => {
                         const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : 'N/A';
                         const statusColor = p.status === 'COMPLETED' 
-                          ? 'bg-emerald-100 text-emerald-800' 
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
                           : p.status === 'PENDING_APPROVAL' 
-                          ? 'bg-amber-100 text-amber-800' 
-                          : 'bg-red-100 text-red-800';
+                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800' 
+                          : 'bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800';
 
                         return (
-                          <tr key={p._id} className="hover:bg-slate-50/80 transition">
-                            <td className="py-3.5 px-4 font-mono text-xs font-semibold text-slate-700">{dateStr}</td>
-                            <td className="py-3.5 px-4 font-bold text-slate-900">{p.course?.title || 'General Fee'}</td>
-                            <td className="py-3.5 px-4 font-extrabold text-purple-950">LKR {p.amount?.toLocaleString()}.00</td>
-                            <td className="py-3.5 px-4 text-xs font-bold text-slate-600">
+                          <tr key={p._id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition">
+                            <td className="py-3.5 px-4 font-mono text-xs font-semibold text-slate-700 dark:text-gray-300">{dateStr}</td>
+                            <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">{p.course?.title || 'General Fee'}</td>
+                            <td className="py-3.5 px-4 font-extrabold text-purple-950 dark:text-purple-300">LKR {p.amount?.toLocaleString()}.00</td>
+                            <td className="py-3.5 px-4 text-xs font-bold text-slate-600 dark:text-gray-300">
                               {p.paymentMethod === 'BANK_SLIP' ? '🏦 Direct Bank Slip' : '💳 Online IPG Card'}
                             </td>
                             <td className="py-3.5 px-4">
@@ -407,39 +407,39 @@ const ParentDashboard = () => {
           {activeTab === 'courses' && (
             <div className="space-y-4 animate-fadeIn">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <FaBookOpen className="text-amber-600" /> Active Enrolled Academic Classes
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FaBookOpen className="text-amber-600 dark:text-amber-400" /> Active Enrolled Academic Classes
                 </h3>
-                <p className="text-xs text-slate-500">Subject courses your child is currently attending</p>
+                <p className="text-xs text-slate-500 dark:text-gray-400">Subject courses your child is currently attending</p>
               </div>
 
               {courses.length === 0 ? (
-                <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center">
+                <div className="bg-white dark:bg-slate-900 p-12 rounded-3xl border border-slate-200 dark:border-slate-800 text-center">
                   <p className="text-sm text-slate-400">Child is not currently enrolled in any course.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {courses.map((c) => (
-                    <div key={c._id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+                    <div key={c._id} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
                       <div className="flex justify-between items-center">
-                        <span className="px-2.5 py-0.5 bg-purple-100 text-purple-900 text-xs font-bold rounded-full">
+                        <span className="px-2.5 py-0.5 bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 text-xs font-bold rounded-full border border-purple-200 dark:border-purple-800">
                           LKR {c.price?.toLocaleString()}
                         </span>
-                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                           Active Enrolled
                         </span>
                       </div>
 
                       <div>
-                        <h4 className="text-lg font-extrabold text-slate-900">{c.title}</h4>
-                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">{c.description}</p>
+                        <h4 className="text-lg font-extrabold text-slate-900 dark:text-white">{c.title}</h4>
+                        <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 line-clamp-2">{c.description}</p>
                       </div>
 
-                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                        <span className="text-slate-400 font-semibold flex items-center gap-1">
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span className="text-slate-400 dark:text-gray-400 font-semibold flex items-center gap-1">
                           <FaChalkboardTeacher /> Instructor:
                         </span>
-                        <span className="font-bold text-purple-950">{c.instructorName}</span>
+                        <span className="font-bold text-purple-950 dark:text-purple-300">{c.instructorName}</span>
                       </div>
                     </div>
                   ))}
@@ -450,12 +450,12 @@ const ParentDashboard = () => {
 
           {/* TAB 4: PDF READING & STUDY PROGRESS */}
           {activeTab === 'reading' && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 animate-fadeIn">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <FaBookOpen className="text-purple-600" /> PDF Study Notes Reading Completion
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FaBookOpen className="text-purple-600 dark:text-purple-400" /> PDF Study Notes Reading Completion
                 </h3>
-                <p className="text-xs text-slate-500">Track how many pages and what percentage of lecture PDF notes your child has read</p>
+                <p className="text-xs text-slate-500 dark:text-gray-400">Track how many pages and what percentage of lecture PDF notes your child has read</p>
               </div>
 
               {(currentChildObj?.readingProgress || []).length === 0 ? (
@@ -463,28 +463,28 @@ const ParentDashboard = () => {
               ) : (
                 <div className="space-y-3">
                   {(currentChildObj?.readingProgress || []).map((item) => (
-                    <div key={item._id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div key={item._id} className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div className="space-y-1">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-md">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
                           {item.course?.title || 'Subject Course'}
                         </span>
-                        <h4 className="text-sm font-extrabold text-slate-900">{item.pdfTitle}</h4>
-                        <p className="text-xs text-slate-500">
-                          Highest Page Read: <strong>Page {item.maxPageRead}</strong> of {item.totalPages} pages {!item.isCompleted && item.maxPageRead > 0 && <span className="text-purple-700 font-bold ml-1">• Next: Page {Math.min(item.totalPages, item.maxPageRead + 1)}</span>}
+                        <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">{item.pdfTitle}</h4>
+                        <p className="text-xs text-slate-500 dark:text-gray-400">
+                          Highest Page Read: <strong className="text-slate-700 dark:text-gray-200">Page {item.maxPageRead}</strong> of {item.totalPages} pages {!item.isCompleted && item.maxPageRead > 0 && <span className="text-purple-700 dark:text-purple-300 font-bold ml-1">• Next: Page {Math.min(item.totalPages, item.maxPageRead + 1)}</span>}
                         </p>
                       </div>
 
                       <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
                         <div className="text-right">
-                          <span className={`text-sm font-extrabold ${item.isCompleted ? 'text-emerald-600' : 'text-purple-900'}`}>
+                          <span className={`text-sm font-extrabold ${item.isCompleted ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-900 dark:text-purple-300'}`}>
                             {item.progressPercentage}% Completed
                           </span>
-                          <span className="block text-[10px] text-slate-400">
+                          <span className="block text-[10px] text-slate-400 dark:text-gray-500">
                             Last read: {item.lastReadAt ? new Date(item.lastReadAt).toLocaleDateString() : 'Recently'}
                           </span>
                         </div>
 
-                        <div className="w-20 bg-slate-200 h-3 rounded-full overflow-hidden border border-slate-300">
+                        <div className="w-20 bg-slate-200 dark:bg-slate-700 h-3 rounded-full overflow-hidden border border-slate-300 dark:border-slate-600">
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ${item.isCompleted ? 'bg-emerald-500' : 'bg-purple-600'}`}
                             style={{ width: `${item.progressPercentage}%` }}
@@ -498,21 +498,21 @@ const ParentDashboard = () => {
             </div>
           )}
 
-          {/* TAB 4: LINK ANOTHER CHILD */}
+          {/* TAB 5: LINK ANOTHER CHILD */}
           {activeTab === 'link' && (
-            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs max-w-xl mx-auto space-y-6 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs max-w-xl mx-auto space-y-6 animate-fadeIn">
               <div>
-                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <FaPlus className="text-purple-600" /> Link Additional Child
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FaPlus className="text-purple-600 dark:text-purple-400" /> Link Additional Child
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
                   Connect another child enrolled at LuminaLearn using their unique Student Registration Number.
                 </p>
               </div>
 
               <form onSubmit={handleLinkChild} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-extrabold text-slate-700">
+                  <label className="block text-xs font-extrabold text-slate-700 dark:text-gray-300">
                     Child's Registration Number (e.g. OL-G06-2012-4829 or Physical Reg No):
                   </label>
                   <div className="relative">
@@ -522,7 +522,7 @@ const ParentDashboard = () => {
                       placeholder="e.g. OL-G06-2012-4829"
                       value={linkRegNo}
                       onChange={(e) => setLinkRegNo(e.target.value)}
-                      className="w-full bg-slate-50 pl-11 pr-4 py-3 rounded-2xl text-sm font-mono font-bold outline-none border border-slate-200 focus:border-purple-500 uppercase"
+                      className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white pl-11 pr-4 py-3 rounded-2xl text-sm font-mono font-bold outline-none border border-slate-200 dark:border-slate-700 focus:border-purple-500 uppercase"
                       required
                     />
                   </div>
@@ -531,7 +531,7 @@ const ParentDashboard = () => {
                 <button
                   type="submit"
                   disabled={linking}
-                  className="w-full py-3.5 bg-purple-900 text-white font-bold text-sm rounded-2xl hover:bg-purple-800 transition shadow-md cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-purple-900 hover:bg-purple-800 text-white font-bold text-sm rounded-2xl transition shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
                   <FaPlus /> {linking ? 'Linking Child...' : 'Attach Child to Account'}
                 </button>

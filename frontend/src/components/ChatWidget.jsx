@@ -166,35 +166,35 @@ export default function ChatWidget() {
           </div>
 
           {/* Quick Suggestion Pills */}
-          <div className="bg-purple-50/80 px-3 py-2 border-b border-purple-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth">
+          <div className="bg-purple-50/80 dark:bg-slate-900 px-3 py-2 border-b border-purple-100 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth">
             <button
               onClick={() => handleQuickPrompt("When are the class schedules?")}
-              className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-full text-[11px] font-medium whitespace-nowrap flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+              className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-slate-700 rounded-full text-[11px] font-medium whitespace-nowrap flex items-center gap-1 transition-all cursor-pointer shadow-xs"
             >
               <FaCalendarAlt className="text-[10px]" /> Schedules
             </button>
             <button
               onClick={() => handleQuickPrompt("What is my attendance status?")}
-              className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-full text-[11px] font-medium whitespace-nowrap flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+              className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-slate-700 rounded-full text-[11px] font-medium whitespace-nowrap flex items-center gap-1 transition-all cursor-pointer shadow-xs"
             >
               <FaCheckCircle className="text-[10px]" /> Attendance
             </button>
             <button
               onClick={() => handleQuickPrompt("Check my payment records")}
-              className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-full text-[11px] font-medium whitespace-nowrap flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+              className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-slate-700 rounded-full text-[11px] font-medium whitespace-nowrap flex items-center gap-1 transition-all cursor-pointer shadow-xs"
             >
               <FaCreditCard className="text-[10px]" /> Payments
             </button>
             <button
               onClick={() => handleQuickPrompt("mata grade 10 science panthiya yanne kawadada?")}
-              className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-full text-[11px] font-medium whitespace-nowrap flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+              className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-slate-700 rounded-full text-[11px] font-medium whitespace-nowrap flex items-center gap-1 transition-all cursor-pointer shadow-xs"
             >
               <FaLanguage className="text-[10px]" /> Singlish Help
             </button>
           </div>
 
           {/* Messages Container */}
-          <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gradient-to-b from-gray-50 to-white">
+          <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gradient-to-b from-gray-50 to-white dark:from-slate-900 dark:to-slate-950">
             {messages.map((msg, idx) => (
               <div
                 key={idx}
@@ -204,14 +204,14 @@ export default function ChatWidget() {
                   <img
                     src="/assets/LuminaChat_Icon.png"
                     alt="LuminaChat Avatar"
-                    className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5 shadow-sm border border-purple-200 bg-purple-50"
+                    className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5 shadow-sm border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-slate-800"
                   />
                 )}
 
                 <div
                   className={`max-w-[82%] p-3 rounded-2xl text-xs leading-relaxed ${msg.sender === 'user'
                     ? 'bg-purple-600 text-white rounded-tr-none shadow-md'
-                    : 'bg-white text-gray-800 border border-gray-200/80 shadow-sm rounded-tl-none'
+                    : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 border border-gray-200/80 dark:border-slate-700 shadow-sm rounded-tl-none'
                     }`}
                 >
                   {formatText(msg.text)}
@@ -230,12 +230,12 @@ export default function ChatWidget() {
                 <img
                   src="/assets/LuminaChat_Icon.png"
                   alt="LuminaChat Avatar"
-                  className="w-7 h-7 rounded-full object-cover flex-shrink-0 shadow-sm border border-purple-200 bg-purple-50"
+                  className="w-7 h-7 rounded-full object-cover flex-shrink-0 shadow-sm border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-slate-800"
                 />
-                <div className="bg-white border border-gray-200 px-3 py-2 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-1.5 text-xs text-purple-600 font-medium">
-                  <span className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></span>
-                  <span className="w-2 h-2 bg-purple-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                  <span className="w-2 h-2 bg-purple-600 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-3 py-2 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-1.5 text-xs text-purple-600 dark:text-purple-400 font-medium">
+                  <span className="w-2 h-2 bg-purple-600 dark:bg-purple-400 rounded-full animate-bounce"></span>
+                  <span className="w-2 h-2 bg-purple-600 dark:bg-purple-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                  <span className="w-2 h-2 bg-purple-600 dark:bg-purple-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
                   <span className="text-[11px] text-gray-400 ml-1 italic">Typing...</span>
                 </div>
               </div>
@@ -250,7 +250,7 @@ export default function ChatWidget() {
               e.preventDefault();
               handleSend();
             }}
-            className="p-2.5 bg-white border-t border-gray-200 flex items-center gap-2"
+            className="p-2.5 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 flex items-center gap-2"
           >
             <input
               type="text"
@@ -258,7 +258,7 @@ export default function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask a question (English or Singlish)..."
               disabled={loading}
-              className="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-purple-500 focus:bg-white transition-all disabled:opacity-50"
+              className="flex-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-purple-500 focus:bg-white dark:focus:bg-slate-800 transition-all disabled:opacity-50"
             />
             <button
               type="submit"

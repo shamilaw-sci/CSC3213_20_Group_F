@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaArrowRight, FaPhone, FaUserGraduate, FaUserFriends } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaArrowRight, FaPhone, FaUserGraduate, FaUserFriends, FaEye, FaEyeSlash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
 
@@ -10,6 +10,7 @@ const Login = () => {
   const [emailOrReg, setEmailOrReg] = useState('');
   const [parentPhone, setParentPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -115,42 +116,42 @@ const Login = () => {
     >
 
       {/* Left Side - Welcome Text */}
-      <div className="relative hidden w-full flex-col justify-start pt-5 px-12 lg:flex lg:w-[55%] xl:px-24">
+      <div className="relative hidden w-full flex-col justify-start pt-8 px-12 lg:flex lg:w-[55%] xl:px-24">
         <div className="relative z-10 max-w-lg">
           <img
             src="/assets/LuminaLearn_Logo_banner.png"
             alt="LuminaLearn logo"
-            className="mb-2 h-30 w-auto object-contain"
+            className="mb-3 h-28 w-auto object-contain"
           />
-          <h1 className="text-5xl font-bold tracking-tight text-white xl:text-6xl">
+          <h1 className="text-5xl font-extrabold tracking-tight text-white xl:text-6xl">
             Welcome Back!
           </h1>
-          <p className="mt-6 text-lg leading-relaxed text-slate-200">
+          <p className="mt-5 text-lg leading-relaxed text-slate-200">
             Continue your learning journey with <br />
-            <span className="font-medium text-[#00e5ff]">LuminaLearn</span> Smart Learning Platform.
+            <span className="font-semibold text-[#00e5ff]">LuminaLearn</span> Smart Learning Platform.
           </p>
         </div>
       </div>
 
       {/* Right Side - White Login Panel */}
-      <div className="flex w-full items-center justify-center bg-white px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto">
-        <div className="w-full max-w-md py-4">
+      <div className="auth-light-panel flex w-full items-center justify-center bg-white px-6 py-10 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto">
+        <div className="w-full max-w-md py-2">
 
           {/* Header */}
           <div className="mb-6">
-            <h2 className="text-4xl font-bold text-[#1e1e38]">Login</h2>
-            <p className="mt-2 text-xs text-slate-500">
+            <h2 className="text-3xl sm:text-4xl font-black text-[#1e1e38] tracking-tight">Login</h2>
+            <p className="mt-1.5 text-sm text-slate-500 font-medium">
               Sign in to your learning account or parent portal
             </p>
 
             {/* Portal Switcher Tabs */}
-            <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-2 mt-5">
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-2 mt-5 border border-slate-200/80">
               <button
                 type="button"
                 onClick={() => setPortalType('student')}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${portalType === 'student'
-                    ? 'bg-purple-900 text-white shadow-md'
-                    : 'text-slate-600 hover:text-slate-900'
+                className={`flex-1 py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${portalType === 'student'
+                    ? 'bg-purple-900 text-white shadow-md scale-[1.02]'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                   }`}
               >
                 <FaUserGraduate /> Student & Staff
@@ -158,9 +159,9 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setPortalType('parent')}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${portalType === 'parent'
-                    ? 'bg-purple-900 text-white shadow-md'
-                    : 'text-slate-600 hover:text-slate-900'
+                className={`flex-1 py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${portalType === 'parent'
+                    ? 'bg-purple-900 text-white shadow-md scale-[1.02]'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                   }`}
               >
                 <FaUserFriends /> Parent Portal
@@ -168,82 +169,82 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Info Notice */}
-          {portalType === 'parent' ? (
-            <div className="mb-6 rounded-xl bg-purple-50 border border-purple-200 p-3.5 text-purple-950 text-xs flex gap-2.5 items-start shadow-xs">
-              <span className="text-base leading-none mt-0.5">📱</span>
-              <div>
-                <h4 className="font-semibold text-purple-900">Parent Access Portal</h4>
-                <p className="mt-0.5 text-[11px] text-purple-700 leading-relaxed">
-                  Log in using your registered mobile phone number. If this is your first time, use your default password.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="mb-6 rounded-xl bg-slate-50 border border-slate-200 p-3.5 text-slate-700 text-xs flex gap-2.5 items-start">
-              <span className="text-base leading-none mt-0.5">🎓</span>
-              <div>
-                <h4 className="font-semibold text-slate-900">Student & Staff Portal</h4>
-                <p className="mt-0.5 text-[11px] text-slate-500 leading-relaxed">
-                  Sign in with your email address or official registration number (e.g. <strong>OL-G06-2012-XXXX</strong> or <strong>REG-XXXX</strong>).
-                </p>
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4 mt-6">
 
             {/* Student/Staff: Email or Registration Number Input */}
             {portalType === 'student' ? (
-              <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-                <FaEnvelope className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Enter email or registration number"
-                  className="w-full bg-transparent pl-10 text-xs text-slate-900 outline-none placeholder:text-slate-500 font-medium"
-                  value={emailOrReg}
-                  onChange={(e) => setEmailOrReg(e.target.value)}
-                  required
-                />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                  Email or Registration Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative rounded-2xl bg-white border-2 border-slate-200 focus-within:border-purple-600 focus-within:ring-4 focus-within:ring-purple-100 transition-all shadow-2xs">
+                  <FaEnvelope className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 text-sm" />
+                  <input
+                    type="text"
+                    className="w-full bg-white pl-11 pr-4 py-3.5 text-sm font-semibold text-slate-900 outline-none rounded-2xl"
+                    style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
+                    value={emailOrReg}
+                    onChange={(e) => setEmailOrReg(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
             ) : (
               /* Parent: Mobile Phone Number Input */
-              <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-                <FaPhone className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="tel"
-                  placeholder="Enter parent mobile phone (e.g. 0771234567)"
-                  className="w-full bg-transparent pl-10 text-xs text-slate-900 outline-none placeholder:text-slate-500 font-medium"
-                  value={parentPhone}
-                  onChange={(e) => setParentPhone(e.target.value)}
-                  required
-                />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                  Parent Mobile Phone Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative rounded-2xl bg-white border-2 border-slate-200 focus-within:border-purple-600 focus-within:ring-4 focus-within:ring-purple-100 transition-all shadow-2xs">
+                  <FaPhone className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 text-sm" />
+                  <input
+                    type="tel"
+                    className="w-full bg-white pl-11 pr-4 py-3.5 text-sm font-semibold text-slate-900 outline-none rounded-2xl"
+                    style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
+                    value={parentPhone}
+                    onChange={(e) => setParentPhone(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
             )}
 
             {/* Password Input */}
-            <div className="relative rounded-xl bg-slate-100 p-3.5 border border-transparent focus-within:border-purple-300 focus-within:bg-white transition-colors">
-              <FaLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="password"
-                placeholder={portalType === 'parent' ? "Enter password (or default password on 1st login)" : "Password"}
-                className="w-full bg-transparent pl-10 text-xs text-slate-900 outline-none placeholder:text-slate-500"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            <div className="space-y-1.5">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative rounded-2xl bg-white border-2 border-slate-200 focus-within:border-purple-600 focus-within:ring-4 focus-within:ring-purple-100 transition-all shadow-2xs">
+                <FaLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 text-sm" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="w-full bg-white pl-11 pr-11 py-3.5 text-sm font-semibold text-slate-900 outline-none rounded-2xl"
+                  style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-purple-700 p-1.5 rounded-lg transition cursor-pointer"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
+                </button>
+              </div>
             </div>
 
             {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between text-xs py-1">
-              <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
-                <input type="checkbox" className="h-3.5 w-3.5 rounded border-slate-300 text-[#3a1c8a] accent-[#3a1c8a] cursor-pointer" />
+              <label className="flex items-center gap-2 text-slate-600 font-semibold cursor-pointer select-none">
+                <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-purple-700 accent-purple-700 cursor-pointer" />
                 Remember me
               </label>
               <button
                 type="button"
                 onClick={() => navigate('/forgot-password')}
-                className="font-semibold text-[#3a1c8a] hover:text-purple-800 transition-colors cursor-pointer"
+                className="font-bold text-purple-800 hover:text-purple-950 transition-colors cursor-pointer"
               >
                 Forgot password?
               </button>
@@ -253,7 +254,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative flex w-full items-center justify-center rounded-xl bg-lumina-purple px-6 py-4 text-xs font-bold text-white transition-all hover:bg-purple-800 shadow-lg shadow-purple-900/20 cursor-pointer disabled:opacity-50"
+              className="group relative flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-950 px-6 py-4 text-sm font-extrabold text-white transition-all shadow-lg shadow-purple-900/20 cursor-pointer disabled:opacity-50 mt-2"
             >
               {loading ? (
                 <span>Signing in...</span>
@@ -270,10 +271,10 @@ const Login = () => {
 
           {/* Google Sign In Divider (Students only) */}
           {portalType === 'student' && googleClientId && (
-            <div className="mt-6">
-              <div className="relative mb-5">
+            <div className="mt-5">
+              <div className="relative mb-4">
                 <div className="absolute inset-x-0 top-1/2 h-px bg-slate-200" />
-                <div className="relative mx-auto w-max bg-white px-4 text-xs text-slate-400">
+                <div className="relative mx-auto w-max bg-white px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Or continue with
                 </div>
               </div>
@@ -290,11 +291,11 @@ const Login = () => {
           )}
 
           {/* Footer Text */}
-          <div className="mt-8 space-y-2 text-center text-xs text-slate-500">
+          <div className="mt-7 space-y-1.5 text-center text-xs text-slate-500">
             <p>
               Are you an online student?{' '}
               <button
-                className="font-semibold text-[#3a1c8a] hover:underline cursor-pointer"
+                className="font-bold text-purple-800 hover:text-purple-950 hover:underline cursor-pointer"
                 onClick={() => navigate('/register')}
               >
                 Register here.
@@ -303,7 +304,7 @@ const Login = () => {
             <p>
               Need an account? Please{' '}
               <button
-                className="font-medium text-[#3a1c8a] hover:underline cursor-pointer"
+                className="font-semibold text-purple-800 hover:text-purple-950 hover:underline cursor-pointer"
                 onClick={() => {
                   const mailto = "mailto:admin.luminalearn@gmail.com?subject=Account%20Inquiry";
                   window.location.href = mailto;

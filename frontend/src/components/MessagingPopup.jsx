@@ -356,7 +356,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 w-[420px] max-w-[calc(100vw-2.5rem)] h-[580px] max-h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+    <div className="fixed bottom-24 right-6 w-[420px] max-w-[calc(100vw-2.5rem)] h-[580px] max-h-[calc(100vh-8rem)] bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
 
       {/* --- POPUP HEADER --- */}
       <div className="bg-gradient-to-r from-purple-700 via-lumina-purple to-purple-900 text-white p-4 flex items-center justify-between shadow-md">
@@ -408,8 +408,8 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
       </div>
 
       {/* --- ROLE ACCESS RULE NOTICE BANNER --- */}
-      <div className="bg-purple-50 border-b border-purple-100 px-3 py-2 text-[11px] font-medium text-purple-800 flex items-center gap-2">
-        <FaLock className="text-purple-500 text-xs flex-shrink-0" />
+      <div className="bg-purple-50 dark:bg-slate-800/80 border-b border-purple-100 dark:border-slate-700 px-3 py-2 text-[11px] font-medium text-purple-800 dark:text-purple-300 flex items-center gap-2">
+        <FaLock className="text-purple-500 dark:text-purple-400 text-xs flex-shrink-0" />
         <span className="truncate">{getRoleNotice()}</span>
       </div>
 
@@ -417,9 +417,9 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
       {/* VIEW 1: RECENT CONVERSATIONS LIST */}
       {/* ========================================================================= */}
       {activeTab === 'conversations' && (
-        <div className="flex-1 flex flex-col min-h-0 bg-gray-50/50">
+        <div className="flex-1 flex flex-col min-h-0 bg-gray-50/50 dark:bg-slate-950">
 
-          <div className="p-3 border-b border-gray-100 bg-white">
+          <div className="p-3 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div className="relative">
               <FaSearch className="absolute left-3 top-3 text-gray-400 text-xs" />
               <input
@@ -427,12 +427,12 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                 placeholder="Filter conversation list..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-100 py-2 pl-9 pr-3 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+                className="w-full bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-white py-2 pl-9 pr-3 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 transition-all border border-transparent dark:border-slate-700"
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
             {conversations.length > 0 ? (
               conversations
                 .filter(c => !searchQuery || c.contact.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -440,20 +440,20 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                   <div
                     key={conv.contact._id}
                     onClick={() => handleSelectContact(conv.contact)}
-                    className="p-3.5 hover:bg-purple-50/60 transition-colors cursor-pointer flex items-center gap-3 relative bg-white"
+                    className="p-3.5 hover:bg-purple-50/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer flex items-center gap-3 relative bg-white dark:bg-slate-900"
                   >
                     <div className="relative flex-shrink-0">
                       {conv.contact.profilePicture ? (
                         <img
                           src={getImageUrl(conv.contact.profilePicture)}
                           alt={conv.contact.name}
-                          className="w-11 h-11 rounded-full object-cover border border-purple-100 shadow-sm"
+                          className="w-11 h-11 rounded-full object-cover border border-purple-100 dark:border-slate-700 shadow-sm"
                         />
                       ) : (
-                        <FaUserCircle className="w-11 h-11 text-gray-300" />
+                        <FaUserCircle className="w-11 h-11 text-gray-300 dark:text-gray-600" />
                       )}
                       {conv.unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full border-2 border-white shadow-sm">
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm">
                           {conv.unreadCount}
                         </span>
                       )}
@@ -461,10 +461,10 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
-                        <h4 className="font-bold text-gray-800 text-xs truncate flex items-center gap-1.5">
+                        <h4 className="font-bold text-gray-800 dark:text-white text-xs truncate flex items-center gap-1.5">
                           {conv.contact.name}
                         </h4>
-                        <span className="text-[10px] text-gray-400 font-medium">
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
                           {conv.lastMessage?.createdAt
                             ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                             : ''}
@@ -472,7 +472,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                       </div>
 
                       <div className="flex items-center justify-between gap-2">
-                        <p className={`text-xs truncate max-w-[180px] ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'text-gray-500'}`}>
+                        <p className={`text-xs truncate max-w-[180px] ${conv.unreadCount > 0 ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                           {conv.lastMessage?.attachmentsCount > 0 ? '📎 Attachment' : (conv.lastMessage?.content || 'No messages yet.')}
                         </p>
                         <div className="flex items-center gap-1 flex-shrink-0">
@@ -483,7 +483,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                               e.stopPropagation();
                               triggerDeleteConversationConfirm(conv.contact._id, conv.contact.name);
                             }}
-                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors cursor-pointer"
                             title="Delete conversation"
                           >
                             <FaTrashAlt className="text-xs" />
@@ -494,10 +494,10 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                   </div>
                 ))
             ) : (
-              <div className="p-10 text-center text-gray-400">
-                <FaComments className="text-4xl mx-auto mb-2 text-gray-300" />
-                <p className="text-xs font-semibold text-gray-500">No conversations yet.</p>
-                <p className="text-[11px] mt-1 text-gray-400">Click "+ New Chat" to start messaging.</p>
+              <div className="p-10 text-center text-gray-400 dark:text-gray-500">
+                <FaComments className="text-4xl mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">No conversations yet.</p>
+                <p className="text-[11px] mt-1 text-gray-400 dark:text-gray-500">Click "+ New Chat" to start messaging.</p>
               </div>
             )}
           </div>
@@ -508,9 +508,9 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
       {/* VIEW 2: NEW CHAT / CONTACT SELECTOR */}
       {/* ========================================================================= */}
       {activeTab === 'new_chat' && (
-        <div className="flex-1 flex flex-col min-h-0 bg-gray-50/50">
+        <div className="flex-1 flex flex-col min-h-0 bg-gray-50/50 dark:bg-slate-950">
 
-          <div className="p-3 border-b border-gray-100 bg-white">
+          <div className="p-3 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div className="relative">
               <FaSearch className="absolute left-3 top-3 text-gray-400 text-xs" />
               <input
@@ -521,42 +521,42 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                   setSearchQuery(e.target.value);
                   fetchContacts(e.target.value);
                 }}
-                className="w-full bg-gray-100 py-2 pl-9 pr-3 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+                className="w-full bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-white py-2 pl-9 pr-3 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 transition-all border border-transparent dark:border-slate-700"
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
             {loading ? (
-              <div className="p-8 text-center text-xs text-gray-400 font-medium">Loading permitted contacts...</div>
+              <div className="p-8 text-center text-xs text-gray-400 dark:text-gray-500 font-medium">Loading permitted contacts...</div>
             ) : contacts.length > 0 ? (
               contacts.map((contact) => (
                 <div
                   key={contact._id}
                   onClick={() => handleSelectContact(contact)}
-                  className="p-3.5 hover:bg-purple-50/70 transition-colors cursor-pointer flex items-center gap-3 bg-white"
+                  className="p-3.5 hover:bg-purple-50/70 dark:hover:bg-slate-800/70 transition-colors cursor-pointer flex items-center gap-3 bg-white dark:bg-slate-900"
                 >
                   {contact.profilePicture ? (
                     <img
                       src={getImageUrl(contact.profilePicture)}
                       alt={contact.name}
-                      className="w-10 h-10 rounded-full object-cover border border-purple-100"
+                      className="w-10 h-10 rounded-full object-cover border border-purple-100 dark:border-slate-700"
                     />
                   ) : (
-                    <FaUserCircle className="w-10 h-10 text-gray-300" />
+                    <FaUserCircle className="w-10 h-10 text-gray-300 dark:text-gray-600" />
                   )}
 
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-bold text-gray-800 text-xs truncate">{contact.name}</h4>
+                      <h4 className="font-bold text-gray-800 dark:text-white text-xs truncate">{contact.name}</h4>
                       {getRoleBadge(contact.role)}
                     </div>
-                    <p className="text-[11px] text-gray-500 truncate">{contact.email}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{contact.email}</p>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="p-8 text-center text-gray-400 text-xs">
+              <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-xs">
                 No matching recipients found based on your role permissions.
               </div>
             )}
@@ -568,28 +568,28 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
       {/* VIEW 3: ACTIVE CHAT THREAD */}
       {/* ========================================================================= */}
       {activeTab === 'chat' && selectedContact && (
-        <div className="flex-1 flex flex-col min-h-0 bg-gray-100/40">
+        <div className="flex-1 flex flex-col min-h-0 bg-gray-100/40 dark:bg-slate-950">
 
           {/* ACTIVE CHAT HEADER BAR */}
-          <div className="bg-white px-4 py-2.5 border-b border-gray-200 flex items-center gap-3 shadow-2xs">
+          <div className="bg-white dark:bg-slate-900 px-4 py-2.5 border-b border-gray-200 dark:border-slate-800 flex items-center gap-3 shadow-2xs">
             {selectedContact.profilePicture ? (
               <img
                 src={getImageUrl(selectedContact.profilePicture)}
                 alt={selectedContact.name}
-                className="w-9 h-9 rounded-full object-cover border border-purple-200"
+                className="w-9 h-9 rounded-full object-cover border border-purple-200 dark:border-slate-700"
               />
             ) : (
-              <FaUserCircle className="w-9 h-9 text-gray-400" />
+              <FaUserCircle className="w-9 h-9 text-gray-400 dark:text-gray-500" />
             )}
             <div className="flex-1 min-w-0">
-              <h4 className="font-bold text-gray-900 text-xs truncate">{selectedContact.name}</h4>
-              <p className="text-[10px] text-gray-500 truncate">{selectedContact.email}</p>
+              <h4 className="font-bold text-gray-900 dark:text-white text-xs truncate">{selectedContact.name}</h4>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{selectedContact.email}</p>
             </div>
             {getRoleBadge(selectedContact.role)}
             <button
               type="button"
               onClick={() => triggerDeleteConversationConfirm(selectedContact._id, selectedContact.name)}
-              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer ml-1"
+              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer ml-1"
               title="Delete entire conversation"
             >
               <FaTrashAlt className="text-xs" />
@@ -604,7 +604,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                 <button
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-[11px] font-bold px-3 py-1 rounded-full transition-all cursor-pointer"
+                  className="bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 text-[11px] font-bold px-3 py-1 rounded-full transition-all cursor-pointer"
                 >
                   {loadingMore ? 'Loading older messages...' : 'Load older messages'}
                 </button>
@@ -612,7 +612,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
             )}
 
             {loading ? (
-              <div className="p-8 text-center text-xs text-gray-400">Loading conversation...</div>
+              <div className="p-8 text-center text-xs text-gray-400 dark:text-gray-500">Loading conversation...</div>
             ) : messages.length > 0 ? (
               messages.map((msg) => {
                 const rawSender = msg.sender;
@@ -631,7 +631,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                     <div
                       className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-xs text-xs ${isMe
                         ? 'bg-lumina-purple text-white rounded-br-none'
-                        : 'bg-white text-gray-800 border border-gray-200/80 rounded-bl-none'
+                        : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 border border-gray-200/80 dark:border-slate-700 rounded-bl-none'
                         }`}
                     >
                       {/* ATTACHMENTS RENDER */}
@@ -653,7 +653,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                                   href={getImageUrl(att.url)}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className={`flex items-center gap-2 p-2 rounded-lg text-xs font-semibold ${isMe ? 'bg-purple-800/60 text-white hover:bg-purple-800' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                                  className={`flex items-center gap-2 p-2 rounded-lg text-xs font-semibold ${isMe ? 'bg-purple-800/60 text-white hover:bg-purple-800' : 'bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700'
                                     } transition-colors`}
                                 >
                                   <FaFileAlt className="text-base flex-shrink-0" />
@@ -673,7 +673,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                       {msg.content && <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
 
                       {/* TIMESTAMP & READ TICK & DELETE BUTTON */}
-                      <div className={`mt-1 text-[9px] flex items-center justify-end gap-1.5 opacity-80 ${isMe ? 'text-purple-200' : 'text-gray-400'}`}>
+                      <div className={`mt-1 text-[9px] flex items-center justify-end gap-1.5 opacity-80 ${isMe ? 'text-purple-200' : 'text-gray-400 dark:text-gray-500'}`}>
                         <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         {(isMe || currentUser.role === 'admin') && (
                           <button
@@ -692,7 +692,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                 );
               })
             ) : (
-              <div className="p-8 text-center text-gray-400 text-xs">
+              <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-xs">
                 No messages in this conversation yet. Say hello!
               </div>
             )}
@@ -701,18 +701,18 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
 
           {/* ATTACHMENT PREVIEW BANNER */}
           {attachmentPreview && (
-            <div className="bg-purple-50 p-2.5 border-t border-purple-100 flex items-center justify-between">
+            <div className="bg-purple-50 dark:bg-slate-800 p-2.5 border-t border-purple-100 dark:border-slate-700 flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
                 {attachmentPreview.type === 'image' ? (
                   <img src={attachmentPreview.url} alt="preview" className="w-9 h-9 rounded object-cover border" />
                 ) : (
-                  <div className="w-9 h-9 bg-purple-200 text-purple-700 rounded flex items-center justify-center font-bold text-xs">
+                  <div className="w-9 h-9 bg-purple-200 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 rounded flex items-center justify-center font-bold text-xs">
                     <FaFileAlt />
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-gray-800 truncate max-w-[200px]">{attachmentPreview.name}</p>
-                  <p className="text-[10px] text-gray-500">{formatFileSize(attachmentPreview.size)}</p>
+                  <p className="text-xs font-bold text-gray-800 dark:text-white truncate max-w-[200px]">{attachmentPreview.name}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400">{formatFileSize(attachmentPreview.size)}</p>
                 </div>
               </div>
               <button
@@ -726,7 +726,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
           )}
 
           {/* INPUT FORM BAR */}
-          <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-gray-200 flex items-center gap-2">
+          <form onSubmit={handleSendMessage} className="p-3 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 flex items-center gap-2">
             <input
               type="file"
               ref={fileInputRef}
@@ -737,7 +737,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2.5 text-gray-500 hover:text-lumina-purple hover:bg-purple-50 rounded-xl transition-all cursor-pointer"
+              className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-lumina-purple dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
               title="Attach Image (Max 2MB) or Document (Max 5MB)"
             >
               <FaPaperclip className="text-base" />
@@ -748,7 +748,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
               placeholder="Type your message..."
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
-              className="flex-1 bg-gray-50 py-2.5 px-3.5 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+              className="flex-1 bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-white py-2.5 px-3.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 transition-all"
             />
 
             <button
@@ -767,22 +767,22 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
       {/* --- CUSTOM LUMINALEARN DELETE CONFIRMATION MODAL --- */}
       {deleteConfirm.isOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[60] flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-sm w-full p-6 space-y-4 transform transition-all animate-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 max-w-sm w-full p-6 space-y-4 transform transition-all animate-in zoom-in-95 duration-150 text-gray-800 dark:text-gray-100">
             <div className="flex items-start gap-3.5">
-              <div className="p-3 bg-red-100 text-red-600 rounded-2xl flex-shrink-0">
+              <div className="p-3 bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 rounded-2xl flex-shrink-0">
                 <FaTrashAlt className="text-lg" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-bold text-gray-900 text-sm">{deleteConfirm.title}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">{deleteConfirm.description}</p>
+                <h3 className="font-bold text-gray-900 dark:text-white text-sm">{deleteConfirm.title}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{deleteConfirm.description}</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setDeleteConfirm({ isOpen: false, type: null, targetId: null, title: '', description: '' })}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-semibold text-xs rounded-xl transition-colors cursor-pointer border border-transparent dark:border-slate-700"
               >
                 Cancel
               </button>

@@ -605,13 +605,13 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-4 animate-fadeIn">
-      <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] border border-purple-100/50 custom-scrollbar">
+      <div className="relative w-full max-w-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] border border-purple-100/50 dark:border-slate-800 custom-scrollbar">
         
         {/* Floating Top-Right Red Cross Close Button (Compact Size) */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-3.5 right-3.5 z-50 bg-red-600 hover:bg-red-700 active:scale-95 text-white w-8 h-8 rounded-full shadow-md border border-white flex items-center justify-center transition-all duration-200 cursor-pointer group/close"
+          className="absolute top-3.5 right-3.5 z-50 bg-red-600 hover:bg-red-700 active:scale-95 text-white w-8 h-8 rounded-full shadow-md border border-white dark:border-slate-700 flex items-center justify-center transition-all duration-200 cursor-pointer group/close"
           title="Close Profile"
           aria-label="Close Profile"
         >
@@ -661,7 +661,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
         </div>
 
         {/* Profile Info Header (Avatar Overlapping Banner, Name, Contacts & Tags Lined Up From Left-Most Corner) */}
-        <div className="relative px-6 sm:px-8 pb-4 border-b border-gray-100 space-y-3">
+        <div className="relative px-6 sm:px-8 pb-4 border-b border-gray-100 dark:border-slate-800 space-y-3">
           {/* EDIT PROFILE BUTTON (TOP RIGHT CORNER FOR ASSIGNED TEACHER) */}
           {isOwnProfile && !selectedCourse && !isEditing && (
             <button
@@ -690,11 +690,11 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                 <img
                   src={getImageUrl(isEditing ? editProfilePicture : currentTeacher.profilePicture)}
                   alt={currentTeacher.name}
-                  className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover ring-4 ring-white shadow-2xl border-2 border-purple-100 bg-white group-hover:ring-purple-600 transition-all duration-300"
+                  className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover ring-4 ring-white dark:ring-slate-800 shadow-2xl border-2 border-purple-100 dark:border-slate-700 bg-white dark:bg-slate-800 group-hover:ring-purple-600 transition-all duration-300"
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               ) : (
-                <div className="w-28 h-28 sm:w-36 sm:h-36 bg-gradient-to-br from-purple-600 to-[#2d1b64] text-white rounded-full flex items-center justify-center font-extrabold text-4xl sm:text-5xl ring-4 ring-white shadow-2xl border-2 border-purple-100 group-hover:ring-purple-600 transition-all duration-300">
+                <div className="w-28 h-28 sm:w-36 sm:h-36 bg-gradient-to-br from-purple-600 to-[#2d1b64] text-white rounded-full flex items-center justify-center font-extrabold text-4xl sm:text-5xl ring-4 ring-white dark:ring-slate-800 shadow-2xl border-2 border-purple-100 dark:border-slate-700 group-hover:ring-purple-600 transition-all duration-300">
                   {(isEditing ? editName : currentTeacher?.name) ? (isEditing ? editName : currentTeacher.name).charAt(0) : '?'}
                 </div>
               )}
@@ -725,7 +725,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
 
             {/* Profile Details (Name and Contacts) */}
             <div className="text-center sm:text-left flex-1 pt-2 sm:pt-3 space-y-1.5">
-              <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight transition-all duration-300 inline-block transform hover:scale-[1.03] hover:-translate-y-0.5 hover:text-purple-900 cursor-pointer">
+              <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight transition-all duration-300 inline-block transform hover:scale-[1.03] hover:-translate-y-0.5 hover:text-purple-900 dark:hover:text-purple-300 cursor-pointer">
                 {currentTeacher?.name || 'Teacher'}
               </h2>
 
@@ -779,10 +779,10 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                 ? 'text-[11px] sm:text-xs font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider border flex items-center gap-1.5 shadow-sm transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 hover:shadow-xl cursor-pointer'
                 : `text-[11px] sm:text-xs font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider border flex items-center gap-1.5 shadow-sm transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 hover:shadow-xl cursor-pointer ${
                     isVerified
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
                       : isInstructor
-                      ? 'bg-purple-100 text-purple-900 border-purple-300 hover:bg-purple-200'
-                      : 'bg-indigo-50 text-indigo-800 border-indigo-300 hover:bg-indigo-100'
+                      ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border-purple-300 dark:border-purple-800 hover:bg-purple-200'
+                      : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800 hover:bg-indigo-100'
                   }`;
 
               return (
@@ -812,9 +812,9 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
               <button
                 type="button"
                 onClick={() => setIsManagingTags(!isManagingTags)}
-                className="text-[11px] font-extrabold bg-amber-100 hover:bg-amber-200 text-amber-900 px-3.5 py-1 rounded-full border border-amber-300 uppercase tracking-wider transition flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105"
+                className="text-[11px] font-extrabold bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 text-amber-900 dark:text-amber-300 px-3.5 py-1 rounded-full border border-amber-300 dark:border-amber-800 uppercase tracking-wider transition flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105"
               >
-                <FaTag className="text-amber-600" /> {isManagingTags ? 'Close Tag Editor' : '+ Manage Teacher Tags'}
+                <FaTag className="text-amber-600 dark:text-amber-400" /> {isManagingTags ? 'Close Tag Editor' : '+ Manage Teacher Tags'}
               </button>
             )}
           </div>
@@ -888,14 +888,14 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                   <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-700 to-[#2d1b64] text-white flex items-center justify-center text-base font-black shadow-md shrink-0 border border-purple-200/40">
                     <FaBookOpen />
                   </div>
-                  <h4 className="text-xs font-black text-purple-900 uppercase tracking-widest">
+                  <h4 className="text-xs font-black text-purple-900 dark:text-purple-300 uppercase tracking-widest">
                     Course Overview &amp; Description
                   </h4>
                 </div>
 
                 {/* Full-width Description Box starting from left-most corner */}
-                <div className="bg-white/90 p-5 rounded-2xl border border-purple-100/90 shadow-inner w-full">
-                  <p className="text-sm font-semibold text-gray-800 leading-relaxed font-sans">
+                <div className="bg-white/90 dark:bg-slate-800/90 p-5 rounded-2xl border border-purple-100/90 dark:border-slate-700 shadow-inner w-full">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-relaxed font-sans">
                     {selectedCourse.description || 'No detailed description specified for this course.'}
                   </p>
                 </div>
@@ -904,7 +904,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
               {/* Active Grades & Classes Section */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                  <h4 className="text-xs font-extrabold text-gray-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
                     <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-purple-600 to-[#2d1b64] text-white flex items-center justify-center shadow-md">
                       <FaGraduationCap className="text-sm" />
                     </span>
@@ -913,7 +913,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                 </div>
 
                 {(!selectedCourse.enrolledGrades || selectedCourse.enrolledGrades.length === 0) ? (
-                  <div className="bg-gray-50 border border-dashed border-gray-200 p-5 rounded-2xl text-center">
+                  <div className="bg-gray-50 dark:bg-slate-800/60 border border-dashed border-gray-200 dark:border-slate-700 p-5 rounded-2xl text-center">
                     <p className="text-xs text-gray-400 font-medium italic">Standard Single Class Course (No separate grade streams)</p>
                   </div>
                 ) : (
@@ -930,10 +930,10 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                           key={idx}
                           className={`group relative p-4 rounded-2xl border shadow-sm transition-all duration-300 flex items-center justify-between cursor-default z-10 hover:z-30 hover:scale-[1.02] hover:shadow-xl ${
                             isDeactive 
-                              ? 'bg-red-50/50 border-red-200/90 hover:border-red-300' 
+                              ? 'bg-red-50/50 dark:bg-red-950/30 border-red-200/90 dark:border-red-900/60 hover:border-red-300' 
                               : isNotEnrolled 
-                              ? 'bg-amber-50/30 border-amber-200/80 hover:border-amber-300'
-                              : 'bg-white border-purple-100/80 hover:border-purple-300'
+                              ? 'bg-amber-50/30 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-900/60 hover:border-amber-300'
+                              : 'bg-white dark:bg-slate-800 border-purple-100/80 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-500'
                           }`}
                         >
                           {/* Grade Card Content */}
@@ -946,7 +946,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                               {g.gradeNumber ? (g.gradeNumber.toLowerCase().includes('grade') ? g.gradeNumber.replace(/grade\s*/i, 'G') : `G${g.gradeNumber}`) : `G${idx + 1}`}
                             </div>
                             <div>
-                              <h5 className="text-sm font-extrabold text-gray-900 group-hover:text-purple-700 transition-colors flex items-center gap-1.5">
+                              <h5 className="text-sm font-extrabold text-gray-900 dark:text-white group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors flex items-center gap-1.5">
                                 {gradeDisplayTitle}
                                 {(isDeactive || isNotEnrolled) && (
                                   <FaLock className="text-red-500 text-xs shrink-0" title={isDeactive ? `Deactivated by ${g.deactivatedBy === 'admin' ? 'Admin' : 'Teacher'}` : "Locked: Not Enrolled"} />
@@ -1028,23 +1028,23 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
             </div>
           ) : isEditing ? (
             /* ──────────────── EDIT PROFILE FORM ──────────────── */
-            <form onSubmit={handleSaveProfile} className="bg-purple-50/40 p-6 rounded-3xl border border-purple-100 space-y-5 animate-fadeIn">
-              <div className="flex justify-between items-center pb-3 border-b border-purple-100">
-                <h3 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
-                  <FaEdit className="text-purple-600" /> Edit Profile &amp; Cover Page
+            <form onSubmit={handleSaveProfile} className="bg-purple-50/40 dark:bg-slate-900 p-6 rounded-3xl border border-purple-100 dark:border-slate-800 space-y-5 animate-fadeIn">
+              <div className="flex justify-between items-center pb-3 border-b border-purple-100 dark:border-slate-800">
+                <h3 className="font-extrabold text-gray-900 dark:text-white text-lg flex items-center gap-2">
+                  <FaEdit className="text-purple-600 dark:text-purple-400" /> Edit Profile &amp; Cover Page
                 </h3>
               </div>
 
               {/* Photo Upload Cards Section */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white p-4 rounded-2xl border border-gray-200 flex flex-col justify-between items-center text-center">
-                  <span className="text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-2">Profile Photo</span>
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800 flex flex-col justify-between items-center text-center">
+                  <span className="text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Profile Photo</span>
                   {editProfilePicture ? (
                     <div className="relative mb-3">
                       <img
                         src={getImageUrl(editProfilePicture)}
                         alt="Profile Preview"
-                        className="w-24 h-24 rounded-full object-cover border-2 border-purple-200 shadow-md"
+                        className="w-24 h-24 rounded-full object-cover border-2 border-purple-200 dark:border-purple-700 shadow-md"
                       />
                       <button
                         type="button"
@@ -1056,7 +1056,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                       </button>
                     </div>
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-purple-50 border-2 border-dashed border-purple-200 flex items-center justify-center text-purple-400 mb-3">
+                    <div className="w-24 h-24 rounded-full bg-purple-50 dark:bg-slate-800 border-2 border-dashed border-purple-200 dark:border-slate-700 flex items-center justify-center text-purple-400 mb-3">
                       <FaCamera className="text-2xl" />
                     </div>
                   )}
@@ -1064,16 +1064,16 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                   <button
                     type="button"
                     onClick={() => profileFileInputRef.current?.click()}
-                    className="w-full py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-2 bg-purple-100 dark:bg-purple-950/60 hover:bg-purple-200 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border border-purple-200/60 dark:border-purple-800"
                   >
                     <FaUpload /> {editProfilePicture ? "Change Profile Photo" : "Upload Profile Photo"}
                   </button>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-gray-200 flex flex-col justify-between items-center text-center">
-                  <span className="text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-2">Cover Banner Photo</span>
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800 flex flex-col justify-between items-center text-center">
+                  <span className="text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Cover Banner Photo</span>
                   {editCoverPicture ? (
-                    <div className="relative w-full h-24 mb-3 overflow-hidden rounded-xl border border-purple-200">
+                    <div className="relative w-full h-24 mb-3 overflow-hidden rounded-xl border border-purple-200 dark:border-purple-700">
                       <img
                         src={getImageUrl(editCoverPicture)}
                         alt="Cover Preview"
@@ -1089,7 +1089,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                       </button>
                     </div>
                   ) : (
-                    <div className="w-full h-24 rounded-xl bg-purple-50 border-2 border-dashed border-purple-200 flex flex-col items-center justify-center text-purple-400 mb-3">
+                    <div className="w-full h-24 rounded-xl bg-purple-50 dark:bg-slate-800 border-2 border-dashed border-purple-200 dark:border-slate-700 flex flex-col items-center justify-center text-purple-400 mb-3">
                       <FaImage className="text-2xl mb-1" />
                       <span className="text-[10px] font-bold">No Cover Uploaded</span>
                     </div>
@@ -1098,20 +1098,18 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                   <button
                     type="button"
                     onClick={() => coverFileInputRef.current?.click()}
-                    className="w-full py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-2 bg-purple-100 dark:bg-purple-950/60 hover:bg-purple-200 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border border-purple-200/60 dark:border-purple-800"
                   >
                     <FaUpload /> {editCoverPicture ? "Change Cover Banner" : "Upload Cover Banner"}
                   </button>
                 </div>
               </div>
 
-
-
               {/* Sample Cover Banners Presets Gallery (35 Local HD Presets - 2 Pictures Per Row) */}
-              <div className="bg-white p-4.5 rounded-2xl border border-gray-200 space-y-3.5 shadow-xs">
+              <div className="bg-white dark:bg-slate-900 p-4.5 rounded-2xl border border-gray-200 dark:border-slate-800 space-y-3.5 shadow-xs">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Select Sample Cover Banner</label>
-                  <p className="text-xs text-gray-400 mt-0.5">Recommended 3:1 banner ratio · 35 Local HD preset images available. Click any image to open in cropper.</p>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Select Sample Cover Banner</label>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Recommended 3:1 banner ratio · 35 Local HD preset images available. Click any image to open in cropper.</p>
                 </div>
 
                 {/* Subject Category Pills */}
@@ -1124,7 +1122,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                       className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
                         selectedCoverCategory === cat
                           ? 'bg-purple-600 text-white shadow-xs'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'
                       }`}
                     >
                       {cat}
@@ -1171,17 +1169,17 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   placeholder="e.g. Chaminda Herath"
-                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm font-semibold"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm font-semibold"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                  <FaAward className="text-purple-600" /> Qualifications &amp; Subject Specializations
+                <label className="block text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <FaAward className="text-purple-600 dark:text-purple-400" /> Qualifications &amp; Subject Specializations
                 </label>
 
-                <div className="space-y-2 bg-purple-50/40 p-3.5 rounded-2xl border border-purple-100/90">
+                <div className="space-y-2 bg-purple-50/40 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-purple-100/90 dark:border-slate-700">
                   {qualificationsList.map((qual, qIdx) => (
                     <div key={qIdx} className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-full bg-purple-600 text-white font-black text-[11px] flex items-center justify-center shrink-0 shadow-xs">
@@ -1202,7 +1200,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                             ? "e.g. Master of Education (M.Ed) - Science Education"
                             : "e.g. Senior Science & IT Lecturer (10+ Years Experience)"
                         }
-                        className="flex-1 px-3.5 py-2 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs sm:text-sm font-semibold shadow-xs"
+                        className="flex-1 px-3.5 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs sm:text-sm font-semibold shadow-xs"
                       />
                       {qualificationsList.length > 1 && (
                         <button
@@ -1211,7 +1209,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                             const updated = qualificationsList.filter((_, idx) => idx !== qIdx);
                             setQualificationsList(updated.length > 0 ? updated : ['']);
                           }}
-                          className="w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-xl flex items-center justify-center transition border border-transparent hover:border-red-200 cursor-pointer shrink-0"
+                          className="w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-950/60 rounded-xl flex items-center justify-center transition border border-transparent hover:border-red-200 cursor-pointer shrink-0"
                           title="Remove Qualification"
                         >
                           <FaTrash className="text-xs" />
@@ -1231,16 +1229,16 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                  <FaPhoneAlt className="text-purple-600" /> Contact Details &amp; Social Links
+                <label className="block text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <FaPhoneAlt className="text-purple-600 dark:text-purple-400" /> Contact Details &amp; Social Links
                 </label>
 
-                <div className="space-y-2.5 bg-purple-50/40 p-3.5 rounded-2xl border border-purple-100/90">
+                <div className="space-y-2.5 bg-purple-50/40 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-purple-100/90 dark:border-slate-700">
                   {contactsList.map((contact, cIdx) => {
                     const selectedTypeObj = CONTACT_TYPES.find(t => t.id === contact.type) || CONTACT_TYPES[0];
                     const TypeIcon = selectedTypeObj.icon;
                     return (
-                      <div key={cIdx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white p-2.5 rounded-xl border border-gray-200 shadow-xs">
+                      <div key={cIdx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-xs">
                         {/* Type Select Dropdown */}
                         <div className="relative min-w-[175px]">
                           <select
@@ -1250,7 +1248,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                               updated[cIdx].type = e.target.value;
                               setContactsList(updated);
                             }}
-                            className="w-full pl-8 pr-7 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-black text-gray-800 appearance-none outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                            className="w-full pl-8 pr-7 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl text-xs font-black text-gray-800 dark:text-white appearance-none outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                           >
                             {CONTACT_TYPES.map((t) => (
                               <option key={t.id} value={t.id}>
@@ -1282,7 +1280,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                             contact.type === 'linkedin' ? 'e.g. linkedin.com/in/pathum' :
                             'e.g. t.me/pathum_edu'
                           }
-                          className="flex-1 px-3.5 py-2 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs sm:text-sm font-semibold shadow-xs"
+                          className="flex-1 px-3.5 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs sm:text-sm font-semibold shadow-xs"
                         />
 
                         {/* Delete Button */}
@@ -1293,7 +1291,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                               const updated = contactsList.filter((_, idx) => idx !== cIdx);
                               setContactsList(updated.length > 0 ? updated : [{ type: 'phone', value: '' }]);
                             }}
-                            className="w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl flex items-center justify-center transition border border-transparent hover:border-red-200 cursor-pointer shrink-0"
+                            className="w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-xl flex items-center justify-center transition border border-transparent hover:border-red-200 cursor-pointer shrink-0"
                             title="Remove Contact Method"
                           >
                             <FaTrash className="text-xs" />
@@ -1315,8 +1313,8 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
 
               <div>
                 <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
-                  <label className="text-xs font-extrabold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <FaChalkboardTeacher className="text-purple-600" /> About Instructor (Bio &amp; Profile Description)
+                  <label className="text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <FaChalkboardTeacher className="text-purple-600 dark:text-purple-400" /> About Instructor (Bio &amp; Profile Description)
                   </label>
                   
                   {/* Quick Formatting Tools */}
@@ -1324,7 +1322,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                     <button
                       type="button"
                       onClick={() => setEditBio(prev => `🎓 **[SUBJECT NAME] Educator | [SPECIALIZATION]**\n\n${prev}`.trim())}
-                      className="text-[10px] font-extrabold bg-purple-100 hover:bg-purple-200 text-purple-900 px-2.5 py-1 rounded-lg transition border border-purple-200 cursor-pointer"
+                      className="text-[10px] font-extrabold bg-purple-100 dark:bg-purple-950/60 hover:bg-purple-200 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 px-2.5 py-1 rounded-lg transition border border-purple-200 dark:border-purple-800 cursor-pointer"
                       title="Insert Generalized Headline Header"
                     >
                       + Headline
@@ -1332,7 +1330,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                     <button
                       type="button"
                       onClick={() => setEditBio(prev => `${prev}\n• Focus on concept clarity & unit-by-unit practice for [SUBJECT NAME]`.trim())}
-                      className="text-[10px] font-extrabold bg-indigo-100 hover:bg-indigo-200 text-indigo-900 px-2.5 py-1 rounded-lg transition border border-indigo-200 cursor-pointer"
+                      className="text-[10px] font-extrabold bg-indigo-100 dark:bg-indigo-950/60 hover:bg-indigo-200 dark:hover:bg-indigo-900/60 text-indigo-900 dark:text-indigo-300 px-2.5 py-1 rounded-lg transition border border-indigo-200 dark:border-indigo-800 cursor-pointer"
                       title="Insert Generalized Bullet Point"
                     >
                       + Bullet Point
@@ -1340,7 +1338,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                     <button
                       type="button"
                       onClick={() => setEditBio("🎓 **Passionate [SUBJECT NAME] Educator**\n\nDedicated [SUBJECT NAME] teacher with [10+] years of proven experience helping students master concepts, solve exam problems, and achieve outstanding results in exams.\n\n• Unit-by-unit structured revision for [SUBJECT NAME]\n• Comprehensive model paper discussions & past paper practice for [EXAM LEVEL]\n• Individual student guidance & doubt clearing sessions")}
-                      className="text-[10px] font-extrabold bg-amber-100 hover:bg-amber-200 text-amber-900 px-2.5 py-1 rounded-lg transition border border-amber-200 cursor-pointer"
+                      className="text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-300 px-2.5 py-1 rounded-lg transition border border-amber-200 dark:border-amber-800 cursor-pointer"
                       title="Load Generalized Bio Template"
                     >
                       ✨ Sample Bio
@@ -1353,13 +1351,13 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                   value={editBio}
                   onChange={(e) => setEditBio(e.target.value)}
                   placeholder="Write a short summary about your teaching experience, subjects, and background..."
-                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs sm:text-sm font-semibold leading-relaxed shadow-xs"
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs sm:text-sm font-semibold leading-relaxed shadow-xs"
                 />
 
                 {/* Live Student View Preview Box */}
                 {editBio.trim() && (
                   <div className="mt-3 space-y-1.5">
-                    <span className="text-[10px] font-black text-purple-700 uppercase tracking-widest flex items-center gap-1">
+                    <span className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest flex items-center gap-1">
                       <FaBookOpen /> Live Profile Preview:
                     </span>
                     {renderFormattedBio(editBio, true)}
@@ -1367,11 +1365,11 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-purple-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-purple-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm font-bold transition cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-bold transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1389,10 +1387,10 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
             <div className="space-y-6">
               {/* ADMIN TAG MANAGER CREATION BAR (EXPANDS INSIDE BODY WHEN MANAGING TAGS) */}
               {isAdminUser && isManagingTags && (
-                <div className="bg-amber-50/90 border border-amber-200 p-4 rounded-2xl space-y-3.5 animate-fadeIn shadow-sm">
-                  <div className="flex items-center justify-between pb-2 border-b border-amber-200/80">
-                    <span className="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                      <FaTag className="text-amber-600" /> Admin Tag Management Bar
+                <div className="bg-amber-50/90 dark:bg-slate-800/90 border border-amber-200 dark:border-slate-700 p-4 rounded-2xl space-y-3.5 animate-fadeIn shadow-sm">
+                  <div className="flex items-center justify-between pb-2 border-b border-amber-200/80 dark:border-slate-700">
+                    <span className="text-xs font-black text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <FaTag className="text-amber-600 dark:text-amber-400" /> Admin Tag Management Bar
                     </span>
                     <button
                       type="button"
@@ -1406,7 +1404,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
 
                   {/* Preset Common & Important Tags */}
                   <div>
-                    <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-1.5">
+                    <p className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-1.5">
                       Quick Common &amp; Important Tags:
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -1427,7 +1425,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                             className={`text-xs font-bold px-3 py-1 rounded-xl border transition cursor-pointer ${
                               isAdded
                                 ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                                : 'bg-white text-gray-700 border-amber-200 hover:bg-amber-100'
+                                : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-amber-200 dark:border-slate-700 hover:bg-amber-100 dark:hover:bg-slate-700'
                             }`}
                           >
                             {isAdded ? `✓ ${pTag}` : `+ ${pTag}`}
@@ -1439,17 +1437,17 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
 
                   {/* Symbol / Emoji Palette Picker */}
                   <div>
-                    <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <p className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                       <span>Click Symbol to Insert into Custom Tag:</span>
-                      <span className="text-[10px] text-amber-700 font-normal">Click any symbol e.g. ⭐, 🏆, 💎</span>
+                      <span className="text-[10px] text-amber-700 dark:text-amber-400 font-normal">Click any symbol e.g. ⭐, 🏆, 💎</span>
                     </p>
-                    <div className="flex flex-wrap gap-1 bg-white p-2.5 rounded-xl border border-amber-200 shadow-inner max-h-24 overflow-y-auto">
+                    <div className="flex flex-wrap gap-1 bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-amber-200 dark:border-slate-700 shadow-inner max-h-24 overflow-y-auto">
                       {SYMBOLS_LIST.map((sym, sIdx) => (
                         <button
                           key={sIdx}
                           type="button"
                           onClick={() => setCustomTagInput(prev => `${sym} ${prev}`.trim())}
-                          className="w-7 h-7 bg-amber-50 hover:bg-amber-200 text-amber-900 rounded-lg text-sm flex items-center justify-center transition cursor-pointer hover:scale-110 shadow-xs border border-amber-200/60"
+                          className="w-7 h-7 bg-amber-50 dark:bg-slate-750 hover:bg-amber-200 dark:hover:bg-slate-700 text-amber-900 dark:text-amber-300 rounded-lg text-sm flex items-center justify-center transition cursor-pointer hover:scale-110 shadow-xs border border-amber-200/60 dark:border-slate-700"
                           title={`Click to add ${sym} symbol to tag`}
                         >
                           {sym}
@@ -1459,15 +1457,15 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                   </div>
 
                   {/* Tag Color Customizer (Box Background & Letter Text Colors) */}
-                  <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-3 shadow-xs">
+                  <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-amber-200 dark:border-slate-700 space-y-3 shadow-xs">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                        <FaPalette className="text-amber-600" /> Select Custom Tag Colors:
+                      <span className="text-xs font-black text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <FaPalette className="text-amber-600 dark:text-amber-400" /> Select Custom Tag Colors:
                       </span>
 
                       {/* Live Tag Badge Preview */}
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-gray-500">Live Preview:</span>
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">Live Preview:</span>
                         <span
                           style={{ backgroundColor: customTagBgColor, color: customTagTextColor, borderColor: customTagTextColor + '40' }}
                           className="text-[11px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider border shadow-sm transition-all"
@@ -1477,7 +1475,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-amber-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-amber-100 dark:border-slate-700">
                       {/* 1. Box Background Color Picker & Swatches */}
                       <div className="space-y-1.5">
                         <label className="block text-[11px] font-bold text-gray-700 flex items-center justify-between">
@@ -1727,11 +1725,11 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                               setSelectedCourse(c);
                             }}
                             className={`rounded-3xl overflow-hidden shadow-sm border transition-all duration-300 cursor-pointer flex flex-col justify-between group transform hover:-translate-y-0.5 ${
-                              isCourseDeactive ? 'border-red-200 bg-red-50/30' : 'bg-white border-gray-100/90 hover:border-purple-300 hover:shadow-xl'
+                              isCourseDeactive ? 'border-red-200 dark:border-red-900/60 bg-red-50/30 dark:bg-red-950/20' : 'bg-white dark:bg-slate-800 border-gray-100/90 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-500 hover:shadow-xl'
                             }`}
                           >
                             {/* Card Hero Box (Card Picture with Course Title in Top-Left Corner) */}
-                            <div className="relative h-52 sm:h-60 w-full overflow-hidden bg-gray-100">
+                            <div className="relative h-52 sm:h-60 w-full overflow-hidden bg-gray-100 dark:bg-slate-900">
                               {resolvedImg ? (
                                 <img
                                   src={resolvedImg}
@@ -1750,14 +1748,14 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
 
                               {/* Course Title ON the Card Picture (Top Left Corner - Large Bold Typography) */}
                               <div className="absolute top-4 left-4 right-4 z-10">
-                                <h4 className="text-3xl sm:text-4xl font-black text-black tracking-tight leading-tight [text-shadow:_0_2px_10px_rgba(255,255,255,0.98)] group-hover:text-purple-950 transition-colors line-clamp-2">
+                                <h4 className="text-3xl sm:text-4xl font-black text-black dark:text-white tracking-tight leading-tight [text-shadow:_0_2px_10px_rgba(255,255,255,0.98)] dark:[text-shadow:_0_2px_10px_rgba(0,0,0,0.95)] group-hover:text-purple-950 dark:group-hover:text-purple-300 transition-colors line-clamp-2">
                                   {c.title}
                                 </h4>
                               </div>
                             </div>
 
                             {/* Card Body: Active / Deactive Status Badge */}
-                            <div className="p-4 bg-white flex items-center justify-between">
+                            <div className="p-4 bg-white dark:bg-slate-800 flex items-center justify-between">
                               {isCourseDeactive ? (
                                 <span className="text-[11px] font-black bg-red-600 text-white px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm border border-red-500 flex items-center gap-1">
                                   <FaLock className="text-[10px]" /> DEACTIVE COURSE
@@ -1779,19 +1777,17 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
           )}
 
           {/* Bottom Right Close Profile Button */}
-          <div className="pt-4 border-t border-gray-100 flex justify-end items-center">
+          <div className="pt-4 border-t border-gray-100 dark:border-slate-800 flex justify-end items-center">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2.5 text-sm font-bold transition cursor-pointer shadow-sm hover:scale-102"
+              className="rounded-xl bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 dark:hover:bg-slate-700 text-gray-800 dark:text-gray-200 px-6 py-2.5 text-sm font-bold transition cursor-pointer shadow-sm hover:scale-102"
             >
               Close Profile
             </button>
           </div>
 
         </div>
-
-
 
       </div>
 
@@ -1828,13 +1824,13 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
       {/* Interactive System Image Cropper Modal */}
       {isCropping && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn">
-          <div className="w-full max-w-2xl bg-white rounded-3xl p-5 shadow-2xl space-y-4 border border-purple-100">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-2xl space-y-4 border border-purple-100 dark:border-slate-800 text-gray-800 dark:text-gray-100">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
               <div>
-                <h4 className="text-base font-extrabold text-gray-900 flex items-center gap-2">
+                <h4 className="text-base font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
                   {cropSourceType === 'profile' ? '📷 Crop Profile Photo (1:1 Ratio)' : '🖼️ Crop Cover Banner Image (3:1 Ratio)'}
                 </h4>
-                <p className="text-xs text-gray-500 font-medium">Drag to adjust crop position and scroll to zoom before confirming.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Drag to adjust crop position and scroll to zoom before confirming.</p>
               </div>
               <button
                 type="button"
@@ -1860,7 +1856,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
 
             <div className="flex items-center justify-between gap-4 pt-2">
               <div className="flex items-center gap-2 flex-1">
-                <span className="text-xs font-bold text-gray-600">Zoom:</span>
+                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">Zoom:</span>
                 <input
                   type="range"
                   min={1}
@@ -1875,7 +1871,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                 <button
                   type="button"
                   onClick={() => setIsCropping(false)}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                  className="px-4 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl transition cursor-pointer"
                 >
                   Cancel
                 </button>
