@@ -377,10 +377,13 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
   const handleGradeClick = (g) => {
     const isDeactive = g.status === 'deactive' || g.isActive === false;
     const deactivatedByRole = g.deactivatedBy || 'admin';
+    const cId = selectedCourse._id || selectedCourse.id;
+    const gParam = encodeURIComponent(g.gradeNumber || g.title || '');
 
     // Admin can ALWAYS log inside
     if (isAdminUser) {
-      navigate(`/courses/${selectedCourse._id || selectedCourse.id}?grade=${encodeURIComponent(g.gradeNumber || g.title)}`);
+      onClose();
+      navigate(`/course/${cId}?grade=${gParam}`);
       return;
     }
 
@@ -389,7 +392,8 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
         toast.error("This grade stream was deactivated by Admin. You cannot access it.");
         return;
       }
-      navigate(`/courses/${selectedCourse._id || selectedCourse.id}?grade=${encodeURIComponent(g.gradeNumber || g.title)}`);
+      onClose();
+      navigate(`/course/${cId}?grade=${gParam}`);
       return;
     }
 
@@ -399,7 +403,8 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
       return;
     }
 
-    navigate(`/courses/${selectedCourse._id || selectedCourse.id}?grade=${encodeURIComponent(g.gradeNumber || g.title)}`);
+    onClose();
+    navigate(`/course/${cId}?grade=${gParam}`);
   };
 
   useEffect(() => {
@@ -460,8 +465,8 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 1024 * 1024 * 10) {
-      toast.error("Photo size should be under 10MB");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Photo size should be under 5MB");
       return;
     }
 
@@ -922,7 +927,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                       const isDeactive = g.status === 'deactive' || g.isActive === false;
                       const isNotEnrolled = g.isEnrolled === false || g.enrolled === false;
                       const gradeDisplayTitle = g.gradeNumber 
-                        ? (g.gradeNumber.toLowerCase().includes('grade') ? g.gradeNumber : `Grade ${g.gradeNumber}`)
+                        ? (String(g.gradeNumber).toLowerCase().includes('grade') ? g.gradeNumber : `Grade ${g.gradeNumber}`)
                         : (g.title || `Grade Stream ${idx + 1}`);
 
                       return (
@@ -943,7 +948,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
                                 ? 'bg-gradient-to-br from-red-600 via-rose-700 to-red-900 text-white' 
                                 : 'bg-gradient-to-br from-purple-600 via-purple-700 to-[#2d1b64] text-white'
                             }`}>
-                              {g.gradeNumber ? (g.gradeNumber.toLowerCase().includes('grade') ? g.gradeNumber.replace(/grade\s*/i, 'G') : `G${g.gradeNumber}`) : `G${idx + 1}`}
+                              {g.gradeNumber ? (String(g.gradeNumber).toLowerCase().includes('grade') ? String(g.gradeNumber).replace(/grade\s*/i, 'G') : `G${g.gradeNumber}`) : `G${idx + 1}`}
                             </div>
                             <div>
                               <h5 className="text-sm font-extrabold text-gray-900 group-hover:text-purple-700 transition-colors flex items-center gap-1.5">

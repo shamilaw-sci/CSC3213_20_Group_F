@@ -38,7 +38,14 @@ const Attendance = () => {
   const [adminGradeFilter, setAdminGradeFilter] = useState('');
   const [adminCourseFilter, setAdminCourseFilter] = useState('');
   const [adminSearchQuery, setAdminSearchQuery] = useState('');
-  const [coursesList, setCoursesList] = useState([]);
+  const [coursesList, setCoursesList] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('lumina_cached_courses');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Counter Staff / Live QR State
   const [scannerMode, setScannerMode] = useState('qr'); // 'qr' | 'search'

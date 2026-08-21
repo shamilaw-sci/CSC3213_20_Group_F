@@ -1,12 +1,53 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import TeacherModal from '../components/TeacherModal';
 import PdfReaderModal from '../components/PdfReaderModal';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
-import { FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube, FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt } from 'react-icons/fa';
+import LiveChatBox from '../components/LiveChatBox';
+import ScheduledLiveHero from '../components/ScheduledLiveHero';
+import LiveThumbnailCropperModal from '../components/LiveThumbnailCropperModal';
+import { 
+  FaChalkboardTeacher, 
+  FaBookOpen, 
+  FaLock, 
+  FaLockOpen, 
+  FaVideo, 
+  FaYoutube, 
+  FaCalendarAlt, 
+  FaChevronDown, 
+  FaChevronUp, 
+  FaClock, 
+  FaMapMarkerAlt, 
+  FaTimes, 
+  FaStop,
+  FaComments,
+  FaCrop,
+  FaImage,
+  FaTrashAlt,
+  FaBroadcastTower,
+  FaPlay,
+  FaCalendarCheck,
+  FaUserGraduate,
+  FaSearch,
+  FaUserPlus,
+  FaUserMinus,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaMoneyBillWave,
+  FaPhoneAlt,
+  FaEnvelope,
+  FaIdCard,
+  FaHistory,
+  FaCheck,
+  FaTimesCircle,
+  FaArrowRight,
+  FaFilter,
+  FaUsers,
+  FaReceipt
+} from 'react-icons/fa';
 
 const getImageUrl = (url) => {
   if (!url) return '';
@@ -23,20 +64,53 @@ const getImageUrl = (url) => {
   return `${backendBase}/uploads/${filename}`;
 };
 
+const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
+
 const CourseDetails = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const [course, setCourse] = useState(null);
-  const [lessons, setLessons] = useState([]);
+  const [searchParams] = useSearchParams();
+  const gradeFromUrl = searchParams.get('grade');
+
+  const [course, setCourse] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem(`lumina_cached_course_${courseId}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [lessons, setLessons] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem(`lumina_cached_lessons_${courseId}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [quizzes, setQuizzes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem(`lumina_cached_course_${courseId}`);
+    } catch {
+      return true;
+    }
+  });
   const [selectedTeacherForModal, setSelectedTeacherForModal] = useState(null);
   const [pdfProgressMap, setPdfProgressMap] = useState({});
   const [activePdfModal, setActivePdfModal] = useState(null);
-  const user = JSON.parse(localStorage.getItem('user'));
+  const [activeVideoModal, setActiveVideoModal] = useState(null);
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user')) || {};
+    } catch {
+      return {};
+    }
+  })();
 
   // Track selected class. When null, show class cards grid.
-  const [selectedGrade, setSelectedGrade] = useState(null);
+  const [selectedGrade, setSelectedGrade] = useState(gradeFromUrl || null);
+  const hasAutoSelectedGradeRef = useRef(false);
   const [editingMessage, setEditingMessage] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
@@ -236,6 +310,63 @@ const CourseDetails = () => {
     return getMonthSessionDates(selectedMonth, activeSchedule);
   }, [selectedMonth, activeSchedule]);
 
+  const currentLesson = useMemo(() => {
+    if (!selectedGrade) return null;
+    const norm = normalizeGrade(selectedGrade);
+    const matching = (lessons || []).filter(l => {
+      if (l.grade === selectedGrade) return true;
+      const lNorm = normalizeGrade(l.grade);
+      return lNorm === norm || (l.grade && String(l.grade).split(/[\&,/\+\-]|(?:\s+and\s+)/i).map(normalizeGrade).includes(norm));
+    });
+
+    if (matching.length === 0) return null;
+    const liveLesson = matching.find(l => l.liveStream && l.liveStream.isLive);
+    if (liveLesson) return liveLesson;
+    return matching[matching.length - 1] || matching[0];
+  }, [lessons, selectedGrade]);
+
+  const filteredPickerStudents = useMemo(() => {
+    return (gradeStudents || []).filter((student) => {
+      if (pickerSearchQuery.trim() !== "") {
+        const q = pickerSearchQuery.toLowerCase().trim();
+        const matchesName = student.name && student.name.toLowerCase().includes(q);
+        const matchesReg = student.registrationNumber && student.registrationNumber.toLowerCase().includes(q);
+        const matchesEmail = student.email && student.email.toLowerCase().includes(q);
+        const matchesPhone = student.parentsPhoneNumber && student.parentsPhoneNumber.toLowerCase().includes(q);
+        if (!matchesName && !matchesReg && !matchesEmail && !matchesPhone) return false;
+      }
+      if (pickerFilter === "due") {
+        return student.payment && student.payment.status === "Due";
+      }
+      if (pickerFilter === "absent") {
+        return student.attendance && student.attendance.isChronicallyAbsent;
+      }
+      return true;
+    });
+  }, [gradeStudents, pickerSearchQuery, pickerFilter]);
+
+  const pickerCounts = useMemo(() => {
+    const list = gradeStudents || [];
+    const total = list.length;
+    const due = list.filter(s => s.payment && s.payment.status === "Due").length;
+    const absent = list.filter(s => s.attendance && s.attendance.isChronicallyAbsent).length;
+    const enrolled = list.filter(s => s.isEnrolled).length;
+    const available = list.filter(s => !s.isEnrolled).length;
+    return { total, due, absent, enrolled, available };
+  }, [gradeStudents]);
+
+  const studentGrade = user?.grade;
+  const currentUserId = user?.id || user?._id;
+  const alreadyEnrolled = Boolean(
+    course?.enrolledStudents?.some(
+      (s) => {
+        const sId = (typeof s === 'object' && s !== null) ? (s._id || s.id) : s;
+        return sId && currentUserId && sId.toString() === currentUserId.toString();
+      }
+    )
+  );
+  const canEnroll = user?.role === 'student' && studentGrade && course?.enrolledGrades?.some(g => normalizeGrade(g.gradeNumber) === normalizeGrade(studentGrade)) && !alreadyEnrolled;
+
   const hasAutoNavigatedRef = useRef(false);
 
   // Auto-navigate to current month and relevant session week when student enters
@@ -260,8 +391,12 @@ const CourseDetails = () => {
 
   // Material Completion Tracking (stored in localStorage per student/course/month/week)
   const [completedMaterials, setCompletedMaterials] = useState(() => {
-    const saved = localStorage.getItem(`completed_materials_${user?.id || user?._id}`);
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem(`completed_materials_${user?.id || user?._id}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
   });
 
 
@@ -388,15 +523,71 @@ const CourseDetails = () => {
 
   const fetchCourseDetails = async () => {
     try {
-      const res = await api.get(`/courses/${courseId}`);
-      setCourse(res.data);
+      const [courseResult, lessonsResult, quizzesResult] = await Promise.allSettled([
+        api.get(`/courses/${courseId}`),
+        api.get(`/lessons/course/${courseId}`),
+        api.get(`/quizzes/course/${courseId}`)
+      ]);
 
-      const lessonsRes = await api.get(`/lessons/course/${courseId}`);
-      setLessons(lessonsRes.data);
-      
-      await fetchQuizzes();
+      if (courseResult.status === 'rejected') {
+        throw courseResult.reason;
+      }
+
+      const courseData = courseResult.value?.data;
+      if (courseData) {
+        setCourse(courseData);
+        try {
+          sessionStorage.setItem(`lumina_cached_course_${courseId}`, JSON.stringify(courseData));
+        } catch {}
+      }
+
+      if (lessonsResult.status === 'fulfilled') {
+        const freshLessons = lessonsResult.value?.data || [];
+        setLessons(freshLessons);
+        try {
+          sessionStorage.setItem(`lumina_cached_lessons_${courseId}`, JSON.stringify(freshLessons));
+        } catch {}
+      } else if (!lessons.length) {
+        setLessons([]);
+      }
+
+      if (quizzesResult.status === 'fulfilled') {
+        setQuizzes(quizzesResult.value?.data || []);
+      } else {
+        setQuizzes([]);
+      }
+
+      // Auto-enter grade workspace if grade query param is present or if user is enrolled student
+      if (!hasAutoSelectedGradeRef.current && courseData) {
+        if (gradeFromUrl) {
+          setSelectedGrade(gradeFromUrl);
+          hasAutoSelectedGradeRef.current = true;
+        } else if (user?.role === 'student') {
+          const currentUserId = (user?.id || user?._id || '').toString();
+          const isEnrolled = Boolean(
+            courseData.enrolledStudents?.some(s => {
+              const sId = (typeof s === 'object' && s !== null) ? (s._id || s.id) : s;
+              return sId && currentUserId && sId.toString() === currentUserId;
+            })
+          );
+          if (isEnrolled && courseData.enrolledGrades && courseData.enrolledGrades.length > 0) {
+            const studentGradeNorm = normalizeGrade(user?.grade);
+            const matchingGrade = courseData.enrolledGrades.find(eg => {
+              const gNum = eg.gradeNumber || '';
+              const parts = String(gNum).split(/[\&,/\+\-]|(?:\s+and\s+)/i).map(normalizeGrade);
+              return parts.includes(studentGradeNorm) || normalizeGrade(gNum) === studentGradeNorm;
+            }) || (courseData.enrolledGrades.length === 1 ? courseData.enrolledGrades[0] : null);
+
+            if (matchingGrade) {
+              setSelectedGrade(matchingGrade.gradeNumber || matchingGrade.title);
+              hasAutoSelectedGradeRef.current = true;
+            }
+          }
+        }
+      }
     } catch (err) {
-      toast.error("Failed to fetch details.");
+      console.error("Failed to fetch course details:", err);
+      toast.error(err.response?.data?.error || "Failed to fetch details.");
     } finally {
       setLoading(false);
     }
@@ -761,12 +952,28 @@ const CourseDetails = () => {
     }
   };
 
-  // Live Streaming States
+  // Live Streaming States & Scheduled Live
   const [showLiveModal, setShowLiveModal] = useState(false);
+  const [showEndStreamConfirmModal, setShowEndStreamConfirmModal] = useState(false);
+  const [isEndingStream, setIsEndingStream] = useState(false);
   const [liveStreamTitle, setLiveStreamTitle] = useState('');
   const [liveYoutubeUrl, setLiveYoutubeUrl] = useState('');
   const [saveLiveAsVideo, setSaveLiveAsVideo] = useState(true);
   const [isPublishingLive, setIsPublishingLive] = useState(false);
+  const [showPostStreamChat, setShowPostStreamChat] = useState(false);
+
+  // Live Stream Scheduling & Thumbnail Cropper States
+  const [isScheduledLive, setIsScheduledLive] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [scheduledTime, setScheduledTime] = useState(() => {
+    const d = new Date();
+    d.setHours(d.getHours() + 1, 0, 0, 0);
+    return d.toTimeString().slice(0, 5);
+  });
+  const [liveThumbnail, setLiveThumbnail] = useState('');
+  const [cropperRawImage, setCropperRawImage] = useState(null);
+  const [isThumbnailCropperOpen, setIsThumbnailCropperOpen] = useState(false);
+  const thumbnailInputRef = useRef(null);
 
   const handleDeletePdf = async (pdfId) => {
     const currentLesson = lessons.find(l => l.grade === selectedGrade);
@@ -862,10 +1069,31 @@ const CourseDetails = () => {
     }
   };
 
+  const handleSelectThumbnailFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file (PNG, JPG, JPEG).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperRawImage(reader.result);
+      setIsThumbnailCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedDataUrl) => {
+    setLiveThumbnail(croppedDataUrl);
+    toast.success("16:9 Thumbnail cropped & attached!");
+  };
+
   const handleStartLiveStream = async (e) => {
     e.preventDefault();
-    const currentLesson = lessons.find(l => l.grade === selectedGrade);
-    if (!currentLesson) {
+    const targetLesson = currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || [])[0];
+    if (!targetLesson?._id) {
       toast.error("Please select a class workspace first.");
       return;
     }
@@ -875,16 +1103,34 @@ const CourseDetails = () => {
       return;
     }
 
+    let scheduledStartTime = null;
+    if (isScheduledLive) {
+      if (!scheduledDate || !scheduledTime) {
+        toast.error("Please select a scheduled date and time.");
+        return;
+      }
+      scheduledStartTime = new Date(`${scheduledDate}T${scheduledTime}`);
+      if (isNaN(scheduledStartTime.getTime())) {
+        toast.error("Invalid scheduled date or time.");
+        return;
+      }
+    }
+
     try {
       setIsPublishingLive(true);
-      const res = await api.post(`/lessons/${currentLesson._id}/live-stream`, {
+      const res = await api.post(`/lessons/${targetLesson._id}/live-stream`, {
         youtubeUrl: liveYoutubeUrl.trim(),
-        title: liveStreamTitle.trim()
+        title: liveStreamTitle.trim(),
+        isScheduled: isScheduledLive,
+        scheduledStartTime,
+        thumbnail: liveThumbnail
       });
-      toast.success(res.data.message || "Live Class published successfully!");
+      toast.success(res.data.message || (isScheduledLive ? "Live Class scheduled successfully!" : "Live Class published successfully!"));
       setShowLiveModal(false);
       setLiveYoutubeUrl('');
       setLiveStreamTitle('');
+      setLiveThumbnail('');
+      setIsScheduledLive(false);
       await fetchCourseDetails();
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to publish live class.");
@@ -893,48 +1139,108 @@ const CourseDetails = () => {
     }
   };
 
-  const handleEndLiveStream = async (shouldSaveVideo = true) => {
-    const currentLesson = lessons.find(l => l.grade === selectedGrade);
-    if (!currentLesson) return;
-    if (!window.confirm("Are you sure you want to end this Live Class?")) return;
-
+  const handleGoLiveImmediately = async (lessonId) => {
+    const targetLesson = (lessons || []).find(l => l._id === lessonId || String(l.grade) === String(selectedGrade)) || currentLesson || (lessons || [])[0];
+    if (!targetLesson?._id) return;
     try {
-      const res = await api.delete(`/lessons/${currentLesson._id}/live-stream`, {
-        data: { saveAsVideo: shouldSaveVideo }
+      const res = await api.post(`/lessons/${targetLesson._id}/live-stream`, {
+        youtubeUrl: targetLesson.liveStream?.youtubeUrl,
+        title: targetLesson.liveStream?.title,
+        thumbnail: targetLesson.liveStream?.thumbnail,
+        isScheduled: false,
+        goLiveNow: true
       });
-      toast.success(res.data.message || "Live Class ended!");
-      setShowLiveModal(false);
+      toast.success("🔴 You are now LIVE! Class stream started.");
       await fetchCourseDetails();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to end live stream.");
+      toast.error("Failed to start live stream immediately.");
     }
   };
 
-  if (loading) return <div className="p-10 text-center">Loading...</div>;
+  const handleOpenEditScheduledLive = (lesson) => {
+    const targetLesson = lesson || currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || [])[0];
+    const ls = targetLesson?.liveStream || {};
+    setLiveStreamTitle(ls.title || '');
+    setLiveYoutubeUrl(ls.youtubeUrl || '');
+    setLiveThumbnail(ls.thumbnail || '');
+    setIsScheduledLive(Boolean(ls.isScheduled));
+    if (ls.scheduledStartTime) {
+      try {
+        const d = new Date(ls.scheduledStartTime);
+        setScheduledDate(d.toISOString().split('T')[0]);
+        setScheduledTime(d.toTimeString().slice(0, 5));
+      } catch (e) {}
+    }
+    setShowLiveModal(true);
+  };
 
-  const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
-  const currentLesson = lessons.find(l => l.grade === selectedGrade);
-  const studentGrade = user?.grade;
-  const alreadyEnrolled = course?.enrolledStudents?.some(
-    (s) => s?._id?.toString() === user?.id?.toString()
+  const handleEndLiveStream = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+    setShowEndStreamConfirmModal(true);
+  };
+
+  const confirmEndLiveStream = async (shouldSaveVideo = saveLiveAsVideo) => {
+    const targetLesson = currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || []).find(l => l._id) || (lessons || [])[0];
+    if (!targetLesson?._id) {
+      toast.error("Class not found.");
+      setShowEndStreamConfirmModal(false);
+      setIsEndingStream(false);
+      return;
+    }
+
+    setIsEndingStream(true);
+    try {
+      const res = await api.delete(`/lessons/${targetLesson._id}/live-stream?saveAsVideo=${Boolean(shouldSaveVideo)}`, {
+        data: { saveAsVideo: Boolean(shouldSaveVideo) }
+      });
+      toast.success(res.data?.message || "Live Class ended successfully!");
+      setShowEndStreamConfirmModal(false);
+      setShowLiveModal(false);
+      await fetchCourseDetails();
+    } catch (err) {
+      console.warn("DELETE live stream failed, trying POST fallback:", err);
+      try {
+        const resPost = await api.post(`/lessons/${targetLesson._id}/live-stream/end`, {
+          saveAsVideo: Boolean(shouldSaveVideo)
+        });
+        toast.success(resPost.data?.message || "Live Class ended successfully!");
+        setShowEndStreamConfirmModal(false);
+        setShowLiveModal(false);
+        await fetchCourseDetails();
+      } catch (fallbackErr) {
+        console.error("Failed to end live stream:", fallbackErr);
+        toast.error(fallbackErr.response?.data?.error || err.response?.data?.error || "Failed to end live stream.");
+      }
+    } finally {
+      setIsEndingStream(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#2d1b64]"></div>
+    </div>
   );
-  const canEnroll = user?.role === 'student' && studentGrade && course?.enrolledGrades?.some(g => normalizeGrade(g.gradeNumber) === normalizeGrade(studentGrade)) && !alreadyEnrolled;
 
-  const filteredPickerStudents = gradeStudents.filter((student) => {
-    if (pickerSearchQuery.trim() !== "") {
-      const q = pickerSearchQuery.toLowerCase();
-      const matchesName = student.name && student.name.toLowerCase().includes(q);
-      const matchesReg = student.registrationNumber && student.registrationNumber.toLowerCase().includes(q);
-      if (!matchesName && !matchesReg) return false;
-    }
-    if (pickerFilter === "due") {
-      return student.payment && student.payment.status === "Due";
-    }
-    if (pickerFilter === "absent") {
-      return student.attendance && student.attendance.isChronicallyAbsent;
-    }
-    return true;
-  });
+  if (!course) return (
+    <div className="min-h-[60vh] p-8 flex flex-col items-center justify-center text-center">
+      <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-200 max-w-md w-full space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-purple-100 text-[#2d1b64] flex items-center justify-center text-3xl mx-auto">
+          📚
+        </div>
+        <h3 className="text-xl font-black text-gray-900">Course Not Found</h3>
+        <p className="text-gray-500 text-sm">The course you are looking for does not exist or could not be loaded.</p>
+        <button
+          onClick={() => navigate('/courses')}
+          className="w-full py-3 bg-[#2d1b64] hover:bg-purple-900 text-white font-bold rounded-xl transition cursor-pointer"
+        >
+          ← Return to All Courses
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans text-gray-800 space-y-6">
@@ -1151,22 +1457,47 @@ const CourseDetails = () => {
               ← Back to Classes
             </button>
             <h1 className="text-3xl font-extrabold text-gray-800 mb-1">{course?.title}</h1>
-            <p className="text-purple-600 font-bold text-lg">{selectedGrade} Workspace</p>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <p className="text-purple-600 font-bold text-lg">{selectedGrade} Workspace</p>
+              {currentLesson?.liveStream?.isLive ? (
+                <span className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-red-500/20 flex items-center gap-1.5 border border-red-400 animate-pulse ring-2 ring-red-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                  LIVE NOW
+                </span>
+              ) : currentLesson?.liveStream?.isScheduled ? (
+                <span className="bg-gradient-to-r from-amber-600 to-orange-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-amber-500/20 flex items-center gap-1.5 border border-amber-400">
+                  <FaBroadcastTower className="text-[10px] animate-pulse" />
+                  SCHEDULED LIVE
+                </span>
+              ) : (
+                <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                  Workspace Active
+                </span>
+              )}
+            </div>
           </div>
 
           {(user?.role === 'admin' || user?.role === 'teacher') && (
             <button
               type="button"
               onClick={() => {
-                if (currentLesson?.liveStream?.isLive) {
-                  setLiveStreamTitle(currentLesson.liveStream.title || '');
-                  setLiveYoutubeUrl(currentLesson.liveStream.youtubeUrl || '');
+                const targetLesson = currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || [])[0];
+                if (targetLesson?.liveStream?.isLive || targetLesson?.liveStream?.isScheduled) {
+                  handleOpenEditScheduledLive(targetLesson);
+                } else {
+                  setLiveStreamTitle('');
+                  setLiveYoutubeUrl('');
+                  setLiveThumbnail('');
+                  setIsScheduledLive(false);
+                  setShowLiveModal(true);
                 }
-                setShowLiveModal(true);
               }}
               className={`px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${
                 currentLesson?.liveStream?.isLive
                   ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white border-red-400 shadow-red-500/30 ring-2 ring-red-300'
+                  : currentLesson?.liveStream?.isScheduled
+                  ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:to-orange-800 text-white border-amber-400 shadow-amber-500/30 ring-2 ring-amber-300'
                   : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white border-red-500/40 shadow-red-600/30'
               }`}
             >
@@ -1178,7 +1509,11 @@ const CourseDetails = () => {
                 </span>
               </div>
               <span className="tracking-tight">
-                {currentLesson?.liveStream?.isLive ? 'Manage Live Class' : 'Start YouTube Live Class'}
+                {currentLesson?.liveStream?.isLive 
+                  ? 'Manage Live Class' 
+                  : currentLesson?.liveStream?.isScheduled 
+                  ? 'Manage Scheduled Live' 
+                  : 'Start YouTube Live Class'}
               </span>
             </button>
           )}
@@ -1219,38 +1554,61 @@ const CourseDetails = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {course?.enrolledGrades?.map((eg) => (
-                  <div
-                    key={eg.gradeNumber}
-                    className="relative bg-white p-5 rounded-2xl border border-gray-200 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-purple-300 cursor-pointer group"
-                  >
-                    <div className="absolute right-4 top-4 flex flex-col gap-2 z-10">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openStudentPicker(eg.gradeNumber);
-                        }}
-                        className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-100 transition cursor-pointer shadow-xs"
-                      >
-                        Manage Students
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleGrade(eg.gradeNumber);
-                        }}
-                        className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer shadow-xs"
-                      >
-                        Remove
-                      </button>
+                {course?.enrolledGrades?.map((eg) => {
+                  const isGradeLive = lessons?.some(l => {
+                    if (!l?.liveStream?.isLive) return false;
+                    const lGradeNorm = normalizeGrade(l.grade);
+                    const gNum = eg.gradeNumber || '';
+                    const parts = gNum.split(/[\&,/\+\-]|(?:\s+and\s+)/i).map(normalizeGrade);
+                    return parts.includes(lGradeNorm) || normalizeGrade(gNum) === lGradeNorm;
+                  });
+
+                  return (
+                    <div
+                      key={eg.gradeNumber}
+                      onClick={() => setSelectedGrade(eg.gradeNumber)}
+                      className={`relative bg-white p-5 rounded-2xl border shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer group ${
+                        isGradeLive ? 'border-red-400 bg-red-50/30 ring-2 ring-red-300/60 shadow-red-500/10' : 'border-gray-200 hover:border-purple-300'
+                      }`}
+                    >
+                      <div className="absolute right-4 top-4 flex flex-col gap-2 z-10">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openStudentPicker(eg.gradeNumber);
+                          }}
+                          className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-100 transition cursor-pointer shadow-xs"
+                        >
+                          Manage Students
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleGrade(eg.gradeNumber);
+                          }}
+                          className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer shadow-xs"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="text-xs text-gray-400 group-hover:text-purple-600 font-bold transition-colors">{eg.gradeNumber}</div>
+                        {isGradeLive && (
+                          <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs animate-pulse flex items-center gap-1">
+                            <span className="w-1 h-1 rounded-full bg-white animate-ping"></span>
+                            LIVE NOW
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-lg font-extrabold text-gray-800 mb-1 group-hover:text-purple-900 transition-colors">{eg.title || eg.gradeNumber}</h4>
+                      <p className="text-gray-500 text-xs font-medium">
+                        {isGradeLive ? '🔴 Live Class currently in progress.' : 'This class can enrol in the course when assigned.'}
+                      </p>
                     </div>
-                    <div className="mb-2 text-xs text-gray-400 group-hover:text-purple-600 font-bold transition-colors">{eg.gradeNumber}</div>
-                    <h4 className="text-lg font-extrabold text-gray-800 mb-1 group-hover:text-purple-900 transition-colors">{eg.title || eg.gradeNumber}</h4>
-                    <p className="text-gray-500 text-xs font-medium">This class can enrol in the course when assigned.</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1276,6 +1634,14 @@ const CourseDetails = () => {
                     const isFullCourseDeactive = course?.status === 'deactive' || course?.isActive === false;
                     const isDeactive = isFullCourseDeactive || eg.status === 'deactive' || eg.isActive === false;
                     const deactivatedByRole = eg.deactivatedBy || 'admin';
+
+                    const isGradeLive = lessons?.some(l => {
+                      if (!l?.liveStream?.isLive) return false;
+                      const lGradeNorm = normalizeGrade(l.grade);
+                      const gNum = eg.gradeNumber || '';
+                      const parts = gNum.split(/[\&,/\+\-]|(?:\s+and\s+)/i).map(normalizeGrade);
+                      return parts.includes(lGradeNorm) || normalizeGrade(gNum) === lGradeNorm;
+                    });
                     
                     let canToggleStatus = false;
                     if (user?.role === 'admin') {
@@ -1290,16 +1656,13 @@ const CourseDetails = () => {
                       <div
                         key={eg.gradeNumber}
                         onClick={() => {
+                          if (isGradeLive) {
+                            setSelectedGrade(eg.gradeNumber);
+                            return;
+                          }
+
                           if (isDeactive) {
-                            if (user?.role === 'admin') {
-                              setSelectedGrade(eg.gradeNumber);
-                              return;
-                            }
-                            if (user?.role === 'teacher') {
-                              if (deactivatedByRole === 'admin') {
-                                toast.error("This grade stream was deactivated by Admin. You cannot access it.");
-                                return;
-                              }
+                            if (user?.role === 'admin' || user?.role === 'teacher') {
                               setSelectedGrade(eg.gradeNumber);
                               return;
                             }
@@ -1308,13 +1671,16 @@ const CourseDetails = () => {
                           }
 
                           if (user?.role === 'student' && !alreadyEnrolled) {
-                            toast.error("Please click the '+ Enroll Course' button above to enroll before accessing the workspace.");
+                            toast.error("Please click 'Enroll & Pay Online' to enroll before accessing the workspace.");
+                            setShowEnrollModal(true);
                             return;
                           }
                           setSelectedGrade(eg.gradeNumber);
                         }}
                         className={`bg-white p-6 rounded-2xl shadow-xs border transition-all duration-200 hover:-translate-y-1 hover:shadow-md relative ${
-                          isDeactive
+                          isGradeLive
+                            ? 'border-red-400 bg-gradient-to-b from-red-50/50 via-white to-white ring-2 ring-red-400/50 shadow-md shadow-red-500/10 cursor-pointer'
+                            : isDeactive
                             ? 'border-red-200 bg-red-50/40 cursor-pointer'
                             : user?.role === 'student' && !alreadyEnrolled
                             ? 'border-gray-200 bg-gray-50/60 cursor-pointer hover:border-purple-300' 
@@ -1324,16 +1690,24 @@ const CourseDetails = () => {
                         <div>
                           <div className="flex justify-between items-start mb-6">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-colors ${
-                              isDeactive
+                              isGradeLive
+                                ? 'bg-red-600 text-white shadow-md shadow-red-500/30'
+                                : isDeactive
                                 ? 'bg-red-100 text-red-600'
                                 : user?.role === 'student' && !alreadyEnrolled
                                 ? 'bg-gray-200 text-gray-500'
                                 : 'bg-[#f3f4f6] group-hover:bg-[#2d1b64] group-hover:text-white'
                             }`}>
-                              {isDeactive ? '🔒' : user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
+                              {isGradeLive ? '📹' : isDeactive ? '🔒' : user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
                             </div>
 
-                            {user?.role === 'student' && !alreadyEnrolled ? (
+                            {/* Live / Status Button on Top Right of Grade Card */}
+                            {isGradeLive ? (
+                              <span className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-[10px] font-black px-3.5 py-1.5 rounded-full uppercase tracking-widest shadow-md shadow-red-500/30 flex items-center gap-1.5 border border-red-400 animate-pulse ring-2 ring-red-400/50">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                                LIVE NOW
+                              </span>
+                            ) : user?.role === 'student' && !alreadyEnrolled ? (
                               <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200">
                                 🔒 Enroll Required
                               </span>
@@ -1402,14 +1776,23 @@ const CourseDetails = () => {
                             )}
                           </div>
                         <h3 className={`text-2xl font-bold mb-2 transition-colors ${
-                          user?.role === 'student' && !alreadyEnrolled ? 'text-gray-700' : 'text-gray-800 group-hover:text-[#2d1b64]'
+                          isGradeLive
+                            ? 'text-red-950 font-black'
+                            : user?.role === 'student' && !alreadyEnrolled ? 'text-gray-700' : 'text-gray-800 group-hover:text-[#2d1b64]'
                         }`}>
                           {eg.title || eg.gradeNumber}
                         </h3>
-                        <p className="text-gray-400 text-xs mt-2 font-medium">
-                          {user?.role === 'student' && !alreadyEnrolled
-                            ? 'Enroll required to view announcements & lessons' 
-                            : 'Click to view announcements and lessons'}
+                        <p className={`text-xs mt-2 font-medium ${isGradeLive ? 'text-red-600 font-bold flex items-center gap-1.5' : 'text-gray-400'}`}>
+                          {isGradeLive ? (
+                            <>
+                              <span className="w-2 h-2 rounded-full bg-red-600 animate-ping inline-block"></span>
+                              <span>Live Class in progress • Click to Join</span>
+                            </>
+                          ) : user?.role === 'student' && !alreadyEnrolled ? (
+                            'Enroll required to view announcements & lessons' 
+                          ) : (
+                            'Click to view announcements and lessons'
+                          )}
                         </p>
                       </div>
 
@@ -1452,13 +1835,105 @@ const CourseDetails = () => {
       {selectedGrade !== null && (
         <div className="space-y-6">
 
-          {/* Active YouTube Live Stream Player */}
-          {currentLesson?.liveStream?.isLive && (
-            <LiveStreamPlayer
-              liveStream={currentLesson.liveStream}
-              isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
-              onEndStream={() => handleEndLiveStream(saveLiveAsVideo)}
-            />
+          {/* Active YouTube Live Stream Player or Scheduled Live Hero */}
+          {(() => {
+            const ls = currentLesson?.liveStream;
+            if (!ls) return null;
+
+            if (ls.isLive) {
+              return (
+                <LiveStreamPlayer
+                  liveStream={ls}
+                  isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
+                  onEndStream={() => handleEndLiveStream(saveLiveAsVideo)}
+                  lessonId={currentLesson._id}
+                  grade={selectedGrade}
+                  courseTitle={course?.title}
+                />
+              );
+            }
+
+            if (ls.isScheduled && ls.scheduledStartTime) {
+              const diffMs = new Date(ls.scheduledStartTime).getTime() - Date.now();
+              const isPreLive = diffMs <= 15 * 60 * 1000; // Unlocks 15 minutes before
+
+              if (isPreLive) {
+                return (
+                  <LiveStreamPlayer
+                    liveStream={ls}
+                    isPreLive={true}
+                    isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
+                    onGoLiveNow={() => handleGoLiveImmediately(currentLesson._id)}
+                    onEndStream={() => handleEndLiveStream(saveLiveAsVideo)}
+                    lessonId={currentLesson._id}
+                    grade={selectedGrade}
+                    courseTitle={course?.title}
+                  />
+                );
+              }
+
+              return (
+                <ScheduledLiveHero
+                  liveStream={ls}
+                  isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
+                  onGoLiveNow={() => handleGoLiveImmediately(currentLesson._id)}
+                  onEditSchedule={() => handleOpenEditScheduledLive(currentLesson)}
+                  onCancelSchedule={() => handleEndLiveStream(false)}
+                  grade={selectedGrade}
+                  courseTitle={course?.title}
+                />
+              );
+            }
+
+            return null;
+          })()}
+
+          {/* Post-Stream Feedback & Q&A Discussion Thread (When Stream is Concluded) */}
+          {currentLesson?._id && !currentLesson?.liveStream?.isLive && (
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-purple-200 shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-900 flex items-center justify-center text-lg font-black shadow-2xs">
+                    <FaComments />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-gray-900 text-sm sm:text-base flex items-center gap-2">
+                      <span>Provide Messages or Replies About Stream</span>
+                      <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-bold text-[10.5px]">
+                        Post-Stream Q&A
+                      </span>
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {user?.role === 'admin' || user?.role === 'teacher'
+                        ? "Review student reactions and questions about the stream, and send direct replies anytime."
+                        : "Provide your reactions, final feedback, or questions about the stream to receive teacher replies."}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPostStreamChat(!showPostStreamChat)}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-black shadow-md transition cursor-pointer flex items-center gap-2 shrink-0 transform hover:scale-105 active:scale-95"
+                >
+                  <FaComments className="text-xs" />
+                  <span>{showPostStreamChat ? "Close Post-Stream Discussion" : "Provide Messages / View Discussion"}</span>
+                </button>
+              </div>
+
+              {showPostStreamChat && (
+                <div className="pt-2 animate-fadeIn">
+                  <LiveChatBox
+                    lessonId={currentLesson._id}
+                    isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
+                    isFullscreen={false}
+                    currentGrade={selectedGrade}
+                    classTitle={currentLesson.liveStream?.title}
+                    isStreamEnded={true}
+                  />
+                </div>
+              )}
+            </div>
           )}
 
           {/* Month Selector Bar */}
@@ -1689,7 +2164,7 @@ const CourseDetails = () => {
 
           {canEnroll && (
             <div className="bg-white p-6 rounded-2xl border border-green-200 shadow-sm">
-              <p className="text-green-700 font-semibold">This course is recommended for {studentGrade && (studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`)}.</p>
+              <p className="text-green-700 font-semibold">This course is recommended for {studentGrade && (String(studentGrade).toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`)}.</p>
               <button
                 onClick={() => setShowEnrollModal(true)}
                 className="mt-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-3 text-white font-bold hover:from-green-700 hover:to-emerald-700 shadow-md transition"
@@ -1763,7 +2238,13 @@ const CourseDetails = () => {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => markMaterialCompleted('video')}
+                        onClick={() => {
+                          markMaterialCompleted('video');
+                          setActiveVideoModal({
+                            title: `Week ${activeWeek} Master Lecture Video (${selectedMonth})`,
+                            youtubeUrl: currentLesson?.videoLessons?.[0]?.url || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+                          });
+                        }}
                         className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
                       >
                         <span>▶</span> Watch Lecture Video
@@ -1786,24 +2267,49 @@ const CourseDetails = () => {
               )}
 
               {currentLesson?.videoLessons?.map((vid) => (
-                <div key={vid._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all">
+                <div key={vid._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all flex-wrap gap-2">
                   <div className="flex items-center gap-3">
                     <div className="text-red-500 text-xl">🎬</div>
                     <div>
                       <p className="font-bold text-gray-800">{vid.title}</p>
-                      <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline">
-                        {vid.url}
-                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          markMaterialCompleted('video');
+                          setActiveVideoModal({
+                            title: vid.title,
+                            youtubeUrl: vid.url
+                          });
+                        }}
+                        className="text-xs text-purple-600 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        ▶ Watch Video in Secure Player
+                      </button>
                     </div>
                   </div>
-                  {isTeacherOrAdmin && (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleDeleteVideo(vid._id)}
-                      className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
+                      type="button"
+                      onClick={() => {
+                        markMaterialCompleted('video');
+                        setActiveVideoModal({
+                          title: vid.title,
+                          youtubeUrl: vid.url
+                        });
+                      }}
+                      className="px-3.5 py-1.5 bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1"
                     >
-                      Remove
+                      ▶ Play
                     </button>
-                  )}
+                    {isTeacherOrAdmin && (
+                      <button
+                        onClick={() => handleDeleteVideo(vid._id)}
+                        className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -2038,7 +2544,7 @@ const CourseDetails = () => {
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div>
                 <h4 className="font-bold text-lg text-gray-800">
-                  Assignments ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
+                  Assignments ({String(selectedGrade || '').toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
                 </h4>
                 <p className="text-xs text-gray-500">Download class assignment PDF documents or upload new ones.</p>
               </div>
@@ -2125,12 +2631,108 @@ const CourseDetails = () => {
             </div>
           </div>
 
+          {/* Live Class Q&A, Good Reactions & Attendance Summary */}
+          {(currentLesson?.liveStream?.feedbacks?.length > 0 || currentLesson?.liveStream?.viewers?.length > 0) && (
+            <div className="bg-gradient-to-br from-indigo-950/90 via-slate-900 to-purple-950/90 p-6 rounded-3xl border border-indigo-500/30 text-white shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-500/30 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 flex items-center justify-center text-xl font-black shadow-lg">
+                    ⭐
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-lg text-white flex items-center gap-2">
+                      Live Class Feedback, Reactions & Q&A
+                    </h4>
+                    <p className="text-xs text-indigo-200">
+                      Student feedback, lecture questions, and positive ratings for {String(selectedGrade || '').toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`}.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 font-extrabold text-xs">
+                    👥 {currentLesson?.liveStream?.viewers?.length || 0} Attended Live
+                  </span>
+                  <span className="px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-400/30 text-amber-300 font-extrabold text-xs">
+                    🌟 {currentLesson?.liveStream?.feedbacks?.length || 0} Good Reactions
+                  </span>
+                </div>
+              </div>
+
+              {/* Good Reactions Breakdown Badges */}
+              {(currentLesson?.liveStream?.feedbacks || []).length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {Object.entries(
+                    (currentLesson?.liveStream?.feedbacks || []).reduce((acc, f) => {
+                      if (!f) return acc;
+                      const label = f.reactionLabel || 'Superb Class';
+                      const emoji = f.reactionEmoji || '⭐';
+                      const key = `${emoji} ${label}`;
+                      acc[key] = (acc[key] || 0) + 1;
+                      return acc;
+                    }, {})
+                  ).map(([reactionKey, count]) => (
+                    <div key={reactionKey} className="px-3 py-1.5 rounded-2xl bg-indigo-900/60 border border-indigo-400/40 text-xs font-black text-indigo-100 flex items-center gap-2 shadow-sm">
+                      <span>{reactionKey}</span>
+                      <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] text-amber-300 font-mono">
+                        {count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Student Questions & Messages List */}
+              <div className="space-y-3 pt-2 max-h-96 overflow-y-auto pr-1 scrollbar-thin">
+                {(currentLesson?.liveStream?.feedbacks || []).map((item, idx) => {
+                  if (!item) return null;
+                  const itemGradeStr = String(item.grade || selectedGrade || '').trim();
+                  const displayGrade = itemGradeStr.toLowerCase().startsWith('grade') ? itemGradeStr : `Grade ${itemGradeStr}`;
+                  return (
+                    <div key={item._id || idx} className="p-4 rounded-2xl bg-slate-900/80 border border-indigo-500/20 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-sm text-white">{item.name || 'Student'}</span>
+                          <span className="px-2 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-300 font-bold text-[10px]">
+                            {displayGrade}
+                          </span>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 font-black text-xs flex items-center gap-1.5">
+                          <span>{item.reactionEmoji || '⭐'}</span>
+                          <span>{item.reactionLabel || 'Superb'}</span>
+                        </span>
+                      </div>
+
+                      {item.question && (
+                        <div className="bg-amber-950/40 border border-amber-500/30 p-2.5 rounded-xl text-xs space-y-0.5">
+                          <span className="font-extrabold text-amber-400 flex items-center gap-1">
+                            <span>❓ Question from Lesson:</span>
+                          </span>
+                          <p className="text-amber-100 italic">"{item.question}"</p>
+                        </div>
+                      )}
+
+                      {item.message && (
+                        <div className="bg-indigo-950/40 border border-indigo-500/30 p-2.5 rounded-xl text-xs space-y-0.5">
+                          <span className="font-extrabold text-indigo-300 flex items-center gap-1">
+                            <span>💬 Feedback Message:</span>
+                          </span>
+                          <p className="text-indigo-100 italic">"{item.message}"</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Quizzes & Assessments Section */}
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div>
                 <h4 className="font-bold text-lg text-gray-800">
-                  Quizes ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
+                  Quizes ({String(selectedGrade || '').toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
                 </h4>
                 <p className="text-xs text-gray-500">Test your knowledge by attempting the weekly quiz assessments.</p>
               </div>
@@ -2145,10 +2747,10 @@ const CourseDetails = () => {
             </div>
 
             <div className="space-y-3">
-              {quizzes.filter(q => q.grade === selectedGrade).length === 0 ? (
+              {(quizzes || []).filter(q => normalizeGrade(q.grade) === normalizeGrade(selectedGrade) || q.grade === selectedGrade).length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">No quizzes available for this grade yet.</p>
               ) : (
-                quizzes.filter(q => q.grade === selectedGrade).map((quiz) => {
+                (quizzes || []).filter(q => normalizeGrade(q.grade) === normalizeGrade(selectedGrade) || q.grade === selectedGrade).map((quiz) => {
                   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
                   return (
                     <div key={quiz._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all gap-4">
@@ -2231,214 +2833,349 @@ const CourseDetails = () => {
       )}
 
       {showStudentPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-6xl h-[650px] rounded-3xl bg-white p-6 shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-md animate-fadeIn">
+          <div className="w-full max-w-6xl h-[690px] rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden border border-slate-200">
             {/* Modal Header */}
-            <div className="mb-4 flex items-center justify-between border-b pb-4">
-              <div>
-                <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">{selectedEnrollGrade && (selectedEnrollGrade.toLowerCase().startsWith('grade') ? selectedEnrollGrade : `Grade ${selectedEnrollGrade}`)} Student Management</h3>
-                <p className="text-sm text-gray-500">Manage enrollment, view real-time class attendance, and monitor fee payments.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowStudentPicker(false)}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition cursor-pointer"
-              >
-                Close Dashboard
-              </button>
-            </div>
+            {(() => {
+              const cleanGradeTitle = selectedEnrollGrade 
+                ? (String(selectedEnrollGrade).toLowerCase().startsWith('grade') ? selectedEnrollGrade : `Grade ${selectedEnrollGrade}`) 
+                : 'Grade';
+
+              return (
+                <div className="px-6 py-4.5 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-purple-50/40">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-700 via-indigo-700 to-purple-800 text-white flex items-center justify-center text-lg shadow-md border border-purple-400/30 shrink-0">
+                      <FaUserGraduate className="text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                          {cleanGradeTitle} Student Directory & Ledger
+                        </h3>
+                        <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 text-xs font-black border border-purple-200 shadow-2xs">
+                          {pickerCounts.enrolled} Enrolled
+                        </span>
+                        {pickerCounts.due > 0 ? (
+                          <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 text-xs font-black border border-rose-200 shadow-2xs flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                            {pickerCounts.due} Due Fees
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black border border-emerald-200 shadow-2xs">
+                            Fees Clear
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Manage student enrollments, monitor fee payments, and inspect live attendance records.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowStudentPicker(false)}
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition shadow-2xs cursor-pointer active:scale-95"
+                  >
+                    <FaTimes className="text-slate-400 text-xs" />
+                    <span>Close Dashboard</span>
+                  </button>
+                </div>
+              );
+            })()}
 
             {/* Split Pane Work Area */}
             <div className="flex-1 flex overflow-hidden">
               
               {/* LEFT PANE: Student List & Search & Filters */}
-              <div className="w-5/12 flex flex-col border-r border-gray-150 pr-4 overflow-hidden">
+              <div className="w-5/12 flex flex-col border-r border-slate-200 pr-3.5 pl-5 pt-4 pb-3 overflow-hidden bg-slate-50/40">
                 {/* Search Bar */}
                 <div className="relative">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    <FaSearch className="text-xs" />
+                  </div>
                   <input
                     type="text"
                     value={pickerSearchQuery}
                     onChange={(e) => setPickerSearchQuery(e.target.value)}
-                    placeholder="Search name or registration number..."
-                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm"
+                    placeholder="Search name, reg no, email, phone..."
+                    className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 shadow-2xs transition"
                   />
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
+                  {pickerSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setPickerSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                    >
+                      <FaTimes />
+                    </button>
+                  )}
                 </div>
 
                 {/* Quick Filters */}
-                <div className="grid grid-cols-3 gap-1.5 mt-3 bg-gray-100 p-1 rounded-xl text-xs font-bold text-gray-600">
+                <div className="grid grid-cols-3 gap-1.5 mt-2.5 bg-slate-200/70 p-1 rounded-xl text-xs font-bold text-slate-600">
                   <button
                     type="button"
                     onClick={() => setPickerFilter("all")}
-                    className={`py-1.5 rounded-lg transition-all ${pickerFilter === "all" ? "bg-white text-purple-700 shadow-sm" : "hover:text-gray-900"}`}
+                    className={`py-1.5 px-1 rounded-lg transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+                      pickerFilter === "all" ? "bg-white text-purple-900 shadow-xs font-black" : "hover:text-slate-900"
+                    }`}
                   >
-                    All
+                    <span>All</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${pickerFilter === "all" ? "bg-purple-100 text-purple-900 font-black" : "bg-slate-300 text-slate-700"}`}>
+                      {pickerCounts.total}
+                    </span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setPickerFilter("due")}
-                    className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 ${pickerFilter === "due" ? "bg-white text-red-600 shadow-sm" : "hover:text-red-600"}`}
+                    className={`py-1.5 px-1 rounded-lg transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+                      pickerFilter === "due" ? "bg-white text-rose-700 shadow-xs font-black" : "hover:text-rose-700"
+                    }`}
                   >
-                    Due Fees
+                    <span>Due Fees</span>
+                    {pickerCounts.due > 0 && (
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${pickerFilter === "due" ? "bg-rose-100 text-rose-800" : "bg-rose-200 text-rose-800"}`}>
+                        {pickerCounts.due}
+                      </span>
+                    )}
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setPickerFilter("absent")}
-                    className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 ${pickerFilter === "absent" ? "bg-white text-orange-600 shadow-sm" : "hover:text-orange-600"}`}
+                    className={`py-1.5 px-1 rounded-lg transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+                      pickerFilter === "absent" ? "bg-white text-amber-700 shadow-xs font-black" : "hover:text-amber-700"
+                    }`}
                   >
-                    Abs. &gt;2 Days
+                    <span>Abs. &gt;2</span>
+                    {pickerCounts.absent > 0 && (
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${pickerFilter === "absent" ? "bg-amber-100 text-amber-900" : "bg-amber-200 text-amber-900"}`}>
+                        {pickerCounts.absent}
+                      </span>
+                    )}
                   </button>
                 </div>
 
                 {/* Student Scroll List */}
                 {isLoadingGradeStudents ? (
-                  <div className="flex-1 flex items-center justify-center text-sm text-gray-500">Loading grade list...</div>
+                  <div className="flex-1 flex flex-col items-center justify-center gap-2 text-xs font-semibold text-slate-500">
+                    <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Loading grade directory...</span>
+                  </div>
                 ) : (
-                  <div className="flex-1 overflow-y-auto space-y-4 mt-4 pr-1">
+                  <div className="flex-1 overflow-y-auto space-y-3.5 mt-3 pr-1 custom-scrollbar">
                     {/* Section 1: Enrolled Students */}
                     <div>
-                      <div className="bg-purple-100/80 text-purple-900 font-bold px-3 py-2 rounded-xl text-xs flex justify-between items-center mb-2 sticky top-0 z-10 border border-purple-200">
-                        <span>Enrolled Students ({filteredPickerStudents.filter(s => s.isEnrolled).length})</span>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        {filteredPickerStudents.filter(s => s.isEnrolled).length === 0 ? (
-                          <p className="text-xs text-gray-400 italic pl-3">No students currently enrolled in this grade.</p>
-                        ) : (
-                          filteredPickerStudents.filter(s => s.isEnrolled).map((student) => (
-                            <div
-                              key={student._id}
-                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
-                                selectedStudentDetail?._id === student._id
-                                  ? "bg-purple-50/70 border-purple-300 shadow-sm"
-                                  : "bg-white border-gray-150 hover:bg-gray-50"
-                              }`}
-                            >
-                              {user?.role === 'admin' && (
-                                <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedStudentIds.includes(student._id)}
-                                    onChange={() => {
-                                      setSelectedStudentIds((prev) =>
-                                        prev.includes(student._id)
-                                          ? prev.filter((id) => id !== student._id)
-                                          : [...prev, student._id]
-                                      );
-                                    }}
-                                    className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
-                                  />
-                                </div>
-                              )}
-
-                              <div className="flex-1 min-w-0" onClick={() => setSelectedStudentDetail(student)}>
-                                <p className="font-semibold text-gray-905 text-sm truncate">{student.name}</p>
-                                <p className="text-[11px] text-gray-500 truncate">Reg: {student.registrationNumber || 'N/A'}</p>
-                                
-                                <div className="flex flex-wrap gap-1 mt-1 text-[9px] font-extrabold uppercase">
-                                  <span className="px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
-                                    Enrolled
-                                  </span>
-                                  <span className={`px-1.5 py-0.5 rounded-full ${student.payment?.status === "Due" ? "bg-red-50 text-red-700 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
-                                    {student.payment?.status || "Paid"}
-                                  </span>
-                                  {student.attendance?.isChronicallyAbsent && (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold border border-red-200 animate-pulse">
-                                      Absent &gt;2 Days
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                      {(() => {
+                        const enrolledList = filteredPickerStudents.filter(s => s.isEnrolled);
+                        return (
+                          <>
+                            <div className="bg-gradient-to-r from-purple-100 via-indigo-50 to-purple-50 text-purple-950 font-black px-3.5 py-2 rounded-xl text-xs flex justify-between items-center mb-2 sticky top-0 z-10 border border-purple-200/80 shadow-2xs">
+                              <span className="flex items-center gap-1.5">
+                                <FaUserGraduate className="text-purple-700 text-[11px]" />
+                                <span>Enrolled Students</span>
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-950 font-black text-[10px]">
+                                {enrolledList.length}
+                              </span>
                             </div>
-                          ))
-                        )}
-                      </div>
+                            
+                            <div className="space-y-1.5">
+                              {enrolledList.length === 0 ? (
+                                <p className="text-xs text-slate-400 italic pl-3 py-1">No enrolled students match current filter.</p>
+                              ) : (
+                                enrolledList.map((student) => {
+                                  const isSelected = selectedStudentDetail?._id === student._id;
+                                  return (
+                                    <div
+                                      key={student._id}
+                                      onClick={() => setSelectedStudentDetail(student)}
+                                      className={`flex items-center gap-2.5 p-2.5 rounded-2xl border transition cursor-pointer select-none ${
+                                        isSelected
+                                          ? "bg-gradient-to-r from-purple-50/90 via-white to-purple-50/50 border-2 border-purple-500 shadow-xs ring-2 ring-purple-100"
+                                          : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                                      }`}
+                                    >
+                                      {user?.role === 'admin' && (
+                                        <div className="flex items-center pl-0.5" onClick={(e) => e.stopPropagation()}>
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedStudentIds.includes(student._id)}
+                                            onChange={() => {
+                                              setSelectedStudentIds((prev) =>
+                                                prev.includes(student._id)
+                                                  ? prev.filter((id) => id !== student._id)
+                                                  : [...prev, student._id]
+                                              );
+                                            }}
+                                            className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* Student Initial Avatar Bubble */}
+                                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-2xs ${
+                                        isSelected
+                                          ? "bg-gradient-to-tr from-purple-700 to-indigo-700 text-white"
+                                          : "bg-purple-100 text-purple-900 border border-purple-200"
+                                      }`}>
+                                        {student.name ? student.name.charAt(0).toUpperCase() : 'S'}
+                                      </div>
+
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-1">
+                                          <p className="font-extrabold text-slate-900 text-xs truncate leading-tight">{student.name}</p>
+                                          {isSelected && <FaArrowRight className="text-[10px] text-purple-600 shrink-0" />}
+                                        </div>
+                                        <p className="text-[10.5px] text-slate-500 font-mono font-medium truncate mt-0.5">
+                                          Reg: {student.registrationNumber || 'N/A'}
+                                        </p>
+                                        
+                                        <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                                          <span className="px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-900 border border-purple-200 font-black text-[9px] uppercase tracking-tight">
+                                            Enrolled
+                                          </span>
+                                          <span className={`px-1.5 py-0.2 rounded-md font-black text-[9px] uppercase tracking-tight border ${
+                                            student.payment?.status === "Due" 
+                                              ? "bg-rose-50 text-rose-700 border-rose-200" 
+                                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                          }`}>
+                                            {student.payment?.status || "Paid"}
+                                          </span>
+                                          {student.attendance?.isChronicallyAbsent && (
+                                            <span className="px-1.5 py-0.2 rounded-md bg-rose-600 text-white font-black text-[9px] uppercase tracking-tight animate-pulse shadow-2xs">
+                                              Abs &gt;2 Days
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* Section 2: Available Students (Not Enrolled) */}
                     <div>
-                      <div className="bg-gray-100 text-gray-700 font-bold px-3 py-2 rounded-xl text-xs flex justify-between items-center mb-2 sticky top-0 z-10 border border-gray-200">
-                        <span>Available Students ({filteredPickerStudents.filter(s => !s.isEnrolled).length})</span>
-                      </div>
-
-                      <div className="space-y-2">
-                        {filteredPickerStudents.filter(s => !s.isEnrolled).length === 0 ? (
-                          <p className="text-xs text-gray-400 italic pl-3">No additional students available in this grade.</p>
-                        ) : (
-                          filteredPickerStudents.filter(s => !s.isEnrolled).map((student) => (
-                            <div
-                              key={student._id}
-                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
-                                selectedStudentDetail?._id === student._id
-                                  ? "bg-purple-50/70 border-purple-300 shadow-sm"
-                                  : "bg-white border-gray-150 hover:bg-gray-50"
-                              }`}
-                            >
-                              {user?.role === 'admin' && (
-                                <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedStudentIds.includes(student._id)}
-                                    onChange={() => {
-                                      setSelectedStudentIds((prev) =>
-                                        prev.includes(student._id)
-                                          ? prev.filter((id) => id !== student._id)
-                                          : [...prev, student._id]
-                                      );
-                                    }}
-                                    className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
-                                  />
-                                </div>
-                              )}
-
-                              <div className="flex-1 min-w-0" onClick={() => setSelectedStudentDetail(student)}>
-                                <p className="font-semibold text-gray-905 text-sm truncate">{student.name}</p>
-                                <p className="text-[11px] text-gray-500 truncate">Reg: {student.registrationNumber || 'N/A'}</p>
-                                
-                                <div className="flex flex-wrap gap-1 mt-1 text-[9px] font-extrabold uppercase">
-                                  <span className="px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-200">
-                                    Not Enrolled
-                                  </span>
-                                  <span className={`px-1.5 py-0.5 rounded-full ${student.payment?.status === "Due" ? "bg-red-50 text-red-700 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
-                                    {student.payment?.status || "Paid"}
-                                  </span>
-                                  {student.attendance?.isChronicallyAbsent && (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold border border-red-200 animate-pulse">
-                                      Absent &gt;2 Days
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                      {(() => {
+                        const availableList = filteredPickerStudents.filter(s => !s.isEnrolled);
+                        return (
+                          <>
+                            <div className="bg-gradient-to-r from-slate-100 via-gray-50 to-slate-100 text-slate-800 font-black px-3.5 py-2 rounded-xl text-xs flex justify-between items-center mb-2 sticky top-0 z-10 border border-slate-200/90 shadow-2xs">
+                              <span className="flex items-center gap-1.5">
+                                <FaUsers className="text-slate-600 text-[11px]" />
+                                <span>Available Students</span>
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 font-black text-[10px]">
+                                {availableList.length}
+                              </span>
                             </div>
-                          ))
-                        )}
-                      </div>
+
+                            <div className="space-y-1.5">
+                              {availableList.length === 0 ? (
+                                <p className="text-xs text-slate-400 italic pl-3 py-1">No unenrolled students available.</p>
+                              ) : (
+                                availableList.map((student) => {
+                                  const isSelected = selectedStudentDetail?._id === student._id;
+                                  return (
+                                    <div
+                                      key={student._id}
+                                      onClick={() => setSelectedStudentDetail(student)}
+                                      className={`flex items-center gap-2.5 p-2.5 rounded-2xl border transition cursor-pointer select-none ${
+                                        isSelected
+                                          ? "bg-gradient-to-r from-purple-50/90 via-white to-purple-50/50 border-2 border-purple-500 shadow-xs ring-2 ring-purple-100"
+                                          : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                                      }`}
+                                    >
+                                      {user?.role === 'admin' && (
+                                        <div className="flex items-center pl-0.5" onClick={(e) => e.stopPropagation()}>
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedStudentIds.includes(student._id)}
+                                            onChange={() => {
+                                              setSelectedStudentIds((prev) =>
+                                                prev.includes(student._id)
+                                                  ? prev.filter((id) => id !== student._id)
+                                                  : [...prev, student._id]
+                                              );
+                                            }}
+                                            className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* Student Initial Avatar Bubble */}
+                                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-2xs ${
+                                        isSelected
+                                          ? "bg-gradient-to-tr from-purple-700 to-indigo-700 text-white"
+                                          : "bg-slate-100 text-slate-700 border border-slate-200"
+                                      }`}>
+                                        {student.name ? student.name.charAt(0).toUpperCase() : 'S'}
+                                      </div>
+
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-1">
+                                          <p className="font-extrabold text-slate-900 text-xs truncate leading-tight">{student.name}</p>
+                                          {isSelected && <FaArrowRight className="text-[10px] text-purple-600 shrink-0" />}
+                                        </div>
+                                        <p className="text-[10.5px] text-slate-500 font-mono font-medium truncate mt-0.5">
+                                          Reg: {student.registrationNumber || 'N/A'}
+                                        </p>
+                                        
+                                        <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                                          <span className="px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 border border-slate-200 font-bold text-[9px] uppercase tracking-tight">
+                                            Not Enrolled
+                                          </span>
+                                          <span className={`px-1.5 py-0.2 rounded-md font-black text-[9px] uppercase tracking-tight border ${
+                                            student.payment?.status === "Due" 
+                                              ? "bg-rose-50 text-rose-700 border-rose-200" 
+                                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                          }`}>
+                                            {student.payment?.status || "Paid"}
+                                          </span>
+                                          {student.attendance?.isChronicallyAbsent && (
+                                            <span className="px-1.5 py-0.2 rounded-md bg-rose-600 text-white font-black text-[9px] uppercase tracking-tight animate-pulse shadow-2xs">
+                                              Abs &gt;2 Days
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
 
                 {/* Batch Action Buttons Panel (Admin only) */}
                 {user?.role === 'admin' && (
-                  <div className="pt-4 border-t flex flex-col gap-2 mt-auto">
-                    <div className="flex justify-between items-center text-xs text-gray-500 font-semibold px-1">
-                      <span>{selectedStudentIds.length} Selected for Batch Actions</span>
-                      <div className="flex gap-2">
+                  <div className="pt-3 border-t border-slate-200 flex flex-col gap-2 mt-auto">
+                    <div className="flex justify-between items-center text-xs text-slate-600 font-bold px-1">
+                      <span>{selectedStudentIds.length} Selected for Batch</span>
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setSelectedStudentIds(gradeStudents.map((s) => s._id))}
-                          className="text-purple-600 hover:underline cursor-pointer"
+                          className="text-purple-700 hover:text-purple-900 hover:underline cursor-pointer font-bold"
                         >
                           Select All
                         </button>
-                        <span>|</span>
+                        <span className="text-slate-300">|</span>
                         <button
                           type="button"
                           onClick={() => setSelectedStudentIds([])}
-                          className="text-purple-600 hover:underline cursor-pointer"
+                          className="text-slate-500 hover:text-slate-800 hover:underline cursor-pointer font-bold"
                         >
                           Clear
                         </button>
@@ -2449,17 +3186,19 @@ const CourseDetails = () => {
                         type="button"
                         onClick={handleBatchEnroll}
                         disabled={isUpdatingGradeStudents || selectedStudentIds.length === 0}
-                        className="rounded-xl bg-green-600 py-2.5 text-xs font-bold text-white hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
+                        className="rounded-xl bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 py-2.5 text-xs font-black text-white transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                       >
-                        {isUpdatingGradeStudents ? 'Enrolling...' : 'Batch Enroll'}
+                        <FaUserPlus className="text-xs" />
+                        <span>{isUpdatingGradeStudents ? 'Enrolling...' : 'Batch Enroll'}</span>
                       </button>
                       <button
                         type="button"
                         onClick={handleBatchRemove}
                         disabled={isUpdatingGradeStudents || selectedStudentIds.length === 0}
-                        className="rounded-xl bg-red-600 py-2.5 text-xs font-bold text-white hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
+                        className="rounded-xl bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800 py-2.5 text-xs font-black text-white transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                       >
-                        {isUpdatingGradeStudents ? 'Removing...' : 'Batch Remove'}
+                        <FaUserMinus className="text-xs" />
+                        <span>{isUpdatingGradeStudents ? 'Removing...' : 'Batch Remove'}</span>
                       </button>
                     </div>
                   </div>
@@ -2467,33 +3206,47 @@ const CourseDetails = () => {
               </div>
 
               {/* RIGHT PANE: Selected Student Detailed Overview */}
-              <div className="w-7/12 flex flex-col pl-6 overflow-hidden">
+              <div className="w-7/12 flex flex-col pl-5 pr-6 pt-4 pb-4 overflow-hidden bg-white">
                 {!selectedStudentDetail ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                    <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <h4 className="font-bold text-gray-700">No Student Selected</h4>
-                    <p className="text-xs text-gray-400 mt-1 max-w-xs">Click on any student card in the list to inspect their attendance history and billing records.</p>
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50/70 rounded-3xl border-2 border-dashed border-slate-200">
+                    <div className="w-16 h-16 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-2xl mb-3 shadow-xs">
+                      <FaUserGraduate />
+                    </div>
+                    <h4 className="font-extrabold text-slate-800 text-base">No Student Selected</h4>
+                    <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+                      Select any student card from the left directory to inspect their real-time attendance history and fee ledger.
+                    </p>
                   </div>
                 ) : (
                   <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Header Detail Card */}
-                    <div className="bg-gray-50 border border-gray-150 p-4 rounded-2xl flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-12 h-12 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-extrabold text-lg shrink-0">
-                          {selectedStudentDetail.name.charAt(0)}
+                    <div className="bg-gradient-to-r from-purple-50/80 via-indigo-50/40 to-slate-50 border border-purple-200/80 p-4 rounded-2xl flex items-center justify-between gap-4 shadow-xs">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-13 h-13 bg-gradient-to-tr from-purple-700 via-indigo-700 to-purple-800 text-white rounded-2xl flex items-center justify-center font-black text-xl shadow-md border-2 border-white ring-2 ring-purple-200 shrink-0">
+                          {selectedStudentDetail.name ? selectedStudentDetail.name.charAt(0).toUpperCase() : 'S'}
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-gray-900 text-base leading-tight truncate">{selectedStudentDetail.name}</h4>
-                          <p className="text-xs text-gray-500 font-medium">Reg No: {selectedStudentDetail.registrationNumber || 'N/A'}</p>
-                          <p className="text-xs text-gray-400 truncate">{selectedStudentDetail.email}</p>
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-black text-slate-900 text-base leading-tight truncate">
+                              {selectedStudentDetail.name}
+                            </h4>
+                            <span className="font-mono bg-purple-100 text-purple-900 px-2 py-0.5 rounded-md text-[11px] font-bold border border-purple-200">
+                              {selectedStudentDetail.registrationNumber || 'No Reg ID'}
+                            </span>
+                          </div>
+                          
+                          <p className="text-xs text-slate-500 font-medium truncate flex items-center gap-1.5">
+                            <FaEnvelope className="text-[10px] text-slate-400" />
+                            <span>{selectedStudentDetail.email || 'No email registered'}</span>
+                          </p>
+
                           {selectedStudentDetail.parentsPhoneNumber && (
-                            <p className="text-[11px] text-purple-600 font-semibold mt-0.5 flex items-center gap-1">
-                              <svg className="w-3 h-3 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h2.28a1 1 0 01.63.23l2.87 2.87a1 1 0 01-.18 1.54l-1.31.87a11.03 11.03 0 005.47 5.47l.87-1.31a1 1 0 011.54-.18l2.87 2.87a1 1 0 01.23.63V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                              </svg>
-                              Parent: {selectedStudentDetail.parentsPhoneNumber}
+                            <p className="text-xs text-purple-700 font-bold flex items-center gap-1.5 pt-0.5">
+                              <FaPhoneAlt className="text-[10px] text-purple-600" />
+                              <span>Parent Contact:</span>
+                              <a href={`tel:${selectedStudentDetail.parentsPhoneNumber}`} className="hover:underline text-purple-900 font-mono font-extrabold">
+                                {selectedStudentDetail.parentsPhoneNumber}
+                              </a>
                             </p>
                           )}
                         </div>
@@ -2501,24 +3254,26 @@ const CourseDetails = () => {
 
                       {/* Enrolling Action Button (Admin only) */}
                       {user?.role === 'admin' && (
-                        <div>
+                        <div className="shrink-0">
                           {selectedStudentDetail.isEnrolled ? (
                             <button
                               type="button"
                               onClick={() => handleSingleStudentEnrollRemove('remove', selectedStudentDetail._id)}
                               disabled={isUpdatingGradeStudents}
-                              className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer"
+                              className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-black px-4 py-2.5 rounded-xl transition shadow-2xs cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
                             >
-                              Remove
+                              <FaUserMinus className="text-xs" />
+                              <span>{isUpdatingGradeStudents ? 'Updating...' : 'Remove from Class'}</span>
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={() => handleSingleStudentEnrollRemove('enroll', selectedStudentDetail._id)}
                               disabled={isUpdatingGradeStudents}
-                              className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer"
+                              className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-xs font-black px-4.5 py-2.5 rounded-xl transition shadow-md cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
                             >
-                              Enroll
+                              <FaUserPlus className="text-xs" />
+                              <span>{isUpdatingGradeStudents ? 'Updating...' : 'Enroll in Class'}</span>
                             </button>
                           )}
                         </div>
@@ -2526,88 +3281,126 @@ const CourseDetails = () => {
                     </div>
 
                     {/* Tab Navigation */}
-                    <div className="flex border-b border-gray-200 mt-4 text-xs font-bold uppercase tracking-wider text-gray-500">
+                    <div className="flex border-b border-slate-200 mt-4 text-xs font-bold tracking-wider text-slate-500">
                       <button
                         type="button"
                         onClick={() => setStudentDetailTab("attendance")}
-                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                          studentDetailTab === "attendance" ? "border-purple-600 text-purple-700 font-extrabold" : "border-transparent hover:text-gray-700"
+                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-2 cursor-pointer ${
+                          studentDetailTab === "attendance" 
+                            ? "border-purple-600 text-purple-950 font-black" 
+                            : "border-transparent text-slate-500 hover:text-slate-800"
                         }`}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Attendance History
+                        <FaCalendarAlt className="text-sm" />
+                        <span>Attendance History</span>
+                        <span className={`px-2 py-0.2 rounded-full text-[10px] font-black ${
+                          studentDetailTab === "attendance" ? "bg-purple-100 text-purple-900" : "bg-slate-100 text-slate-600"
+                        }`}>
+                          {selectedStudentDetail.attendance?.history?.length || 0}
+                        </span>
                       </button>
+
                       <button
                         type="button"
                         onClick={() => setStudentDetailTab("payments")}
-                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                          studentDetailTab === "payments" ? "border-purple-600 text-purple-700 font-extrabold" : "border-transparent hover:text-gray-700"
+                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-2 cursor-pointer ${
+                          studentDetailTab === "payments" 
+                            ? "border-purple-600 text-purple-950 font-black" 
+                            : "border-transparent text-slate-500 hover:text-slate-800"
                         }`}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Payment Ledger
+                        <FaMoneyBillWave className="text-sm" />
+                        <span>Payment Ledger</span>
+                        <span className={`px-2 py-0.2 rounded-full text-[10px] font-black ${
+                          selectedStudentDetail.payment?.status === "Due" 
+                            ? "bg-rose-100 text-rose-800" 
+                            : "bg-emerald-100 text-emerald-800"
+                        }`}>
+                          {selectedStudentDetail.payment?.status || 'Paid'}
+                        </span>
                       </button>
                     </div>
 
                     {/* Tab Panels */}
-                    <div className="flex-1 overflow-y-auto mt-4 pr-1">
+                    <div className="flex-1 overflow-y-auto mt-3 pr-1 custom-scrollbar">
                       
                       {/* Tab 1: ATTENDANCE HISTORY VIEW */}
                       {studentDetailTab === "attendance" && (
-                        <div className="space-y-4">
+                        <div className="space-y-3.5">
                           {/* Alert Notice for high absences */}
                           {selectedStudentDetail.attendance?.isChronicallyAbsent && (
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 flex gap-2.5 text-red-800 text-xs animate-pulse">
-                              <svg className="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                              </svg>
+                            <div className="bg-gradient-to-r from-rose-50 via-red-50 to-rose-50 border border-rose-200 rounded-2xl p-3.5 flex items-center gap-3 text-rose-900 text-xs animate-pulse shadow-2xs">
+                              <FaExclamationTriangle className="w-5 h-5 text-rose-600 shrink-0" />
                               <div>
-                                <p className="font-bold">Absenteeism Alert</p>
-                                <p className="mt-0.5 font-medium">This student has been marked absent for {selectedStudentDetail.attendance.consecutiveAbsences} consecutive class sessions in this course.</p>
+                                <p className="font-black text-rose-950">Absenteeism Notice</p>
+                                <p className="mt-0.5 font-medium text-rose-800">
+                                  This student was absent for {selectedStudentDetail.attendance.consecutiveAbsences} consecutive class sessions in this course.
+                                </p>
                               </div>
                             </div>
                           )}
 
-                          {/* Quick Stats */}
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-center">
-                              <p className="text-[10px] text-green-700 font-extrabold uppercase tracking-wider">Attended Sessions</p>
-                              <p className="text-xl font-black text-green-800 mt-0.5">{selectedStudentDetail.attendance?.totalPresent || 0}</p>
-                            </div>
-                            <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-center">
-                              <p className="text-[10px] text-red-700 font-extrabold uppercase tracking-wider">Absent Sessions</p>
-                              <p className="text-xl font-black text-red-800 mt-0.5">{selectedStudentDetail.attendance?.totalAbsent || 0}</p>
-                            </div>
-                          </div>
+                          {/* Quick Stats Strip */}
+                          {(() => {
+                            const present = selectedStudentDetail.attendance?.totalPresent || 0;
+                            const absent = selectedStudentDetail.attendance?.totalAbsent || 0;
+                            const total = present + absent;
+                            const rate = total > 0 ? Math.round((present / total) * 100) : 100;
+
+                            return (
+                              <div className="grid grid-cols-3 gap-3">
+                                <div className="bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-50 border border-emerald-200/90 rounded-2xl p-3 text-center shadow-2xs">
+                                  <p className="text-[10px] text-emerald-800 font-black uppercase tracking-wider">Attended</p>
+                                  <p className="text-2xl font-black text-emerald-950 mt-0.5">{present}</p>
+                                  <span className="text-[10px] text-emerald-700 font-semibold">Sessions</span>
+                                </div>
+
+                                <div className="bg-gradient-to-br from-rose-50 via-red-50 to-rose-50 border border-rose-200/90 rounded-2xl p-3 text-center shadow-2xs">
+                                  <p className="text-[10px] text-rose-800 font-black uppercase tracking-wider">Absent</p>
+                                  <p className="text-2xl font-black text-rose-950 mt-0.5">{absent}</p>
+                                  <span className="text-[10px] text-rose-700 font-semibold">Sessions</span>
+                                </div>
+
+                                <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-indigo-50 border border-indigo-200/90 rounded-2xl p-3 text-center shadow-2xs">
+                                  <p className="text-[10px] text-indigo-800 font-black uppercase tracking-wider">Attendance Rate</p>
+                                  <p className="text-2xl font-black text-indigo-950 mt-0.5">{rate}%</p>
+                                  <span className="text-[10px] text-indigo-700 font-semibold">Participation</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           {/* History Table */}
-                          <div className="rounded-xl border border-gray-150 overflow-hidden">
-                            <table className="min-w-full divide-y divide-gray-200 text-left text-xs">
-                              <thead className="bg-gray-50 font-bold uppercase tracking-wider text-gray-500 border-b">
+                          <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                            <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                              <thead className="bg-slate-50 font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">
                                 <tr>
-                                  <th className="p-3">Session Date</th>
-                                  <th className="p-3 text-right">Status</th>
+                                  <th className="px-4 py-3">Session Date</th>
+                                  <th className="px-4 py-3 text-right">Attendance Status</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-gray-150 text-gray-700">
+                              <tbody className="divide-y divide-slate-150 text-slate-800 bg-white">
                                 {!selectedStudentDetail.attendance?.history || selectedStudentDetail.attendance.history.length === 0 ? (
                                   <tr>
-                                    <td colSpan="2" className="p-6 text-center text-gray-400 italic">No attendance records found for this student.</td>
+                                    <td colSpan="2" className="py-8 px-4 text-center text-slate-400 font-medium italic">
+                                      No attendance records logged for this student yet.
+                                    </td>
                                   </tr>
                                 ) : (
                                   selectedStudentDetail.attendance.history.map((record, index) => (
-                                    <tr key={index} className="hover:bg-gray-50/50 transition-colors">
-                                      <td className="p-3 font-semibold text-gray-800">{new Date(record.date).toLocaleDateString()}</td>
-                                      <td className="p-3 text-right whitespace-nowrap">
-                                        <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
-                                          record.status === 'Present' ? 'bg-green-100 text-green-800' :
-                                          'bg-red-100 text-red-800'
+                                    <tr key={index} className="hover:bg-purple-50/30 transition-colors">
+                                      <td className="px-4 py-3 font-bold text-slate-900 flex items-center gap-2">
+                                        <FaCalendarAlt className="text-slate-400 text-xs" />
+                                        <span>{new Date(record.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                                      </td>
+                                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black uppercase text-[10px] shadow-2xs ${
+                                          record.status === 'Present' 
+                                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' 
+                                            : 'bg-rose-100 text-rose-900 border border-rose-300'
                                         }`}>
-                                          {record.status}
+                                          <span className={`w-1.5 h-1.5 rounded-full ${record.status === 'Present' ? 'bg-emerald-600' : 'bg-rose-600'}`}></span>
+                                          <span>{record.status}</span>
                                         </span>
                                       </td>
                                     </tr>
@@ -2621,52 +3414,72 @@ const CourseDetails = () => {
 
                       {/* Tab 2: PAYMENT RECORDS LEDGER VIEW */}
                       {studentDetailTab === "payments" && (
-                        <div className="space-y-4">
+                        <div className="space-y-3.5">
                           {/* Alert Notice for overdue bills */}
                           {selectedStudentDetail.payment?.status === "Due" ? (
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 flex gap-2.5 text-red-800 text-xs">
-                              <svg className="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <div>
-                                <p className="font-bold text-red-800">Fees Pending Alert</p>
-                                <p className="mt-0.5 font-semibold text-red-700">
-                                  Course Tuition Fees of LKR {selectedStudentDetail.payment.amountDue.toLocaleString()}.00 are UNPAID for this course.
-                                </p>
+                            <div className="bg-gradient-to-r from-rose-50 via-red-50 to-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-rose-900 text-xs shadow-2xs">
+                              <div className="flex items-center gap-3">
+                                <FaExclamationTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                                <div>
+                                  <p className="font-black text-rose-950 text-sm">Tuition Fees Pending</p>
+                                  <p className="mt-0.5 font-bold text-rose-800">
+                                    Outstanding amount: LKR {Number(selectedStudentDetail.payment.amountDue || 2500).toLocaleString()}.00
+                                  </p>
+                                </div>
                               </div>
+                              <span className="px-3 py-1 rounded-full bg-rose-600 text-white font-black text-xs uppercase tracking-tight shadow-sm shrink-0">
+                                Overdue
+                              </span>
                             </div>
                           ) : (
-                            <div className="bg-green-50 border border-green-200 rounded-xl p-3.5 flex gap-2.5 text-green-800 text-xs">
-                              <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <div>
-                                <p className="font-bold">Account Good Standing</p>
-                                <p className="mt-0.5 font-medium">Course payment for this student is fully settled and active.</p>
+                            <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-emerald-900 text-xs shadow-2xs">
+                              <div className="flex items-center gap-3">
+                                <FaCheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+                                <div>
+                                  <p className="font-black text-emerald-950 text-sm">Account in Good Standing</p>
+                                  <p className="mt-0.5 font-medium text-emerald-800">
+                                    Course tuition fee is fully settled. Student has full active class access.
+                                  </p>
+                                </div>
                               </div>
+                              <span className="px-3 py-1 rounded-full bg-emerald-600 text-white font-black text-xs uppercase tracking-tight shadow-sm shrink-0">
+                                Fully Paid
+                              </span>
                             </div>
                           )}
 
                           {/* Payment Ledger */}
-                          <div className="rounded-xl border border-gray-150 overflow-hidden">
-                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-150 flex justify-between items-center">
-                              <h5 className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Transaction History Log</h5>
-                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Live Office Ledger</span>
+                          <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                            <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                              <h5 className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                <FaReceipt className="text-purple-600 text-xs" />
+                                <span>Transaction History Log</span>
+                              </h5>
+                              <span className="text-[10px] font-mono font-extrabold text-slate-400 uppercase tracking-widest">
+                                Live Office Ledger
+                              </span>
                             </div>
-                            <div className="divide-y divide-gray-150 text-xs">
+                            <div className="divide-y divide-slate-150 text-xs bg-white">
                               {!selectedStudentDetail.payment?.history || selectedStudentDetail.payment.history.length === 0 ? (
-                                <div className="p-6 text-center text-gray-400 italic">No payment receipts logged for this student yet.</div>
+                                <div className="py-8 px-4 text-center text-slate-400 font-medium italic">
+                                  No transaction receipts logged for this student yet.
+                                </div>
                               ) : (
                                 selectedStudentDetail.payment.history.map((invoice, index) => (
-                                  <div key={index} className="p-3 flex justify-between items-center hover:bg-gray-50/50">
+                                  <div key={index} className="p-3.5 flex justify-between items-center hover:bg-purple-50/30 transition">
                                     <div>
-                                      <p className="font-bold text-gray-800">LKR {invoice.amount.toLocaleString()}.00 - {invoice.courseTitle}</p>
-                                      <p className="text-[10px] text-purple-700 font-mono mt-0.5">
-                                        Receipt: {invoice.transactionId} • Method: {invoice.paymentMethod} ({invoice.status})
+                                      <p className="font-black text-slate-900 text-sm">
+                                        LKR {Number(invoice.amount).toLocaleString()}.00 • <span className="font-semibold text-slate-700">{invoice.courseTitle}</span>
+                                      </p>
+                                      <p className="text-[11px] text-purple-700 font-mono font-bold mt-0.5">
+                                        Receipt: {invoice.transactionId} • Method: {invoice.paymentMethod}
                                       </p>
                                     </div>
-                                    <div className="text-right">
-                                      <span className="text-gray-500 font-semibold">{invoice.date}</span>
+                                    <div className="text-right space-y-1">
+                                      <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-200 text-[10px] font-black uppercase">
+                                        {invoice.status || 'Completed'}
+                                      </span>
+                                      <p className="text-slate-500 font-bold text-[11px]">{invoice.date}</p>
                                     </div>
                                   </div>
                                 ))
@@ -2840,6 +3653,35 @@ const CourseDetails = () => {
         />
       )}
 
+      {/* Video Player Modal with Engine/Gear Quality Switcher */}
+      {activeVideoModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-4xl bg-[#1e1b4b] rounded-3xl overflow-hidden shadow-2xl border border-purple-500/40 relative animate-in zoom-in-95 duration-200">
+            <div className="p-4 bg-purple-950/90 flex justify-between items-center border-b border-purple-800/80 px-6">
+              <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                <span>🎬</span> {activeVideoModal.title}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setActiveVideoModal(null)}
+                className="text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 p-2 px-3.5 rounded-xl transition cursor-pointer text-xs font-bold"
+              >
+                ✕ Close Player
+              </button>
+            </div>
+            <div className="p-4 sm:p-6">
+              <LiveStreamPlayer
+                liveStream={{
+                  isLive: true,
+                  title: activeVideoModal.title,
+                  youtubeUrl: activeVideoModal.youtubeUrl || activeVideoModal.url
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Grade Modal */}
       {showAddGrade && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
@@ -2972,18 +3814,23 @@ const CourseDetails = () => {
         </div>
       )}
 
-      {/* Live Stream Setup & Management Modal */}
+      {/* Live Stream Setup & Management Modal with Scheduling and 16:9 Thumbnail Cropper */}
       {showLiveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-gray-100 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="w-full max-w-xl rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b pb-3.5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#FF0000] to-[#CC0000] text-white flex items-center justify-center shadow-md shadow-red-500/20 shrink-0">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FF0000] to-[#CC0000] text-white flex items-center justify-center shadow-md shadow-red-500/20 shrink-0">
                   <FaYoutube className="text-2xl" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-gray-900">
-                    {currentLesson?.liveStream?.isLive ? 'Manage Active Live Class' : 'Start YouTube Live Class'}
+                  <h3 className="text-lg sm:text-xl font-extrabold text-gray-900">
+                    {currentLesson?.liveStream?.isLive 
+                      ? 'Manage Active Live Class' 
+                      : currentLesson?.liveStream?.isScheduled 
+                      ? 'Manage Scheduled Live Stream' 
+                      : 'Live Class Broadcast Setup'}
                   </h3>
                   <p className="text-xs text-gray-500 font-medium">Grade: {selectedGrade} • {course?.title}</p>
                 </div>
@@ -2997,7 +3844,44 @@ const CourseDetails = () => {
               </button>
             </div>
 
+            {/* Mode Tabs: Go Live Now vs Schedule for Later */}
+            <div className="grid grid-cols-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 shadow-inner gap-1">
+              <button
+                type="button"
+                onClick={() => setIsScheduledLive(false)}
+                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer ${
+                  !isScheduledLive
+                    ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/25 ring-1 ring-red-400'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                {!isScheduledLive ? (
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                  </span>
+                ) : (
+                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                )}
+                <span>Go Live Immediately</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsScheduledLive(true)}
+                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer ${
+                  isScheduledLive
+                    ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white shadow-md shadow-purple-600/25 ring-1 ring-purple-400'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <FaCalendarAlt className={`text-sm ${isScheduledLive ? 'text-purple-200' : 'text-purple-600'}`} />
+                <span>Schedule for Later</span>
+              </button>
+            </div>
+
             <form onSubmit={handleStartLiveStream} className="space-y-4">
+              {/* Stream Title */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Live Class Title (Optional)</label>
                 <input
@@ -3009,6 +3893,7 @@ const CourseDetails = () => {
                 />
               </div>
 
+              {/* YouTube Link / ID */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center justify-between">
                   <span>YouTube Live Stream Link or Video ID <span className="text-red-500">*</span></span>
@@ -3032,14 +3917,123 @@ const CourseDetails = () => {
                 </p>
               </div>
 
+              {/* Date & Time Pickers when Scheduling is Active */}
+              {isScheduledLive && (
+                <div className="p-4 bg-purple-50/70 border border-purple-100 rounded-2xl space-y-3 animate-fadeIn">
+                  <div className="flex items-center gap-2 text-xs font-bold text-purple-900">
+                    <FaCalendarCheck className="text-purple-600" />
+                    <span>Select Scheduled Broadcast Date & Time</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-600 mb-1">Broadcast Date</label>
+                      <input
+                        type="date"
+                        min={new Date().toISOString().split('T')[0]}
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        className="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 outline-none focus:border-purple-500"
+                        required={isScheduledLive}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-600 mb-1">Broadcast Time</label>
+                      <input
+                        type="time"
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 outline-none focus:border-purple-500"
+                        required={isScheduledLive}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-purple-800/90 font-medium">
+                    ⏱️ <strong>15-Minute Pre-Live Feature:</strong> The player unlocks automatically 15 minutes before this time with a countdown ticker, letting students test their audio & video.
+                  </p>
+                </div>
+              )}
+
+              {/* 16:9 Custom Thumbnail Picture Uploader with Cropper */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5 flex items-center justify-between">
+                  <span>Custom Thumbnail Picture (16:9)</span>
+                  <span className="text-[11px] text-gray-400 font-semibold">Custom Image Cropper Enabled</span>
+                </label>
+
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={thumbnailInputRef}
+                  accept="image/*"
+                  onChange={handleSelectThumbnailFile}
+                  className="hidden"
+                />
+
+                {liveThumbnail ? (
+                  <div className="relative aspect-video rounded-2xl overflow-hidden border border-gray-200 shadow-md group">
+                    <img
+                      src={liveThumbnail.startsWith('http') || liveThumbnail.startsWith('data:')
+                        ? liveThumbnail
+                        : `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')}${liveThumbnail.startsWith('/') ? '' : '/'}${liveThumbnail}`}
+                      alt="Thumbnail Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-2xs">
+                      <button
+                        type="button"
+                        onClick={() => thumbnailInputRef.current?.click()}
+                        className="px-3 py-1.5 bg-white text-gray-900 rounded-xl text-xs font-bold shadow-md hover:bg-gray-100 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <FaImage className="text-xs" />
+                        <span>Change</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCropperRawImage(liveThumbnail);
+                          setIsThumbnailCropperOpen(true);
+                        }}
+                        className="px-3 py-1.5 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-purple-700 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <FaCrop className="text-xs" />
+                        <span>Re-Crop</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLiveThumbnail('')}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-red-700 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <FaTrashAlt className="text-xs" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => thumbnailInputRef.current?.click()}
+                    className="aspect-video rounded-2xl border-2 border-dashed border-gray-300 hover:border-red-500 bg-gray-50/80 hover:bg-red-50/20 transition-all flex flex-col items-center justify-center p-4 text-center cursor-pointer group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-xl mb-2 group-hover:scale-110 transition-transform">
+                      <FaImage />
+                    </div>
+                    <span className="text-xs font-bold text-gray-800">Click to Upload Thumbnail</span>
+                    <span className="text-[11px] text-gray-400 mt-0.5">Interactive 16:9 crop tool will open automatically</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer Actions */}
               <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
-                {currentLesson?.liveStream?.isLive ? (
+                {(currentLesson?.liveStream?.isLive || currentLesson?.liveStream?.isScheduled) ? (
                   <button
                     type="button"
                     onClick={() => handleEndLiveStream(saveLiveAsVideo)}
-                    className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-2xl transition shadow-sm cursor-pointer flex items-center gap-1.5"
+                    className="px-4 py-2.5 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs rounded-2xl transition shadow-md shadow-red-950/20 hover:shadow-red-900/40 cursor-pointer flex items-center gap-2 active:scale-95 transform duration-200"
                   >
-                    ⏹️ End Live Class
+                    <FaTimes className="text-xs" />
+                    <span>{currentLesson?.liveStream?.isScheduled ? 'Cancel Scheduled Stream' : 'End Live Class'}</span>
                   </button>
                 ) : (
                   <div></div>
@@ -3056,18 +4050,117 @@ const CourseDetails = () => {
                   <button
                     type="submit"
                     disabled={isPublishingLive}
-                    className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white font-extrabold text-xs sm:text-sm transition-all duration-300 shadow-md shadow-red-600/30 cursor-pointer disabled:opacity-50 flex items-center gap-2 border border-red-500/30 transform hover:-translate-y-0.5 active:scale-95"
+                    className={`px-5 py-2.5 rounded-2xl ${
+                      isScheduledLive
+                        ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 shadow-purple-600/30'
+                        : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] shadow-red-600/30'
+                    } text-white font-extrabold text-xs sm:text-sm transition-all duration-300 shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-2 transform hover:-translate-y-0.5 active:scale-95`}
                   >
-                    <FaYoutube className="text-xl text-white" />
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    {isScheduledLive ? <FaCalendarAlt className="text-sm" /> : <FaYoutube className="text-xl text-white" />}
+                    <span>
+                      {isPublishingLive 
+                        ? 'Saving...' 
+                        : isScheduledLive 
+                        ? (currentLesson?.liveStream?.isScheduled ? 'Update Scheduled Stream' : 'Schedule Live Class')
+                        : (currentLesson?.liveStream?.isLive ? 'Update Live Stream' : 'Publish Live Class')}
                     </span>
-                    <span>{isPublishingLive ? 'Publishing...' : currentLesson?.liveStream?.isLive ? 'Update Live Stream' : 'Publish Live Class'}</span>
                   </button>
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 16:9 Live Stream Thumbnail Cropper Modal */}
+      <LiveThumbnailCropperModal
+        isOpen={isThumbnailCropperOpen}
+        imageSrc={cropperRawImage}
+        onClose={() => setIsThumbnailCropperOpen(false)}
+        onCropComplete={handleCropComplete}
+      />
+
+      {/* INTERACTIVE END LIVE STREAM CONFIRMATION MODAL */}
+      {showEndStreamConfirmModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn"
+          onClick={() => {
+            setIsEndingStream(false);
+            setShowEndStreamConfirmModal(false);
+          }}
+        >
+          <div 
+            className="relative w-full max-w-md bg-white rounded-3xl border border-gray-200 p-6 text-gray-900 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 text-2xl shadow-sm shrink-0">
+                <span className="relative flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600"></span>
+                </span>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-gray-900">End Live Class?</h3>
+                <p className="text-xs text-gray-500 font-medium">Broadcast Termination Confirmation</p>
+              </div>
+            </div>
+
+            {/* Info Message Box */}
+            <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 space-y-2 text-xs text-gray-700">
+              <p className="font-bold text-amber-800 flex items-center gap-1.5">
+                <span>⚠️</span> This will conclude the session for all attendees.
+              </p>
+              <p className="text-gray-600 leading-relaxed">
+                Students currently watching <strong>"{currentLesson?.liveStream?.title || 'Live Stream'}"</strong> will be notified that the live lecture has ended.
+              </p>
+            </div>
+
+            {/* Save as video lesson option */}
+            <label className="flex items-center gap-3 bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200/80 cursor-pointer hover:bg-purple-100/50 transition">
+              <input
+                type="checkbox"
+                checked={saveLiveAsVideo}
+                onChange={(e) => setSaveLiveAsVideo(e.target.checked)}
+                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-purple-300 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-purple-950">
+                Save recording as Lesson Video for student replay
+              </span>
+            </label>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEndingStream(false);
+                  setShowEndStreamConfirmModal(false);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 text-xs font-bold transition cursor-pointer border border-gray-200 active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isEndingStream}
+                onClick={() => confirmEndLiveStream(saveLiveAsVideo)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-600 text-white text-xs font-black shadow-lg shadow-red-600/25 border border-red-500 transition flex items-center gap-2 cursor-pointer disabled:opacity-60 active:scale-95"
+              >
+                {isEndingStream ? (
+                  <>
+                    <span className="animate-spin text-sm">⏳</span>
+                    <span>Ending Stream...</span>
+                  </>
+                ) : (
+                  <>
+                    <FaTimes className="text-xs" />
+                    <span>Yes, End Live Stream</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

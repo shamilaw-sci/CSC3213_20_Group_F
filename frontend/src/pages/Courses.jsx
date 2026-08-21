@@ -23,8 +23,21 @@ const getImageUrl = (url) => {
 };
 
 const Courses = () => {
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('lumina_cached_courses');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem('lumina_cached_courses');
+    } catch {
+      return true;
+    }
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
   const [selectedCourseForEnrollment, setSelectedCourseForEnrollment] = useState(null);
@@ -37,11 +50,34 @@ const Courses = () => {
 
   const fetchCourses = async () => {
     try {
-      const res = await api.get('/courses');
-      setCourses(res.data);
+      const promises = [api.get('/courses'), api.get('/schedules')];
+      if (user?.role === 'parent') {
+        promises.push(api.get('/auth/parent-summary'));
+      }
+
+      const results = await Promise.allSettled(promises);
+
+      if (results[0].status === 'fulfilled') {
+        const freshCourses = results[0].value?.data || [];
+        setCourses(freshCourses);
+        try {
+          sessionStorage.setItem('lumina_cached_courses', JSON.stringify(freshCourses));
+        } catch {}
+      } else if (!courses.length) {
+        toast.error("Failed to load courses.");
+      }
+
+      if (results[1]?.status === 'fulfilled') {
+        setAllSchedules(results[1].value?.data || []);
+      }
+
+      if (user?.role === 'parent' && results[2]?.status === 'fulfilled') {
+        const cList = (results[2].value?.data?.childrenData || []).map(cd => cd.child).filter(Boolean);
+        setParentChildren(cList);
+      }
     } catch (err) {
       console.error("Error fetching courses", err);
-      toast.error("Failed to load courses.");
+      if (!courses.length) toast.error("Failed to load courses.");
     } finally {
       setLoading(false);
     }
@@ -49,17 +85,6 @@ const Courses = () => {
 
   useEffect(() => {
     fetchCourses();
-
-    api.get('/schedules').then(res => {
-      setAllSchedules(res.data || []);
-    }).catch(() => {});
-
-    if (user?.role === 'parent') {
-      api.get('/auth/parent-summary').then(res => {
-        const cList = (res.data?.childrenData || []).map(cd => cd.child).filter(Boolean);
-        setParentChildren(cList);
-      }).catch(() => {});
-    }
 
     const handleUpdate = () => {
       fetchCourses();
@@ -94,7 +119,7 @@ const Courses = () => {
   const getGradesDisplay = (course) => {
     // Students only see their own grade, not all grades the course is available for
     if (user?.role === 'student' && user?.grade) {
-      const g = user.grade;
+      const g = String(user.grade);
       return g.toLowerCase().startsWith('grade') ? g : `Grade ${g}`;
     }
     if (course.enrolledGrades && course.enrolledGrades.length > 0) {
@@ -123,9 +148,11 @@ const Courses = () => {
 
   // Helper: check if current student is enrolled in a course
   const isStudentEnrolled = (course) => {
-    return course.enrolledStudents?.some(student =>
-      student?._id?.toString() === user?.id?.toString() || student?.toString() === user?.id?.toString()
-    );
+    const currentUserId = user?.id || user?._id;
+    return course.enrolledStudents?.some(student => {
+      const sId = (typeof student === 'object' && student !== null) ? (student._id || student.id) : student;
+      return sId && currentUserId && sId.toString() === currentUserId.toString();
+    });
   };
 
   // Helper: check if a course offers the student's grade (supports single & combination grades)
@@ -191,20 +218,18 @@ const Courses = () => {
   };
 
   const handleCourseClick = (course) => {
-    if (user?.role === 'parent') {
-      return; // Parents cannot enter inner course workspace (read-only catalogue view)
-    }
+    const courseId = course._id || course.id;
     const isDeactive = course.status === 'deactive' || course.isActive === false;
     if (isDeactive) {
       if (user?.role === 'admin') {
         // Admin CAN ALWAYS LOG IN / GO INSIDE!
-        navigate(`/course/${course._id}`);
+        navigate(`/course/${courseId}`);
         return;
       }
       toast.error("This course has been deactivated by Admin. Access is restricted.");
       return;
     }
-    navigate(`/course/${course._id}`);
+    navigate(`/course/${courseId}`);
   };
 
   const handleToggleFullCourseStatus = async (e, course) => {
@@ -229,16 +254,13 @@ const Courses = () => {
   const renderCourseCard = (course) => {
     const courseImg = getImageUrl(course.cardImage || course.banner);
     const isDeactive = course.status === 'deactive' || course.isActive === false;
-    const isParent = user?.role === 'parent';
 
     return (
       <div 
-        key={course._id} 
+        key={course._id || course.id} 
         onClick={() => handleCourseClick(course)} 
-        className={`bg-white rounded-[32px] overflow-hidden shadow-sm border transition-all duration-300 group flex flex-col justify-between ${
-          isParent
-            ? 'cursor-default border-gray-200/90'
-            : 'cursor-pointer transform hover:-translate-y-1 ' + (isDeactive ? 'border-red-200/90 bg-red-50/20' : 'border-gray-200/80 hover:border-purple-300 hover:shadow-2xl')
+        className={`bg-white rounded-[32px] overflow-hidden shadow-sm border transition-all duration-300 group flex flex-col justify-between cursor-pointer transform hover:-translate-y-1 ${
+          isDeactive ? 'border-red-200/90 bg-red-50/20' : 'border-gray-200/80 hover:border-purple-300 hover:shadow-2xl'
         }`}
       >
         <div>
@@ -250,7 +272,7 @@ const Courses = () => {
                 alt={course.title}
                 loading="lazy"
                 decoding="async"
-                className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 ${isParent ? '' : 'group-hover:scale-108'}`}
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-108"
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
             ) : (
@@ -269,7 +291,7 @@ const Courses = () => {
                     onClick={(e) => {
                       e.stopPropagation();
                       setConfirmFullCourseModal({
-                        courseId: course._id,
+                        courseId: course._id || course.id,
                         title: course.title,
                         isDeactive
                       });
@@ -322,7 +344,7 @@ const Courses = () => {
               </div>
 
               {/* Course Title */}
-              <h3 className={`text-2xl sm:text-3xl font-black text-black tracking-tight leading-tight [text-shadow:_0_2px_8px_rgba(255,255,255,0.95)] transition-colors line-clamp-2 ${isParent ? '' : 'group-hover:text-purple-900'}`}>
+              <h3 className="text-2xl sm:text-3xl font-black text-black tracking-tight leading-tight [text-shadow:_0_2px_8px_rgba(255,255,255,0.95)] transition-colors line-clamp-2 group-hover:text-purple-900">
                 {course.title}
               </h3>
             </div>
@@ -365,8 +387,8 @@ const Courses = () => {
     const courseImg = getImageUrl(course.cardImage || course.banner);
     return (
       <div 
-        key={course._id} 
-        onClick={() => navigate(`/course/${course._id}`)} 
+        key={course._id || course.id} 
+        onClick={() => navigate(`/course/${course._id || course.id}`)} 
         className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-200/80 hover:border-purple-300 hover:shadow-2xl transition-all duration-300 group flex flex-col justify-between cursor-pointer transform hover:-translate-y-1"
       >
         <div>
@@ -564,9 +586,9 @@ const Courses = () => {
                   <tbody className="divide-y divide-gray-100 text-sm">
                     {filteredCourses.map((course) => {
                       const linkedChild = getLinkedChildEnrollment(course);
-                      const cSchedules = getCourseSchedules(course._id);
+                      const cSchedules = getCourseSchedules(course._id || course.id);
                       return (
-                        <tr key={course._id} className="hover:bg-purple-50/30 transition-colors">
+                        <tr key={course._id || course.id} className="hover:bg-purple-50/30 transition-colors">
                           {/* Course Name */}
                           <td className="py-5 px-6 font-extrabold text-slate-900 align-top">
                             <div className="space-y-1.5">

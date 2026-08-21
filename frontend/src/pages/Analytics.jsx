@@ -167,7 +167,13 @@ const Analytics = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Registered Grade</p>
-                  <h3 className="text-3xl font-extrabold text-indigo-950 mt-1">{studentMetrics?.userGrade || 'Grade 6'}</h3>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <h3 className="text-3xl font-extrabold text-indigo-950">{studentMetrics?.userGrade || 'Grade 6'}</h3>
+                    <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                      Active Status
+                    </span>
+                  </div>
                 </div>
                 <div className="w-12 h-12 bg-indigo-200/60 text-indigo-700 rounded-2xl flex items-center justify-center text-xl shadow-inner">
                   <FaGraduationCap />
@@ -959,7 +965,12 @@ const Analytics = () => {
                   return (
                     <div key={g.grade} className="bg-white/80 p-3 rounded-2xl border border-purple-100/70 space-y-1 shadow-2xs hover:shadow-xs transition">
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-purple-950 truncate max-w-[120px]">{g.grade}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-purple-950 truncate max-w-[110px]">{g.grade}</span>
+                          <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider border border-emerald-200 shrink-0">
+                            Active
+                          </span>
+                        </div>
                         <span className="text-purple-900 font-extrabold">{g.count} Students</span>
                       </div>
                       <div className="w-full bg-purple-100/70 h-2.5 rounded-full overflow-hidden flex">
@@ -1003,7 +1014,12 @@ const Analytics = () => {
                   return (
                     <div key={g.grade} className="bg-white/80 p-3 rounded-2xl border border-indigo-100/70 space-y-1 shadow-2xs hover:shadow-xs transition">
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-indigo-950 truncate max-w-[120px]">{g.grade}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-indigo-950 truncate max-w-[110px]">{g.grade}</span>
+                          <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider border border-emerald-200 shrink-0">
+                            Active
+                          </span>
+                        </div>
                         <span className="text-[10px] text-indigo-700 font-extrabold">{onlineRatio}% Online / {physicalRatio}% Physical</span>
                       </div>
                       <div className="w-full bg-indigo-900 h-3 rounded-full overflow-hidden flex shadow-inner">

@@ -194,7 +194,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Messages Container */}
-          <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gradient-to-b from-gray-50 to-white">
+          <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gradient-to-b from-gray-50 to-white scroll-smooth overscroll-contain scrollbar-thin scrollbar-thumb-purple-200 hover:scrollbar-thumb-purple-300">
             {messages.map((msg, idx) => (
               <div
                 key={idx}

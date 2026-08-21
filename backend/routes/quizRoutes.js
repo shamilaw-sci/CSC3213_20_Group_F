@@ -61,20 +61,20 @@ router.get('/course/:courseId', protect, async (req, res) => {
       filter.isActive = true;
     }
 
-    const quizzes = await Quiz.find(filter).sort({ createdAt: -1 });
+    const quizzes = await Quiz.find(filter).sort({ createdAt: -1 }).lean();
 
     // For students, find their attempts/submissions for these quizzes
     const submissions = await QuizSubmission.find({
       student: req.user._id,
       quiz: { $in: quizzes.map(q => q._id) }
-    });
+    }).lean();
 
     // Map attempts for frontend ease
     const quizList = quizzes.map(quiz => {
       const submission = submissions.find(sub => sub.quiz.toString() === quiz._id.toString());
       
       // If student, strip correctAnswer details from quiz list questions for security
-      const quizObj = quiz.toObject();
+      const quizObj = { ...quiz };
       if (!isTeacher && quizObj.questions) {
         quizObj.questions = quizObj.questions.map(q => {
           const { correctAnswer, ...qWithoutAnswer } = q;
