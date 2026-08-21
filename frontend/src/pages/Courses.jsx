@@ -61,6 +61,10 @@ const Courses = () => {
   const [expandedCourseIds, setExpandedCourseIds] = useState({});
   const navigate = useNavigate(); 
   const user = JSON.parse(localStorage.getItem('user'));
+  const isParent = user?.role === 'parent';
+  const isAdmin = user?.role === 'admin';
+  const isStudent = user?.role === 'student';
+  const isTeacher = user?.role === 'teacher';
 
   const toggleCourseExpand = (courseId) => {
     setExpandedCourseIds(prev => ({
@@ -215,11 +219,15 @@ const Courses = () => {
     : [];
 
   // Admin & Parent: all institute courses | Teacher: only their courses | Students use enrolledCourses + availableCourses
-  const filteredCourses = user?.role === 'student'
+  const filteredCourses = isStudent
     ? []
-    : (user?.role === 'admin' || user?.role === 'parent'
+    : (isAdmin || isParent
       ? courses
-      : courses.filter(course => course.instructor?._id?.toString() === user?.id?.toString())
+      : courses.filter(course => {
+          const tId = (user?._id || user?.id)?.toString();
+          const instId = (course.instructor?._id || course.instructor)?.toString();
+          return tId && instId === tId;
+        })
     ).filter(course => matchesSearch(course));
 
   const [enrollingCourseId, setEnrollingCourseId] = useState(null);

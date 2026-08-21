@@ -3705,7 +3705,11 @@ const LiveChatBox = ({
                       </button>
                     </div>
 
-                    <span className="text-[11px] font-bold text-gray-500 truncate">
+                    <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-500 truncate">
+                      <span className="relative flex h-2 w-2 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
                       {isStudent ? "🔒 Private to Teacher" : selectedStudentId === 'staff' ? "🛡️ Staff Channel" : "📢 Live Class Chat"}
                     </span>
                   </div>
@@ -3714,7 +3718,11 @@ const LiveChatBox = ({
                 /* Outside Fullscreen Normal Mode: Sleek, Slightly Taller Capsule */
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0 bg-slate-50/90 hover:bg-slate-50 focus-within:bg-white rounded-2xl sm:rounded-3xl border border-gray-300/90 focus-within:border-purple-600 focus-within:ring-3 focus-within:ring-purple-100 transition-all duration-200 px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center gap-2.5 shadow-2xs hover:shadow-xs hover:border-gray-400">
-                    <div className="shrink-0 select-none">
+                    <div className="shrink-0 select-none flex items-center gap-1.5">
+                      <span className="relative flex h-2 w-2" title="Live Connection Active">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
                       {isStudent ? (
                         <FaLock className="text-purple-600 text-xs sm:text-sm" />
                       ) : selectedStudentId === 'staff' ? (

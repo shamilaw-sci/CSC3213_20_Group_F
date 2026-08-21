@@ -9,13 +9,64 @@ import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import LiveChatBox from '../components/LiveChatBox';
 import ScheduledLiveHero from '../components/ScheduledLiveHero';
 import LiveThumbnailCropperModal from '../components/LiveThumbnailCropperModal';
-import {
-  FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube,
-  FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt,
-  FaClipboardCheck, FaFileUpload, FaCloudDownloadAlt, FaCheckDouble,
-  FaExclamationTriangle, FaCommentDots, FaEdit, FaTrashAlt, FaStar,
-  FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheckCircle, FaTimesCircle, FaPaperPlane,
-  FaDownload, FaHourglassHalf, FaCog, FaPlayCircle, FaPlay
+import { 
+  FaChalkboardTeacher, 
+  FaBookOpen, 
+  FaLock, 
+  FaLockOpen, 
+  FaVideo, 
+  FaYoutube, 
+  FaCalendarAlt, 
+  FaChevronDown, 
+  FaChevronUp, 
+  FaClock, 
+  FaMapMarkerAlt, 
+  FaTimes, 
+  FaStop,
+  FaComments,
+  FaCrop,
+  FaImage,
+  FaTrashAlt,
+  FaBroadcastTower,
+  FaPlay,
+  FaPlayCircle,
+  FaCalendarCheck,
+  FaUserGraduate,
+  FaSearch,
+  FaUserPlus,
+  FaUserMinus,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaMoneyBillWave,
+  FaPhoneAlt,
+  FaEnvelope,
+  FaIdCard,
+  FaHistory,
+  FaCheck,
+  FaTimesCircle,
+  FaArrowRight,
+  FaArrowLeft,
+  FaGraduationCap,
+  FaUserTie,
+  FaLayerGroup,
+  FaFilter,
+  FaUsers,
+  FaReceipt,
+  FaClipboardCheck,
+  FaFileUpload,
+  FaCloudDownloadAlt,
+  FaCheckDouble,
+  FaCommentDots,
+  FaEdit,
+  FaStar,
+  FaAward,
+  FaEye,
+  FaSave,
+  FaPlus,
+  FaPaperPlane,
+  FaDownload,
+  FaHourglassHalf,
+  FaCog
 } from 'react-icons/fa';
 
 const getImageUrl = (url) => {
@@ -31,6 +82,16 @@ const getImageUrl = (url) => {
   }
   const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
   return `${backendBase}/uploads/${filename}`;
+};
+
+const getYouTubeThumbnail = (url, customThumb = null) => {
+  if (customThumb) return getImageUrl(customThumb);
+  if (!url) return '';
+  const match = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|live\/|shorts\/)|youtu\.be\/|\/v\/|watch\?vi?=|youtu\.be\/|\/embed\/)([a-zA-Z0-9_-]{11})/i);
+  if (match && match[1]) {
+    return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+  }
+  return '';
 };
 
 const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
@@ -1063,24 +1124,24 @@ const CourseDetails = () => {
     e.preventDefault();
     const targetLesson = currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || [])[0];
     if (!targetLesson?._id) {
-      toast.error("Please select a class workspace first.");
+      toast.error("⚠️ Please select a class workspace first.");
       return;
     }
 
     if (!liveYoutubeUrl.trim()) {
-      toast.error("Please enter a YouTube Live link or Video ID.");
+      toast.error("⚠️ Please enter a valid YouTube Live link or Video ID.");
       return;
     }
 
     let scheduledStartTime = null;
     if (isScheduledLive) {
       if (!scheduledDate || !scheduledTime) {
-        toast.error("Please select a scheduled date and time.");
+        toast.error("⚠️ Please select both Broadcast Date and Time before scheduling.");
         return;
       }
       scheduledStartTime = new Date(`${scheduledDate}T${scheduledTime}`);
       if (isNaN(scheduledStartTime.getTime())) {
-        toast.error("Invalid scheduled date or time.");
+        toast.error("⚠️ Invalid scheduled date or time selected.");
         return;
       }
     }
@@ -1094,7 +1155,7 @@ const CourseDetails = () => {
         scheduledStartTime,
         thumbnail: liveThumbnail
       });
-      toast.success(res.data.message || (isScheduledLive ? "Live Class scheduled successfully!" : "Live Class published successfully!"));
+      toast.success(res.data.message || (isScheduledLive ? "📅 Live Class scheduled successfully!" : "🔴 Live Class published successfully!"));
       setShowLiveModal(false);
       setLiveYoutubeUrl('');
       setLiveStreamTitle('');
@@ -1103,6 +1164,38 @@ const CourseDetails = () => {
       await fetchCourseDetails();
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to publish live class.");
+    } finally {
+      setIsPublishingLive(false);
+    }
+  };
+
+  const handleCancelScheduledStream = async () => {
+    if (!window.confirm("Are you sure you want to cancel and remove this scheduled live stream?")) {
+      return;
+    }
+    const targetLesson = currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isScheduled) || (lessons || [])[0];
+    if (!targetLesson?._id) {
+      toast.error("Class not found.");
+      return;
+    }
+
+    try {
+      setIsPublishingLive(true);
+      await api.delete(`/lessons/${targetLesson._id}/live-stream?saveAsVideo=false`, {
+        data: { saveAsVideo: false }
+      });
+      toast.success("📅 Scheduled Live Broadcast cancelled successfully.");
+      setShowLiveModal(false);
+      await fetchCourseDetails();
+    } catch (err) {
+      try {
+        await api.post(`/lessons/${targetLesson._id}/live-stream/end`, { saveAsVideo: false });
+        toast.success("📅 Scheduled Live Broadcast cancelled successfully.");
+        setShowLiveModal(false);
+        await fetchCourseDetails();
+      } catch (fallbackErr) {
+        toast.error("Failed to cancel scheduled stream.");
+      }
     } finally {
       setIsPublishingLive(false);
     }
@@ -1417,75 +1510,191 @@ const CourseDetails = () => {
           </div>
         </div>
       ) : (
-        <div className="mb-8 flex justify-between items-center flex-wrap gap-4">
-          <div>
+        /* UPGRADED GRADE WORKSPACE HEADER WITH LINE SEPARATION & STRUCTURED DETAILS */
+        <div className="mb-8 space-y-4">
+          {/* Top Breadcrumb & Back Navigation */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <button
               onClick={() => setSelectedGrade(null)}
-              className="mb-2 flex items-center gap-2 text-[#2d1b64] hover:underline font-bold transition cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#2d1b64] font-bold text-xs transition-all duration-200 border border-purple-200 shadow-2xs hover:shadow-xs group cursor-pointer"
             >
-              ← Back to Classes
+              <FaArrowLeft className="text-[11px] group-hover:-translate-x-0.5 transition-transform text-purple-700" />
+              <span>Back to Classes</span>
             </button>
-            <h1 className="text-3xl font-extrabold text-gray-800 mb-1">{course?.title}</h1>
-            <div className="flex items-center gap-3 mt-1 flex-wrap">
-              <p className="text-purple-600 font-bold text-lg">{selectedGrade} Workspace</p>
-              {currentLesson?.liveStream?.isLive ? (
-                <span className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-red-500/20 flex items-center gap-1.5 border border-red-400 animate-pulse ring-2 ring-red-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
-                  LIVE NOW
-                </span>
-              ) : currentLesson?.liveStream?.isScheduled ? (
-                <span className="bg-gradient-to-r from-amber-600 to-orange-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-amber-500/20 flex items-center gap-1.5 border border-amber-400">
-                  <FaBroadcastTower className="text-[10px] animate-pulse" />
-                  SCHEDULED LIVE
-                </span>
-              ) : (
-                <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-                  Workspace Active
-                </span>
-              )}
+
+            <div className="text-xs font-semibold text-gray-500 hidden sm:flex items-center gap-2">
+              <span className="hover:text-purple-700 cursor-pointer" onClick={() => setSelectedGrade(null)}>Classes</span>
+              <span>/</span>
+              <span className="font-bold text-purple-900">{selectedGrade}</span>
             </div>
           </div>
 
-          {(user?.role === 'admin' || user?.role === 'teacher') && (
-            <button
-              type="button"
-              onClick={() => {
-                const targetLesson = currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || [])[0];
-                if (targetLesson?.liveStream?.isLive || targetLesson?.liveStream?.isScheduled) {
-                  handleOpenEditScheduledLive(targetLesson);
-                } else {
-                  setLiveStreamTitle('');
-                  setLiveYoutubeUrl('');
-                  setLiveThumbnail('');
-                  setIsScheduledLive(false);
-                  setShowLiveModal(true);
-                }
-              }}
-              className={`px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${
-                currentLesson?.liveStream?.isLive
-                  ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white border-red-400 shadow-red-500/30 ring-2 ring-red-300'
-                  : currentLesson?.liveStream?.isScheduled
-                  ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:to-orange-800 text-white border-amber-400 shadow-amber-500/30 ring-2 ring-amber-300'
-                  : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white border-red-500/40 shadow-red-600/30'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <FaYoutube className="text-2xl sm:text-3xl text-white drop-shadow-sm" />
-                <span className="flex h-2.5 w-2.5 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
-                </span>
+          {/* Main Title, Badges & Action Hub */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+                {course?.title}
+              </h1>
+
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-xl bg-purple-100/90 text-purple-950 font-black text-sm border border-purple-300/80 shadow-2xs">
+                  <FaGraduationCap className="text-purple-700 text-sm" />
+                  <span>{selectedGrade} Workspace</span>
+                </div>
+
+                {currentLesson?.liveStream?.isLive ? (
+                  <span className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md shadow-red-500/20 flex items-center gap-1.5 border border-red-400 animate-pulse ring-2 ring-red-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                    LIVE NOW
+                  </span>
+                ) : currentLesson?.liveStream?.isScheduled ? (
+                  <span className="bg-gradient-to-r from-amber-600 to-orange-600 text-white text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md shadow-amber-500/20 flex items-center gap-1.5 border border-amber-400">
+                    <FaBroadcastTower className="text-[10px] animate-pulse" />
+                    SCHEDULED LIVE
+                  </span>
+                ) : (
+                  <span className="bg-emerald-100 text-emerald-900 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-300 shadow-2xs flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    Workspace Active
+                  </span>
+                )}
               </div>
-              <span className="tracking-tight">
-                {currentLesson?.liveStream?.isLive 
-                  ? 'Manage Live Class' 
-                  : currentLesson?.liveStream?.isScheduled 
-                  ? 'Manage Scheduled Live' 
-                  : 'Start YouTube Live Class'}
-              </span>
-            </button>
-          )}
+            </div>
+
+            {(user?.role === 'admin' || user?.role === 'teacher') && (
+              <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+                {currentLesson?.liveStream?.isScheduled && (
+                  <button
+                    type="button"
+                    onClick={() => handleGoLiveImmediately(currentLesson._id)}
+                    className="px-4 sm:px-5 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition-all duration-300 shadow-lg bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white border border-red-400 shadow-red-500/30 ring-2 ring-red-300 flex items-center gap-2 cursor-pointer transform hover:-translate-y-0.5 active:scale-95"
+                    title="Launch and start this scheduled live stream immediately"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <FaPlay className="text-xs text-white" />
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                      </span>
+                    </div>
+                    <span>Go Live Now</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetLesson = currentLesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || [])[0];
+                    if (targetLesson?.liveStream?.isLive || targetLesson?.liveStream?.isScheduled) {
+                      handleOpenEditScheduledLive(targetLesson);
+                    } else {
+                      setLiveStreamTitle('');
+                      setLiveYoutubeUrl('');
+                      setLiveThumbnail('');
+                      setIsScheduledLive(false);
+                      setShowLiveModal(true);
+                    }
+                  }}
+                  className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition-all duration-300 shadow-lg flex items-center gap-2.5 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${
+                    currentLesson?.liveStream?.isLive
+                      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white border-red-400 shadow-red-500/30 ring-2 ring-red-300'
+                      : currentLesson?.liveStream?.isScheduled
+                      ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:to-orange-800 text-white border-amber-400 shadow-amber-500/30 ring-2 ring-amber-300'
+                      : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white border-red-500/40 shadow-red-600/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <FaYoutube className="text-xl sm:text-2xl text-white drop-shadow-sm" />
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                  </div>
+                  <span className="tracking-tight">
+                    {currentLesson?.liveStream?.isLive 
+                      ? 'Manage Live Class' 
+                      : currentLesson?.liveStream?.isScheduled 
+                      ? 'Manage Scheduled Live' 
+                      : 'Start YouTube Live Class'}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Structured Course & Grade Details (Cleanly Separated by Dividers) */}
+          <div className="pt-3 border-t border-gray-200/90 flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto no-scrollbar text-xs font-bold text-gray-700 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              {course?.instructor?.name && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-gray-200/80 text-slate-800">
+                  <FaUserTie className="text-purple-600 text-xs" />
+                  <span className="text-gray-500 font-medium">Instructor:</span>
+                  <span className="font-extrabold text-slate-900">{course.instructor.name}</span>
+                </div>
+              )}
+
+              {course?.category && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-gray-200/80 text-slate-800">
+                  <FaLayerGroup className="text-indigo-600 text-xs" />
+                  <span className="text-gray-500 font-medium">Category:</span>
+                  <span className="font-extrabold text-slate-900">{course.category}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-gray-200/80 text-slate-800">
+                <FaCalendarAlt className="text-purple-600 text-xs" />
+                <span className="text-gray-500 font-medium">Curriculum:</span>
+                <span className="font-extrabold text-purple-900">{selectedMonth} (Week {activeWeek})</span>
+              </div>
+
+              {course?.enrolledStudents?.length !== undefined && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-gray-200/80 text-slate-800">
+                  <FaUsers className="text-emerald-600 text-xs" />
+                  <span className="text-gray-500 font-medium">Students:</span>
+                  <span className="font-extrabold text-slate-900">{course.enrolledStudents.length} Enrolled</span>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Action Management Buttons for Teacher & Admin */}
+            {(user?.role === 'admin' || user?.role === 'teacher') && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => openStudentPicker(selectedGrade)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-100/90 hover:bg-purple-200/90 text-purple-950 font-black text-xs border border-purple-300 shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:scale-105 active:scale-95"
+                  title="View and manage enrolled students for this grade"
+                >
+                  <FaUsers className="text-purple-700 text-xs" />
+                  <span>Manage Students</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetGradeObj = (course?.enrolledGrades || []).find(g => String(g.gradeNumber) === String(selectedGrade)) || { gradeNumber: selectedGrade, title: `Grade ${selectedGrade}` };
+                    setDeactivateConfirmGrade({
+                      gradeId: targetGradeObj._id || targetGradeObj.id || selectedGrade,
+                      gradeNumber: selectedGrade,
+                      title: targetGradeObj.title || `Grade ${selectedGrade}`,
+                      isDeactive: Boolean(targetGradeObj.isDeactive),
+                      deactivatedBy: targetGradeObj.deactivatedBy
+                    });
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs border border-slate-300 shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:scale-105 active:scale-95"
+                  title="Manage Grade Status & Activation"
+                >
+                  <span>⚙️ Grade Settings</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Separation line below header details */}
+          <div className="border-b border-gray-200/90 pb-1" />
         </div>
       )}
 
@@ -1857,25 +2066,29 @@ const CourseDetails = () => {
             return null;
           })()}
 
-          {/* Post-Stream Feedback & Q&A Discussion Thread (When Stream is Concluded) */}
+          {/* Professional Live Class Discussion & Q&A Hub */}
           {currentLesson?._id && !currentLesson?.liveStream?.isLive && (
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-purple-200 shadow-xs space-y-3">
+            <div className="bg-gradient-to-r from-purple-50/80 via-indigo-50/40 to-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-purple-200/90 dark:border-slate-800 shadow-xs space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-900 flex items-center justify-center text-lg font-black shadow-2xs">
+                  <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center text-lg font-black shadow-md shadow-purple-600/20">
                     <FaComments />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-gray-900 text-sm sm:text-base flex items-center gap-2">
-                      <span>Provide Messages or Replies About Stream</span>
-                      <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-bold text-[10.5px]">
-                        Post-Stream Q&A
+                    <h4 className="font-black text-slate-900 dark:text-white text-sm sm:text-base flex items-center gap-2 flex-wrap">
+                      <span>Live Class Discussion & Student Inquiries</span>
+                      <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-extrabold text-[10.5px] border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Interactive Q&A Active
                       </span>
                     </h4>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 font-medium">
                       {user?.role === 'admin' || user?.role === 'teacher'
-                        ? "Review student reactions and questions about the stream, and send direct replies anytime."
-                        : "Provide your reactions, final feedback, or questions about the stream to receive teacher replies."}
+                        ? "Review student inquiries, answer questions, and publish broadcast announcements for this session."
+                        : "Ask questions, explore class inquiries, or review teacher responses for this session."}
                     </p>
                   </div>
                 </div>
@@ -1883,10 +2096,14 @@ const CourseDetails = () => {
                 <button
                   type="button"
                   onClick={() => setShowPostStreamChat(!showPostStreamChat)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-black shadow-md transition cursor-pointer flex items-center gap-2 shrink-0 transform hover:scale-105 active:scale-95"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-black shadow-md shadow-purple-700/20 transition cursor-pointer flex items-center gap-2 shrink-0 transform hover:scale-105 active:scale-95 relative"
                 >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                  </span>
                   <FaComments className="text-xs" />
-                  <span>{showPostStreamChat ? "Close Post-Stream Discussion" : "Provide Messages / View Discussion"}</span>
+                  <span>{showPostStreamChat ? "Close Class Discussion" : "💬 Open Class Discussion"}</span>
                 </button>
               </div>
 
@@ -2144,87 +2361,148 @@ const CourseDetails = () => {
           )}
 
           {/* Video Lessons Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+          {/* Video Lessons & Recorded Lectures Section */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-slate-800 pb-4">
               <div>
-                <h4 className="font-bold text-lg text-gray-800">Video Lessons (Week {activeWeek} — {selectedMonth})</h4>
-                <p className="text-xs text-gray-500">Watch the lecture video below to complete video study requirement.</p>
+                <h4 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>🎬</span> Video Lessons & Recorded Lectures (Week {activeWeek} — {selectedMonth})
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">Watch recorded lecture broadcasts and lesson videos to complete your course study requirement.</p>
               </div>
-              <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${isVideoWatched ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
+              <span className={`text-xs font-black px-3.5 py-1.5 rounded-full self-start sm:self-auto ${
+                isVideoWatched 
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800' 
+                  : 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800'
+              }`}>
                 {isVideoWatched ? '✓ Video Completed' : 'Pending View'}
               </span>
             </div>
 
-            {/* Video addition form (Teacher/Admin only) */}
+            {/* Video Addition Form (Teacher / Admin Only) with Live Interactive Thumbnail Preview */}
             {isTeacherOrAdmin && (
-              <form onSubmit={handleAddVideo} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 p-4 bg-gray-50 rounded-xl">
-                <input
-                  type="text"
-                  placeholder="Video Title"
-                  value={videoTitle}
-                  onChange={(e) => setVideoTitle(e.target.value)}
-                  className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
-                  required
-                />
-                <input
-                  type="url"
-                  placeholder="Video Link (e.g. YouTube URL)"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
-                  required
-                />
+              <form onSubmit={handleAddVideo} className="p-4 sm:p-5 bg-purple-50/50 dark:bg-slate-800/60 rounded-2xl border border-purple-100 dark:border-slate-700 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-purple-900 dark:text-purple-300">
+                  <FaVideo className="text-purple-600" />
+                  <span>Share Video / Recorded Lecture for Students to Watch Anytime</span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Video Title (e.g. Week 1 Theory Deep-Dive)"
+                    value={videoTitle}
+                    onChange={(e) => setVideoTitle(e.target.value)}
+                    className="p-3 bg-white dark:bg-slate-900 border border-purple-200 dark:border-slate-700 rounded-xl outline-none text-sm font-semibold text-slate-800 dark:text-white focus:border-purple-500"
+                    required
+                  />
+                  <input
+                    type="url"
+                    placeholder="Video Link (YouTube URL / Live Recording link)"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    className="p-3 bg-white dark:bg-slate-900 border border-purple-200 dark:border-slate-700 rounded-xl outline-none text-sm font-semibold text-slate-800 dark:text-white focus:border-purple-500"
+                    required
+                  />
+                </div>
+
+                {/* Live Real-time Thumbnail Preview on Video Addition */}
+                {videoUrl && getYouTubeThumbnail(videoUrl) && (
+                  <div className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-purple-100 dark:border-slate-700">
+                    <img 
+                      src={getYouTubeThumbnail(videoUrl)} 
+                      alt="Thumbnail Preview" 
+                      className="w-24 h-14 rounded-lg object-cover shadow-2xs border border-purple-100 dark:border-slate-700" 
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-black text-purple-950 dark:text-purple-300 truncate">
+                        {videoTitle || "Interactive Video Preview"}
+                      </p>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                        ✓ YouTube HD Thumbnail Detected
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer text-sm"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 text-white font-black rounded-xl shadow-md transition cursor-pointer text-xs flex items-center justify-center gap-2 transform hover:scale-102 active:scale-98"
                 >
-                  + Add Video
+                  <span>+ Share Video Lesson</span>
                 </button>
               </form>
             )}
 
-            {/* Demo / Real Videos List */}
-            <div className="space-y-3">
+            {/* Videos Grid with Interactive 16:9 Thumbnail Pictures */}
+            <div className="space-y-3.5">
               {!currentLesson?.hideDemoVideo && (
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/40 hover:bg-purple-50 transition-all gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="text-red-500 text-2xl">🎬</div>
-                    <div>
-                      <p className="font-extrabold text-gray-900 text-sm">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border border-purple-100 dark:border-slate-800 rounded-2xl bg-purple-50/30 dark:bg-slate-800/40 hover:bg-purple-50/70 dark:hover:bg-slate-800/80 transition-all gap-4 group">
+                  <div className="flex items-center gap-4 min-w-0 w-full md:w-auto">
+                    {/* 16:9 Interactive Thumbnail Container */}
+                    <div 
+                      onClick={() => {
+                        markMaterialCompleted('video');
+                        setActiveVideoModal({
+                          title: `Week ${activeWeek} Master Lecture Video (${selectedMonth})`,
+                          youtubeUrl: currentLesson?.videoLessons?.[0]?.url || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+                        });
+                      }}
+                      className="relative w-28 sm:w-36 aspect-video rounded-xl overflow-hidden bg-slate-900 shrink-0 cursor-pointer shadow-xs border border-purple-200 dark:border-slate-700 group/thumb"
+                    >
+                      <img
+                        src="https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
+                        alt="Demo Video Thumbnail"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover/thumb:scale-110"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <div className="absolute inset-0 bg-black/30 group-hover/thumb:bg-black/50 transition-colors flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg text-xs transform group-hover/thumb:scale-115 transition-transform">
+                          <FaPlay className="ml-0.5" />
+                        </div>
+                      </div>
+                      <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
+                        45:00
+                      </span>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="bg-purple-100 dark:bg-purple-950/70 text-purple-900 dark:text-purple-300 text-[10px] font-black px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
+                          HD Lecture Recording
+                        </span>
+                      </div>
+                      <p className="font-black text-slate-900 dark:text-white text-sm sm:text-base tracking-tight leading-snug">
                         Week {activeWeek} Master Lecture Video: Theory & Concepts ({selectedMonth})
                       </p>
-                      <p className="text-xs text-purple-700 font-semibold mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
                         Required Video Material — 45 mins HD Recording
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    {isVideoWatched ? (
-                      <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-4 py-2 rounded-xl border border-emerald-200">
-                        ✓ Watched & Completed
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          markMaterialCompleted('video');
-                          setActiveVideoModal({
-                            title: `Week ${activeWeek} Master Lecture Video (${selectedMonth})`,
-                            youtubeUrl: currentLesson?.videoLessons?.[0]?.url || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-                          });
-                        }}
-                        className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer flex items-center gap-1.5"
-                      >
-                        <span>▶</span> Watch Lecture Video
-                      </button>
-                    )}
+                  <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        markMaterialCompleted('video');
+                        setActiveVideoModal({
+                          title: `Week ${activeWeek} Master Lecture Video (${selectedMonth})`,
+                          youtubeUrl: currentLesson?.videoLessons?.[0]?.url || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+                        });
+                      }}
+                      className="bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white px-4 py-2.5 rounded-xl text-xs font-black transition shadow-sm cursor-pointer flex items-center gap-1.5 transform hover:scale-105 active:scale-95"
+                    >
+                      <FaPlay className="text-[10px]" />
+                      <span>Watch Lecture</span>
+                    </button>
                     {isTeacherOrAdmin && (
                       <button
                         onClick={handleDeleteDemoVideo}
-                        className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
+                        className="text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 p-2.5 rounded-xl transition text-xs font-bold cursor-pointer"
+                        title="Remove default demo video"
                       >
-                        Remove
+                        <FaTrashAlt />
                       </button>
                     )}
                   </div>
@@ -2232,15 +2510,77 @@ const CourseDetails = () => {
               )}
 
               {currentLesson?.hideDemoVideo && (!currentLesson?.videoLessons || currentLesson.videoLessons.length === 0) && (
-                <p className="text-sm text-gray-500 text-center py-4">No video lessons uploaded for this grade yet.</p>
+                <div className="text-center py-8 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 flex items-center justify-center text-xl mx-auto mb-2">
+                    🎬
+                  </div>
+                  <p className="text-sm font-black text-slate-800 dark:text-white">No video lessons uploaded for Week {activeWeek} yet.</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Videos and recorded live broadcasts shared by the instructor will appear here.</p>
+                </div>
               )}
 
-              {currentLesson?.videoLessons?.map((vid) => (
-                <div key={vid._id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-all flex-wrap gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="text-red-500 text-xl">🎬</div>
-                    <div>
-                      <p className="font-bold text-gray-800">{vid.title}</p>
+              {currentLesson?.videoLessons?.map((vid) => {
+                const vidThumb = getYouTubeThumbnail(vid.url, vid.thumbnail);
+                return (
+                  <div 
+                    key={vid._id || vid.url} 
+                    className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border border-gray-200/90 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-800/60 hover:bg-purple-50/20 dark:hover:bg-slate-800/90 hover:border-purple-300 dark:hover:border-purple-500/40 transition-all gap-4 group shadow-2xs"
+                  >
+                    <div className="flex items-center gap-4 min-w-0 w-full md:w-auto">
+                      {/* 16:9 Interactive Video Thumbnail */}
+                      <div 
+                        onClick={() => {
+                          markMaterialCompleted('video');
+                          setActiveVideoModal({
+                            title: vid.title,
+                            youtubeUrl: vid.url
+                          });
+                        }}
+                        className="relative w-28 sm:w-36 aspect-video rounded-xl overflow-hidden bg-slate-900 shrink-0 cursor-pointer shadow-xs border border-gray-200 dark:border-slate-700 group/thumb"
+                      >
+                        {vidThumb ? (
+                          <img
+                            src={vidThumb}
+                            alt={vid.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover/thumb:scale-110"
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center">
+                            <FaVideo className="text-2xl text-purple-300/40" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/30 group-hover/thumb:bg-black/50 transition-colors flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg text-xs transform group-hover/thumb:scale-115 transition-transform">
+                            <FaPlay className="ml-0.5" />
+                          </div>
+                        </div>
+                        <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
+                          Video
+                        </span>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="bg-red-100 dark:bg-red-950/70 text-red-700 dark:text-red-300 text-[10px] font-black px-2 py-0.5 rounded-md border border-red-200 dark:border-red-800">
+                            🎥 Video Lesson
+                          </span>
+                        </div>
+                        <p className="font-black text-slate-900 dark:text-white text-sm sm:text-base tracking-tight leading-snug truncate">
+                          {vid.title}
+                        </p>
+                        <a
+                          href={vid.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:underline mt-1 font-mono truncate max-w-xs"
+                        >
+                          🔗 {vid.url}
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
                       <button
                         type="button"
                         onClick={() => {
@@ -2250,37 +2590,24 @@ const CourseDetails = () => {
                             youtubeUrl: vid.url
                           });
                         }}
-                        className="text-xs text-purple-600 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                        className="px-4 py-2.5 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-black rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 transform hover:scale-105 active:scale-95"
                       >
-                        ▶ Watch Video in Secure Player
+                        <FaPlay className="text-[10px]" />
+                        <span>Watch Video</span>
                       </button>
+                      {isTeacherOrAdmin && (
+                        <button
+                          onClick={() => handleDeleteVideo(vid._id)}
+                          className="text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 p-2.5 rounded-xl transition text-xs font-bold cursor-pointer"
+                          title="Remove video lesson"
+                        >
+                          <FaTrashAlt />
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        markMaterialCompleted('video');
-                        setActiveVideoModal({
-                          title: vid.title,
-                          youtubeUrl: vid.url
-                        });
-                      }}
-                      className="px-3.5 py-1.5 bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1"
-                    >
-                      ▶ Play
-                    </button>
-                    {isTeacherOrAdmin && (
-                      <button
-                        onClick={() => handleDeleteVideo(vid._id)}
-                        className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-semibold cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -3987,7 +4314,7 @@ const CourseDetails = () => {
                     <div>
                       <label className="block text-[11px] font-bold text-gray-700 mb-1 flex items-center justify-between">
                         <span>Broadcast Date</span>
-                        <span className="text-[10px] text-purple-600 font-semibold">📅 Pick Date</span>
+                        <span className="text-[10px] text-purple-600 font-semibold">📅 Select Calendar</span>
                       </label>
                       <div className="relative flex items-center">
                         <input
@@ -3995,12 +4322,12 @@ const CourseDetails = () => {
                           min={new Date().toISOString().split('T')[0]}
                           value={scheduledDate}
                           onChange={(e) => setScheduledDate(e.target.value)}
-                          className="w-full rounded-xl border border-purple-200 bg-white pl-9 pr-3 py-2 text-sm font-semibold text-gray-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 cursor-pointer"
+                          onClick={(e) => {
+                            try { e.target.showPicker?.(); } catch (err) {}
+                          }}
+                          className="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2.5 text-sm font-bold text-gray-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 cursor-pointer shadow-2xs hover:border-purple-400 transition-all"
                           required={isScheduledLive}
                         />
-                        <div className="absolute left-3 pointer-events-none text-purple-600 text-sm">
-                          <FaCalendarAlt />
-                        </div>
                       </div>
                     </div>
 
@@ -4008,19 +4335,19 @@ const CourseDetails = () => {
                     <div>
                       <label className="block text-[11px] font-bold text-gray-700 mb-1 flex items-center justify-between">
                         <span>Broadcast Time</span>
-                        <span className="text-[10px] text-purple-600 font-semibold">⏰ Pick Time</span>
+                        <span className="text-[10px] text-purple-600 font-semibold">⏰ Select Time & Scroll</span>
                       </label>
                       <div className="relative flex items-center">
                         <input
                           type="time"
                           value={scheduledTime}
                           onChange={(e) => setScheduledTime(e.target.value)}
-                          className="w-full rounded-xl border border-purple-200 bg-white pl-9 pr-3 py-2 text-sm font-semibold text-gray-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 cursor-pointer"
+                          onClick={(e) => {
+                            try { e.target.showPicker?.(); } catch (err) {}
+                          }}
+                          className="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2.5 text-sm font-bold text-gray-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 cursor-pointer shadow-2xs hover:border-purple-400 transition-all"
                           required={isScheduledLive}
                         />
-                        <div className="absolute left-3 pointer-events-none text-purple-600 text-sm">
-                          <FaClock />
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -4105,8 +4432,9 @@ const CourseDetails = () => {
                 {(currentLesson?.liveStream?.isLive || currentLesson?.liveStream?.isScheduled) ? (
                   <button
                     type="button"
-                    onClick={() => handleEndLiveStream(saveLiveAsVideo)}
-                    className="px-4 py-2.5 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs rounded-2xl transition shadow-md shadow-red-950/20 hover:shadow-red-900/40 cursor-pointer flex items-center gap-2 active:scale-95 transform duration-200"
+                    disabled={isPublishingLive}
+                    onClick={currentLesson?.liveStream?.isScheduled ? handleCancelScheduledStream : () => handleEndLiveStream(saveLiveAsVideo)}
+                    className="px-4 py-2.5 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs rounded-2xl transition shadow-md shadow-red-950/20 hover:shadow-red-900/40 cursor-pointer flex items-center gap-2 active:scale-95 transform duration-200 disabled:opacity-50"
                   >
                     <FaTimes className="text-xs" />
                     <span>{currentLesson?.liveStream?.isScheduled ? 'Cancel Scheduled Stream' : 'End Live Class'}</span>
@@ -4118,8 +4446,12 @@ const CourseDetails = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowLiveModal(false)}
-                    className="rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 cursor-pointer"
+                    disabled={isPublishingLive}
+                    onClick={() => {
+                      setIsPublishingLive(false);
+                      setShowLiveModal(false);
+                    }}
+                    className="rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -4135,7 +4467,7 @@ const CourseDetails = () => {
                     {isScheduledLive ? <FaCalendarAlt className="text-sm" /> : <FaYoutube className="text-xl text-white" />}
                     <span>
                       {isPublishingLive 
-                        ? 'Saving...' 
+                        ? (isScheduledLive ? 'Scheduling...' : 'Publishing...') 
                         : isScheduledLive 
                         ? (currentLesson?.liveStream?.isScheduled ? 'Update Scheduled Stream' : 'Schedule Live Class')
                         : (currentLesson?.liveStream?.isLive ? 'Update Live Stream' : 'Publish Live Class')}
