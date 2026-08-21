@@ -12,7 +12,7 @@ import {
   FaClipboardCheck, FaFileUpload, FaCloudDownloadAlt, FaCheckDouble,
   FaExclamationTriangle, FaCommentDots, FaEdit, FaTrashAlt, FaStar,
   FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheckCircle, FaTimesCircle, FaPaperPlane,
-  FaDownload, FaHourglassHalf, FaCog
+  FaDownload, FaHourglassHalf, FaCog, FaPlayCircle, FaPlay
 } from 'react-icons/fa';
 
 const getImageUrl = (url) => {
@@ -1414,13 +1414,13 @@ const CourseDetails = () => {
               {user?.role === 'student' && (
                 <>
                   {user?.grade && (
-                    <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/80 px-4 py-2.5 rounded-2xl shadow-sm">
-                      <div className="w-9 h-9 rounded-xl bg-[#2d1b64] text-white flex items-center justify-center font-bold text-base shadow-sm">
+                    <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-slate-800/95 dark:to-slate-800/80 border border-purple-200/80 dark:border-slate-700 px-4 py-2.5 rounded-2xl shadow-sm">
+                      <div className="w-9 h-9 rounded-xl bg-[#2d1b64] dark:bg-purple-900/70 text-white dark:text-purple-200 flex items-center justify-center font-bold text-base shadow-sm border border-transparent dark:border-purple-700/60">
                         🎓
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold text-purple-600/80 uppercase tracking-widest block leading-none">Your Grade</span>
-                        <span className="text-sm font-extrabold text-gray-900">{user.grade}</span>
+                        <span className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 uppercase tracking-widest block leading-none">Your Grade</span>
+                        <span className="text-sm font-extrabold text-gray-900 dark:text-white">{user.grade}</span>
                       </div>
                     </div>
                   )}
@@ -1437,8 +1437,8 @@ const CourseDetails = () => {
                       <span>Enroll & Pay Online 💳</span>
                     </button>
                   ) : (
-                    <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-sm">
-                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="inline-flex items-center gap-2 bg-green-50 dark:bg-emerald-950/70 text-green-700 dark:text-emerald-300 border border-green-200 dark:border-emerald-800/80 px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-sm">
+                      <svg className="w-4 h-4 text-green-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                       </svg>
                       Enrolled Student
@@ -2303,19 +2303,24 @@ const CourseDetails = () => {
                   currentLesson.videoLessons.map((vid) => {
                     const dlStatus = getMaterialDownloadStatus(vid);
                     return (
-                      <div key={vid._id || vid.url} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 dark:border-slate-800 rounded-2xl hover:bg-gray-50/70 dark:hover:bg-slate-800/70 transition-all gap-3 bg-white dark:bg-slate-800/80 shadow-2xs">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 flex items-center justify-center text-xl shrink-0 font-bold shadow-inner">
-                            🎬
+                      <div key={vid._id || vid.url} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 dark:border-slate-800 rounded-2xl hover:bg-purple-50/15 dark:hover:bg-slate-800/90 dark:hover:border-purple-500/40 transition-all gap-3.5 bg-white dark:bg-slate-800/60 shadow-2xs group">
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 dark:from-purple-900/80 dark:to-indigo-950/90 text-white dark:text-purple-200 flex items-center justify-center text-lg shrink-0 font-bold shadow-md shadow-purple-900/20 border border-transparent dark:border-purple-700/50 group-hover:scale-105 transition-transform">
+                            <FaPlayCircle className="text-xl text-white dark:text-purple-300" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-extrabold text-gray-900 dark:text-white text-sm truncate">{vid.title}</p>
-                            <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                              <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 dark:text-purple-400 hover:underline truncate max-w-xs">
-                                {vid.url}
+                            <p className="font-extrabold text-gray-900 dark:text-white text-sm sm:text-base tracking-tight truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">{vid.title}</p>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                              <a
+                                href={vid.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 hover:underline truncate max-w-xs font-mono bg-purple-50 dark:bg-purple-950/50 px-2.5 py-0.5 rounded-lg border border-purple-200/60 dark:border-purple-800/50"
+                              >
+                                <span className="text-[10px]">🔗</span> {vid.url}
                               </a>
                               {isTeacherOrAdmin && (
-                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
                                   dlStatus.status === 'immediate'
                                     ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                                     : dlStatus.status === 'scheduled'
@@ -2329,7 +2334,7 @@ const CourseDetails = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap shrink-0">
+                        <div className="flex items-center gap-2.5 self-end sm:self-auto flex-wrap shrink-0">
                           {!isTeacherOrAdmin && (
                             <>
                               <button
@@ -2338,9 +2343,9 @@ const CourseDetails = () => {
                                   markMaterialCompleted('video');
                                   window.open(vid.url, '_blank', 'noopener,noreferrer');
                                 }}
-                                className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4.5 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-purple-900/30 hover:shadow-lg hover:shadow-purple-900/50 cursor-pointer flex items-center gap-1.5 active:scale-95"
                               >
-                                <span>▶</span> Watch Video
+                                <FaPlayCircle className="text-sm" /> Watch Video
                               </button>
 
                               {dlStatus.isAvailable && (
@@ -2349,7 +2354,7 @@ const CourseDetails = () => {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   download
-                                  className="bg-purple-100 dark:bg-purple-950/60 hover:bg-purple-200 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-purple-200 dark:border-purple-800"
+                                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-purple-200 px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-slate-200 dark:border-slate-700 hover:border-purple-400"
                                   title="Download / Open Video"
                                 >
                                   <FaDownload className="text-[10px]" /> Download
