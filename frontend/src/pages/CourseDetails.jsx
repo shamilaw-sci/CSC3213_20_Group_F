@@ -6,13 +6,16 @@ import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import TeacherModal from '../components/TeacherModal';
 import PdfReaderModal from '../components/PdfReaderModal';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
+import ScheduledLiveHero from '../components/ScheduledLiveHero';
+import LiveThumbnailCropperModal from '../components/LiveThumbnailCropperModal';
 import {
   FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube,
   FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt,
   FaClipboardCheck, FaFileUpload, FaCloudDownloadAlt, FaCheckDouble,
   FaExclamationTriangle, FaCommentDots, FaEdit, FaTrashAlt, FaStar,
   FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheckCircle, FaTimesCircle, FaPaperPlane,
-  FaDownload, FaHourglassHalf, FaCog, FaPlayCircle, FaPlay, FaBroadcastTower
+  FaDownload, FaHourglassHalf, FaCog, FaPlayCircle, FaPlay, FaBroadcastTower,
+  FaCalendarCheck, FaCrop, FaImage, FaTrash
 } from 'react-icons/fa';
 
 const getImageUrl = (url) => {
@@ -970,12 +973,23 @@ const CourseDetails = () => {
     }
   };
 
-  // Live Streaming States
+  // Live Streaming & Scheduling states
   const [showLiveModal, setShowLiveModal] = useState(false);
   const [liveStreamTitle, setLiveStreamTitle] = useState('');
   const [liveYoutubeUrl, setLiveYoutubeUrl] = useState('');
-  const [saveLiveAsVideo, setSaveLiveAsVideo] = useState(true);
   const [isPublishingLive, setIsPublishingLive] = useState(false);
+  const [isScheduledLive, setIsScheduledLive] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
+  const [liveThumbnail, setLiveThumbnail] = useState('');
+  const [isThumbnailCropperOpen, setIsThumbnailCropperOpen] = useState(false);
+  const [cropperRawImage, setCropperRawImage] = useState(null);
+  const thumbnailInputRef = useRef(null);
+
+  // Interactive End Stream Modal
+  const [showEndStreamConfirmModal, setShowEndStreamConfirmModal] = useState(false);
+  const [isEndingStream, setIsEndingStream] = useState(false);
+  const [saveLiveAsVideo, setSaveLiveAsVideo] = useState(true);
 
   const handleDeletePdf = async (pdfId) => {
     const currentLesson = lessons.find(l => l.grade === selectedGrade);
@@ -1213,51 +1227,157 @@ const CourseDetails = () => {
     }
   };
 
+  const handleSelectThumbnailFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file for the thumbnail.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperRawImage(reader.result);
+      setIsThumbnailCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedBase64) => {
+    setLiveThumbnail(croppedBase64);
+    setIsThumbnailCropperOpen(false);
+    toast.success('16:9 Thumbnail cropped successfully!');
+  };
+
   const handleStartLiveStream = async (e) => {
     e.preventDefault();
-    const currentLesson = lessons.find(l => l.grade === selectedGrade);
-    if (!currentLesson) {
-      toast.error("Please select a class workspace first.");
-      return;
-    }
-
     if (!liveYoutubeUrl.trim()) {
-      toast.error("Please enter a YouTube Live link or Video ID.");
+      toast.error('Please enter a valid YouTube Live link or Video ID.');
       return;
     }
 
+    const targetLesson = (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || [])[0];
+    if (!targetLesson?._id) {
+      toast.error('Please select a class workspace first.');
+      return;
+    }
+
+    let scheduledStartTime = null;
+    if (isScheduledLive) {
+      if (!scheduledDate || !scheduledTime) {
+        toast.error('Please select both broadcast date and time for the scheduled stream.');
+        return;
+      }
+      scheduledStartTime = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
+    }
+
+    setIsPublishingLive(true);
     try {
-      setIsPublishingLive(true);
-      const res = await api.post(`/lessons/${currentLesson._id}/live-stream`, {
+      const res = await api.post(`/lessons/${targetLesson._id}/live-stream`, {
         youtubeUrl: liveYoutubeUrl.trim(),
-        title: liveStreamTitle.trim()
+        title: liveStreamTitle.trim(),
+        thumbnail: liveThumbnail,
+        isScheduled: Boolean(isScheduledLive),
+        scheduledStartTime: scheduledStartTime
       });
-      toast.success(res.data.message || "Live Class published successfully!");
+
+      toast.success(res.data.message || (isScheduledLive ? '🗓️ Live Class scheduled successfully!' : '🔴 Live Class started!'));
       setShowLiveModal(false);
-      setLiveYoutubeUrl('');
-      setLiveStreamTitle('');
       await fetchCourseDetails();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to publish live class.");
+      toast.error(err.response?.data?.error || 'Failed to publish live stream');
     } finally {
       setIsPublishingLive(false);
     }
   };
 
-  const handleEndLiveStream = async (shouldSaveVideo = true) => {
-    const currentLesson = lessons.find(l => l.grade === selectedGrade);
-    if (!currentLesson) return;
-    if (!window.confirm("Are you sure you want to end this Live Class?")) return;
-
+  const handleGoLiveImmediately = async (lessonId) => {
+    const targetLesson = (lessons || []).find(l => l._id === lessonId || String(l.grade) === String(selectedGrade)) || (lessons || [])[0];
+    if (!targetLesson?._id) return;
     try {
-      const res = await api.delete(`/lessons/${currentLesson._id}/live-stream`, {
-        data: { saveAsVideo: shouldSaveVideo }
+      const res = await api.post(`/lessons/${targetLesson._id}/live-stream`, {
+        youtubeUrl: targetLesson.liveStream?.youtubeUrl,
+        title: targetLesson.liveStream?.title,
+        thumbnail: targetLesson.liveStream?.thumbnail,
+        isScheduled: false,
+        goLiveNow: true
       });
-      toast.success(res.data.message || "Live Class ended!");
+      toast.success("🔴 You are now LIVE! Class stream started.");
+      await fetchCourseDetails();
+    } catch (err) {
+      toast.error("Failed to start live stream immediately.");
+    }
+  };
+
+  const handleOpenEditScheduledLive = (lesson) => {
+    const targetLesson = lesson || (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || [])[0];
+    const ls = targetLesson?.liveStream || {};
+    setLiveStreamTitle(ls.title || '');
+    setLiveYoutubeUrl(ls.youtubeUrl || '');
+    setLiveThumbnail(ls.thumbnail || '');
+    setIsScheduledLive(Boolean(ls.isScheduled));
+    if (ls.scheduledStartTime) {
+      try {
+        const d = new Date(ls.scheduledStartTime);
+        setScheduledDate(d.toISOString().split('T')[0]);
+        setScheduledTime(d.toTimeString().slice(0, 5));
+      } catch (e) {}
+    }
+    setShowLiveModal(true);
+  };
+
+  const handleCancelScheduledLive = async (lessonId) => {
+    if (!window.confirm("Are you sure you want to cancel this scheduled live class?")) return;
+    try {
+      await api.delete(`/lessons/${lessonId}/live-stream`);
+      toast.success("Scheduled live class cancelled.");
+      await fetchCourseDetails();
+    } catch (err) {
+      toast.error("Failed to cancel scheduled live class.");
+    }
+  };
+
+  const handleEndLiveStream = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+    setShowEndStreamConfirmModal(true);
+  };
+
+  const confirmEndLiveStream = async (shouldSaveVideo = saveLiveAsVideo) => {
+    const targetLesson = (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || []).find(l => l._id) || (lessons || [])[0];
+    if (!targetLesson?._id) {
+      toast.error("Class not found.");
+      setShowEndStreamConfirmModal(false);
+      setIsEndingStream(false);
+      return;
+    }
+
+    setIsEndingStream(true);
+    try {
+      const res = await api.delete(`/lessons/${targetLesson._id}/live-stream?saveAsVideo=${Boolean(shouldSaveVideo)}`, {
+        data: { saveAsVideo: Boolean(shouldSaveVideo) }
+      });
+      toast.success(res.data?.message || "Live Class ended successfully!");
+      setShowEndStreamConfirmModal(false);
       setShowLiveModal(false);
       await fetchCourseDetails();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to end live stream.");
+      console.warn("DELETE live stream failed, trying POST fallback:", err);
+      try {
+        const resPost = await api.post(`/lessons/${targetLesson._id}/live-stream/end`, {
+          saveAsVideo: Boolean(shouldSaveVideo)
+        });
+        toast.success(resPost.data?.message || "Live Class ended successfully!");
+        setShowEndStreamConfirmModal(false);
+        setShowLiveModal(false);
+        await fetchCourseDetails();
+      } catch (fallbackErr) {
+        console.error("Failed to end live stream:", fallbackErr);
+        toast.error(fallbackErr.response?.data?.error || err.response?.data?.error || "Failed to end live stream.");
+      }
+    } finally {
+      setIsEndingStream(false);
     }
   };
 
@@ -1831,6 +1951,19 @@ const CourseDetails = () => {
               liveStream={currentLesson.liveStream}
               isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
               onEndStream={() => handleEndLiveStream(saveLiveAsVideo)}
+            />
+          )}
+
+          {/* Scheduled Live Countdown Hero Banner */}
+          {!currentLesson?.liveStream?.isLive && currentLesson?.liveStream?.isScheduled && (
+            <ScheduledLiveHero
+              liveStream={currentLesson.liveStream}
+              isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
+              onGoLiveNow={() => handleGoLiveImmediately(currentLesson._id)}
+              onEditSchedule={() => handleOpenEditScheduledLive(currentLesson)}
+              onCancelSchedule={() => handleCancelScheduledLive(currentLesson._id)}
+              grade={selectedGrade}
+              courseTitle={course?.title}
             />
           )}
 
@@ -3750,18 +3883,20 @@ const CourseDetails = () => {
         </div>
       )}
 
-      {/* Live Stream Setup & Management Modal */}
+      {/* Live Stream Setup & Management Modal with Scheduling and 16:9 Thumbnail Cropper */}
       {showLiveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-6 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-6 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#FF0000] to-[#CC0000] text-white flex items-center justify-center shadow-md shadow-red-500/20 shrink-0">
-                  <FaYoutube className="text-2xl" />
+                <div className={`w-10 h-10 rounded-2xl ${isScheduledLive ? 'bg-gradient-to-br from-purple-600 to-indigo-700' : 'bg-gradient-to-br from-[#FF0000] to-[#CC0000]'} text-white flex items-center justify-center shadow-md shrink-0`}>
+                  {isScheduledLive ? <FaCalendarAlt className="text-xl" /> : <FaYoutube className="text-2xl" />}
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">
-                    {currentLesson?.liveStream?.isLive ? 'Manage Active Live Class' : 'Start YouTube Live Class'}
+                    {isScheduledLive 
+                      ? (currentLesson?.liveStream?.isScheduled ? 'Manage Scheduled Live Class' : 'Schedule YouTube Live Class')
+                      : (currentLesson?.liveStream?.isLive ? 'Manage Active Live Class' : 'Start YouTube Live Class')}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Grade: {selectedGrade} • {course?.title}</p>
                 </div>
@@ -3772,6 +3907,42 @@ const CourseDetails = () => {
                 className="rounded-xl p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 ✕
+              </button>
+            </div>
+
+            {/* Broadcast Type Switcher: Go Live Immediately vs Schedule for Later */}
+            <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setIsScheduledLive(false)}
+                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
+                  !isScheduledLive
+                    ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/25 ring-1 ring-red-400'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700'
+                }`}
+              >
+                {!isScheduledLive ? (
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                  </span>
+                ) : (
+                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                )}
+                <span>Go Live Immediately</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsScheduledLive(true)}
+                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer ${
+                  isScheduledLive
+                    ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white shadow-md shadow-purple-600/25 ring-1 ring-purple-400'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700'
+                }`}
+              >
+                <FaCalendarAlt className={`text-sm ${isScheduledLive ? 'text-purple-200' : 'text-purple-600'}`} />
+                <span>Schedule for Later</span>
               </button>
             </div>
 
@@ -3810,11 +3981,129 @@ const CourseDetails = () => {
                 </p>
               </div>
 
+              {/* Date & Time Pickers when Scheduling is Active */}
+              {isScheduledLive && (
+                <div className="p-4 bg-purple-50/70 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800 rounded-2xl space-y-3 animate-fadeIn">
+                  <div className="flex items-center gap-2 text-xs font-bold text-purple-900 dark:text-purple-300">
+                    <FaCalendarCheck className="text-purple-600 dark:text-purple-400" />
+                    <span>Select Scheduled Broadcast Date & Time</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Broadcast Date Picker */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                        <span>Broadcast Date</span>
+                        <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">📅 Select Calendar</span>
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          type="date"
+                          min={new Date().toISOString().split('T')[0]}
+                          value={scheduledDate}
+                          onChange={(e) => setScheduledDate(e.target.value)}
+                          onClick={(e) => {
+                            try { e.target.showPicker?.(); } catch (err) {}
+                          }}
+                          className="w-full rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-bold text-gray-800 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 cursor-pointer shadow-2xs hover:border-purple-400 transition-all"
+                          required={isScheduledLive}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Broadcast Time Picker */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                        <span>Broadcast Time</span>
+                        <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">⏰ Select Time & Scroll</span>
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          type="time"
+                          value={scheduledTime}
+                          onChange={(e) => setScheduledTime(e.target.value)}
+                          onClick={(e) => {
+                            try { e.target.showPicker?.(); } catch (err) {}
+                          }}
+                          className="w-full rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-bold text-gray-800 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 cursor-pointer shadow-2xs hover:border-purple-400 transition-all"
+                          required={isScheduledLive}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-purple-800/90 dark:text-purple-300/90 font-medium">
+                    ⏱️ <strong>15-Minute Pre-Live Feature:</strong> The player unlocks automatically 15 minutes before this time with a countdown ticker, letting students test their audio & video.
+                  </p>
+                </div>
+              )}
+
+              {/* 16:9 Custom Thumbnail Picture Uploader with Cropper */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center justify-between">
+                  <span>Custom Thumbnail Picture (16:9)</span>
+                  <span className="text-[11px] text-gray-400 font-semibold">Custom Image Cropper Enabled</span>
+                </label>
+
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={thumbnailInputRef}
+                  accept="image/*"
+                  onChange={handleSelectThumbnailFile}
+                  className="hidden"
+                />
+
+                {liveThumbnail ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-purple-200 dark:border-slate-700 shadow-md group">
+                    <img
+                      src={liveThumbnail}
+                      alt="Live Thumbnail Preview"
+                      className="w-full aspect-video object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCropperRawImage(liveThumbnail);
+                          setIsThumbnailCropperOpen(true);
+                        }}
+                        className="px-3 py-1.5 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-purple-700 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <FaCrop className="text-xs" />
+                        <span>Re-Crop</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLiveThumbnail('')}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-red-700 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <FaTrash className="text-xs" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => thumbnailInputRef.current?.click()}
+                    className="w-full aspect-video rounded-2xl border-2 border-dashed border-purple-200 dark:border-slate-700 bg-purple-50/40 dark:bg-slate-800/40 hover:bg-purple-50 dark:hover:bg-slate-800 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer group"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                      <FaImage />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Click to Upload 16:9 Thumbnail</p>
+                      <p className="text-[10px] text-gray-400">Supports JPG, PNG, WEBP (Auto-crops to 1280x720)</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-slate-800 gap-2">
                 {currentLesson?.liveStream?.isLive ? (
                   <button
                     type="button"
-                    onClick={() => handleEndLiveStream(saveLiveAsVideo)}
+                    onClick={() => handleEndLiveStream()}
                     className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-2xl transition shadow-sm cursor-pointer flex items-center gap-1.5"
                   >
                     ⏹️ End Live Class
@@ -3826,26 +4115,116 @@ const CourseDetails = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowLiveModal(false)}
-                    className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer"
+                    disabled={isPublishingLive}
+                    onClick={() => {
+                      setIsPublishingLive(false);
+                      setShowLiveModal(false);
+                    }}
+                    className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isPublishingLive}
-                    className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white font-extrabold text-xs sm:text-sm transition-all duration-300 shadow-md shadow-red-600/30 cursor-pointer disabled:opacity-50 flex items-center gap-2 border border-red-500/30 transform hover:-translate-y-0.5 active:scale-95"
+                    className={`px-5 py-2.5 rounded-2xl ${
+                      isScheduledLive
+                        ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 shadow-purple-600/30'
+                        : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] shadow-red-600/30'
+                    } text-white font-extrabold text-xs sm:text-sm transition-all duration-300 shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-2 border border-white/20 transform hover:-translate-y-0.5 active:scale-95`}
                   >
-                    <FaYoutube className="text-xl text-white" />
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    {isScheduledLive ? <FaCalendarAlt className="text-sm" /> : <FaYoutube className="text-xl text-white" />}
+                    <span>
+                      {isPublishingLive 
+                        ? (isScheduledLive ? 'Scheduling...' : 'Publishing...') 
+                        : isScheduledLive 
+                          ? (currentLesson?.liveStream?.isScheduled ? 'Update Scheduled Stream' : 'Schedule Live Class')
+                          : (currentLesson?.liveStream?.isLive ? 'Update Live Stream' : 'Publish Live Class')}
                     </span>
-                    <span>{isPublishingLive ? 'Publishing...' : currentLesson?.liveStream?.isLive ? 'Update Live Stream' : 'Publish Live Class'}</span>
                   </button>
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 16:9 Live Stream Thumbnail Cropper Modal */}
+      <LiveThumbnailCropperModal
+        isOpen={isThumbnailCropperOpen}
+        imageSrc={cropperRawImage}
+        onClose={() => setIsThumbnailCropperOpen(false)}
+        onCropComplete={handleCropComplete}
+      />
+
+      {/* INTERACTIVE END LIVE STREAM CONFIRMATION MODAL */}
+      {showEndStreamConfirmModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn"
+          onClick={() => {
+            setIsEndingStream(false);
+            setShowEndStreamConfirmModal(false);
+          }}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-scaleUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3.5 border-b border-gray-100 dark:border-slate-800 pb-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 flex items-center justify-center text-2xl shrink-0 shadow-inner">
+                ⏹️
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">Conclude Live Stream?</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Class: {selectedGrade} • {course?.title}</p>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+              Ending this broadcast will immediately disconnect active student viewers and conclude the live attendance tracking.
+            </p>
+
+            {/* Save as recorded video lesson option */}
+            <div className="p-4 rounded-2xl bg-purple-50/80 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-800/60 space-y-2">
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={saveLiveAsVideo}
+                  onChange={(e) => setSaveLiveAsVideo(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 text-purple-600 rounded border-purple-300 focus:ring-purple-500 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-black text-purple-950 dark:text-purple-200 block">
+                    🎬 Save stream as a recorded Video Lesson
+                  </span>
+                  <span className="text-[11px] text-purple-800/80 dark:text-purple-300/80 block mt-0.5">
+                    Automatically publishes this live recording to the Video Lessons tab for students to re-watch later.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isEndingStream}
+                onClick={() => {
+                  setIsEndingStream(false);
+                  setShowEndStreamConfirmModal(false);
+                }}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-black hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
+              >
+                Keep Streaming
+              </button>
+              <button
+                type="button"
+                disabled={isEndingStream}
+                onClick={() => confirmEndLiveStream(saveLiveAsVideo)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white text-xs font-black shadow-md shadow-red-500/20 transition cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              >
+                {isEndingStream ? 'Ending Stream...' : 'Yes, End Live Class'}
+              </button>
+            </div>
           </div>
         </div>
       )}
