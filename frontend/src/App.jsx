@@ -10,6 +10,8 @@ import DashboardLayout from './components/DashboardLayout';
 import Dashboard from './components/Dashboard';
 import ChatWidget from './components/ChatWidget';
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 // --- PAGES ---
 import Home from './pages/Home';
 import Instructors from './pages/Instructors';
@@ -90,7 +92,8 @@ function App() {
           {/* Level 1: Accessible to EVERYONE (Student, Teacher, Admin) */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<Courses />} /> 
-          <Route path="/course/:courseId" element={<CourseDetails />} />
+          <Route path="/course/:courseId" element={<ErrorBoundary><CourseDetails /></ErrorBoundary>} />
+          <Route path="/courses/:courseId" element={<ErrorBoundary><CourseDetails /></ErrorBoundary>} />
           
           <Route path="/course/:courseId/create-quiz" element={
             <ProtectedRoute allowedRoles={['teacher', 'admin']}>

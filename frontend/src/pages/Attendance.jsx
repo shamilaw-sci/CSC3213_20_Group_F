@@ -43,7 +43,14 @@ const Attendance = () => {
   const [adminGradeFilter, setAdminGradeFilter] = useState('');
   const [adminCourseFilter, setAdminCourseFilter] = useState('');
   const [adminSearchQuery, setAdminSearchQuery] = useState('');
-  const [coursesList, setCoursesList] = useState([]);
+  const [coursesList, setCoursesList] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('lumina_cached_courses');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
 

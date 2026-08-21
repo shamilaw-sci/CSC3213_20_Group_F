@@ -322,7 +322,13 @@ const Analytics = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">Registered Grade</p>
-                  <h3 className="text-3xl font-extrabold text-indigo-950 dark:text-white mt-1">{studentMetrics?.userGrade || 'Grade 6'}</h3>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <h3 className="text-3xl font-extrabold text-indigo-950 dark:text-white">{studentMetrics?.userGrade || 'Grade 6'}</h3>
+                    <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                      Active Status
+                    </span>
+                  </div>
                 </div>
                 <div className="w-12 h-12 bg-indigo-200/60 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-2xl flex items-center justify-center text-xl shadow-inner">
                   <FaGraduationCap />
@@ -2178,7 +2184,6 @@ const Analytics = () => {
                             );
                           })}
                         </div>
-                      </div>
 
                       {/* Academic Tier Stage Summary Cards */}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -2312,46 +2317,9 @@ const Analytics = () => {
                         const onlineRatio = Math.round((g.online / totalInGrade) * 100);
                         const physicalRatio = 100 - onlineRatio;
 
-                        return (
-                          <div key={g.grade} className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-blue-100/80 dark:border-slate-700 shadow-2xs hover:shadow-xs transition space-y-2">
-                            <div className="flex justify-between items-center text-xs font-bold">
-                              <span className="text-indigo-950 dark:text-white font-black flex items-center gap-1.5">
-                                🎓 {g.grade}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[11px] font-extrabold text-gray-600 dark:text-gray-300">
-                                  {g.count} Students
-                                </span>
-                                <span className="text-[10px] text-indigo-900 dark:text-indigo-300 font-bold bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-800 px-2 py-0.5 rounded-md">
-                                  {g.online} Online • {g.physical} Physical
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Full-width Stacked Dual-Colored Bar */}
-                            <div className="w-full bg-indigo-950 h-5 rounded-xl overflow-hidden flex shadow-inner text-[10px] font-black text-white leading-5 text-center">
-                              {onlineRatio > 0 && (
-                                <div
-                                  style={{ width: `${onlineRatio}%` }}
-                                  className="bg-gradient-to-r from-red-600 to-red-500 h-full flex items-center justify-center transition-all duration-500 overflow-hidden"
-                                  title={`${g.grade}: ${onlineRatio}% Online (${g.online} students)`}
-                                >
-                                  {onlineRatio >= 14 && <span>{onlineRatio}%</span>}
-                                </div>
-                              )}
-                              {physicalRatio > 0 && (
-                                <div
-                                  style={{ width: `${physicalRatio}%` }}
-                                  className="bg-gradient-to-r from-indigo-900 to-indigo-950 h-full flex items-center justify-center transition-all duration-500 overflow-hidden"
-                                  title={`${g.grade}: ${physicalRatio}% Physical (${g.physical} students)`}
-                                >
-                                  {physicalRatio >= 14 && <span>{physicalRatio}%</span>}
-                                </div>
-                              )}
-                            </div>
-                          </div>
                         );
                       })}
+                    </div>
                     </div>
                   )}
                 </div>

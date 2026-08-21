@@ -18,8 +18,8 @@ const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
 // Also verifies the file actually exists on disk so images work across team members' machines
 const getFullUrl = (req, filenameOrUrl) => {
     if (!filenameOrUrl) return "";
-    // If it is a Base64 string, return it directly
-    if (filenameOrUrl.startsWith('data:')) {
+    // If it is a Base64 string or an absolute URL (http/https), return it directly
+    if (filenameOrUrl.startsWith('data:') || filenameOrUrl.startsWith('http://') || filenameOrUrl.startsWith('https://')) {
         return filenameOrUrl;
     }
     let filename = filenameOrUrl;
@@ -29,8 +29,8 @@ const getFullUrl = (req, filenameOrUrl) => {
     // Check if the file actually exists on this machine's disk
     const filePath = path.join(__dirname, '..', 'uploads', filename);
     if (!fs.existsSync(filePath)) {
-        // File doesn't exist locally (e.g. uploaded on another team member's machine)
-        return "";
+        // Fallback: if filename starts with / or looks like a static asset, return as-is
+        return filenameOrUrl.startsWith('/') ? filenameOrUrl : "";
     }
     return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
 };
@@ -126,11 +126,14 @@ const processCourseImages = async (req, courseDoc) => {
 router.get('/', protect, async (req, res) => {
     try {
         const courses = await Course.find({})
-            .populate('instructor', 'name profilePicture');
+            .populate('instructor', 'name profilePicture')
+            .lean();
         
-        const coursesWithUrls = await Promise.all(
-            courses.map(course => processCourseImages(req, course))
-        );
+        const coursesWithUrls = courses.map(course => ({
+            ...course,
+            banner: getFullUrl(req, course.banner),
+            cardImage: getFullUrl(req, course.cardImage)
+        }));
 
         res.json(coursesWithUrls);
     } catch (err) {
@@ -413,40 +416,51 @@ router.post(
 // @route   GET /api/courses/:id
 router.get('/:id', protect, async (req, res) => {
     try {
-        const course = await Course.findById(req.params.id)
-            .populate('instructor', 'name profilePicture')
-            .populate('enrolledStudents', 'name grade registrationNumber');
-        if (!course) return res.status(404).json({ error: "Course not found" });
-
-        // Enforce student grade restriction: students can only see courses for their grade (unless enrolled)
-        if (req.user.role === 'student') {
-            const isEnrolled = course.enrolledStudents.some(s => 
-                (s._id && s._id.toString() === req.user._id.toString()) || s.toString() === req.user._id.toString()
-            );
-            if (!isEnrolled) {
-                if (!req.user.grade) {
-                    return res.status(403).json({ error: "Access denied: Student grade is not set." });
-                }
-                const gradeRegexes = buildGradeRegexes(req.user.grade.trim());
-                const isGradeMatching = course.enrolledGrades.some(g =>
-                    gradeRegexes.some(regex => regex.test(g.gradeNumber))
-                );
-                if (!isGradeMatching) {
-                    return res.status(403).json({ error: "Access denied: This course is not offered for your grade." });
-                }
-            }
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(404).json({ error: "Course not found" });
         }
 
-        const courseObj = await processCourseImages(req, course);
-        res.json(courseObj);
+        const [course, enrollments] = await Promise.all([
+            Course.findById(req.params.id)
+                .populate('instructor', 'name profilePicture')
+                .populate('enrolledStudents', 'name grade registrationNumber')
+                .lean(),
+            Enrollment.find({ course: req.params.id })
+                .populate('student', 'name grade registrationNumber')
+                .lean()
+        ]);
+        if (!course) return res.status(404).json({ error: "Course not found" });
+
+        const existingIds = new Set((course.enrolledStudents || []).map(s => (s._id || s).toString()));
+        const extraStudents = [];
+        (enrollments || []).forEach(e => {
+            if (e.student && !existingIds.has((e.student._id || e.student).toString())) {
+                extraStudents.push(e.student);
+                existingIds.add((e.student._id || e.student).toString());
+            }
+        });
+
+        course.banner = getFullUrl(req, course.banner);
+        course.cardImage = getFullUrl(req, course.cardImage);
+        if (extraStudents.length > 0) {
+            course.enrolledStudents = [...(course.enrolledStudents || []), ...extraStudents];
+        }
+        res.json(course);
     } catch (err) {
-        res.status(500).json({ error: "Server error" });
+        console.error("GET /courses/:id error:", err);
+        res.status(500).json({ error: "Server error: " + err.message });
     }
 });
 
 // @route   POST /api/courses/:id/enroll
 router.post('/:id/enroll', protect, async (req, res) => {
     try {
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(404).json({ error: "Course not found" });
+        }
+
         if (req.user.role !== 'student') {
             return res.status(403).json({ error: "Only students can enroll in courses." });
         }
@@ -458,12 +472,13 @@ router.post('/:id/enroll', protect, async (req, res) => {
             return res.status(400).json({ error: "Student grade must be set before enrolling." });
         }
 
-        const studentGrade = req.user.grade.trim();
+        const studentGrade = String(req.user.grade).trim();
         const className = studentGrade.startsWith('Grade') ? studentGrade : `Grade ${studentGrade}`;
         const gradeRegexes = buildGradeRegexes(studentGrade);
 
-        const isAllowed = course.enrolledGrades.some(g =>
-            gradeRegexes.some(regex => regex.test(g.gradeNumber))
+        const enrolledGrades = course.enrolledGrades || [];
+        const isAllowed = enrolledGrades.length === 0 || enrolledGrades.some(g =>
+            gradeRegexes.some(regex => regex.test(g.gradeNumber || ''))
         );
 
         if (!isAllowed) {
@@ -478,12 +493,14 @@ router.post('/:id/enroll', protect, async (req, res) => {
         );
 
         // 2. Synchronize with course.enrolledStudents
-        const alreadyEnrolled = course.enrolledStudents.some(studentId => studentId.toString() === req.user._id.toString());
+        if (!course.enrolledStudents) course.enrolledStudents = [];
+        const alreadyEnrolled = course.enrolledStudents.some(studentId => studentId && studentId.toString() === req.user._id.toString());
         if (!alreadyEnrolled) {
             course.enrolledStudents.push(req.user._id);
         }
 
         // 3. Synchronize with course.classes
+        if (!course.classes) course.classes = [];
         let cls = course.classes.find(c => c.className === className || c.className === studentGrade);
         if (!cls) {
             course.classes.push({ className, enrolledStudents: [req.user._id] });
