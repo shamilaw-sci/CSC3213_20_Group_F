@@ -9,44 +9,13 @@ import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import LiveChatBox from '../components/LiveChatBox';
 import ScheduledLiveHero from '../components/ScheduledLiveHero';
 import LiveThumbnailCropperModal from '../components/LiveThumbnailCropperModal';
-import { 
-  FaChalkboardTeacher, 
-  FaBookOpen, 
-  FaLock, 
-  FaLockOpen, 
-  FaVideo, 
-  FaYoutube, 
-  FaCalendarAlt, 
-  FaChevronDown, 
-  FaChevronUp, 
-  FaClock, 
-  FaMapMarkerAlt, 
-  FaTimes, 
-  FaStop,
-  FaComments,
-  FaCrop,
-  FaImage,
-  FaTrashAlt,
-  FaBroadcastTower,
-  FaPlay,
-  FaCalendarCheck,
-  FaUserGraduate,
-  FaSearch,
-  FaUserPlus,
-  FaUserMinus,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaMoneyBillWave,
-  FaPhoneAlt,
-  FaEnvelope,
-  FaIdCard,
-  FaHistory,
-  FaCheck,
-  FaTimesCircle,
-  FaArrowRight,
-  FaFilter,
-  FaUsers,
-  FaReceipt
+import {
+  FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube,
+  FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt,
+  FaClipboardCheck, FaFileUpload, FaCloudDownloadAlt, FaCheckDouble,
+  FaExclamationTriangle, FaCommentDots, FaEdit, FaTrashAlt, FaStar,
+  FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheckCircle, FaTimesCircle, FaPaperPlane,
+  FaDownload, FaHourglassHalf, FaCog, FaPlayCircle, FaPlay
 } from 'react-icons/fa';
 
 const getImageUrl = (url) => {
@@ -1363,13 +1332,13 @@ const CourseDetails = () => {
               {user?.role === 'student' && (
                 <>
                   {user?.grade && (
-                    <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/80 px-4 py-2.5 rounded-2xl shadow-sm">
-                      <div className="w-9 h-9 rounded-xl bg-[#2d1b64] text-white flex items-center justify-center font-bold text-base shadow-sm">
+                    <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-slate-800/95 dark:to-slate-800/80 border border-purple-200/80 dark:border-slate-700 px-4 py-2.5 rounded-2xl shadow-sm">
+                      <div className="w-9 h-9 rounded-xl bg-[#2d1b64] dark:bg-purple-900/70 text-white dark:text-purple-200 flex items-center justify-center font-bold text-base shadow-sm border border-transparent dark:border-purple-700/60">
                         🎓
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold text-purple-600/80 uppercase tracking-widest block leading-none">Your Grade</span>
-                        <span className="text-sm font-extrabold text-gray-900">{user.grade}</span>
+                        <span className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 uppercase tracking-widest block leading-none">Your Grade</span>
+                        <span className="text-sm font-extrabold text-gray-900 dark:text-white">{user.grade}</span>
                       </div>
                     </div>
                   )}
@@ -1386,8 +1355,8 @@ const CourseDetails = () => {
                       <span>Enroll & Pay Online 💳</span>
                     </button>
                   ) : (
-                    <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-sm">
-                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="inline-flex items-center gap-2 bg-green-50 dark:bg-emerald-950/70 text-green-700 dark:text-emerald-300 border border-green-200 dark:border-emerald-800/80 px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-sm">
+                      <svg className="w-4 h-4 text-green-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                       </svg>
                       Enrolled Student
@@ -2482,6 +2451,57 @@ const CourseDetails = () => {
                                 className={`h-full rounded-full transition-all duration-500 ${pPercent >= 100 ? 'bg-emerald-500' : 'bg-purple-600'}`}
                                 style={{ width: `${pPercent}%` }}
                               ></div>
+            {expandedSections.videos && (
+              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900 animate-fadeIn">
+                {!currentLesson?.videoLessons || currentLesson.videoLessons.length === 0 ? (
+                  <div className="py-8 text-center text-gray-400 dark:text-gray-500 space-y-1 bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
+                    <p className="text-sm font-semibold">No video lessons uploaded for Week {activeWeek} yet.</p>
+                    {isTeacherOrAdmin && (
+                      <p
+                        className="text-xs text-emerald-700 dark:text-emerald-400 font-bold cursor-pointer hover:underline mt-1"
+                        onClick={() => {
+                          setVideoTitle('');
+                          setVideoUrl('');
+                          setVideoDownloadType('immediate');
+                          setVideoCustomUnlockDate('');
+                          setShowAddVideoModal(true);
+                        }}
+                      >
+                        + Click here to add a video lesson
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  currentLesson.videoLessons.map((vid) => {
+                    const dlStatus = getMaterialDownloadStatus(vid);
+                    return (
+                      <div key={vid._id || vid.url} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 dark:border-slate-800 rounded-2xl hover:bg-purple-50/15 dark:hover:bg-slate-800/90 dark:hover:border-purple-500/40 transition-all gap-3.5 bg-white dark:bg-slate-800/60 shadow-2xs group">
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 dark:from-purple-900/80 dark:to-indigo-950/90 text-white dark:text-purple-200 flex items-center justify-center text-lg shrink-0 font-bold shadow-md shadow-purple-900/20 border border-transparent dark:border-purple-700/50 group-hover:scale-105 transition-transform">
+                            <FaPlayCircle className="text-xl text-white dark:text-purple-300" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-extrabold text-gray-900 dark:text-white text-sm sm:text-base tracking-tight truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">{vid.title}</p>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                              <a
+                                href={vid.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 hover:underline truncate max-w-xs font-mono bg-purple-50 dark:bg-purple-950/50 px-2.5 py-0.5 rounded-lg border border-purple-200/60 dark:border-purple-800/50"
+                              >
+                                <span className="text-[10px]">🔗</span> {vid.url}
+                              </a>
+                              {isTeacherOrAdmin && (
+                                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                                  dlStatus.status === 'immediate'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                    : dlStatus.status === 'scheduled'
+                                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-slate-700'
+                                }`}>
+                                  {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
+                                </span>
+                              )}
                             </div>
 
                             <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${
@@ -2523,6 +2543,43 @@ const CourseDetails = () => {
                       >
                         Download
                       </a>
+                        <div className="flex items-center gap-2.5 self-end sm:self-auto flex-wrap shrink-0">
+                          {!isTeacherOrAdmin && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  markMaterialCompleted('video');
+                                  window.open(vid.url, '_blank', 'noopener,noreferrer');
+                                }}
+                                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4.5 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-purple-900/30 hover:shadow-lg hover:shadow-purple-900/50 cursor-pointer flex items-center gap-1.5 active:scale-95"
+                              >
+                                <FaPlayCircle className="text-sm" /> Watch Video
+                              </button>
+
+                              {dlStatus.isAvailable && (
+                                <a
+                                  href={vid.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  download
+                                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-purple-200 px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-slate-200 dark:border-slate-700 hover:border-purple-400"
+                                  title="Download / Open Video"
+                                >
+                                  <FaDownload className="text-[10px]" /> Download
+                                </a>
+                              )}
+
+                              {dlStatus.status === 'scheduled' && (
+                                <span
+                                  className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-3 py-2 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5"
+                                  title={`Download unlocks on ${dlStatus.formattedDate}`}
+                                >
+                                  <FaHourglassHalf className="text-amber-600 dark:text-amber-400 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
+                                </span>
+                              )}
+                            </>
+                          )}
 
                       {isTeacherOrAdmin && (
                         <button
