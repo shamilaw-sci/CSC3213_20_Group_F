@@ -6,12 +6,13 @@ import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import TeacherModal from '../components/TeacherModal';
 import PdfReaderModal from '../components/PdfReaderModal';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
-import { 
-  FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube, 
+import {
+  FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube,
   FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt,
   FaClipboardCheck, FaFileUpload, FaCloudDownloadAlt, FaCheckDouble,
-  FaExclamationTriangle, FaCommentDots, FaEdit, FaTrashAlt, FaStar, 
-  FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheckCircle, FaTimesCircle, FaPaperPlane
+  FaExclamationTriangle, FaCommentDots, FaEdit, FaTrashAlt, FaStar,
+  FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheckCircle, FaTimesCircle, FaPaperPlane,
+  FaDownload, FaHourglassHalf, FaCog
 } from 'react-icons/fa';
 
 const getImageUrl = (url) => {
@@ -120,13 +121,13 @@ const CourseDetails = () => {
 
   // ─── Month / Year Navigator helpers ───────────────────────────────────────
   const MONTH_NAMES = [
-    'January','February','March','April','May','June',
-    'July','August','September','October','November','December'
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
   const todayForNav = new Date();
   const currentMonthIndex = todayForNav.getMonth();   // 0-based
-  const currentYear      = todayForNav.getFullYear();
+  const currentYear = todayForNav.getFullYear();
 
   // Derive selectedYear from selectedMonth string, default to current year
   const getYearFromMonth = (mStr) => parseInt(mStr.split(' ')[1], 10) || currentYear;
@@ -262,7 +263,7 @@ const CourseDetails = () => {
           return String(sCourseId) === String(courseId);
         });
         setCourseSchedules(matching);
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [courseId]);
 
@@ -535,7 +536,7 @@ const CourseDetails = () => {
 
       const lessonsRes = await api.get(`/lessons/course/${courseId}`);
       setLessons(lessonsRes.data);
-      
+
       await fetchQuizzes();
       await fetchAssignments();
     } catch (err) {
@@ -1061,13 +1062,6 @@ const CourseDetails = () => {
     const formData = new FormData();
     formData.append('solution', solutionFile);
     formData.append('studentNote', studentNote.trim());
-    formData.append('pdf', assignmentFile);
-    formData.append('title', assignmentTitle.trim() || assignmentFile.name);
-    formData.append('allowDownload', assignmentDownloadType !== 'disabled');
-    formData.append('downloadDelayType', assignmentDownloadType);
-    if (assignmentDownloadType === 'custom_date' && assignmentCustomUnlockDate) {
-      formData.append('downloadUnlockDate', assignmentCustomUnlockDate);
-    }
 
     try {
       const res = await api.post(`/assignments/${selectedAssignmentForSubmit._id}/submit`, formData, {
@@ -1079,12 +1073,6 @@ const CourseDetails = () => {
       setSolutionFile(null);
       setStudentNote('');
       await fetchAssignments();
-      toast.success("Assignment PDF uploaded with download permissions!");
-      setAssignmentFile(null);
-      setAssignmentTitle("");
-      setAssignmentDownloadType('immediate');
-      setAssignmentCustomUnlockDate('');
-      await fetchCourseDetails();
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to submit assignment.");
     } finally {
@@ -1280,8 +1268,8 @@ const CourseDetails = () => {
           {/* Facebook Style Cover Banner */}
           <div className="relative w-full h-72 md:h-96 rounded-3xl overflow-hidden shadow-lg bg-gradient-to-r from-[#2d1b64] via-purple-900 to-indigo-900 group">
             {course?.banner || course?.cardImage ? (
-              <img 
-                src={getImageUrl(course.banner || course.cardImage)} 
+              <img
+                src={getImageUrl(course.banner || course.cardImage)}
                 alt={course.title}
                 loading="lazy"
                 decoding="async"
@@ -1298,7 +1286,7 @@ const CourseDetails = () => {
           {/* Facebook Style Instructor Profile Overlay (Prominent Size, NO Arrow) */}
           {course?.instructor && (
             <div className="relative -mt-14 sm:-mt-20 px-6 sm:px-8 z-20 flex items-end justify-between flex-wrap gap-4">
-              <div 
+              <div
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedTeacherForModal(course.instructor);
@@ -1347,11 +1335,10 @@ const CourseDetails = () => {
               <button
                 type="button"
                 onClick={() => setShowSchedule(!showSchedule)}
-                className={`px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${
-                  showSchedule
+                className={`px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${showSchedule
                     ? 'bg-gradient-to-r from-purple-800 via-indigo-900 to-slate-900 text-white border-purple-400/60 shadow-purple-900/30 ring-2 ring-purple-400/30'
                     : 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-900 hover:from-purple-800 hover:to-indigo-950 text-white border-purple-400/50 shadow-purple-600/30 ring-2 ring-purple-300/40'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <FaCalendarAlt className="text-xl sm:text-2xl text-amber-300 drop-shadow-xs" />
@@ -1479,11 +1466,10 @@ const CourseDetails = () => {
                 }
                 setShowLiveModal(true);
               }}
-              className={`px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${
-                currentLesson?.liveStream?.isLive
+              className={`px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${currentLesson?.liveStream?.isLive
                   ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white border-red-400 shadow-red-500/30 ring-2 ring-red-300'
                   : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white border-red-500/40 shadow-red-600/30'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <FaYoutube className="text-2xl sm:text-3xl text-white drop-shadow-sm" />
@@ -1591,7 +1577,7 @@ const CourseDetails = () => {
                     const isFullCourseDeactive = course?.status === 'deactive' || course?.isActive === false;
                     const isDeactive = isFullCourseDeactive || eg.status === 'deactive' || eg.isActive === false;
                     const deactivatedByRole = eg.deactivatedBy || 'admin';
-                    
+
                     let canToggleStatus = false;
                     if (user?.role === 'admin') {
                       // Admin cannot reactivate a grade stream deactivated by Teacher
@@ -1628,23 +1614,21 @@ const CourseDetails = () => {
                           }
                           setSelectedGrade(eg.gradeNumber);
                         }}
-                        className={`bg-white p-6 rounded-2xl shadow-xs border transition-all duration-200 hover:-translate-y-1 hover:shadow-md relative ${
-                          isDeactive
+                        className={`bg-white p-6 rounded-2xl shadow-xs border transition-all duration-200 hover:-translate-y-1 hover:shadow-md relative ${isDeactive
                             ? 'border-red-200 bg-red-50/40 cursor-pointer'
                             : user?.role === 'student' && !alreadyEnrolled
-                            ? 'border-gray-200 bg-gray-50/60 cursor-pointer hover:border-purple-300' 
-                            : 'border-purple-100/80 hover:border-purple-400 cursor-pointer group'
-                        }`}
+                              ? 'border-gray-200 bg-gray-50/60 cursor-pointer hover:border-purple-300'
+                              : 'border-purple-100/80 hover:border-purple-400 cursor-pointer group'
+                          }`}
                       >
                         <div>
                           <div className="flex justify-between items-start mb-6">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-colors ${
-                              isDeactive
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-colors ${isDeactive
                                 ? 'bg-red-100 text-red-600'
                                 : user?.role === 'student' && !alreadyEnrolled
-                                ? 'bg-gray-200 text-gray-500'
-                                : 'bg-[#f3f4f6] group-hover:bg-[#2d1b64] group-hover:text-white'
-                            }`}>
+                                  ? 'bg-gray-200 text-gray-500'
+                                  : 'bg-[#f3f4f6] group-hover:bg-[#2d1b64] group-hover:text-white'
+                              }`}>
                               {isDeactive ? '🔒' : user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
                             </div>
 
@@ -1716,47 +1700,45 @@ const CourseDetails = () => {
                               )
                             )}
                           </div>
-                        <h3 className={`text-2xl font-bold mb-2 transition-colors ${
-                          user?.role === 'student' && !alreadyEnrolled ? 'text-gray-700' : 'text-gray-800 group-hover:text-[#2d1b64]'
-                        }`}>
-                          {eg.title || eg.gradeNumber}
-                        </h3>
-                        <p className="text-gray-400 text-xs mt-2 font-medium">
-                          {user?.role === 'student' && !alreadyEnrolled
-                            ? 'Enroll required to view announcements & lessons' 
-                            : 'Click to view announcements and lessons'}
-                        </p>
-                      </div>
-
-                      {user?.role === 'teacher' && (
-                        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isDeactive && deactivatedByRole === 'admin') {
-                                toast.error("This grade stream was deactivated by Admin. Managing students is disabled.");
-                                return;
-                              }
-                              openStudentPicker(eg.gradeNumber);
-                            }}
-                            disabled={isDeactive && deactivatedByRole === 'admin'}
-                            className={`rounded-xl border px-4 py-2 text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${
-                              isDeactive && deactivatedByRole === 'admin'
-                                ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
-                                : 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-300 cursor-pointer'
-                            }`}
-                          >
-                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            View Students & Details
-                          </button>
+                          <h3 className={`text-2xl font-bold mb-2 transition-colors ${user?.role === 'student' && !alreadyEnrolled ? 'text-gray-700' : 'text-gray-800 group-hover:text-[#2d1b64]'
+                            }`}>
+                            {eg.title || eg.gradeNumber}
+                          </h3>
+                          <p className="text-gray-400 text-xs mt-2 font-medium">
+                            {user?.role === 'student' && !alreadyEnrolled
+                              ? 'Enroll required to view announcements & lessons'
+                              : 'Click to view announcements and lessons'}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+
+                        {user?.role === 'teacher' && (
+                          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isDeactive && deactivatedByRole === 'admin') {
+                                  toast.error("This grade stream was deactivated by Admin. Managing students is disabled.");
+                                  return;
+                                }
+                                openStudentPicker(eg.gradeNumber);
+                              }}
+                              disabled={isDeactive && deactivatedByRole === 'admin'}
+                              className={`rounded-xl border px-4 py-2 text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${isDeactive && deactivatedByRole === 'admin'
+                                  ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                                  : 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-300 cursor-pointer'
+                                }`}
+                            >
+                              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                              </svg>
+                              View Students & Details
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             )}
           </div>
@@ -1821,13 +1803,12 @@ const CourseDetails = () => {
                     disabled={locked}
                     onClick={() => !locked && setSelectedMonth(label)}
                     title={locked ? 'This month is not available yet' : label}
-                    className={`relative px-2 py-2.5 text-xs font-bold rounded-xl transition text-center leading-tight ${
-                      locked
+                    className={`relative px-2 py-2.5 text-xs font-bold rounded-xl transition text-center leading-tight ${locked
                         ? 'bg-gray-50 text-gray-300 cursor-not-allowed border border-dashed border-gray-200'
                         : isSelected
                           ? 'bg-purple-700 text-white shadow-md ring-2 ring-purple-400 ring-offset-1 scale-105 cursor-pointer'
                           : 'bg-gray-100 text-gray-700 hover:bg-purple-100 hover:text-purple-900 cursor-pointer'
-                    }`}
+                      }`}
                   >
                     {locked && (
                       <span className="absolute top-1 right-1 text-[9px] text-gray-300">🔒</span>
@@ -1873,11 +1854,10 @@ const CourseDetails = () => {
                     key={wNum}
                     type="button"
                     onClick={() => setActiveWeek(wNum)}
-                    className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden ${
-                      isActive
+                    className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden ${isActive
                         ? 'border-purple-600 bg-purple-50/95 ring-2 ring-purple-400/50 shadow-md scale-[1.02]'
                         : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50/70 shadow-2xs'
-                    }`}
+                      }`}
                   >
                     <div className="flex justify-between items-center mb-1.5 gap-1">
                       <span className={`text-xs font-black tracking-wide ${isActive ? 'text-purple-900' : 'text-slate-800'}`}>
@@ -2102,13 +2082,12 @@ const CourseDetails = () => {
                             </a>
                             {/* Teacher/Admin status badge */}
                             {isTeacherOrAdmin && (
-                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                                dlStatus.status === 'immediate'
+                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${dlStatus.status === 'immediate'
                                   ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                   : dlStatus.status === 'scheduled'
-                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                  : 'bg-slate-100 text-slate-600 border-slate-200'
-                              }`}>
+                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                                }`}>
                                 {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
                               </span>
                             )}
@@ -2283,22 +2262,21 @@ const CourseDetails = () => {
 
                             <div className="flex items-center gap-2">
                               <div className="w-20 bg-slate-200 h-2 rounded-full overflow-hidden border border-slate-300">
-                                <div 
+                                <div
                                   className={`h-full rounded-full transition-all duration-500 ${pPercent >= 100 ? 'bg-emerald-500' : 'bg-purple-600'}`}
                                   style={{ width: `${pPercent}%` }}
                                 ></div>
                               </div>
 
-                              <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                                pPercent >= 100 
-                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
-                                  : pPercent > 0 
+                              <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${pPercent >= 100
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                  : pPercent > 0
                                     ? 'bg-purple-100 text-purple-900 border-purple-300'
                                     : 'bg-slate-100 text-slate-600 border-slate-300'
-                              }`}>
-                                {pPercent >= 100 
-                                  ? '✓ 100% Completed' 
-                                  : pPercent > 0 
+                                }`}>
+                                {pPercent >= 100
+                                  ? '✓ 100% Completed'
+                                  : pPercent > 0
                                     ? `📖 ${pPercent}% Read (Page ${pMaxRead} of ${pTotal} • Continue Pg ${pNextPage})`
                                     : '📖 Unread (0%)'}
                               </span>
@@ -2306,13 +2284,12 @@ const CourseDetails = () => {
 
                             {/* Teacher/Admin status badge */}
                             {isTeacherOrAdmin && (
-                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                                dlStatus.status === 'immediate'
+                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${dlStatus.status === 'immediate'
                                   ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                   : dlStatus.status === 'scheduled'
-                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                  : 'bg-slate-100 text-slate-600 border-slate-200'
-                              }`}>
+                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                                }`}>
                                 {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
                               </span>
                             )}
@@ -2323,9 +2300,9 @@ const CourseDetails = () => {
                       <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
                         <button
                           type="button"
-                          onClick={() => setActivePdfModal({ 
+                          onClick={() => setActivePdfModal({
                             pdf: { ...pdf, _id: pdf._id ? String(pdf._id) : pdf.filename },
-                            lessonId: currentLesson?._id 
+                            lessonId: currentLesson?._id
                           })}
                           className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
                         >
@@ -2407,7 +2384,7 @@ const CourseDetails = () => {
                   onClick={handleOpenCreateAssignment}
                   className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2.5 rounded-xl text-xs font-black transition shadow-sm cursor-pointer flex items-center gap-1.5 shrink-0"
                 >
-                  <FaPlus /> + Create Assignment
+                  <FaPlus /> Create Assignment
                 </button>
               )}
             </div>
@@ -2426,61 +2403,6 @@ const CourseDetails = () => {
                       Click here to create the first assignment for this class
                     </p>
                   )}
-            {/* Assignment upload form (Teacher/Admin only) */}
-            {isTeacherOrAdmin && (
-              <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Upload Assignment PDF</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input
-                    type="text"
-                    placeholder="Assignment Title (Optional)"
-                    value={assignmentTitle}
-                    onChange={(e) => setAssignmentTitle(e.target.value)}
-                    className="p-3 bg-white border border-gray-200 rounded-lg outline-none text-sm"
-                  />
-                  <div>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      key={assignmentFile ? 'loaded' : 'empty'}
-                      onChange={(e) => setAssignmentFile(e.target.files[0])}
-                      className="w-full p-2 bg-white border border-gray-200 rounded-lg outline-none text-sm"
-                    />
-                  </div>
-                  <button
-                    onClick={handleUploadAssignment}
-                    disabled={isUploadingAssignment}
-                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold rounded-lg py-3 shadow-sm cursor-pointer transition-colors text-sm"
-                  >
-                    {isUploadingAssignment ? 'Uploading...' : '+ Upload Assignment'}
-                  </button>
-
-                  {/* Download Accessibility Control */}
-                  <div className="md:col-span-3 flex flex-wrap items-center gap-3 bg-purple-50/60 p-3 rounded-xl border border-purple-100 mt-1">
-                    <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                      <FaDownload className="text-purple-600" /> Student Download Access:
-                    </span>
-                    <select
-                      value={assignmentDownloadType}
-                      onChange={(e) => setAssignmentDownloadType(e.target.value)}
-                      className="bg-white border border-gray-200 text-xs font-bold text-gray-800 rounded-lg p-2 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
-                    >
-                      <option value="immediate">🟢 Immediate Download (Available Now)</option>
-                      <option value="one_month">⏳ After 1 Month (30 Days)</option>
-                      <option value="custom_date">📅 Custom Unlock Date</option>
-                      <option value="disabled">🚫 View Online Only (Download Disabled)</option>
-                    </select>
-                    {assignmentDownloadType === 'custom_date' && (
-                      <input
-                        type="date"
-                        value={assignmentCustomUnlockDate}
-                        onChange={(e) => setAssignmentCustomUnlockDate(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
-                        className="bg-white border border-purple-200 text-xs font-bold rounded-lg p-2 outline-none"
-                        required
-                      />
-                    )}
-                  </div>
                 </div>
               ) : (
                 assignments.filter(asgn => {
@@ -2525,9 +2447,8 @@ const CourseDetails = () => {
                             Max: {asgn.maxMarks || 100} Marks
                           </span>
                           {asgn.dueDate && (
-                            <span className={`px-3 py-1 font-bold rounded-xl border flex items-center gap-1 ${
-                              isOverdue ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-700 border-slate-200'
-                            }`}>
+                            <span className={`px-3 py-1 font-bold rounded-xl border flex items-center gap-1 ${isOverdue ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-700 border-slate-200'
+                              }`}>
                               <FaClock /> Due: {new Date(asgn.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </span>
                           )}
@@ -2607,105 +2528,16 @@ const CourseDetails = () => {
                               <button
                                 type="button"
                                 onClick={() => handleOpenSubmitModal(asgn)}
-                                className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 ${
-                                  isSubmitted
+                                className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 ${isSubmitted
                                     ? 'bg-slate-100 hover:bg-slate-200 text-slate-800'
                                     : 'bg-purple-700 hover:bg-purple-800 text-white'
-                                }`}
+                                  }`}
                               >
                                 <FaFileUpload /> {isSubmitted ? 'Resubmit / Update Solution' : 'Submit Solution'}
                               </button>
                             </>
                           )}
                         </div>
-                currentLesson.assignments.map((assignment) => {
-                  const dlStatus = getMaterialDownloadStatus(assignment);
-                  return (
-                    <div key={assignment._id || assignment.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 rounded-xl bg-purple-50/20 hover:bg-purple-50 transition-all gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="text-purple-600 text-2xl font-bold">📝</div>
-                        <div>
-                          <p className="font-extrabold text-gray-900 text-sm">{assignment.title}</p>
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-500 font-medium">
-                              Size: {assignment.fileSize ? (assignment.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '0.99 MB'}
-                            </span>
-                            <span className="text-[10px] text-gray-400 font-medium">
-                              Uploaded: {assignment.uploadedAt ? new Date(assignment.uploadedAt).toLocaleDateString() : 'N/A'}
-                            </span>
-                            {/* Teacher/Admin status badge */}
-                            {isTeacherOrAdmin && (
-                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                                dlStatus.status === 'immediate'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                  : dlStatus.status === 'scheduled'
-                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                  : 'bg-slate-100 text-slate-600 border-slate-200'
-                              }`}>
-                                {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-                        {/* Student Download / Lock State */}
-                        {!isTeacherOrAdmin && (
-                          dlStatus.isAvailable ? (
-                            <a
-                              href={assignment.fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download
-                              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
-                              title="Download Assignment"
-                            >
-                              <FaDownload className="text-[10px]" /> Download
-                            </a>
-                          ) : dlStatus.status === 'scheduled' ? (
-                            <span
-                              className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
-                              title={`Download unlocks on ${dlStatus.formattedDate}`}
-                            >
-                              <FaHourglassHalf className="text-amber-600 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
-                            </span>
-                          ) : (
-                            <span className="bg-slate-100 text-slate-500 px-3 py-2 rounded-xl text-xs font-semibold">
-                              Online View Only
-                            </span>
-                          )
-                        )}
-
-                        {/* Teacher/Admin Controls */}
-                        {isTeacherOrAdmin && (
-                          <>
-                            <a
-                              href={assignment.fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download
-                              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1"
-                              title="Download Assignment"
-                            >
-                              <FaDownload className="text-[10px]" /> Download
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenDownloadSettingsModal('assignment', assignment, currentLesson?._id)}
-                              className="text-purple-700 hover:bg-purple-50 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100"
-                              title="Configure Download Access"
-                            >
-                              <FaCog className="text-xs" /> Download Settings
-                            </button>
-                            <button
-                              onClick={() => handleDeleteAssignment(assignment._id)}
-                              className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold cursor-pointer"
-                            >
-                              Remove
-                            </button>
-                          </>
-                        )}
                       </div>
                     </div>
                   );
@@ -2776,11 +2608,10 @@ const CourseDetails = () => {
                           <>
                             <button
                               onClick={() => handleToggleQuizActive(quiz._id)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                                quiz.isActive
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${quiz.isActive
                                   ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
                                   : 'bg-green-50 text-green-700 hover:bg-green-100'
-                              }`}
+                                }`}
                             >
                               {quiz.isActive ? 'Deactivate' : 'Activate'}
                             </button>
@@ -2858,7 +2689,7 @@ const CourseDetails = () => {
 
             {/* Split Pane Work Area */}
             <div className="flex-1 flex overflow-hidden">
-              
+
               {/* LEFT PANE: Student List & Search & Filters */}
               <div className="w-5/12 flex flex-col border-r border-gray-150 pr-4 overflow-hidden">
                 {/* Search Bar */}
@@ -2912,7 +2743,7 @@ const CourseDetails = () => {
                       <div className="bg-purple-100/80 text-purple-900 font-bold px-3 py-2 rounded-xl text-xs flex justify-between items-center mb-2 sticky top-0 z-10 border border-purple-200">
                         <span>Enrolled Students ({filteredPickerStudents.filter(s => s.isEnrolled).length})</span>
                       </div>
-                      
+
                       <div className="space-y-2">
                         {filteredPickerStudents.filter(s => s.isEnrolled).length === 0 ? (
                           <p className="text-xs text-gray-400 italic pl-3">No students currently enrolled in this grade.</p>
@@ -2920,11 +2751,10 @@ const CourseDetails = () => {
                           filteredPickerStudents.filter(s => s.isEnrolled).map((student) => (
                             <div
                               key={student._id}
-                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
-                                selectedStudentDetail?._id === student._id
+                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${selectedStudentDetail?._id === student._id
                                   ? "bg-purple-50/70 border-purple-300 shadow-sm"
                                   : "bg-white border-gray-150 hover:bg-gray-50"
-                              }`}
+                                }`}
                             >
                               {user?.role === 'admin' && (
                                 <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
@@ -2946,7 +2776,7 @@ const CourseDetails = () => {
                               <div className="flex-1 min-w-0" onClick={() => setSelectedStudentDetail(student)}>
                                 <p className="font-semibold text-gray-905 text-sm truncate">{student.name}</p>
                                 <p className="text-[11px] text-gray-500 truncate">Reg: {student.registrationNumber || 'N/A'}</p>
-                                
+
                                 <div className="flex flex-wrap gap-1 mt-1 text-[9px] font-extrabold uppercase">
                                   <span className="px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
                                     Enrolled
@@ -2980,11 +2810,10 @@ const CourseDetails = () => {
                           filteredPickerStudents.filter(s => !s.isEnrolled).map((student) => (
                             <div
                               key={student._id}
-                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
-                                selectedStudentDetail?._id === student._id
+                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${selectedStudentDetail?._id === student._id
                                   ? "bg-purple-50/70 border-purple-300 shadow-sm"
                                   : "bg-white border-gray-150 hover:bg-gray-50"
-                              }`}
+                                }`}
                             >
                               {user?.role === 'admin' && (
                                 <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
@@ -3006,7 +2835,7 @@ const CourseDetails = () => {
                               <div className="flex-1 min-w-0" onClick={() => setSelectedStudentDetail(student)}>
                                 <p className="font-semibold text-gray-905 text-sm truncate">{student.name}</p>
                                 <p className="text-[11px] text-gray-500 truncate">Reg: {student.registrationNumber || 'N/A'}</p>
-                                
+
                                 <div className="flex flex-wrap gap-1 mt-1 text-[9px] font-extrabold uppercase">
                                   <span className="px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-200">
                                     Not Enrolled
@@ -3138,9 +2967,8 @@ const CourseDetails = () => {
                       <button
                         type="button"
                         onClick={() => setStudentDetailTab("attendance")}
-                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                          studentDetailTab === "attendance" ? "border-purple-600 text-purple-700 font-extrabold" : "border-transparent hover:text-gray-700"
-                        }`}
+                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${studentDetailTab === "attendance" ? "border-purple-600 text-purple-700 font-extrabold" : "border-transparent hover:text-gray-700"
+                          }`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -3150,9 +2978,8 @@ const CourseDetails = () => {
                       <button
                         type="button"
                         onClick={() => setStudentDetailTab("payments")}
-                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                          studentDetailTab === "payments" ? "border-purple-600 text-purple-700 font-extrabold" : "border-transparent hover:text-gray-700"
-                        }`}
+                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${studentDetailTab === "payments" ? "border-purple-600 text-purple-700 font-extrabold" : "border-transparent hover:text-gray-700"
+                          }`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -3163,7 +2990,7 @@ const CourseDetails = () => {
 
                     {/* Tab Panels */}
                     <div className="flex-1 overflow-y-auto mt-4 pr-1">
-                      
+
                       {/* Tab 1: ATTENDANCE HISTORY VIEW */}
                       {studentDetailTab === "attendance" && (
                         <div className="space-y-4">
@@ -3211,10 +3038,9 @@ const CourseDetails = () => {
                                     <tr key={index} className="hover:bg-gray-50/50 transition-colors">
                                       <td className="p-3 font-semibold text-gray-800">{new Date(record.date).toLocaleDateString()}</td>
                                       <td className="p-3 text-right whitespace-nowrap">
-                                        <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
-                                          record.status === 'Present' ? 'bg-green-100 text-green-800' :
-                                          'bg-red-100 text-red-800'
-                                        }`}>
+                                        <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${record.status === 'Present' ? 'bg-green-100 text-green-800' :
+                                            'bg-red-100 text-red-800'
+                                          }`}>
                                           {record.status}
                                         </span>
                                       </td>
@@ -3355,9 +3181,8 @@ const CourseDetails = () => {
         <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-purple-100 space-y-4 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3.5">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-md ${
-                deactivateConfirmGrade.isDeactive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
-              }`}>
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-md ${deactivateConfirmGrade.isDeactive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
+                }`}>
                 {deactivateConfirmGrade.isDeactive ? <FaLockOpen /> : <FaLock />}
               </div>
               <div>
@@ -3389,11 +3214,10 @@ const CourseDetails = () => {
               <button
                 type="button"
                 onClick={() => executeToggleGradeStatus(deactivateConfirmGrade)}
-                className={`px-5 py-2.5 text-xs font-extrabold text-white rounded-xl transition shadow-md cursor-pointer ${
-                  deactivateConfirmGrade.isDeactive
+                className={`px-5 py-2.5 text-xs font-extrabold text-white rounded-xl transition shadow-md cursor-pointer ${deactivateConfirmGrade.isDeactive
                     ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'
                     : 'bg-red-600 hover:bg-red-700 shadow-red-200'
-                }`}
+                  }`}
               >
                 Yes, {deactivateConfirmGrade.isDeactive ? 'Activate Grade' : 'Deactivate Grade'}
               </button>
@@ -3702,22 +3526,6 @@ const CourseDetails = () => {
                 type="button"
                 onClick={() => { setShowAssignmentModal(false); setEditingAssignment(null); }}
                 className="text-gray-400 hover:text-gray-600 rounded-xl p-2 hover:bg-gray-100 transition"
-      {/* Material Download Settings Modal (Teacher/Admin) */}
-      {editingDownloadModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-purple-100 space-y-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-                  <FaDownload className="text-purple-700" /> Material Download Access
-                </h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  Configure when and how students can download this {editingDownloadModal.materialType === 'pdf' ? 'PDF Note' : editingDownloadModal.materialType === 'assignment' ? 'Assignment PDF' : 'Video Lesson'}.
-                </p>
-              </div>
-              <button
-                onClick={() => setEditingDownloadModal({ isOpen: false, materialType: null, material: null, lessonId: null })}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -4052,27 +3860,24 @@ const CourseDetails = () => {
                 <button
                   type="button"
                   onClick={() => setTeacherSubmissionsFilter('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    teacherSubmissionsFilter === 'all' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${teacherSubmissionsFilter === 'all' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
+                    }`}
                 >
                   All ({teacherSubmissionsData.totalSubmissions || 0})
                 </button>
                 <button
                   type="button"
                   onClick={() => setTeacherSubmissionsFilter('submitted')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    teacherSubmissionsFilter === 'submitted' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${teacherSubmissionsFilter === 'submitted' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
+                    }`}
                 >
                   Pending Grading ({(teacherSubmissionsData.totalSubmissions || 0) - (teacherSubmissionsData.gradedCount || 0)})
                 </button>
                 <button
                   type="button"
                   onClick={() => setTeacherSubmissionsFilter('graded')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    teacherSubmissionsFilter === 'graded' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${teacherSubmissionsFilter === 'graded' ? 'bg-purple-900 text-white' : 'bg-gray-100 text-gray-700'
+                    }`}
                 >
                   Graded ({teacherSubmissionsData.gradedCount || 0})
                 </button>
@@ -4213,6 +4018,34 @@ const CourseDetails = () => {
                   })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 5: MATERIAL DOWNLOAD SETTINGS (Teacher/Admin) */}
+      {/* ========================================================================= */}
+      {editingDownloadModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-purple-100 space-y-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+                  <FaDownload className="text-purple-700" /> Material Download Access
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Configure when and how students can download this {editingDownloadModal.materialType === 'pdf' ? 'PDF Note' : editingDownloadModal.materialType === 'assignment' ? 'Assignment PDF' : 'Video Lesson'}.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingDownloadModal({ isOpen: false, materialType: null, material: null, lessonId: null })}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
             <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-100">
               <p className="text-xs text-purple-900 font-extrabold truncate">
                 📄 {editingDownloadModal.material?.title || 'Selected Study Material'}
@@ -4223,7 +4056,7 @@ const CourseDetails = () => {
               <label className="text-xs font-extrabold text-gray-700 uppercase tracking-wider block">
                 Choose Download Policy:
               </label>
-              
+
               <div className="space-y-2.5">
                 <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition cursor-pointer ${editDownloadType === 'immediate' ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
                   <input

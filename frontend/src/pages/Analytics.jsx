@@ -21,7 +21,7 @@ import {
   FaUserGraduate,
   FaEye,
   FaReceipt,
-  FaClipboardList
+  FaClipboardList,
   FaClock,
   FaVideo,
   FaFilePdf,

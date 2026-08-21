@@ -384,7 +384,7 @@ router.post(
                 instructor: instructorId,
                 banner: bannerPath,
                 cardImage: cardImagePath,
-                studentType: finalStudentType,
+                studentType: studentType || 'all',
                 bankDetails: parsedBankDetails
             });
 
