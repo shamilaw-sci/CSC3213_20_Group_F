@@ -1949,6 +1949,8 @@ const CourseDetails = () => {
           {currentLesson?.liveStream?.isLive && (
             <LiveStreamPlayer
               liveStream={currentLesson.liveStream}
+              lessonId={currentLesson._id}
+              grade={selectedGrade}
               isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
               onEndStream={() => handleEndLiveStream(saveLiveAsVideo)}
             />
