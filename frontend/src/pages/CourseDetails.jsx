@@ -630,43 +630,6 @@ const CourseDetails = () => {
     }
   };
 
-  const fetchCourseDetails = async (isInitial = false) => {
-    const cacheKey = `cached_course_${courseId}`;
-    if (isInitial) {
-      try {
-        const cachedStr = sessionStorage.getItem(cacheKey);
-        if (cachedStr) {
-          const parsed = JSON.parse(cachedStr);
-          if (parsed?.course && Array.isArray(parsed?.lessons)) {
-            setCourse(parsed.course);
-            setLessons(parsed.lessons || []);
-            setQuizzes(parsed.quizzes || []);
-            setAssignments(parsed.assignments || []);
-            setLoading(false);
-          }
-        }
-      } catch (e) {}
-    }
-
-    try {
-      const [courseRes, lessonsRes, quizzesRes, assignmentsRes] = await Promise.all([
-        api.get(`/courses/${courseId}`),
-        api.get(`/lessons/course/${courseId}`),
-        api.get(`/quizzes/course/${courseId}`).catch(err => { console.error("Error fetching quizzes:", err); return { data: [] }; }),
-        api.get(`/assignments/course/${courseId}`).catch(err => { console.error("Error fetching assignments:", err); return { data: [] }; })
-      ]);
-
-      setCourse(courseRes.data);
-      setLessons(lessonsRes.data || []);
-      setQuizzes(quizzesRes.data || []);
-      setAssignments(assignmentsRes.data || []);
-
-      sessionStorage.setItem(cacheKey, JSON.stringify({
-        course: courseRes.data,
-        lessons: lessonsRes.data || [],
-        quizzes: quizzesRes.data || [],
-        assignments: assignmentsRes.data || []
-      }));
   const fetchReviews = async () => {
     try {
       const res = await api.get(`/courses/${courseId}/reviews`);
@@ -711,16 +674,44 @@ const CourseDetails = () => {
     }
   };
 
-  const fetchCourseDetails = async () => {
+  const fetchCourseDetails = async (isInitial = false) => {
+    const cacheKey = `cached_course_${courseId}`;
+    if (isInitial) {
+      try {
+        const cachedStr = sessionStorage.getItem(cacheKey);
+        if (cachedStr) {
+          const parsed = JSON.parse(cachedStr);
+          if (parsed?.course && Array.isArray(parsed?.lessons)) {
+            setCourse(parsed.course);
+            setLessons(parsed.lessons || []);
+            setQuizzes(parsed.quizzes || []);
+            setAssignments(parsed.assignments || []);
+            setLoading(false);
+          }
+        }
+      } catch (e) {}
+    }
+
     try {
-      const res = await api.get(`/courses/${courseId}`);
-      setCourse(res.data);
+      const [courseRes, lessonsRes, quizzesRes, assignmentsRes] = await Promise.all([
+        api.get(`/courses/${courseId}`),
+        api.get(`/lessons/course/${courseId}`),
+        api.get(`/quizzes/course/${courseId}`).catch(err => { console.error("Error fetching quizzes:", err); return { data: [] }; }),
+        api.get(`/assignments/course/${courseId}`).catch(err => { console.error("Error fetching assignments:", err); return { data: [] }; })
+      ]);
 
-      const lessonsRes = await api.get(`/lessons/course/${courseId}`);
-      setLessons(lessonsRes.data);
+      setCourse(courseRes.data);
+      setLessons(lessonsRes.data || []);
+      setQuizzes(quizzesRes.data || []);
+      setAssignments(assignmentsRes.data || []);
 
-      await fetchQuizzes();
-      await fetchAssignments();
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        course: courseRes.data,
+        lessons: lessonsRes.data || [],
+        quizzes: quizzesRes.data || [],
+        assignments: assignmentsRes.data || []
+      }));
+
       await fetchReviews();
     } catch (err) {
       if (!course) toast.error("Failed to fetch details.");
@@ -5539,6 +5530,7 @@ const CourseDetails = () => {
           video={activeVideoModal}
           onClose={() => setActiveVideoModal(null)}
         />
+      )}
       {/* COURSE RATINGS & REVIEWS MODAL */}
       {showReviewsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
