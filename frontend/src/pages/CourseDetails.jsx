@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import TeacherModal from '../components/TeacherModal';
 import PdfReaderModal from '../components/PdfReaderModal';
+import VideoPlayerModal from '../components/VideoPlayerModal';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import ScheduledLiveHero from '../components/ScheduledLiveHero';
 import LiveThumbnailCropperModal from '../components/LiveThumbnailCropperModal';
@@ -17,6 +18,18 @@ import {
   FaDownload, FaHourglassHalf, FaCog, FaPlayCircle, FaPlay, FaBroadcastTower,
   FaCalendarCheck, FaCrop, FaImage, FaTrash
 } from 'react-icons/fa';
+
+const getYouTubeVideoId = (url) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
+const getYouTubeThumbnail = (url) => {
+  const videoId = getYouTubeVideoId(url);
+  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+};
 
 const getImageUrl = (url) => {
   if (!url) return '';
@@ -45,6 +58,7 @@ const CourseDetails = () => {
   const [selectedTeacherForModal, setSelectedTeacherForModal] = useState(null);
   const [pdfProgressMap, setPdfProgressMap] = useState({});
   const [activePdfModal, setActivePdfModal] = useState(null);
+  const [activeVideoModal, setActiveVideoModal] = useState(null);
   const user = JSON.parse(localStorage.getItem('user'));
 
   // Assignment Modal & Action States
@@ -528,8 +542,39 @@ const CourseDetails = () => {
   ];
 
   useEffect(() => {
-    fetchCourseDetails();
+    fetchCourseDetails(true);
   }, [courseId]);
+
+  // Real-time live status sync: automatically ends stream on student side when teacher concluding live class
+  useEffect(() => {
+    const activeLiveLesson = (lessons || []).find(l => l.liveStream?.isLive || l.liveStream?.isScheduled);
+    if (!activeLiveLesson?._id) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get(`/lessons/${activeLiveLesson._id}/live-stream/status`);
+        if (res.data && typeof res.data.isLive === 'boolean') {
+          if (activeLiveLesson.liveStream?.isLive !== res.data.isLive || activeLiveLesson.liveStream?.isScheduled !== res.data.isScheduled) {
+            setLessons(prev => prev.map(l => {
+              if (l._id === activeLiveLesson._id) {
+                return {
+                  ...l,
+                  liveStream: {
+                    ...(l.liveStream || {}),
+                    isLive: res.data.isLive,
+                    isScheduled: res.data.isScheduled
+                  }
+                };
+              }
+              return l;
+            }));
+          }
+        }
+      } catch (err) {}
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [lessons]);
 
   const fetchQuizzes = async () => {
     try {
@@ -573,18 +618,45 @@ const CourseDetails = () => {
     }
   };
 
-  const fetchCourseDetails = async () => {
+  const fetchCourseDetails = async (isInitial = false) => {
+    const cacheKey = `cached_course_${courseId}`;
+    if (isInitial) {
+      try {
+        const cachedStr = sessionStorage.getItem(cacheKey);
+        if (cachedStr) {
+          const parsed = JSON.parse(cachedStr);
+          if (parsed?.course && Array.isArray(parsed?.lessons)) {
+            setCourse(parsed.course);
+            setLessons(parsed.lessons || []);
+            setQuizzes(parsed.quizzes || []);
+            setAssignments(parsed.assignments || []);
+            setLoading(false);
+          }
+        }
+      } catch (e) {}
+    }
+
     try {
-      const res = await api.get(`/courses/${courseId}`);
-      setCourse(res.data);
+      const [courseRes, lessonsRes, quizzesRes, assignmentsRes] = await Promise.all([
+        api.get(`/courses/${courseId}`),
+        api.get(`/lessons/course/${courseId}`),
+        api.get(`/quizzes/course/${courseId}`).catch(err => { console.error("Error fetching quizzes:", err); return { data: [] }; }),
+        api.get(`/assignments/course/${courseId}`).catch(err => { console.error("Error fetching assignments:", err); return { data: [] }; })
+      ]);
 
-      const lessonsRes = await api.get(`/lessons/course/${courseId}`);
-      setLessons(lessonsRes.data);
+      setCourse(courseRes.data);
+      setLessons(lessonsRes.data || []);
+      setQuizzes(quizzesRes.data || []);
+      setAssignments(assignmentsRes.data || []);
 
-      await fetchQuizzes();
-      await fetchAssignments();
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        course: courseRes.data,
+        lessons: lessonsRes.data || [],
+        quizzes: quizzesRes.data || [],
+        assignments: assignmentsRes.data || []
+      }));
     } catch (err) {
-      toast.error("Failed to fetch details.");
+      if (!course) toast.error("Failed to fetch details.");
     } finally {
       setLoading(false);
     }
@@ -988,6 +1060,8 @@ const CourseDetails = () => {
 
   // Interactive End Stream Modal
   const [showEndStreamConfirmModal, setShowEndStreamConfirmModal] = useState(false);
+  const [showEndStreamSuccessModal, setShowEndStreamSuccessModal] = useState(false);
+  const [endedStreamSummary, setEndedStreamSummary] = useState(null);
   const [isEndingStream, setIsEndingStream] = useState(false);
   const [saveLiveAsVideo, setSaveLiveAsVideo] = useState(true);
 
@@ -1250,7 +1324,7 @@ const CourseDetails = () => {
   };
 
   const handleStartLiveStream = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!liveYoutubeUrl.trim()) {
       toast.error('Please enter a valid YouTube Live link or Video ID.');
       return;
@@ -1268,7 +1342,17 @@ const CourseDetails = () => {
         toast.error('Please select both broadcast date and time for the scheduled stream.');
         return;
       }
-      scheduledStartTime = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
+      try {
+        const parsedDate = new Date(`${scheduledDate}T${scheduledTime}`);
+        if (isNaN(parsedDate.getTime())) {
+          toast.error('Invalid broadcast date or time format. Please check your schedule selection.');
+          return;
+        }
+        scheduledStartTime = parsedDate.toISOString();
+      } catch (err) {
+        toast.error('Invalid broadcast date or time selected.');
+        return;
+      }
     }
 
     setIsPublishingLive(true);
@@ -1281,9 +1365,12 @@ const CourseDetails = () => {
         scheduledStartTime: scheduledStartTime
       });
 
-      toast.success(res.data.message || (isScheduledLive ? '🗓️ Live Class scheduled successfully!' : '🔴 Live Class started!'));
       setShowLiveModal(false);
-      await fetchCourseDetails();
+      if (res.data?.lesson) {
+        setLessons(prev => prev.map(l => l._id === res.data.lesson._id ? res.data.lesson : l));
+      }
+      toast.success(res.data.message || (isScheduledLive ? '🗓️ Live Class scheduled successfully!' : '🔴 Live Class started!'));
+      fetchCourseDetails();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to publish live stream');
     } finally {
@@ -1302,8 +1389,11 @@ const CourseDetails = () => {
         isScheduled: false,
         goLiveNow: true
       });
+      if (res.data?.lesson) {
+        setLessons(prev => prev.map(l => l._id === res.data.lesson._id ? res.data.lesson : l));
+      }
       toast.success("🔴 You are now LIVE! Class stream started.");
-      await fetchCourseDetails();
+      fetchCourseDetails();
     } catch (err) {
       toast.error("Failed to start live stream immediately.");
     }
@@ -1315,7 +1405,7 @@ const CourseDetails = () => {
     setLiveStreamTitle(ls.title || '');
     setLiveYoutubeUrl(ls.youtubeUrl || '');
     setLiveThumbnail(ls.thumbnail || '');
-    setIsScheduledLive(Boolean(ls.isScheduled));
+    setIsScheduledLive(true);
     if (ls.scheduledStartTime) {
       try {
         const d = new Date(ls.scheduledStartTime);
@@ -1330,8 +1420,23 @@ const CourseDetails = () => {
     if (!window.confirm("Are you sure you want to cancel this scheduled live class?")) return;
     try {
       await api.delete(`/lessons/${lessonId}/live-stream`);
+      setLessons(prev => prev.map(l => {
+        if (l._id === lessonId) {
+          return {
+            ...l,
+            liveStream: {
+              ...(l.liveStream || {}),
+              isLive: false,
+              isScheduled: false,
+              scheduledStartTime: null,
+              youtubeUrl: ''
+            }
+          };
+        }
+        return l;
+      }));
       toast.success("Scheduled live class cancelled.");
-      await fetchCourseDetails();
+      fetchCourseDetails();
     } catch (err) {
       toast.error("Failed to cancel scheduled live class.");
     }
@@ -1345,36 +1450,59 @@ const CourseDetails = () => {
   };
 
   const confirmEndLiveStream = async (shouldSaveVideo = saveLiveAsVideo) => {
-    const targetLesson = (lessons || []).find(l => String(l.grade) === String(selectedGrade)) || (lessons || []).find(l => l.liveStream?.isLive) || (lessons || []).find(l => l._id) || (lessons || [])[0];
+    // Prioritize finding the lesson that actually has an active live or scheduled stream
+    const targetLesson = (lessons || []).find(l => l.liveStream?.isLive || l.liveStream?.isScheduled) 
+      || (lessons || []).find(l => String(l.grade).toLowerCase() === String(selectedGrade).toLowerCase()) 
+      || (lessons || [])[0];
+
+    setIsEndingStream(true);
+    setShowEndStreamConfirmModal(false);
+    setShowLiveModal(false);
+
+    // Optimistically clear liveStream state across ALL lessons so UI updates immediately
+    setLessons(prevLessons => prevLessons.map(l => ({
+      ...l,
+      liveStream: {
+        ...(l.liveStream || {}),
+        isLive: false,
+        isScheduled: false,
+        scheduledStartTime: null,
+        youtubeUrl: ''
+      }
+    })));
+
+    setEndedStreamSummary({
+      title: targetLesson?.liveStream?.title || 'Live Broadcast',
+      grade: selectedGrade,
+      savedAsVideo: Boolean(shouldSaveVideo)
+    });
+
     if (!targetLesson?._id) {
-      toast.error("Class not found.");
-      setShowEndStreamConfirmModal(false);
+      setShowEndStreamSuccessModal(true);
       setIsEndingStream(false);
       return;
     }
 
-    setIsEndingStream(true);
     try {
       const res = await api.delete(`/lessons/${targetLesson._id}/live-stream?saveAsVideo=${Boolean(shouldSaveVideo)}`, {
         data: { saveAsVideo: Boolean(shouldSaveVideo) }
       });
-      toast.success(res.data?.message || "Live Class ended successfully!");
-      setShowEndStreamConfirmModal(false);
-      setShowLiveModal(false);
-      await fetchCourseDetails();
+      setShowEndStreamSuccessModal(true);
+      toast.success(res.data?.message || "🎉 Live Class ended successfully!");
+      fetchCourseDetails();
     } catch (err) {
       console.warn("DELETE live stream failed, trying POST fallback:", err);
       try {
         const resPost = await api.post(`/lessons/${targetLesson._id}/live-stream/end`, {
           saveAsVideo: Boolean(shouldSaveVideo)
         });
-        toast.success(resPost.data?.message || "Live Class ended successfully!");
-        setShowEndStreamConfirmModal(false);
-        setShowLiveModal(false);
-        await fetchCourseDetails();
+        setShowEndStreamSuccessModal(true);
+        toast.success(resPost.data?.message || "🎉 Live Class ended successfully!");
+        fetchCourseDetails();
       } catch (fallbackErr) {
         console.error("Failed to end live stream:", fallbackErr);
         toast.error(fallbackErr.response?.data?.error || err.response?.data?.error || "Failed to end live stream.");
+        fetchCourseDetails();
       }
     } finally {
       setIsEndingStream(false);
@@ -1391,7 +1519,9 @@ const CourseDetails = () => {
   }
 
   const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
-  const currentLesson = lessons.find(l => l.grade === selectedGrade);
+  const currentLesson = lessons.find(l => normalizeGrade(l.grade) === normalizeGrade(selectedGrade)) 
+    || lessons.find(l => l.liveStream?.isLive || l.liveStream?.isScheduled) 
+    || lessons[0];
   const studentGrade = user?.grade;
   const alreadyEnrolled = course?.enrolledStudents?.some(
     (s) => s?._id?.toString() === user?.id?.toString()
@@ -1619,68 +1749,45 @@ const CourseDetails = () => {
           </div>
         </div>
       ) : (
-        <div className="mb-8 flex justify-between items-center flex-wrap gap-4">
-          <div>
+        <div className="mb-8 space-y-3 animate-fadeIn py-2">
+          {/* Top Row: Back to Classes on Top Left, Workspace Badge + Live Status on Top Right */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <button
               onClick={() => setSelectedGrade(null)}
-              className="mb-2 flex items-center gap-2 text-[#2d1b64] dark:text-purple-400 hover:underline font-bold transition cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-50 dark:bg-slate-800/90 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-800 dark:text-purple-300 border border-purple-200/70 dark:border-slate-700 text-xs sm:text-sm font-extrabold transition-all duration-200 shadow-2xs hover:shadow-xs cursor-pointer group active:scale-95"
             >
-              ← Back to Classes
+              <span className="text-sm transition-transform duration-200 group-hover:-translate-x-1">←</span>
+              <span>Back to Classes</span>
             </button>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-1 tracking-tight">{course?.title}</h1>
-            <p className="text-purple-600 dark:text-purple-400 font-bold text-lg">{selectedGrade} Workspace</p>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {currentLesson?.liveStream?.isLive ? (
+                <span className="inline-flex items-center gap-2 text-xs sm:text-sm font-black text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-700 px-4 py-2 rounded-full border border-red-400/50 shadow-md shadow-red-600/30 animate-pulse">
+                  <span className="w-2.5 h-2.5 rounded-full bg-white"></span>
+                  <span>🔴 LIVE CLASS</span>
+                </span>
+              ) : currentLesson?.liveStream?.isScheduled ? (
+                <span className="inline-flex items-center gap-2 text-xs sm:text-sm font-black text-white bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 px-4 py-2 rounded-full border border-amber-400/50 shadow-md shadow-orange-500/30">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-200"></span>
+                  <span>🗓️ LIVE SCHEDULED</span>
+                </span>
+              ) : null}
+
+              <span className="inline-flex items-center gap-2 text-xs sm:text-sm font-black text-purple-800 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/70 px-4 py-2 rounded-full border border-purple-200 dark:border-purple-800/80 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                <span>{selectedGrade} Workspace</span>
+              </span>
+            </div>
           </div>
 
-          {(user?.role === 'admin' || user?.role === 'teacher') && (
-            <div className="flex items-center gap-2.5">
-              {currentLesson?.liveStream?.isScheduled ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (currentLesson?.liveStream) {
-                      setLiveStreamTitle(currentLesson.liveStream.title || '');
-                      setLiveYoutubeUrl(currentLesson.liveStream.youtubeUrl || '');
-                    }
-                    setShowLiveModal(true);
-                  }}
-                  className="px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-2.5 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white border-amber-400"
-                  title="Manage Scheduled Live Class"
-                >
-                  <FaBroadcastTower className="text-xl text-white" />
-                  <span>🗓️ Manage Scheduled Live</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (currentLesson?.liveStream?.isLive) {
-                      setLiveStreamTitle(currentLesson.liveStream.title || '');
-                      setLiveYoutubeUrl(currentLesson.liveStream.youtubeUrl || '');
-                    }
-                    setShowLiveModal(true);
-                  }}
-                  className={`px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${currentLesson?.liveStream?.isLive
-                      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white border-red-400 shadow-red-500/30 ring-2 ring-red-300'
-                      : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white border-red-500/40 shadow-red-600/30'
-                    }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <FaYoutube className="text-2xl sm:text-3xl text-white drop-shadow-sm" />
-                    <span className="flex h-2.5 w-2.5 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
-                    </span>
-                  </div>
-                  <span className="tracking-tight">
-                    {currentLesson?.liveStream?.isLive ? 'Manage Live Class' : 'Start YouTube Live Class'}
-                  </span>
-                </button>
-              )}
-            </div>
-          )}
+          {/* Centered Course Title */}
+          <div className="text-center space-y-2 py-1">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight max-w-5xl mx-auto drop-shadow-2xs">{course?.title}</h1>
+          </div>
         </div>
       )}
 
+      {/* VIEW 2: CLASS WORKSPACE CONTENT PANEL (Shown when a class is clicked) */}
       {/* VIEW 1: GRID OF CLASS CARDS (Shown when no class is selected) */}
       {selectedGrade === null && (
         <div className="space-y-8">
@@ -1772,140 +1879,172 @@ const CourseDetails = () => {
                     const isFullCourseDeactive = course?.status === 'deactive' || course?.isActive === false;
                     const isDeactive = isFullCourseDeactive || eg.status === 'deactive' || eg.isActive === false;
                     const deactivatedByRole = eg.deactivatedBy || 'admin';
+                    const canToggleStatus = user?.role === 'admin' || (user?.role === 'teacher' && (deactivatedByRole === 'teacher' || !isDeactive));
 
-                    let canToggleStatus = false;
-                    if (user?.role === 'admin') {
-                      // Admin cannot reactivate a grade stream deactivated by Teacher
-                      canToggleStatus = !(isDeactive && deactivatedByRole === 'teacher');
-                    } else if (user?.role === 'teacher') {
-                      // Teacher cannot reactivate a grade stream deactivated by Admin
-                      canToggleStatus = !(isDeactive && deactivatedByRole === 'admin');
-                    }
+                    const gradeLesson = (lessons || []).find(l => normalizeGrade(l.grade) === normalizeGrade(eg.gradeNumber));
+                    const isGradeLive = Boolean(gradeLesson?.liveStream?.isLive);
+                    const isGradeScheduled = Boolean(gradeLesson?.liveStream?.isScheduled && !isGradeLive);
 
                     return (
-                      <div
-                        key={eg.gradeNumber}
-                        onClick={() => {
-                          if (isDeactive) {
-                            if (user?.role === 'admin') {
-                              setSelectedGrade(eg.gradeNumber);
-                              return;
-                            }
-                            if (user?.role === 'teacher') {
-                              if (deactivatedByRole === 'admin') {
-                                toast.error("This grade stream was deactivated by Admin. You cannot access it.");
-                                return;
-                              }
-                              setSelectedGrade(eg.gradeNumber);
-                              return;
-                            }
-                            toast.error("This grade stream is currently deactivated.");
+                    <div
+                      key={eg.gradeNumber}
+                      onClick={() => {
+                        if (isDeactive) {
+                          if (user?.role === 'admin') {
+                            setSelectedGrade(eg.gradeNumber);
                             return;
                           }
-
-                          if (user?.role === 'student' && !alreadyEnrolled) {
-                            toast.error("Please click the '+ Enroll Course' button above to enroll before accessing the workspace.");
+                          if (user?.role === 'teacher') {
+                            if (deactivatedByRole === 'admin') {
+                              toast.error("This grade stream was deactivated by Admin. You cannot access it.");
+                              return;
+                            }
+                            setSelectedGrade(eg.gradeNumber);
                             return;
                           }
-                          setSelectedGrade(eg.gradeNumber);
-                        }}
-                        className={`bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xs border transition-all duration-200 hover:-translate-y-1 hover:shadow-md relative ${isDeactive
-                            ? 'border-red-200 dark:border-red-900/60 bg-red-50/40 dark:bg-red-950/20 cursor-pointer'
-                            : user?.role === 'student' && !alreadyEnrolled
-                              ? 'border-gray-200 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/40 cursor-pointer hover:border-purple-300'
-                              : 'border-purple-100/80 dark:border-slate-800 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer group'
-                          }`}
-                      >
-                        <div>
-                          <div className="flex justify-between items-start mb-6">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-colors ${isDeactive
-                                ? 'bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400'
-                                : user?.role === 'student' && !alreadyEnrolled
-                                  ? 'bg-gray-200 dark:bg-slate-800 text-gray-500 dark:text-gray-400'
-                                  : 'bg-[#f3f4f6] dark:bg-slate-800 group-hover:bg-[#2d1b64] group-hover:text-white'
-                              }`}>
-                              {isDeactive ? '🔒' : user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
-                            </div>
+                          toast.error("This grade stream is currently deactivated.");
+                          return;
+                        }
 
-                            {user?.role === 'student' && !alreadyEnrolled ? (
-                              <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200 dark:border-amber-800">
-                                🔒 Enroll Required
-                              </span>
-                            ) : isDeactive ? (
-                              canToggleStatus ? (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isFullCourseDeactive) {
-                                      toast.error("This full course is currently deactivated. Please activate the full course first to manage grade statuses.");
-                                      return;
-                                    }
-                                    if (user?.role === 'admin' && deactivatedByRole === 'teacher') {
-                                      toast.error("This grade stream was deactivated by Teacher. Only the teacher can reactivate it.");
-                                      return;
-                                    }
-                                    setDeactivateConfirmGrade({
-                                      gradeId: eg._id || eg.id,
-                                      gradeNumber: eg.gradeNumber,
-                                      title: eg.title || eg.gradeNumber,
-                                      isDeactive: true,
-                                      deactivatedBy: eg.deactivatedBy
-                                    });
-                                  }}
-                                  className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-red-500 transition-all cursor-pointer hover:scale-105"
-                                  title="Click to Reactivate Grade Stream"
-                                >
-                                  <FaLock className="text-xs" /> Deactive
-                                </button>
-                              ) : (
-                                <span className="bg-red-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-red-500 opacity-80 cursor-not-allowed" title="Deactivated by Admin">
-                                  <FaLock className="text-xs" /> Deactive
-                                </span>
-                              )
-                            ) : (
-                              canToggleStatus ? (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isFullCourseDeactive) {
-                                      toast.error("This full course is currently deactivated. Please activate the full course first to manage grade statuses.");
-                                      return;
-                                    }
-                                    setDeactivateConfirmGrade({
-                                      gradeId: eg._id || eg.id,
-                                      gradeNumber: eg.gradeNumber,
-                                      title: eg.title || eg.gradeNumber,
-                                      isDeactive: false,
-                                      deactivatedBy: eg.deactivatedBy
-                                    });
-                                  }}
-                                  className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1.5 border border-emerald-400 transition-all cursor-pointer hover:scale-105"
-                                  title="Click to Deactivate Grade Stream"
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                                  Active
-                                </button>
-                              ) : (
-                                <span className="bg-emerald-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1.5 border border-emerald-400">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                                  Active
-                                </span>
-                              )
-                            )}
+                        if (user?.role === 'student' && !alreadyEnrolled) {
+                          toast.error("Please click the '+ Enroll Course' button above to enroll before accessing the workspace.");
+                          return;
+                        }
+                        setSelectedGrade(eg.gradeNumber);
+                      }}
+                      className={`p-6 rounded-2xl shadow-xs border transition-all duration-300 hover:-translate-y-1 hover:shadow-md relative ${
+                        isGradeLive
+                          ? 'border-2 border-red-500/80 bg-red-50/20 dark:bg-red-950/25 shadow-xl shadow-red-900/15 ring-2 ring-red-400/40 cursor-pointer animate-pulse-subtle'
+                          : isGradeScheduled
+                            ? 'border-2 border-amber-400/80 bg-amber-50/20 dark:bg-amber-950/20 shadow-md shadow-amber-900/10 cursor-pointer'
+                            : isDeactive
+                              ? 'border-red-200 dark:border-red-900/60 bg-red-50/40 dark:bg-red-950/20 cursor-pointer'
+                              : user?.role === 'student' && !alreadyEnrolled
+                                ? 'border-gray-200 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/40 cursor-pointer hover:border-purple-300'
+                                : 'bg-white dark:bg-slate-900 border-purple-100/80 dark:border-slate-800 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer group'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex justify-between items-start mb-6">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-colors ${
+                            isGradeLive
+                              ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
+                              : isGradeScheduled
+                                ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30'
+                                : isDeactive
+                                  ? 'bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400'
+                                  : user?.role === 'student' && !alreadyEnrolled
+                                    ? 'bg-gray-200 dark:bg-slate-800 text-gray-500 dark:text-gray-400'
+                                    : 'bg-[#f3f4f6] dark:bg-slate-800 group-hover:bg-[#2d1b64] group-hover:text-white'
+                          }`}>
+                            {isGradeLive ? '🔴' : isGradeScheduled ? '🗓️' : isDeactive ? '🔒' : user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
                           </div>
 
-                          <h3 className={`text-2xl font-bold mb-2 transition-colors ${user?.role === 'student' && !alreadyEnrolled ? 'text-gray-700 dark:text-gray-300' : 'text-gray-800 dark:text-white group-hover:text-[#2d1b64] dark:group-hover:text-purple-300'
-                            }`}>
-                            {eg.title || eg.gradeNumber}
-                          </h3>
-                          <p className="text-gray-400 text-xs mt-2 font-medium">
-                            {user?.role === 'student' && !alreadyEnrolled
-                              ? 'Enroll required to view announcements & lessons'
-                              : 'Click to view announcements and lessons'}
-                          </p>
+                          {/* Status Badge Rendering */}
+                          {isGradeLive ? (
+                            <span className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-red-500/30 flex items-center gap-1.5 border border-red-400/50 animate-pulse">
+                              <span className="w-2 h-2 rounded-full bg-white"></span>
+                              LIVE NOW
+                            </span>
+                          ) : isGradeScheduled ? (
+                            <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-orange-500/30 flex items-center gap-1.5 border border-amber-400/50">
+                              🗓️ SCHEDULED
+                            </span>
+                          ) : user?.role === 'student' && !alreadyEnrolled ? (
+                            <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200 dark:border-amber-800">
+                              🔒 Enroll Required
+                            </span>
+                          ) : isDeactive ? (
+                            canToggleStatus ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (course?.status === 'deactive' || course?.isActive === false) {
+                                    toast.error("This full course is currently deactivated. Please activate the full course first to manage grade statuses.");
+                                    return;
+                                  }
+                                  if (user?.role === 'admin' && deactivatedByRole === 'teacher') {
+                                    toast.error("This grade stream was deactivated by Teacher. Only the teacher can reactivate it.");
+                                    return;
+                                  }
+                                  setDeactivateConfirmGrade({
+                                    gradeId: eg._id || eg.id,
+                                    gradeNumber: eg.gradeNumber,
+                                    title: eg.title || eg.gradeNumber,
+                                    isDeactive: true,
+                                    deactivatedBy: eg.deactivatedBy
+                                  });
+                                }}
+                                className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-red-500 transition-all cursor-pointer hover:scale-105"
+                                title="Click to Reactivate Grade Stream"
+                              >
+                                <FaLock className="text-xs" /> Deactive
+                              </button>
+                            ) : (
+                              <span className="bg-red-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-red-500 opacity-80 cursor-not-allowed" title="Deactivated by Admin">
+                                <FaLock className="text-xs" /> Deactive
+                              </span>
+                            )
+                          ) : (
+                            canToggleStatus ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (course?.status === 'deactive' || course?.isActive === false) {
+                                    toast.error("This full course is currently deactivated. Please activate the full course first to manage grade statuses.");
+                                    return;
+                                  }
+                                  setDeactivateConfirmGrade({
+                                    gradeId: eg._id || eg.id,
+                                    gradeNumber: eg.gradeNumber,
+                                    title: eg.title || eg.gradeNumber,
+                                    isDeactive: false,
+                                    deactivatedBy: eg.deactivatedBy
+                                  });
+                                }}
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1.5 border border-emerald-400 transition-all cursor-pointer hover:scale-105"
+                                title="Click to Deactivate Grade Stream"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                Active
+                              </button>
+                            ) : (
+                              <span className="bg-emerald-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1.5 border border-emerald-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                Active
+                              </span>
+                            )
+                          )}
                         </div>
+
+                        <h3 className={`text-2xl font-bold mb-2 transition-colors ${
+                          isGradeLive
+                            ? 'text-red-600 dark:text-red-400'
+                            : user?.role === 'student' && !alreadyEnrolled 
+                              ? 'text-gray-700 dark:text-gray-300' 
+                              : 'text-gray-800 dark:text-white group-hover:text-[#2d1b64] dark:group-hover:text-purple-300'
+                        }`}>
+                          {eg.title || eg.gradeNumber}
+                        </h3>
+                        
+                        <p className={`text-xs mt-2 font-bold ${
+                          isGradeLive 
+                            ? 'text-red-600 dark:text-red-400 animate-pulse' 
+                            : isGradeScheduled 
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-gray-400 font-medium'
+                        }`}>
+                          {isGradeLive
+                            ? '🔴 Live Class is in progress! Click to join now.'
+                            : isGradeScheduled
+                              ? '🗓️ Live Class scheduled. Click to view schedule.'
+                              : user?.role === 'student' && !alreadyEnrolled
+                                ? 'Enroll required to view announcements & lessons'
+                                : 'Click to view announcements and lessons'}
+                        </p>
+                      </div>
 
                         {user?.role === 'teacher' && (
                           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 flex justify-end" onClick={(e) => e.stopPropagation()}>
@@ -1945,7 +2084,7 @@ const CourseDetails = () => {
       {selectedGrade !== null && (
         <div className="space-y-6">
 
-          {/* Active YouTube Live Stream Player */}
+          {/* Active YouTube Live Stream Player (Positioned at TOP of Workspace) */}
           {currentLesson?.liveStream?.isLive && (
             <LiveStreamPlayer
               liveStream={currentLesson.liveStream}
@@ -1956,7 +2095,7 @@ const CourseDetails = () => {
             />
           )}
 
-          {/* Scheduled Live Countdown Hero Banner */}
+          {/* Scheduled Live Countdown Hero Banner (Positioned at TOP of Workspace) */}
           {!currentLesson?.liveStream?.isLive && currentLesson?.liveStream?.isScheduled && (
             <ScheduledLiveHero
               liveStream={currentLesson.liveStream}
@@ -1969,33 +2108,169 @@ const CourseDetails = () => {
             />
           )}
 
-          {/* Month Selector Bar */}
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h4 className="font-extrabold text-gray-900 dark:text-white text-lg flex items-center gap-2">
-                  <span>🗓️</span> Academic Month Selector
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Select a month to view weekly study materials and attendance logs. Future months are locked.</p>
+          {/* TEACHER & ADMIN QUICK ACTION CREATION TOOLBAR (Class Content Creator) */}
+          {isTeacherOrAdmin && (
+            <div className="bg-gradient-to-r from-[#2f1066] via-[#241154] to-[#120733] p-4 sm:p-5 rounded-3xl text-white shadow-xl flex flex-col 2xl:flex-row justify-between items-start 2xl:items-center gap-4 border border-purple-500/30 animate-fadeIn">
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-xl shrink-0 shadow-inner border border-white/15">
+                  ⚡
+                </div>
+                <div>
+                  <h4 className="font-black text-sm sm:text-base leading-tight">Class Content Creator</h4>
+                  <p className="text-purple-200 text-xs mt-0.5 font-medium">
+                    Publish learning assets for <strong className="text-white">Week {activeWeek}</strong> ({selectedMonth} • {selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`}).
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 2xl:flex 2xl:flex-wrap 2xl:items-center 2xl:justify-end gap-2 w-full 2xl:w-auto">
+                {/* Integrated YouTube Live Stream Action Button */}
+                {currentLesson?.liveStream?.isScheduled ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (currentLesson?.liveStream) {
+                        setLiveStreamTitle(currentLesson.liveStream.title || '');
+                        setLiveYoutubeUrl(currentLesson.liveStream.youtubeUrl || '');
+                      }
+                      setShowLiveModal(true);
+                    }}
+                    className="w-full 2xl:w-auto px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 border border-amber-300/50 shrink-0 whitespace-nowrap"
+                    title="Manage Scheduled Live Stream"
+                  >
+                    <div className="flex items-center gap-1">
+                      <FaCalendarAlt className="text-xs text-white drop-shadow-xs" />
+                      <span className="flex h-1.5 w-1.5 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-200 opacity-90"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                      </span>
+                    </div>
+                    <span>🗓️ Live Scheduled</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (currentLesson?.liveStream?.isLive) {
+                        setLiveStreamTitle(currentLesson.liveStream.title || '');
+                        setLiveYoutubeUrl(currentLesson.liveStream.youtubeUrl || '');
+                      }
+                      setShowLiveModal(true);
+                    }}
+                    className={`w-full 2xl:w-auto px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 border shrink-0 whitespace-nowrap ${
+                      currentLesson?.liveStream?.isLive
+                        ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white border-red-400/50 shadow-red-900/40'
+                        : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white border-red-500/40 shadow-red-900/40'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <FaYoutube className="text-sm text-white drop-shadow-xs" />
+                      <span className="flex h-1.5 w-1.5 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                      </span>
+                    </div>
+                    <span>{currentLesson?.liveStream?.isLive ? '🔴 Manage Live Class' : 'Start YouTube Live Class'}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingMessage(currentLesson?.teacherMessage || '');
+                    setShowAnnouncementModal(true);
+                  }}
+                  className="w-full 2xl:w-auto px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 border border-white/20 shadow-sm active:scale-95 shrink-0 whitespace-nowrap"
+                  title="Post or update weekly announcement for students"
+                >
+                  <span>📢</span> Announcement
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVideoTitle('');
+                    setVideoUrl('');
+                    setVideoDownloadType('immediate');
+                    setVideoCustomUnlockDate('');
+                    setShowAddVideoModal(true);
+                  }}
+                  className="w-full 2xl:w-auto px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 border border-emerald-400/30 shrink-0 whitespace-nowrap"
+                  title="Add video lecture link"
+                >
+                  <span>🎬</span> + Video Lesson
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPdfTitle('');
+                    setPdfFile(null);
+                    setPdfDownloadType('immediate');
+                    setPdfCustomUnlockDate('');
+                    setShowAddPdfModal(true);
+                  }}
+                  className="w-full 2xl:w-auto px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 border border-purple-400/30 shrink-0 whitespace-nowrap"
+                  title="Upload PDF note / study booklet"
+                >
+                  <span>📕</span> + PDF Material
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenCreateAssignment}
+                  className="w-full 2xl:w-auto px-3.5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 border border-amber-400/30 shrink-0 whitespace-nowrap"
+                  title="Create homework assignment"
+                >
+                  <span>📑</span> + Assignment
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigate(`/course/${courseId}/create-quiz`)}
+                  className="w-full 2xl:w-auto px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 border border-blue-400/30 shrink-0 whitespace-nowrap"
+                  title="Create weekly interactive quiz"
+                >
+                  <span>📝</span> + Quiz
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Academic Month Selector */}
+          <div className="bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-5 transition-all duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 dark:from-purple-500/20 dark:to-indigo-500/20 border border-purple-200/50 dark:border-purple-800/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl shadow-xs shrink-0 font-black">
+                  🗓️
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
+                    Academic Month Selector
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Select a month to view weekly study materials and attendance logs. Future months are locked.
+                  </p>
+                </div>
               </div>
 
               {/* Year Navigation */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 shadow-inner shrink-0 self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={handleNavYearPrev}
                   disabled={navYear <= MIN_NAV_YEAR}
-                  className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 hover:text-purple-800 dark:hover:text-purple-300 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-7 h-7 rounded-xl bg-white dark:bg-slate-700 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white text-slate-600 dark:text-slate-200 flex items-center justify-center transition-all duration-200 shadow-2xs active:scale-90 font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   title="Previous Year"
                 >
                   ‹
                 </button>
-                <span className="font-black text-gray-900 dark:text-white text-base min-w-[56px] text-center tabular-nums">{navYear}</span>
+                <span className="px-3 font-extrabold text-slate-900 dark:text-white text-sm tabular-nums tracking-wide">{navYear}</span>
                 <button
                   type="button"
                   onClick={handleNavYearNext}
                   disabled={navYear >= currentYear}
-                  className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 hover:text-purple-800 dark:hover:text-purple-300 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-7 h-7 rounded-xl bg-white dark:bg-slate-700 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white text-slate-600 dark:text-slate-200 flex items-center justify-center transition-all duration-200 shadow-2xs active:scale-90 font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   title="Next Year"
                 >
                   ›
@@ -2004,7 +2279,7 @@ const CourseDetails = () => {
             </div>
 
             {/* 12-Month Grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 sm:gap-3">
               {availableMonths.map(({ label, monthIdx, locked }) => {
                 const isSelected = selectedMonth === label;
                 return (
@@ -2014,20 +2289,22 @@ const CourseDetails = () => {
                     disabled={locked}
                     onClick={() => !locked && setSelectedMonth(label)}
                     title={locked ? 'This month is not available yet' : label}
-                    className={`relative px-2 py-2.5 text-xs font-bold rounded-xl transition text-center leading-tight ${
+                    className={`relative px-3 py-3 rounded-2xl text-xs font-black transition-all duration-200 text-center leading-tight overflow-hidden ${
                       locked
-                        ? 'bg-gray-50 dark:bg-slate-800/40 text-gray-300 dark:text-gray-600 cursor-not-allowed border border-dashed border-gray-200 dark:border-slate-800'
+                        ? 'bg-slate-100/50 dark:bg-slate-800/20 text-slate-400 dark:text-slate-600 border border-dashed border-slate-200 dark:border-slate-800/80 cursor-not-allowed opacity-65'
                         : isSelected
-                          ? 'bg-purple-700 text-white shadow-md ring-2 ring-purple-400 ring-offset-1 scale-105 cursor-pointer'
-                          : 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-slate-700 hover:text-purple-900 dark:hover:text-white cursor-pointer'
+                          ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-700 text-white shadow-lg shadow-purple-600/30 ring-2 ring-purple-400/80 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 scale-[1.03] cursor-pointer border border-purple-400/30'
+                          : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-700 dark:text-slate-200 hover:text-purple-700 dark:hover:text-purple-300 border border-slate-200/60 dark:border-slate-800 hover:border-purple-300/80 dark:hover:border-purple-700/60 shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer'
                     }`}
                   >
                     {locked && (
-                      <span className="absolute top-1 right-1 text-[9px] text-gray-300 dark:text-gray-600">🔒</span>
+                      <span className="absolute top-1.5 right-1.5 text-[10px] text-slate-400 dark:text-slate-500">🔒</span>
                     )}
-                    {MONTH_NAMES[monthIdx].slice(0, 3)}
+                    <span className="block text-xs sm:text-sm font-extrabold tracking-tight">{MONTH_NAMES[monthIdx].slice(0, 3)}</span>
                     {isSelected && !locked && (
-                      <span className="block text-[9px] font-extrabold text-purple-200 mt-0.5 uppercase tracking-wide">Active</span>
+                      <span className="inline-block text-[9px] font-black bg-white/25 backdrop-blur-xs text-white px-2 py-0.5 rounded-full mt-1 uppercase tracking-wider shadow-xs">
+                        ACTIVE
+                      </span>
                     )}
                   </button>
                 );
@@ -2036,26 +2313,32 @@ const CourseDetails = () => {
           </div>
 
           {/* Class Workspace Navigation Tabs */}
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
-              <div>
-                <h4 className="font-extrabold text-gray-900 dark:text-white text-lg flex items-center gap-2">
-                  <span>📅</span> Class Sessions & Workspace — {selectedMonth}
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {activeSchedule ? (
-                    <span>Timetable: <strong className="text-purple-900 dark:text-purple-300 font-extrabold">{activeSchedule.dayOfWeek} ({activeSchedule.startTime} - {activeSchedule.endTime})</strong> • {currentMonthSessions.length} sessions in {selectedMonth}</span>
-                  ) : (
-                    <span>Select a scheduled class date to access study materials and attendance logs. ({currentMonthSessions.length} sessions in {selectedMonth})</span>
-                  )}
-                </p>
+          <div className="bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-5 transition-all duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 border border-indigo-200/50 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl shadow-xs shrink-0 font-black">
+                  📅
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
+                    Class Sessions & Workspace — <span className="text-purple-700 dark:text-purple-400">{selectedMonth}</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                    {activeSchedule ? (
+                      <span>Timetable: <strong className="text-slate-900 dark:text-purple-200 font-extrabold bg-purple-100/70 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-200/60 dark:border-purple-800/60">{activeSchedule.dayOfWeek} ({activeSchedule.startTime} - {activeSchedule.endTime})</strong> • {currentMonthSessions.length} sessions in {selectedMonth}</span>
+                    ) : (
+                      <span>Select a scheduled class date to access study materials and attendance logs. ({currentMonthSessions.length} sessions in {selectedMonth})</span>
+                    )}
+                  </p>
+                </div>
               </div>
-              <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 text-xs font-extrabold px-3 py-1 rounded-lg self-start sm:self-auto border border-purple-200 dark:border-purple-800">
+              <span className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white text-xs font-black shadow-md shadow-purple-500/20 flex items-center gap-1.5 shrink-0 self-start sm:self-auto border border-purple-400/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 Active: {activeSessionObj.label}
               </span>
             </div>
 
-            <div className={`grid grid-cols-2 sm:grid-cols-3 ${currentMonthSessions.length >= 5 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3`}>
+            <div className={`grid grid-cols-2 sm:grid-cols-3 ${currentMonthSessions.length >= 5 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 sm:gap-4`}>
               {currentMonthSessions.map((session) => {
                 const wNum = session.weekNumber;
                 const isAttended = attendedWeeks.includes(wNum);
@@ -2066,32 +2349,34 @@ const CourseDetails = () => {
                     key={wNum}
                     type="button"
                     onClick={() => setActiveWeek(wNum)}
-                    className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden ${
+                    className={`p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden group ${
                       isActive
-                        ? 'border-purple-600 bg-purple-50/95 dark:bg-purple-950/60 ring-2 ring-purple-400/50 shadow-md scale-[1.02]'
-                        : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:border-purple-300 dark:hover:border-slate-700 hover:bg-gray-50/70 dark:hover:bg-slate-700 shadow-2xs'
+                        ? 'bg-gradient-to-br from-purple-500/10 via-indigo-500/5 to-purple-600/15 dark:from-purple-950/70 dark:to-indigo-950/50 border-2 border-purple-500/80 shadow-lg shadow-purple-500/15 ring-4 ring-purple-500/10 scale-[1.02] -translate-y-0.5'
+                        : 'bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700/60 hover:bg-white dark:hover:bg-slate-800 shadow-2xs hover:shadow-md hover:-translate-y-0.5'
                     }`}
                   >
-                    <div className="flex justify-between items-center mb-1.5 gap-1">
-                      <span className={`text-xs font-black tracking-wide ${isActive ? 'text-purple-900 dark:text-purple-300' : 'text-slate-800 dark:text-gray-200'}`}>
-                        📅 {session.label}
+                    <div className="flex justify-between items-center mb-2 gap-1.5">
+                      <span className={`text-xs sm:text-sm font-black tracking-tight flex items-center gap-1 ${isActive ? 'text-purple-950 dark:text-purple-200' : 'text-slate-800 dark:text-slate-200'}`}>
+                        <span>🗓️</span>
+                        <span>{session.label}</span>
                       </span>
                       {isAttended ? (
-                        <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 shrink-0">
-                          ✓ Attended
+                        <span className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1 shrink-0">
+                          <span>✓</span> Attended
                         </span>
                       ) : (
-                        <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0">
-                          Pending
+                        <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1 shrink-0">
+                          <span>⏳</span> Pending
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center justify-between mt-1 text-[11px]">
-                      <span className="text-purple-700 dark:text-purple-400 font-bold">
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 dark:border-slate-700/50 mt-1">
+                      <span className="text-xs font-extrabold text-purple-700 dark:text-purple-300">
                         Session {wNum} {session.isFifthWeek ? '• 5th Class' : ''}
                       </span>
-                      <span className="text-gray-400 dark:text-gray-500 font-medium text-[10px]">
-                        {isAttended ? 'Logged ✓' : 'View Lesson'}
+                      <span className={`text-[11px] font-extrabold flex items-center gap-1 transition-transform group-hover:translate-x-0.5 ${isAttended ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'}`}>
+                        <span>{isAttended ? 'Logged ✓' : 'View Lesson'}</span>
+                        <span className="text-[10px]">→</span>
                       </span>
                     </div>
                   </button>
@@ -2182,87 +2467,6 @@ const CourseDetails = () => {
               >
                 Enroll in this Course 🎓
               </button>
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* TEACHER & ADMIN QUICK ACTION CREATION TOOLBAR */}
-          {/* ========================================================================= */}
-          {isTeacherOrAdmin && (
-            <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-[#1e1035] p-4 sm:p-5 rounded-3xl text-white shadow-lg flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 border border-purple-800/60 animate-fadeIn">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center text-2xl shrink-0 shadow-inner border border-white/15">
-                  ⚡
-                </div>
-                <div>
-                  <h4 className="font-black text-sm sm:text-base leading-tight">Class Content Creator</h4>
-                  <p className="text-purple-200 text-xs mt-0.5 font-medium">
-                    Publish learning assets for <strong className="text-white">Week {activeWeek}</strong> ({selectedMonth} • {selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`}).
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingMessage(currentLesson?.teacherMessage || '');
-                    setShowAnnouncementModal(true);
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-black transition cursor-pointer flex items-center gap-1.5 border border-white/20 shadow-xs active:scale-95"
-                  title="Post or update weekly announcement for students"
-                >
-                  <span>📢</span> Announcement
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setVideoTitle('');
-                    setVideoUrl('');
-                    setVideoDownloadType('immediate');
-                    setVideoCustomUnlockDate('');
-                    setShowAddVideoModal(true);
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
-                  title="Add video lecture link"
-                >
-                  <span>🎬</span> + Video Lesson
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPdfTitle('');
-                    setPdfFile(null);
-                    setPdfDownloadType('immediate');
-                    setPdfCustomUnlockDate('');
-                    setShowAddPdfModal(true);
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
-                  title="Upload PDF note / study booklet"
-                >
-                  <span>📕</span> + PDF Material
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleOpenCreateAssignment}
-                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
-                  title="Create homework assignment"
-                >
-                  <span>📑</span> + Assignment
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate(`/course/${courseId}/create-quiz`)}
-                  className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
-                  title="Create weekly interactive quiz"
-                >
-                  <span>📝</span> + Quiz
-                </button>
-              </div>
             </div>
           )}
 
@@ -2379,33 +2583,38 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 2: VIDEO LESSONS (Expandable) */}
           {/* ========================================================================= */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300 hover:border-purple-200 dark:hover:border-purple-900/50">
             <div
               onClick={() => toggleSection('videos')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-gradient-to-r from-purple-50/20 via-white to-purple-50/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 hover:from-purple-50/50 transition-all duration-300 text-left cursor-pointer select-none"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
-                  🎬
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-700 text-white flex items-center justify-center text-xl font-black shrink-0 shadow-md shadow-purple-600/25 border border-purple-400/30">
+                  <FaVideo className="text-base text-white drop-shadow-xs" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-extrabold text-base text-gray-900 dark:text-white leading-tight">
-                    Video Lessons (Week {activeWeek} — {selectedMonth})
+                  <h4 className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-tight tracking-tight flex flex-wrap items-center gap-2">
+                    <span>Video Lessons</span>
+                    <span className="text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/80 px-2.5 py-0.5 rounded-lg border border-purple-200/80 dark:border-purple-800/80">
+                      Week {activeWeek} • {selectedMonth}
+                    </span>
                   </h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Recorded lecture streams and walkthrough explanations.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate font-semibold">
+                    Recorded lecture streams & walkthrough explanations.
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
-                <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-black px-2.5 py-1 rounded-xl">
+                <span className="bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80 text-xs font-black px-3 py-1 rounded-xl shadow-2xs">
                   {currentLesson?.videoLessons?.length || 0} {currentLesson?.videoLessons?.length === 1 ? 'Video' : 'Videos'}
                 </span>
 
                 {!isTeacherOrAdmin && currentLesson?.videoLessons && currentLesson.videoLessons.length > 0 && (
                   <span className={`text-xs font-extrabold px-3 py-1 rounded-xl border ${
                     isVideoWatched
-                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                      : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                      : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                   }`}>
                     {isVideoWatched ? '✓ Watched' : 'Pending View'}
                   </span>
@@ -2422,13 +2631,13 @@ const CourseDetails = () => {
                       setVideoCustomUnlockDate('');
                       setShowAddVideoModal(true);
                     }}
-                    className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    className="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-md shadow-purple-600/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-purple-400/30"
                   >
                     <FaPlus className="text-[10px]" /> Add Video
                   </button>
                 )}
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
+                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-purple-100/50 dark:hover:bg-purple-950/60 flex items-center justify-center text-gray-500 dark:text-purple-300 text-xs transition">
                   {expandedSections.videos ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
@@ -2455,25 +2664,73 @@ const CourseDetails = () => {
                     )}
                   </div>
                 ) : (
-                  currentLesson.videoLessons.map((vid) => {
-                    const dlStatus = getMaterialDownloadStatus(vid);
-                    return (
-                      <div key={vid._id || vid.url} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 dark:border-slate-800 rounded-2xl hover:bg-purple-50/15 dark:hover:bg-slate-800/90 dark:hover:border-purple-500/40 transition-all gap-3.5 bg-white dark:bg-slate-800/60 shadow-2xs group">
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 dark:from-purple-900/80 dark:to-indigo-950/90 text-white dark:text-purple-200 flex items-center justify-center text-lg shrink-0 font-bold shadow-md shadow-purple-900/20 border border-transparent dark:border-purple-700/50 group-hover:scale-105 transition-transform">
-                            <FaPlayCircle className="text-xl text-white dark:text-purple-300" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-extrabold text-gray-900 dark:text-white text-sm sm:text-base tracking-tight truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">{vid.title}</p>
-                            <div className="flex flex-wrap items-center gap-2 mt-1">
-                              <a
-                                href={vid.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-xs text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 hover:underline truncate max-w-xs font-mono bg-purple-50 dark:bg-purple-950/50 px-2.5 py-0.5 rounded-lg border border-purple-200/60 dark:border-purple-800/50"
+                  [...(currentLesson.videoLessons || [])]
+                    .sort((a, b) => {
+                      const timeA = a.createdAt || a.date 
+                        ? new Date(a.createdAt || a.date).getTime() 
+                        : (a._id && String(a._id).length >= 8 ? parseInt(String(a._id).substring(0, 8), 16) * 1000 : 0);
+                      const timeB = b.createdAt || b.date 
+                        ? new Date(b.createdAt || b.date).getTime() 
+                        : (b._id && String(b._id).length >= 8 ? parseInt(String(b._id).substring(0, 8), 16) * 1000 : 0);
+                      return timeB - timeA; // Latest video on top
+                    })
+                    .map((vid) => {
+                      const dlStatus = getMaterialDownloadStatus(vid);
+                      const thumbnail = getYouTubeThumbnail(vid.url);
+                      const formattedDate = vid.createdAt || vid.date 
+                        ? new Date(vid.createdAt || vid.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : (vid._id && String(vid._id).length >= 8 ? new Date(parseInt(String(vid._id).substring(0, 8), 16) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null);
+
+                      return (
+                        <div key={vid._id || vid.url} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3.5 sm:p-4 border border-gray-200/90 dark:border-slate-800 rounded-2xl hover:bg-purple-50/15 dark:hover:bg-slate-800/90 dark:hover:border-purple-500/40 transition-all gap-4 bg-white dark:bg-slate-800/60 shadow-2xs group">
+                          <div className="flex items-center gap-3.5 min-w-0 w-full sm:w-auto">
+                            {/* Video Thumbnail Card */}
+                            <div
+                              onClick={() => {
+                                markMaterialCompleted('video');
+                                setActiveVideoModal(vid);
+                              }}
+                              className="relative w-28 sm:w-36 h-18 sm:h-20 rounded-xl overflow-hidden shrink-0 group/thumb cursor-pointer border border-purple-200/60 dark:border-slate-700 bg-slate-900 shadow-xs"
+                              title="Play Video"
+                            >
+                              {thumbnail ? (
+                                <img
+                                  src={thumbnail}
+                                  alt={vid.title}
+                                  className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-purple-700 via-indigo-800 to-slate-900 flex items-center justify-center">
+                                  <FaPlayCircle className="text-2xl text-white/80" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-slate-950/30 group-hover/thumb:bg-slate-950/10 transition-colors flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-purple-600/90 text-white flex items-center justify-center shadow-lg group-hover/thumb:scale-110 transition-transform">
+                                  <FaPlay className="text-xs ml-0.5 text-white" />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <h5
+                                onClick={() => {
+                                  markMaterialCompleted('video');
+                                  setActiveVideoModal(vid);
+                                }}
+                                className="font-black text-gray-900 dark:text-white text-sm sm:text-base tracking-tight truncate cursor-pointer group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors"
                               >
-                                <span className="text-[10px]">🔗</span> {vid.url}
-                              </a>
+                                {vid.title}
+                              </h5>
+                              
+                              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                                {formattedDate && (
+                                  <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/90 px-2.5 py-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                                    🗓️ {formattedDate}
+                                  </span>
+                                )}
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-lg border border-purple-200/60 dark:border-purple-800/50">
+                                  🎬 Video Lesson
+                                </span>
                               {isTeacherOrAdmin && (
                                 <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
                                   dlStatus.status === 'immediate'
@@ -2489,28 +2746,29 @@ const CourseDetails = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2.5 self-end sm:self-auto flex-wrap shrink-0">
+                        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap shrink-0">
+                          {/* Watch Video Button for Students & Teachers */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              markMaterialCompleted('video');
+                              setActiveVideoModal(vid);
+                            }}
+                            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-purple-900/30 hover:shadow-lg cursor-pointer flex items-center gap-1.5 active:scale-95"
+                          >
+                            <FaPlayCircle className="text-sm text-white" /> Watch Video
+                          </button>
+
                           {!isTeacherOrAdmin && (
                             <>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  markMaterialCompleted('video');
-                                  window.open(vid.url, '_blank', 'noopener,noreferrer');
-                                }}
-                                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4.5 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-purple-900/30 hover:shadow-lg hover:shadow-purple-900/50 cursor-pointer flex items-center gap-1.5 active:scale-95"
-                              >
-                                <FaPlayCircle className="text-sm" /> Watch Video
-                              </button>
-
                               {dlStatus.isAvailable && (
                                 <a
                                   href={vid.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   download
-                                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-purple-200 px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-slate-200 dark:border-slate-700 hover:border-purple-400"
-                                  title="Download / Open Video"
+                                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-purple-200 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-slate-200 dark:border-slate-700 hover:border-purple-400"
+                                  title="Download Video File"
                                 >
                                   <FaDownload className="text-[10px]" /> Download
                                 </a>
@@ -4231,6 +4489,54 @@ const CourseDetails = () => {
         </div>
       )}
 
+      {/* INTERACTIVE STREAM ENDED SUCCESS & SUMMARY MODAL */}
+      {showEndStreamSuccessModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn select-none"
+          onClick={() => setShowEndStreamSuccessModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-scaleUp text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-3xl shadow-inner border border-emerald-200 dark:border-emerald-800">
+              🎉
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">Live Class Concluded!</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Grade {endedStreamSummary?.grade || selectedGrade} • {course?.title}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 text-left space-y-2">
+              <div className="flex items-center gap-2 text-xs font-black text-emerald-900 dark:text-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span>Broadcast Concluded & Saved</span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                {endedStreamSummary?.savedAsVideo ? (
+                  <span>✅ The live stream recording was published directly to the <strong>Video Lessons</strong> tab for students to re-watch anytime.</span>
+                ) : (
+                  <span>The live class stream has concluded and student attendance pings have stopped.</span>
+                )}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowEndStreamSuccessModal(false)}
+                className="w-full py-3 px-5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-black shadow-lg shadow-purple-600/30 transition cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Done & Return to Workspace</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* MODAL: POST / EDIT ANNOUNCEMENT (Teacher/Admin) */}
       {/* ========================================================================= */}
@@ -5134,6 +5440,14 @@ const CourseDetails = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Embedded Video Player Modal */}
+      {activeVideoModal && (
+        <VideoPlayerModal
+          video={activeVideoModal}
+          onClose={() => setActiveVideoModal(null)}
+        />
       )}
     </div>
   );
