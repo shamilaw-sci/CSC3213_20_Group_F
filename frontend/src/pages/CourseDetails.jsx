@@ -14,7 +14,7 @@ import {
   FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt,
   FaClipboardCheck, FaFileUpload, FaCloudDownloadAlt, FaCheckDouble,
   FaExclamationTriangle, FaCommentDots, FaEdit, FaTrashAlt, FaStar,
-  FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheckCircle, FaTimesCircle, FaPaperPlane,
+  FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheck, FaCheckCircle, FaTimesCircle, FaPaperPlane,
   FaDownload, FaHourglassHalf, FaCog, FaPlayCircle, FaPlay, FaBroadcastTower,
   FaCalendarCheck, FaCrop, FaImage, FaTrash
 } from 'react-icons/fa';
@@ -60,6 +60,18 @@ const CourseDetails = () => {
   const [activePdfModal, setActivePdfModal] = useState(null);
   const [activeVideoModal, setActiveVideoModal] = useState(null);
   const user = JSON.parse(localStorage.getItem('user'));
+
+  // Course Review & Teacher Rating States
+  const [courseReviews, setCourseReviews] = useState([]);
+  const [avgRating, setAvgRating] = useState('0.0');
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [ratingBreakdown, setRatingBreakdown] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [myReview, setMyReview] = useState(null);
+  const [ratingInput, setRatingInput] = useState(5);
+  const [hoverRatingInput, setHoverRatingInput] = useState(0);
+  const [reviewInputText, setReviewInputText] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   // Assignment Modal & Action States
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
@@ -655,6 +667,61 @@ const CourseDetails = () => {
         quizzes: quizzesRes.data || [],
         assignments: assignmentsRes.data || []
       }));
+  const fetchReviews = async () => {
+    try {
+      const res = await api.get(`/courses/${courseId}/reviews`);
+      if (res.data) {
+        setCourseReviews(res.data.reviews || []);
+        setAvgRating(res.data.avgRating || '0.0');
+        setTotalReviews(res.data.totalReviews || 0);
+        setRatingBreakdown(res.data.breakdown || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
+      }
+      const token = localStorage.getItem('token');
+      if (token && user?.role === 'student') {
+        const myRes = await api.get(`/courses/${courseId}/my-review`);
+        if (myRes.data?.review) {
+          setMyReview(myRes.data.review);
+          setRatingInput(myRes.data.review.rating || 5);
+          setReviewInputText(myRes.data.review.review || '');
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching course reviews", err);
+    }
+  };
+
+  const handleSubmitCourseReview = async (e) => {
+    e.preventDefault();
+    if (!ratingInput) {
+      toast.error("Please choose a star rating (1 to 5)");
+      return;
+    }
+    setIsSubmittingReview(true);
+    try {
+      const res = await api.post(`/courses/${courseId}/reviews`, {
+        rating: Number(ratingInput),
+        review: reviewInputText.trim()
+      });
+      toast.success(res.data.message || "Review submitted successfully!");
+      await fetchReviews();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to submit review");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const fetchCourseDetails = async () => {
+    try {
+      const res = await api.get(`/courses/${courseId}`);
+      setCourse(res.data);
+
+      const lessonsRes = await api.get(`/lessons/course/${courseId}`);
+      setLessons(lessonsRes.data);
+
+      await fetchQuizzes();
+      await fetchAssignments();
+      await fetchReviews();
     } catch (err) {
       if (!course) toast.error("Failed to fetch details.");
     } finally {
@@ -1615,11 +1682,25 @@ const CourseDetails = () => {
                   )}
                 </div>
 
-                {/* Instructor Badge & Prominent Name (No Arrow) */}
+                {/* Instructor Badge, Prominent Name & Rating Badge */}
                 <div className="pb-1">
-                  <span className="text-xs font-black text-white bg-purple-600 px-3.5 py-1 rounded-full shadow-md flex items-center gap-1.5 w-fit mb-1 border border-purple-400/40 uppercase tracking-widest">
-                    <FaChalkboardTeacher /> INSTRUCTOR
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-xs font-black text-white bg-purple-600 px-3.5 py-1 rounded-full shadow-md flex items-center gap-1.5 w-fit border border-purple-400/40 uppercase tracking-widest">
+                      <FaChalkboardTeacher /> INSTRUCTOR
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowReviewsModal(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 dark:text-amber-300 border border-amber-400/40 px-3 py-1 rounded-full text-xs font-black transition cursor-pointer backdrop-blur-xs shadow-xs"
+                    >
+                      <FaStar className="text-amber-400" />
+                      <span>{Number(avgRating) > 0 ? `${avgRating} / 5.0` : 'New'}</span>
+                      <span className="opacity-80">({totalReviews} review{totalReviews !== 1 ? 's' : ''})</span>
+                    </button>
+                  </div>
                   <h4 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight group-hover/teacher:text-purple-800 dark:group-hover/teacher:text-purple-400 transition-colors">
                     {course.instructor.name || 'Unassigned'}
                   </h4>
@@ -1659,6 +1740,16 @@ const CourseDetails = () => {
                   {courseSchedules.length} Sessions
                 </span>
                 {showSchedule ? <FaChevronUp className="text-xs text-amber-300" /> : <FaChevronDown className="text-xs text-amber-300" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowReviewsModal(true)}
+                className="px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-md flex items-center gap-2.5 cursor-pointer bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white active:scale-95 border border-amber-400/50"
+              >
+                <FaStar className="text-base text-yellow-200" />
+                <span>Reviews & Feedback</span>
+                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-extrabold">{totalReviews}</span>
               </button>
 
               {user?.role === 'student' && (
@@ -5448,6 +5539,159 @@ const CourseDetails = () => {
           video={activeVideoModal}
           onClose={() => setActiveVideoModal(null)}
         />
+      {/* COURSE RATINGS & REVIEWS MODAL */}
+      {showReviewsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative text-slate-800 dark:text-white">
+            <button
+              onClick={() => setShowReviewsModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            >
+              <FaTimes />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4 mb-5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-500 flex items-center justify-center text-2xl shrink-0 shadow-xs">
+                <FaStar />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-800 dark:text-white">Course & Instructor Reviews</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  {course?.title} {course?.instructor?.name ? `• 👨‍🏫 ${course.instructor.name}` : ''}
+                </p>
+              </div>
+            </div>
+
+            {/* Rating Overview Box */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 mb-5">
+              <div className="flex flex-col items-center justify-center text-center">
+                <span className="text-4xl font-black text-slate-800 dark:text-white">{avgRating}</span>
+                <div className="flex items-center gap-1 text-amber-400 my-1 text-base">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <FaStar
+                      key={star}
+                      className={star <= Math.round(Number(avgRating)) ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs text-slate-400 font-bold">
+                  {totalReviews} Student Review{totalReviews !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              <div className="sm:col-span-2 space-y-1.5 justify-center flex flex-col">
+                {[5, 4, 3, 2, 1].map((stars) => {
+                  const count = ratingBreakdown[stars] || 0;
+                  const pct = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
+                  return (
+                    <div key={stars} className="flex items-center gap-2 text-xs">
+                      <span className="w-8 font-bold text-slate-600 dark:text-slate-300 text-[11px] shrink-0">{stars} ★</span>
+                      <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-amber-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="w-8 text-right text-[10px] font-bold text-slate-400">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Student Review Submission Form */}
+            {user?.role === 'student' && (
+              <form onSubmit={handleSubmitCourseReview} className="mb-6 p-4 rounded-2xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-800/50 space-y-3">
+                <h4 className="text-sm font-black text-purple-950 dark:text-white flex items-center gap-2">
+                  <span>✍️</span> {myReview ? 'Update Your Rating & Feedback' : 'Rate This Course & Instructor'}
+                </h4>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Your Rating:</span>
+                  <div className="flex items-center gap-1.5 text-2xl">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRatingInput(star)}
+                        onMouseEnter={() => setHoverRatingInput(star)}
+                        onMouseLeave={() => setHoverRatingInput(0)}
+                        className="transition-transform hover:scale-125 cursor-pointer p-0.5"
+                      >
+                        <FaStar
+                          className={
+                            star <= (hoverRatingInput || ratingInput)
+                              ? 'text-amber-400'
+                              : 'text-slate-300 dark:text-slate-600'
+                          }
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <textarea
+                  rows="2"
+                  value={reviewInputText}
+                  onChange={(e) => setReviewInputText(e.target.value)}
+                  placeholder="Write what you liked about this course or teacher..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-purple-200 dark:border-purple-800/80 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                />
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReview}
+                    className="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl transition shadow-md cursor-pointer active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <FaCheck /> {isSubmittingReview ? 'Submitting...' : myReview ? 'Update Review' : 'Post Review'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Reviews Stream */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                All Student Reviews ({courseReviews.length})
+              </h4>
+
+              {courseReviews.length > 0 ? (
+                courseReviews.map((rev) => (
+                  <div
+                    key={rev._id}
+                    className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/40 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center justify-center font-black text-xs shrink-0">
+                          {(rev.student?.name || 'S').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h5 className="text-xs font-black text-slate-800 dark:text-white">{rev.student?.name || rev.studentName || 'Student'}</h5>
+                          <span className="text-[10px] text-slate-400">{rev.student?.grade || 'Enrolled Student'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-lg border border-amber-100 dark:border-amber-800/50 text-[11px] font-extrabold">
+                        <FaStar /> {rev.rating}.0
+                      </div>
+                    </div>
+                    {rev.review && (
+                      <p className="text-xs text-slate-600 dark:text-slate-300 font-medium italic pl-1 border-l-2 border-purple-300 dark:border-purple-700">
+                        "{rev.review}"
+                      </p>
+                    )}
+                    <span className="text-[9px] text-slate-400 font-semibold block text-right">
+                      {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-slate-400 italic text-xs bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                  No student reviews posted yet. Be the first to share feedback!
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

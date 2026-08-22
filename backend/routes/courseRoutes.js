@@ -9,6 +9,7 @@ const Lesson = require('../models/Lesson');
 const Attendance = require('../models/Attendance');
 const Enrollment = require('../models/Enrollment');
 const Notification = require('../models/Notification');
+const Review = require('../models/Review');
 const { protect, isAdmin, isTeacherOrAdmin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 const { getClassNameFromGrade } = require('../utils/migration');
@@ -1110,6 +1111,168 @@ router.put('/:id/full-status', protect, isAdmin, async (req, res) => {
     } catch (err) {
         console.error("Failed to update full course status:", err.message);
         res.status(500).json({ error: "Failed to update full course status: " + err.message });
+    }
+});
+
+// ==========================================
+//        COURSE & TEACHER RATING API
+// ==========================================
+
+// @route   POST /api/courses/:id/reviews
+// @desc    Enrolled student submits or updates a rating & review for a course/teacher
+router.post('/:id/reviews', protect, async (req, res) => {
+    try {
+        const { rating, review } = req.body;
+        const courseId = req.params.id;
+        const studentId = req.user._id || req.user.id;
+
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ error: "Rating is required and must be between 1 and 5 stars." });
+        }
+
+        const course = await Course.findById(courseId).populate('instructor', 'name email');
+        if (!course) {
+            return res.status(404).json({ error: "Course not found." });
+        }
+
+        if (!course.instructor) {
+            return res.status(400).json({ error: "Course does not have an assigned instructor to rate." });
+        }
+
+        const teacherId = course.instructor._id || course.instructor;
+
+        // Upsert review (create if not exist, update if already exists)
+        const updatedReview = await Review.findOneAndUpdate(
+            { course: courseId, student: studentId },
+            {
+                course: courseId,
+                teacher: teacherId,
+                student: studentId,
+                rating: Number(rating),
+                review: review ? review.trim() : '',
+                courseTitle: course.title,
+                studentName: req.user.name || 'Student'
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        // Notify teacher of the new/updated review
+        try {
+            if (teacherId.toString() !== studentId.toString()) {
+                await Notification.create({
+                    recipient: teacherId,
+                    type: 'GENERAL',
+                    title: 'New Student Rating & Review',
+                    message: `${req.user.name || 'A student'} rated '${course.title}' ${rating} ⭐${review ? `: "${review.slice(0, 60)}..."` : ''}`,
+                    link: '/dashboard',
+                    metadata: { courseId, reviewId: updatedReview._id }
+                });
+            }
+        } catch (notifErr) {
+            console.error("Review notification error:", notifErr.message);
+        }
+
+        // Calculate fresh course review stats
+        const allCourseReviews = await Review.find({ course: courseId });
+        const totalRating = allCourseReviews.reduce((sum, r) => sum + r.rating, 0);
+        const avgRating = allCourseReviews.length > 0 ? (totalRating / allCourseReviews.length).toFixed(1) : "0.0";
+
+        res.status(200).json({
+            message: "Your review and rating have been recorded successfully!",
+            review: updatedReview,
+            stats: {
+                averageRating: avgRating,
+                totalReviews: allCourseReviews.length
+            }
+        });
+    } catch (err) {
+        console.error("Submit course review error:", err);
+        res.status(500).json({ error: "Failed to submit review: " + err.message });
+    }
+});
+
+// @route   GET /api/courses/:id/reviews
+// @desc    Get all reviews and aggregate rating breakdown for a course
+router.get('/:id/reviews', async (req, res) => {
+    try {
+        const courseId = req.params.id;
+        const reviews = await Review.find({ course: courseId })
+            .populate('student', 'name profilePicture grade studentType')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const totalReviews = reviews.length;
+        const sumRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
+        const averageRating = totalReviews > 0 ? (sumRating / totalReviews).toFixed(1) : "0.0";
+
+        // 5-star breakdown
+        const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        reviews.forEach(r => {
+            if (breakdown[r.rating] !== undefined) {
+                breakdown[r.rating]++;
+            }
+        });
+
+        res.json({
+            courseId,
+            totalReviews,
+            averageRating,
+            breakdown,
+            reviews
+        });
+    } catch (err) {
+        console.error("Get course reviews error:", err);
+        res.status(500).json({ error: "Failed to fetch reviews: " + err.message });
+    }
+});
+
+// @route   GET /api/courses/:id/my-review
+// @desc    Get the current student's review for a course
+router.get('/:id/my-review', protect, async (req, res) => {
+    try {
+        const courseId = req.params.id;
+        const studentId = req.user._id || req.user.id;
+
+        const myReview = await Review.findOne({ course: courseId, student: studentId }).lean();
+        res.json({ review: myReview || null });
+    } catch (err) {
+        console.error("Get my review error:", err);
+        res.status(500).json({ error: "Failed to fetch your review." });
+    }
+});
+
+// @route   GET /api/courses/teacher/:teacherId/reviews
+// @desc    Get all reviews for a teacher across all their courses
+router.get('/teacher/:teacherId/reviews', async (req, res) => {
+    try {
+        const teacherId = req.params.teacherId;
+        const reviews = await Review.find({ teacher: teacherId })
+            .populate('student', 'name profilePicture grade')
+            .populate('course', 'title cardImage')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const totalReviews = reviews.length;
+        const sumRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
+        const averageRating = totalReviews > 0 ? (sumRating / totalReviews).toFixed(1) : "0.0";
+
+        const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        reviews.forEach(r => {
+            if (breakdown[r.rating] !== undefined) {
+                breakdown[r.rating]++;
+            }
+        });
+
+        res.json({
+            teacherId,
+            totalReviews,
+            averageRating,
+            breakdown,
+            reviews
+        });
+    } catch (err) {
+        console.error("Get teacher reviews error:", err);
+        res.status(500).json({ error: "Failed to fetch teacher reviews." });
     }
 });
 

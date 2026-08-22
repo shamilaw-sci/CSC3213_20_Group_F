@@ -20,6 +20,7 @@ const QuizSubmission = require('../models/QuizSubmission');
 const Assignment = require('../models/Assignment');
 const AssignmentSubmission = require('../models/AssignmentSubmission');
 const Lesson = require('../models/Lesson');
+const Review = require('../models/Review');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail, sendPasscodeEmail } = require('../utils/emailService');
@@ -1968,7 +1969,7 @@ router.get('/teacher-stats', protect, async (req, res) => {
     const courseIds = teacherCourses.map(c => c._id);
 
     const enrollments = await Enrollment.find({ course: { $in: courseIds } })
-      .populate('student', 'name email registrationNumber grade studentType')
+      .populate('student', 'name email registrationNumber grade studentType profilePicture')
       .lean();
 
     const studentMap = {};
@@ -1981,7 +1982,7 @@ router.get('/teacher-stats', protect, async (req, res) => {
     for (const c of teacherCourses) {
       if (Array.isArray(c.enrolledStudents) && c.enrolledStudents.length > 0) {
         const embeddedStudents = await User.find({ _id: { $in: c.enrolledStudents }, role: 'student' })
-          .select('name email registrationNumber grade studentType')
+          .select('name email registrationNumber grade studentType profilePicture')
           .lean();
         embeddedStudents.forEach(s => {
           studentMap[s._id.toString()] = s;
@@ -1999,10 +2000,50 @@ router.get('/teacher-stats', protect, async (req, res) => {
       }
     });
 
+    // Real Teacher Ratings & Reviews from Review model
+    const reviews = await Review.find({
+      $or: [
+        { teacher: teacherId },
+        { course: { $in: courseIds } }
+      ]
+    })
+      .populate('student', 'name profilePicture grade')
+      .populate('course', 'title cardImage')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const totalReviewCount = reviews.length;
+    const totalRatingSum = reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
+    const avgRating = totalReviewCount > 0 ? (totalRatingSum / totalReviewCount).toFixed(1) : "0.0";
+
+    const ratingBreakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    reviews.forEach(r => {
+      if (ratingBreakdown[r.rating] !== undefined) {
+        ratingBreakdown[r.rating]++;
+      }
+    });
+
+    // Pending assignment grading queue for this teacher's courses
+    const [pendingGradingCount, totalGradedCount, teacherQuizzes, totalAssignments] = await Promise.all([
+      AssignmentSubmission.countDocuments({ course: { $in: courseIds }, status: 'submitted' }),
+      AssignmentSubmission.countDocuments({ course: { $in: courseIds }, status: 'graded' }),
+      Quiz.find({ course: { $in: courseIds } }).select('_id title course').lean(),
+      Assignment.countDocuments({ course: { $in: courseIds }, isActive: true })
+    ]);
+
+    const teacherQuizIds = teacherQuizzes.map(q => q._id);
+    const totalQuizSubmissions = teacherQuizIds.length > 0 
+      ? await QuizSubmission.countDocuments({ quiz: { $in: teacherQuizIds } }) 
+      : 0;
+
     const coursesList = teacherCourses.map(c => {
       const cIdStr = c._id.toString();
       const countDoc = enrollmentCountsByCourse[cIdStr] || 0;
       const countEmb = Array.isArray(c.enrolledStudents) ? c.enrolledStudents.length : 0;
+      const courseReviews = reviews.filter(r => r.course && (r.course._id?.toString() === cIdStr || r.course.toString() === cIdStr));
+      const cRatingSum = courseReviews.reduce((sum, r) => sum + (r.rating || 0), 0);
+      const cAvgRating = courseReviews.length > 0 ? (cRatingSum / courseReviews.length).toFixed(1) : "0.0";
+
       return {
         id: c._id,
         _id: c._id,
@@ -2010,7 +2051,9 @@ router.get('/teacher-stats', protect, async (req, res) => {
         description: c.description,
         price: c.price || 2500,
         cardImage: c.cardImage || '',
-        enrolledCount: Math.max(countDoc, countEmb)
+        enrolledCount: Math.max(countDoc, countEmb),
+        rating: cAvgRating,
+        reviewsCount: courseReviews.length
       };
     });
 
@@ -2021,23 +2064,25 @@ router.get('/teacher-stats', protect, async (req, res) => {
       ]
     }).populate('teacherId', 'name').lean();
 
-    let totalRating = 0;
-    let ratingCount = 0;
-    teacherCourses.forEach(c => {
-      if (c.rating) {
-        totalRating += c.rating;
-        ratingCount++;
-      }
-    });
-    const avgRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : "5.0";
-
     res.json({
       coursesCount: teacherCourses.length,
       studentsCount: uniqueStudents.length,
       rating: avgRating,
+      totalReviews: totalReviewCount,
+      ratingBreakdown,
+      recentReviews: reviews.slice(0, 8),
       coursesList,
       studentsList: uniqueStudents,
-      assignedSchedules
+      assignedSchedules,
+      gradingQueue: {
+        pendingCount: pendingGradingCount,
+        gradedCount: totalGradedCount
+      },
+      academicStats: {
+        totalAssignments,
+        totalQuizzes: teacherQuizzes.length,
+        totalQuizSubmissions
+      }
     });
   } catch (err) {
     console.error("Error fetching teacher stats:", err);
@@ -2057,7 +2102,7 @@ router.get('/student-stats', protect, async (req, res) => {
     const enrollments = await Enrollment.find({ student: studentId })
       .populate({
         path: 'course',
-        populate: { path: 'instructor', select: 'name email' }
+        populate: { path: 'instructor', select: 'name email profilePicture' }
       })
       .lean();
 
@@ -2073,10 +2118,12 @@ router.get('/student-stats', protect, async (req, res) => {
         title: c.title,
         description: c.description,
         instructorName: c.instructor?.name || 'Faculty Instructor',
+        instructorId: c.instructor?._id || null,
+        instructorPhoto: c.instructor?.profilePicture || '',
         price: c.price || 2500,
         cardImage: c.cardImage || '',
         banner: c.banner || '',
-        progress: 45
+        progress: 0
       };
     });
 
@@ -2088,15 +2135,144 @@ router.get('/student-stats', protect, async (req, res) => {
           title: e.course.title,
           description: e.course.description,
           instructorName: e.course.instructor?.name || 'Faculty Instructor',
+          instructorId: e.course.instructor?._id || null,
+          instructorPhoto: e.course.instructor?.profilePicture || '',
           price: e.course.price || 2500,
           cardImage: e.course.cardImage || '',
           banner: e.course.banner || '',
-          progress: e.progress || 45
+          progress: 0
         };
       }
     });
 
     const enrolledCoursesList = Object.values(courseMap);
+    const enrolledCourseIds = enrolledCoursesList.map(c => c._id);
+
+    // Dynamic Real Course Progress Calculation
+    if (enrolledCourseIds.length > 0) {
+      const [
+        allLessons,
+        allReadProgress,
+        allCourseQuizzes,
+        allQuizSubmissions,
+        allCourseAssignments,
+        allAssignmentSubmissions,
+        allAttendances,
+        allReviews
+      ] = await Promise.all([
+        Lesson.find({ course: { $in: enrolledCourseIds } }).lean(),
+        ReadingProgress.find({ student: studentId, course: { $in: enrolledCourseIds } }).lean(),
+        Quiz.find({ course: { $in: enrolledCourseIds }, isActive: true }).lean(),
+        QuizSubmission.find({ student: studentId }).lean(),
+        Assignment.find({ course: { $in: enrolledCourseIds }, isActive: true }).lean(),
+        AssignmentSubmission.find({ student: studentId, course: { $in: enrolledCourseIds } }).lean(),
+        Attendance.find({ studentId, courseId: { $in: enrolledCourseIds } }).lean(),
+        Review.find({ student: studentId, course: { $in: enrolledCourseIds } }).lean()
+      ]);
+
+      // Calculate dynamic progress per course
+      enrolledCoursesList.forEach(c => {
+        const cIdStr = c._id.toString();
+        const courseLessons = allLessons.filter(l => l.course && l.course.toString() === cIdStr);
+        let totalPdfs = 0;
+        courseLessons.forEach(l => {
+          totalPdfs += (l.pdfMaterials?.length || 0);
+        });
+
+        const completedPdfs = allReadProgress.filter(p => p.course && p.course.toString() === cIdStr && p.isCompleted).length;
+        const courseQuizzes = allCourseQuizzes.filter(q => q.course && q.course.toString() === cIdStr);
+        const completedQuizzes = allQuizSubmissions.filter(qs => courseQuizzes.some(cq => cq._id.toString() === qs.quiz?.toString())).length;
+        const courseAssignments = allCourseAssignments.filter(a => a.course && a.course.toString() === cIdStr);
+        const submittedAssignments = allAssignmentSubmissions.filter(as => as.course && as.course.toString() === cIdStr).length;
+        const attendedSessions = allAttendances.filter(at => at.courseId && at.courseId.toString() === cIdStr && at.status === 'Present').length;
+
+        const totalItems = totalPdfs + courseQuizzes.length + courseAssignments.length + 4; // 4 weekly milestones per month
+        const finishedItems = completedPdfs + completedQuizzes + submittedAssignments + Math.min(4, attendedSessions);
+
+        const progressPercent = totalItems > 0 
+          ? Math.min(100, Math.max(0, Math.round((finishedItems / totalItems) * 100))) 
+          : (attendedSessions > 0 ? 35 : 15);
+
+        c.progress = progressPercent;
+        c.materialsCount = totalPdfs;
+        c.completedMaterialsCount = completedPdfs;
+        c.quizzesCount = courseQuizzes.length;
+        c.completedQuizzesCount = completedQuizzes;
+        c.assignmentsCount = courseAssignments.length;
+        c.submittedAssignmentsCount = submittedAssignments;
+
+        const userReview = allReviews.find(r => r.course && r.course.toString() === cIdStr);
+        c.myRating = userReview ? userReview.rating : null;
+        c.myReviewText = userReview ? userReview.review : '';
+      });
+    }
+
+    // Student upcoming assignment deadlines
+    const upcomingAssignments = await Assignment.find({
+      course: { $in: enrolledCourseIds },
+      isActive: true
+    })
+      .populate('course', 'title')
+      .sort({ dueDate: 1 })
+      .limit(6)
+      .lean();
+
+    const studentSubmissions = await AssignmentSubmission.find({
+      student: studentId,
+      assignment: { $in: upcomingAssignments.map(a => a._id) }
+    }).lean();
+
+    const subMap = {};
+    studentSubmissions.forEach(s => { subMap[s.assignment.toString()] = s; });
+
+    const upcomingTasks = upcomingAssignments.map(a => {
+      const sub = subMap[a._id.toString()];
+      return {
+        _id: a._id,
+        title: a.title,
+        courseTitle: a.course?.title || 'Course',
+        courseId: a.course?._id || a.course,
+        dueDate: a.dueDate,
+        maxMarks: a.maxMarks || 100,
+        isSubmitted: !!sub,
+        submissionStatus: sub?.status || 'pending',
+        marks: sub?.marks ?? null,
+        feedback: sub?.feedback || ''
+      };
+    });
+
+    // Active Quizzes for student
+    const activeQuizzesList = await Quiz.find({
+      course: { $in: enrolledCourseIds },
+      isActive: true
+    })
+      .populate('course', 'title')
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
+
+    const studentQuizSubmissions = await QuizSubmission.find({
+      student: studentId,
+      quiz: { $in: activeQuizzesList.map(q => q._id) }
+    }).lean();
+
+    const quizSubMap = {};
+    studentQuizSubmissions.forEach(qs => { quizSubMap[qs.quiz.toString()] = qs; });
+
+    const activeQuizzes = activeQuizzesList.map(q => {
+      const qs = quizSubMap[q._id.toString()];
+      return {
+        _id: q._id,
+        title: q.title,
+        courseTitle: q.course?.title || 'Course',
+        courseId: q.course?._id || q.course,
+        grade: q.grade,
+        totalQuestions: q.questions?.length || 0,
+        isAttempted: !!qs,
+        score: qs?.score,
+        totalPoints: qs?.totalPoints
+      };
+    });
 
     const studentPayments = await Payment.find({ student: studentId })
       .populate('course', 'title price')
@@ -2126,13 +2302,15 @@ router.get('/student-stats', protect, async (req, res) => {
         { recipient: studentId },
         { recipientRole: { $in: ['all', 'student'] } }
       ]
-    }).sort({ createdAt: -1 }).limit(5).lean();
+    }).sort({ createdAt: -1 }).limit(6).lean();
 
     res.json({
       coursesCount: enrolledCoursesList.length,
       grade: req.user.grade || 'Grade 10',
       studentType: req.user.studentType || 'physical',
       enrolledCoursesList,
+      upcomingTasks,
+      activeQuizzes,
       payments: studentPayments,
       latestReceipt,
       attendanceStats: {

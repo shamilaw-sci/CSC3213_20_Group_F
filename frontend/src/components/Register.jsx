@@ -316,7 +316,8 @@ const Register = () => {
                 <FaUser className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
                 <input
                   type="text"
-                  className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                  placeholder="e.g. Kasun Jayawardena"
+                  className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -334,7 +335,8 @@ const Register = () => {
                   <FaEnvelope className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
                   <input
                     type="email"
-                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                    placeholder="e.g. student@example.com"
+                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -353,7 +355,8 @@ const Register = () => {
                   <FaPhone className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
                   <input
                     type="tel"
-                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                    placeholder="e.g. 0712345678"
+                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     required
@@ -372,7 +375,8 @@ const Register = () => {
                   <FaPhone className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
                   <input
                     type="tel"
-                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                    placeholder="e.g. 0771234567"
+                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     value={parentsPhoneNumber}
                     onChange={(e) => setParentsPhoneNumber(e.target.value)}
                     required
@@ -390,7 +394,8 @@ const Register = () => {
                 <FaLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
                 <input
                   type={showPassword ? "text" : "password"}
-                  className="w-full bg-transparent pl-11 pr-11 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                  placeholder="Minimum 6 characters"
+                  className="w-full bg-transparent pl-11 pr-11 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

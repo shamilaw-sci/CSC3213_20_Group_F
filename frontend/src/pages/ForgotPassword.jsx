@@ -148,7 +148,8 @@ const ForgotPassword = () => {
                   <FaKey className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
                   <input
                     type="text"
-                    className="w-full bg-transparent pl-11 pr-4 py-3.5 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                    placeholder="Enter email, registration number or phone"
+                    className="w-full bg-transparent pl-11 pr-4 py-3.5 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     required
@@ -198,7 +199,8 @@ const ForgotPassword = () => {
                   <input
                     type="text"
                     maxLength={6}
-                    className="w-full bg-transparent pl-11 pr-4 py-3.5 text-sm font-mono font-bold tracking-widest text-slate-900 dark:text-white outline-none rounded-2xl"
+                    placeholder="••••••"
+                    className="w-full bg-transparent pl-11 pr-4 py-3.5 text-sm font-mono font-bold tracking-widest text-slate-900 dark:text-white outline-none rounded-2xl placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                     required
@@ -216,7 +218,8 @@ const ForgotPassword = () => {
                   <FaLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
                   <input
                     type={showPassword ? "text" : "password"}
-                    className="w-full bg-transparent pl-11 pr-11 py-3.5 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                    placeholder="Minimum 6 characters"
+                    className="w-full bg-transparent pl-11 pr-11 py-3.5 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
@@ -241,7 +244,8 @@ const ForgotPassword = () => {
                   <FaLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 text-sm" />
                   <input
                     type={showPassword ? "text" : "password"}
-                    className="w-full bg-transparent pl-11 pr-11 py-3.5 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl"
+                    placeholder="Re-enter new password"
+                    className="w-full bg-transparent pl-11 pr-11 py-3.5 text-sm font-semibold text-slate-900 dark:text-white outline-none rounded-2xl placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
