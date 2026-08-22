@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import BroadcastModal from './BroadcastModal';
 import MessagingPopup from './MessagingPopup';
+import GlobalSearchBar from './GlobalSearchBar';
+import TeacherModal from './TeacherModal';
+import StudentProfileModal from './StudentProfileModal';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 
 import {
@@ -53,6 +56,8 @@ const DashboardLayout = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
+  const [selectedTeacherForModal, setSelectedTeacherForModal] = useState(null);
+  const [selectedStudentIdForModal, setSelectedStudentIdForModal] = useState(null);
 
   // --- DATA STATES ---
   const [notifications, setNotifications] = useState([]);
@@ -221,19 +226,11 @@ const DashboardLayout = () => {
             {getPageTitle()}
           </h2>
 
-          {/* --- SEARCH BAR --- */}
-          <div className="flex-1 max-w-xl mx-4 min-w-[200px]">
-            <div className="relative group">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 group-focus-within:text-lumina-purple transition-colors">
-                <FaSearch />
-              </span>
-              <input
-                type="text"
-                placeholder="Search for courses and teachers..."
-                className="w-full py-2.5 pl-10 pr-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 dark:text-white dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 transition-all text-sm"
-              />
-            </div>
-          </div>
+          {/* --- SYSTEM GLOBAL SEARCH BAR --- */}
+          <GlobalSearchBar
+            onSelectTeacher={(t) => setSelectedTeacherForModal(t)}
+            onSelectStudent={(sId) => setSelectedStudentIdForModal(sId)}
+          />
 
           <div className="flex items-center gap-3 w-auto flex-shrink-0 justify-end">
 
@@ -471,6 +468,21 @@ const DashboardLayout = () => {
         isOpen={isMessagingOpen}
         onClose={() => setIsMessagingOpen(false)}
         onUnreadUpdate={(count) => setUnreadMessageCount(count)}
+      />
+
+      {/* --- TEACHER PROFILE MODAL (LAUNCHABLE FROM SEARCH) --- */}
+      <TeacherModal
+        isOpen={!!selectedTeacherForModal}
+        teacher={selectedTeacherForModal}
+        teacherId={selectedTeacherForModal?._id || selectedTeacherForModal?.id}
+        onClose={() => setSelectedTeacherForModal(null)}
+      />
+
+      {/* --- STUDENT PROFILE MODAL (LAUNCHABLE FROM SEARCH) --- */}
+      <StudentProfileModal
+        isOpen={!!selectedStudentIdForModal}
+        studentId={selectedStudentIdForModal}
+        onClose={() => setSelectedStudentIdForModal(null)}
       />
     </div>
   );

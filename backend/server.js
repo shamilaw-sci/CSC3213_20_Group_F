@@ -18,6 +18,7 @@ const quizRoutes = require('./routes/quizRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const settingRoutes = require('./routes/settingRoutes');
+const searchRoutes = require('./routes/searchRoutes');
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/search', searchRoutes);
 
 
 // --- GLOBAL ERROR HANDLER ---
