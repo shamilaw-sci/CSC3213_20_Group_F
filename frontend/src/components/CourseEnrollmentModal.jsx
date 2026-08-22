@@ -256,10 +256,10 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
       <div className="bg-white dark:bg-slate-900 w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800 animate-fadeIn text-gray-800 dark:text-gray-100 my-auto">
-        
+
         {/* Modal Header (Fixed at top) */}
         <div className="flex-shrink-0 bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] px-5 py-4 text-white relative">
-          <button 
+          <button
             type="button"
             onClick={onClose}
             className="absolute top-3.5 right-4 bg-white/20 hover:bg-red-600 text-white font-bold text-xs px-3 py-1 rounded-full transition flex items-center gap-1.5 shadow-md border border-white/30 cursor-pointer"
@@ -268,7 +268,7 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
             <span className="text-base font-black leading-none">✕</span>
             <span className="font-extrabold text-xs hidden xs:inline">Close</span>
           </button>
-          
+
           <div className="flex items-center space-x-3 pr-16">
             <span className="text-2xl sm:text-3xl">🎓</span>
             <div>
@@ -286,11 +286,11 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
 
         {/* Scrollable Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-          
+
           {/* STEP 1: Registration Form */}
           {step === 1 && (
             <div className="space-y-4">
-              
+
               {/* Student Information (Database Records) */}
               <div className="bg-purple-50/70 dark:bg-slate-800/80 rounded-xl p-3 sm:p-3.5 border border-purple-100 dark:border-slate-700">
                 <h4 className="text-[11px] font-bold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-1.5">
@@ -353,9 +353,9 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
                 </label>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  
+
                   {/* Option A: Card IPG (UNAVAILABLE / DISABLED) */}
-                  <div 
+                  <div
                     onClick={() => {
                       toast.error('Online Card Payment is not available yet. Please use Direct Bank Deposit.');
                     }}
@@ -376,7 +376,7 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
                   </div>
 
                   {/* Option B: Bank Slip (ACTIVE & SELECTED) */}
-                  <div 
+                  <div
                     onClick={() => setPaymentMethodType('BANK_SLIP')}
                     className="p-3 rounded-xl border-2 border-purple-600 bg-purple-50/90 dark:bg-purple-950/60 shadow-sm ring-2 ring-purple-200 dark:ring-purple-900 cursor-pointer flex flex-col justify-between transition-all"
                   >
@@ -413,15 +413,15 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
                   </div>
                   <div>
                     <span className="text-[9px] uppercase font-bold text-gray-400 block">Account Holder</span>
-                    <span className="font-bold text-gray-800 dark:text-white text-xs">{courseBankDetails.accountName || 'LuminaLearn Institute'}</span>
+                    <span className="font-bold text-gray-800 dark:text-white text-xs">{courseBankDetails.accountName || 'M.G.S.C.K.Herath'}</span>
                   </div>
                   <div>
                     <span className="text-[9px] uppercase font-bold text-gray-400 block">Account Number</span>
-                    <span className="font-mono font-bold text-purple-900 dark:text-purple-300 text-xs">{courseBankDetails.accountNumber || '1098 7654 3210'}</span>
+                    <span className="font-bold text-gray-800 dark:text-white text-xs">{courseBankDetails.accountNumber || '1184 5213 3874'}</span>
                   </div>
                   <div>
                     <span className="text-[9px] uppercase font-bold text-gray-400 block">Branch</span>
-                    <span className="font-bold text-gray-800 dark:text-white text-xs">{courseBankDetails.branchName || 'Colombo Head Office'}</span>
+                    <span className="font-bold text-gray-800 dark:text-white text-xs">{courseBankDetails.branchName || 'Menikhinna'}</span>
                   </div>
                 </div>
 
