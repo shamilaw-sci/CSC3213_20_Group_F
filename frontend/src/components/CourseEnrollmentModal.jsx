@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 
 const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSuccess }) => {
@@ -8,8 +8,8 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
   const [sendingOtp, setSendingOtp] = useState(false);
   const [submittingSlip, setSubmittingSlip] = useState(false);
 
-  // Payment Method Selection: 'CARD' | 'BANK_SLIP'
-  const [paymentMethodType, setPaymentMethodType] = useState('CARD');
+  // Payment Method Selection: Online card is not implemented yet, so locked to 'BANK_SLIP'
+  const [paymentMethodType, setPaymentMethodType] = useState('BANK_SLIP');
 
   // Step 1 State: Enrollment details
   const [enrollmentDate, setEnrollmentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -89,7 +89,7 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
 
   // Submit Bank Deposit Slip to Backend
   const handleBankSlipSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setSlipError('');
 
     if (!slipImage) {
@@ -104,21 +104,14 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
 
     setSubmittingSlip(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        'http://localhost:5000/api/payments/submit-bank-slip',
-        {
-          courseId: course._id,
-          amount: courseFee,
-          slipImage,
-          depositorName: depositorName.trim(),
-          depositDate,
-          transactionId: slipReference ? slipReference.trim() : undefined
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const res = await api.post('/payments/submit-bank-slip', {
+        courseId: course._id,
+        amount: courseFee,
+        slipImage,
+        depositorName: depositorName.trim(),
+        depositDate,
+        transactionId: slipReference ? slipReference.trim() : undefined
+      });
 
       toast.success(res.data.message || 'Bank slip submitted successfully! Pending Admin approval.');
       if (onEnrollSuccess) {
@@ -155,12 +148,7 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
     setSendingOtp(true);
     setOtpError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        'http://localhost:5000/api/payments/send-otp',
-        { courseId: course._id },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.post('/payments/send-otp', { courseId: course._id });
 
       setDemoOtpCode(res.data.otpCode || '');
       setPhoneMasked(res.data.phoneMasked || student?.parentsPhoneNumber || '');
@@ -241,22 +229,15 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const cardLastFour = cardNumber.replace(/\s/g, '').slice(-4) || '4242';
 
-      const res = await axios.post(
-        'http://localhost:5000/api/payments/process-mock',
-        {
-          courseId: course._id,
-          enrollmentDate,
-          amount: courseFee,
-          cardLastFour,
-          otpCode: otpCode.trim()
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const res = await api.post('/payments/process-mock', {
+        courseId: course._id,
+        enrollmentDate,
+        amount: courseFee,
+        cardLastFour,
+        otpCode: otpCode.trim()
+      });
 
       toast.success(res.data.message || 'Payment & Enrollment successful!');
       if (onEnrollSuccess) {
@@ -273,552 +254,461 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800 animate-fadeIn text-gray-800 dark:text-gray-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-purple-100 dark:border-slate-800 animate-fadeIn text-gray-800 dark:text-gray-100 my-auto">
         
-        {/* Modal Header */}
-        <div className="bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 text-white relative">
+        {/* Modal Header (Fixed at top) */}
+        <div className="flex-shrink-0 bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] px-5 py-4 text-white relative">
           <button 
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 bg-white/20 hover:bg-red-600 text-white font-bold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 shadow-md border border-white/30 cursor-pointer"
+            className="absolute top-3.5 right-4 bg-white/20 hover:bg-red-600 text-white font-bold text-xs px-3 py-1 rounded-full transition flex items-center gap-1.5 shadow-md border border-white/30 cursor-pointer"
             title="Close & Go Back"
           >
             <span className="text-base font-black leading-none">✕</span>
-            <span className="font-extrabold text-xs">Close / Go Back</span>
+            <span className="font-extrabold text-xs hidden xs:inline">Close</span>
           </button>
           
-          <div className="flex items-center space-x-3">
-            <span className="text-3xl">🎓</span>
+          <div className="flex items-center space-x-3 pr-16">
+            <span className="text-2xl sm:text-3xl">🎓</span>
             <div>
-              <h3 className="text-xl font-bold">Course Registration & Payment</h3>
-              <p className="text-xs text-indigo-200 mt-0.5">{course.title}</p>
+              <h3 className="text-base sm:text-lg font-bold leading-tight">Course Registration & Payment</h3>
+              <p className="text-xs text-indigo-200 truncate max-w-xs sm:max-w-md mt-0.5">{course.title}</p>
             </div>
           </div>
 
-          {/* Stepper Bar */}
-          <div className="flex items-center justify-between mt-6 px-4">
-            <div className="flex items-center gap-2">
-              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${step >= 1 ? 'bg-amber-400 text-purple-950' : 'bg-white/20 text-white'}`}>1</span>
-              <span className="text-xs text-white/90 hidden sm:inline font-medium">Registration</span>
-            </div>
-            <div className={`h-0.5 flex-1 mx-2 ${step >= 2 ? 'bg-amber-400' : 'bg-white/20'}`}></div>
-            <div className="flex items-center gap-2">
-              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${step >= 2 ? 'bg-amber-400 text-purple-950' : 'bg-white/20 text-white'}`}>2</span>
-              <span className="text-xs text-white/90 hidden sm:inline font-medium">Payment Gateway</span>
-            </div>
-            <div className={`h-0.5 flex-1 mx-2 ${step >= 3 ? 'bg-amber-400' : 'bg-white/20'}`}></div>
-            <div className="flex items-center gap-2">
-              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${step === 3 ? 'bg-amber-400 text-purple-950' : 'bg-white/20 text-white'}`}>3</span>
-              <span className="text-xs text-white/90 hidden sm:inline font-medium">OTP Verification</span>
-            </div>
+          {/* Flow Information Badge */}
+          <div className="flex items-center gap-2 mt-3 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 text-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block"></span>
+            <span className="font-medium text-white/90">Option: Direct Bank Deposit & Slip Verification</span>
           </div>
         </div>
 
-        {/* STEP 1: Registration Form */}
-        {step === 1 && (
-          <div className="p-6 md:p-8 space-y-6">
-            <div className="bg-purple-50 dark:bg-slate-800/80 rounded-2xl p-4 border border-purple-100 dark:border-slate-700">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-3 flex items-center gap-1.5">
-                <span>📋</span> Student Information (Database Records)
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 block">Student Name:</span>
-                  <span className="font-semibold text-gray-800 dark:text-white">{student?.name || 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 block">Email Address:</span>
-                  <span className="font-semibold text-gray-800 dark:text-white">{student?.email || 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 block">Registration Number:</span>
-                  <span className="font-semibold text-gray-800 dark:text-white">{student?.registrationNumber || 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 block">Registered Grade:</span>
-                  <span className="inline-block px-2 py-0.5 bg-purple-200 dark:bg-purple-950/80 text-purple-900 dark:text-purple-300 font-bold rounded-md text-xs border border-purple-300 dark:border-purple-800">
-                    Grade {student?.grade || 'N/A'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
+        {/* Scrollable Modal Body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+          
+          {/* STEP 1: Registration Form */}
+          {step === 1 && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                  Enrollment Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={enrollmentDate}
-                  onChange={(e) => setEnrollmentDate(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-medium text-sm"
-                  required
-                />
+              
+              {/* Student Information (Database Records) */}
+              <div className="bg-purple-50/70 dark:bg-slate-800/80 rounded-xl p-3 sm:p-3.5 border border-purple-100 dark:border-slate-700">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-1.5">
+                  <span>📋</span> Student Information (Database Records)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Student Name:</span>
+                    <span className="font-semibold text-gray-800 dark:text-white truncate block">{student?.name || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Email Address:</span>
+                    <span className="font-semibold text-gray-800 dark:text-white truncate block">{student?.email || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Registration Number:</span>
+                    <span className="font-semibold text-gray-800 dark:text-white">{student?.registrationNumber || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Registered Grade:</span>
+                    <span className="inline-block px-1.5 py-0.5 bg-purple-200 dark:bg-purple-950/80 text-purple-900 dark:text-purple-300 font-bold rounded text-[11px] border border-purple-300 dark:border-purple-800">
+                      Grade {student?.grade || 'N/A'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                  Class Session / Batch
-                </label>
-                <input
-                  type="text"
-                  value={selectedBatch}
-                  onChange={(e) => setSelectedBatch(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-medium text-sm"
-                />
+              {/* Enrollment Date & Batch (2-Column Grid) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                    Enrollment Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={enrollmentDate}
+                    onChange={(e) => setEnrollmentDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-medium text-xs sm:text-sm"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                    Class Session / Batch
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedBatch}
+                    onChange={(e) => setSelectedBatch(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-medium text-xs sm:text-sm"
+                  />
+                </div>
               </div>
 
               {/* Payment Method Selector */}
-              <div className="space-y-2 pt-1">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Select Payment Method <span className="text-red-500">*</span>
                 </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Option A: Card IPG */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  
+                  {/* Option A: Card IPG (UNAVAILABLE / DISABLED) */}
                   <div 
-                    onClick={() => setPaymentMethodType('CARD')}
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                      paymentMethodType === 'CARD' 
-                        ? 'border-purple-600 bg-purple-50/80 dark:bg-purple-950/60 shadow-md ring-2 ring-purple-200 dark:ring-purple-900' 
-                        : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100/80 dark:hover:bg-slate-700'
-                    }`}
+                    onClick={() => {
+                      toast.error('Online Card Payment is not available yet. Please use Direct Bank Deposit.');
+                    }}
+                    className="p-3 rounded-xl border border-gray-200 dark:border-slate-700/80 bg-gray-100/70 dark:bg-slate-800/40 opacity-60 cursor-not-allowed flex flex-col justify-between transition-all select-none relative group"
+                    title="Online Card Payment is currently unavailable"
                   >
                     <div className="flex justify-between items-center mb-1">
-                      <span className="font-extrabold text-xs text-purple-950 dark:text-purple-300">💳 Online Card Payment</span>
-                      {paymentMethodType === 'CARD' && <span className="text-xs text-purple-700 dark:text-purple-400 font-bold">✓ Selected</span>}
+                      <span className="font-bold text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                        💳 Online Card Payment
+                      </span>
+                      <span className="text-[9px] bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-400 font-bold px-1.5 py-0.5 rounded">
+                        Unavailable
+                      </span>
                     </div>
                     <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
-                      Visa / Mastercard IPG with OTP. Instant enrollment.
+                      Online card payment gateway is currently under maintenance.
                     </p>
                   </div>
 
-                  {/* Option B: Bank Slip */}
+                  {/* Option B: Bank Slip (ACTIVE & SELECTED) */}
                   <div 
                     onClick={() => setPaymentMethodType('BANK_SLIP')}
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                      paymentMethodType === 'BANK_SLIP' 
-                        ? 'border-purple-600 bg-purple-50/80 dark:bg-purple-950/60 shadow-md ring-2 ring-purple-200 dark:ring-purple-900' 
-                        : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100/80 dark:hover:bg-slate-700'
-                    }`}
+                    className="p-3 rounded-xl border-2 border-purple-600 bg-purple-50/90 dark:bg-purple-950/60 shadow-sm ring-2 ring-purple-200 dark:ring-purple-900 cursor-pointer flex flex-col justify-between transition-all"
                   >
                     <div className="flex justify-between items-center mb-1">
-                      <span className="font-extrabold text-xs text-purple-950 dark:text-purple-300">🏦 Direct Bank Deposit</span>
-                      {paymentMethodType === 'BANK_SLIP' && <span className="text-xs text-purple-700 dark:text-purple-400 font-bold">✓ Selected</span>}
+                      <span className="font-extrabold text-xs text-purple-950 dark:text-purple-300 flex items-center gap-1">
+                        🏦 Direct Bank Deposit
+                      </span>
+                      <span className="text-[10px] text-purple-700 dark:text-purple-400 font-bold">
+                        ✓ Selected
+                      </span>
                     </div>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
+                    <p className="text-[10px] text-gray-600 dark:text-gray-300 leading-tight">
                       Deposit course fee at bank & upload slip for Admin approval.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* IF BANK SLIP SELECTED: RENDER BANK DETAILS & FILE UPLOAD */}
-              {paymentMethodType === 'BANK_SLIP' && (
-                <div className="bg-gradient-to-br from-purple-50 to-indigo-50/60 dark:from-slate-800 dark:to-indigo-950/40 p-4 rounded-2xl border border-purple-200 dark:border-slate-700 space-y-4 animate-fadeIn">
-                  <div className="border-b border-purple-200/60 dark:border-slate-700 pb-2">
-                    <h4 className="font-extrabold text-purple-950 dark:text-purple-300 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                      <span>🏦</span> Institute Bank Account Details
-                    </h4>
-                    <p className="text-[11px] text-purple-700 dark:text-purple-400 mt-0.5">Transfer LKR {courseFee.toLocaleString()} to the account below and upload receipt.</p>
+              {/* BANK DETAILS & SLIP UPLOAD */}
+              <div className="bg-gradient-to-br from-purple-50/90 to-indigo-50/60 dark:from-slate-800 dark:to-indigo-950/40 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-purple-200 dark:border-slate-700 space-y-3">
+                <div className="border-b border-purple-200/60 dark:border-slate-700 pb-2">
+                  <h4 className="font-extrabold text-purple-950 dark:text-purple-300 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🏦</span> Institute Bank Account Details
+                  </h4>
+                  <p className="text-[11px] text-purple-700 dark:text-purple-400 mt-0.5">
+                    Transfer <strong className="font-extrabold">LKR {courseFee.toLocaleString()}</strong> to the account below and upload your receipt.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-purple-100 dark:border-slate-700 shadow-xs">
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-gray-400 block">Bank Name</span>
+                    <span className="font-bold text-gray-800 dark:text-white text-xs">{courseBankDetails.bankName || 'Sampath Bank PLC'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-gray-400 block">Account Holder</span>
+                    <span className="font-bold text-gray-800 dark:text-white text-xs">{courseBankDetails.accountName || 'LuminaLearn Institute'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-gray-400 block">Account Number</span>
+                    <span className="font-mono font-bold text-purple-900 dark:text-purple-300 text-xs">{courseBankDetails.accountNumber || '1098 7654 3210'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-gray-400 block">Branch</span>
+                    <span className="font-bold text-gray-800 dark:text-white text-xs">{courseBankDetails.branchName || 'Colombo Head Office'}</span>
+                  </div>
+                </div>
+
+                {courseBankDetails.paymentInstructions && (
+                  <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 p-2 rounded-lg text-amber-900 dark:text-amber-200 text-[10px]">
+                    <strong>Instructions:</strong> {courseBankDetails.paymentInstructions}
+                  </div>
+                )}
+
+                {slipError && (
+                  <div className="bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-xs p-2 rounded-lg border border-red-200 dark:border-red-800 font-medium">
+                    ⚠️ {slipError}
+                  </div>
+                )}
+
+                {/* Upload Slip & Details Form */}
+                <div className="space-y-2.5 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">
+                      Upload Deposit Slip Photo / PDF <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleFileUpload}
+                      className="w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-1.5 border border-purple-200 dark:border-slate-700 rounded-lg text-xs outline-none cursor-pointer file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
+                      required
+                    />
+                    {slipImage && (
+                      <div className="mt-2 text-center bg-white dark:bg-slate-900 p-2 rounded-lg border border-purple-200 dark:border-slate-700">
+                        <img src={slipImage} alt="Deposit Slip Preview" className="max-h-24 mx-auto rounded border border-purple-300 object-contain" />
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-1">✓ Slip Loaded Successfully</span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-xs bg-white dark:bg-slate-900 p-3 rounded-xl border border-purple-100 dark:border-slate-700 shadow-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Bank Name</span>
-                      <span className="font-extrabold text-gray-800 dark:text-white">{courseBankDetails.bankName || 'Sampath Bank PLC'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Account Holder</span>
-                      <span className="font-extrabold text-gray-800 dark:text-white">{courseBankDetails.accountName || 'LuminaLearn Institute'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Account Number</span>
-                      <span className="font-mono font-bold text-purple-900 dark:text-purple-300">{courseBankDetails.accountNumber || '1098 7654 3210'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Branch</span>
-                      <span className="font-extrabold text-gray-800 dark:text-white">{courseBankDetails.branchName || 'Colombo Head Office'}</span>
-                    </div>
-                  </div>
-
-                  {courseBankDetails.paymentInstructions && (
-                    <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 p-2.5 rounded-xl text-amber-900 dark:text-amber-200 text-[11px]">
-                      <strong>Instructions:</strong> {courseBankDetails.paymentInstructions}
-                    </div>
-                  )}
-
-                  {slipError && (
-                    <div className="bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-xs p-2.5 rounded-xl border border-red-200 dark:border-red-800 font-medium">
-                      ⚠️ {slipError}
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">
-                        Upload Deposit Slip Photo / PDF <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={handleFileUpload}
-                        className="w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 border border-purple-200 dark:border-slate-700 rounded-xl text-xs outline-none cursor-pointer"
-                        required
-                      />
-                      {slipImage && (
-                        <div className="mt-2 text-center">
-                          <img src={slipImage} alt="Deposit Slip Preview" className="max-h-32 mx-auto rounded-lg border-2 border-purple-400 shadow-md object-contain" />
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-1">✓ Slip Image Loaded</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">
-                          Depositor Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Name on bank slip"
-                          value={depositorName}
-                          onChange={(e) => setDepositorName(e.target.value)}
-                          className="w-full p-2.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-purple-200 dark:border-slate-700 rounded-xl text-xs font-semibold outline-none"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">
-                          Deposit Date
-                        </label>
-                        <input
-                          type="date"
-                          value={depositDate}
-                          onChange={(e) => setDepositDate(e.target.value)}
-                          className="w-full p-2.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-purple-200 dark:border-slate-700 rounded-xl text-xs font-semibold outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">
-                        Bank Reference / Receipt No (Optional)
+                      <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-0.5">
+                        Depositor Name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. REF98765432"
-                        value={slipReference}
-                        onChange={(e) => setSlipReference(e.target.value)}
-                        className="w-full p-2.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-purple-200 dark:border-slate-700 rounded-xl text-xs font-mono font-semibold outline-none"
+                        placeholder="Name on bank slip"
+                        value={depositorName}
+                        onChange={(e) => setDepositorName(e.target.value)}
+                        className="w-full p-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-purple-200 dark:border-slate-700 rounded-lg text-xs font-semibold outline-none focus:ring-1 focus:ring-purple-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-0.5">
+                        Deposit Date <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={depositDate}
+                        onChange={(e) => setDepositDate(e.target.value)}
+                        className="w-full p-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-purple-200 dark:border-slate-700 rounded-lg text-xs font-semibold outline-none focus:ring-1 focus:ring-purple-500"
+                        required
                       />
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleBankSlipSubmit}
-                    disabled={submittingSlip}
-                    className="w-full py-3 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white font-extrabold rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2 cursor-pointer mt-2"
-                  >
-                    {submittingSlip ? 'Submitting Bank Slip...' : 'Submit Bank Slip for Approval ➔'}
-                  </button>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-0.5">
+                      Bank Reference / Receipt No (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. REF98765432"
+                      value={slipReference}
+                      onChange={(e) => setSlipReference(e.target.value)}
+                      className="w-full p-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-purple-200 dark:border-slate-700 rounded-lg text-xs font-mono font-semibold outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Online Payment Gateway (Card Details) - Preserved for when card payment is enabled */}
+          {step === 2 && (
+            <form onSubmit={handleProceedToOTP} className="space-y-4">
+              <div className="flex justify-between items-center bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 dark:from-slate-800 dark:via-purple-950/40 dark:to-slate-800 border border-indigo-100 dark:border-slate-700 p-3 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold text-indigo-950 dark:text-indigo-200">Payment Gateway</span>
+                  <span className="text-[10px] bg-indigo-200/70 dark:bg-indigo-950/80 text-indigo-900 dark:text-indigo-300 px-2 py-0.5 rounded-full font-bold border border-indigo-300/40 dark:border-indigo-800">
+                    Partner IPG
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-xs">Visa / Mastercard</span>
+                </div>
+              </div>
+
+              {cardError && (
+                <div className="bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-xs p-2.5 rounded-xl border border-red-200 dark:border-red-800 font-medium">
+                  ⚠️ {cardError}
                 </div>
               )}
-            </div>
 
-            {/* Fee Breakdown */}
-            <div className="flex justify-between items-center bg-gray-900 dark:bg-slate-800 text-white p-4 rounded-2xl gap-3 border border-transparent dark:border-slate-700">
               <div>
-                <span className="text-xs text-gray-400 block uppercase font-bold tracking-wider">Total Course Fee</span>
-                <span className="text-2xl font-extrabold text-amber-400">LKR {courseFee.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-3.5 py-2.5 bg-gray-800 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer border border-gray-700 hover:border-red-600"
-                >
-                  <span className="text-sm font-black">✕</span> Cancel & Go Back
-                </button>
-                {paymentMethodType === 'CARD' && (
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-purple-950 font-bold rounded-xl shadow-lg transition flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
-                  >
-                    Proceed to Pay Online ➔
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: Simulated Online Payment Gateway (Card Details) */}
-        {step === 2 && (
-          <form onSubmit={handleProceedToOTP} className="p-6 md:p-8 space-y-5">
-            {/* Sampath / Card Acquiring Branding Banner with Dynamic Brand Highlighting */}
-            <div className="flex justify-between items-center bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 dark:from-slate-800 dark:via-purple-950/40 dark:to-slate-800 border border-indigo-100 dark:border-slate-700 p-3.5 rounded-2xl shadow-xs">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-extrabold text-indigo-950 dark:text-indigo-200">Payment Gateway</span>
-                <span className="text-[10px] bg-indigo-200/70 dark:bg-indigo-950/80 text-indigo-900 dark:text-indigo-300 px-2.5 py-0.5 rounded-full font-bold border border-indigo-300/40 dark:border-indigo-800">
-                  Sampath Bank IPG Partner
-                </span>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                  Cardholder Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. A.B. PERERA"
+                  value={cardholderName}
+                  onChange={(e) => setCardholderName(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-semibold text-xs uppercase"
+                  required
+                />
               </div>
 
-              {/* Card Brand Badges */}
-              <div className="flex items-center gap-2">
-                {/* Visa Badge */}
-                <div 
-                  className={`px-3 py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1 border ${
-                    cardType === 'visa' 
-                      ? 'bg-blue-600 text-white border-blue-700 shadow-md scale-110 ring-2 ring-blue-400 font-extrabold' 
-                      : cardType === 'none'
-                      ? 'bg-blue-100/70 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800 font-bold'
-                      : 'bg-gray-100 dark:bg-slate-800 text-gray-400 border-gray-200 dark:border-slate-700 opacity-30 grayscale'
-                  }`}
-                >
-                  <span className="font-black italic tracking-wider text-xs">VISA</span>
-                  {cardType === 'visa' && <span className="text-[10px] font-bold">✓</span>}
-                </div>
-
-                {/* Mastercard Badge */}
-                <div 
-                  className={`px-3 py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 border ${
-                    cardType === 'mastercard' 
-                      ? 'bg-gradient-to-r from-red-600 via-amber-500 to-red-600 text-white border-red-700 shadow-md scale-110 ring-2 ring-red-400 font-extrabold' 
-                      : cardType === 'none'
-                      ? 'bg-amber-100/70 dark:bg-amber-950/40 text-amber-950 dark:text-amber-300 border-amber-200 dark:border-amber-800 font-bold'
-                      : 'bg-gray-100 dark:bg-slate-800 text-gray-400 border-gray-200 dark:border-slate-700 opacity-30 grayscale'
-                  }`}
-                >
-                  <div className="flex -space-x-1.5 items-center">
-                    <span className="w-2.5 h-2.5 bg-red-500 rounded-full inline-block"></span>
-                    <span className="w-2.5 h-2.5 bg-amber-400 rounded-full inline-block opacity-90"></span>
-                  </div>
-                  <span className="font-bold tracking-tight text-xs">Mastercard</span>
-                  {cardType === 'mastercard' && <span className="text-[10px] font-bold">✓</span>}
-                </div>
-              </div>
-            </div>
-
-            {cardError && (
-              <div className="bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-xs p-3 rounded-xl border border-red-200 dark:border-red-800 font-medium">
-                ⚠️ {cardError}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                Cardholder Name
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. A.B. PERERA"
-                value={cardholderName}
-                onChange={(e) => setCardholderName(e.target.value)}
-                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-semibold text-sm uppercase"
-                required
-              />
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                   Card Number (16 Digits)
                 </label>
-                {cardType === 'visa' && (
-                  <span className="text-xs text-blue-600 dark:text-blue-400 font-extrabold flex items-center gap-1 animate-pulse">
-                    💳 Visa Card Detected
-                  </span>
-                )}
-                {cardType === 'mastercard' && (
-                  <span className="text-xs text-red-600 dark:text-red-400 font-extrabold flex items-center gap-1 animate-pulse">
-                    💳 Mastercard Detected
-                  </span>
-                )}
-              </div>
-              <div className="relative">
                 <input
                   type="text"
                   placeholder="4000 0000 0000 0000"
                   value={cardNumber}
                   onChange={handleCardNumberChange}
-                  className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border rounded-xl focus:ring-2 outline-none text-gray-800 dark:text-white font-mono font-bold tracking-widest text-sm transition-all ${
-                    cardType === 'visa'
-                      ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50/20'
-                      : cardType === 'mastercard'
-                      ? 'border-red-500 ring-2 ring-red-100 bg-red-50/20'
-                      : 'border-gray-200 dark:border-slate-700 focus:ring-purple-500'
-                  }`}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-xs"
                   maxLength={19}
                   required
                 />
-                {cardType === 'visa' && (
-                  <span className="absolute right-3 top-2.5 px-2 py-0.5 bg-blue-600 text-white font-black italic rounded text-[10px] shadow">
-                    VISA
-                  </span>
-                )}
-                {cardType === 'mastercard' && (
-                  <span className="absolute right-3 top-2.5 px-2 py-0.5 bg-gradient-to-r from-red-600 to-amber-500 text-white font-bold rounded text-[10px] shadow">
-                    MC
-                  </span>
-                )}
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                    Expiry (MM/YY)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="MM/YY"
+                    value={expiry}
+                    onChange={handleExpiryChange}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-xs"
+                    maxLength={5}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                    CVV Code
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="123"
+                    value={cvv}
+                    onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-xs"
+                    maxLength={4}
+                    required
+                  />
+                </div>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 3: OTP Verification - Preserved */}
+          {step === 3 && (
+            <form onSubmit={handleCompletePayment} className="space-y-4 text-center">
+              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 rounded-full flex items-center justify-center text-xl mx-auto font-bold shadow-inner">
+                🔐
+              </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                  Expiry (MM/YY)
-                </label>
+                <h4 className="text-base font-bold text-gray-800 dark:text-white">Two-Factor Payment Authentication</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xs mx-auto">
+                  Enter the 6-digit OTP code sent to your registered mobile number{' '}
+                  <span className="font-bold text-gray-800 dark:text-white">{phoneMasked || student?.parentsPhoneNumber || 'your mobile'}</span>.
+                </p>
+              </div>
+
+              {demoOtpCode && (
+                <div className="bg-purple-50 dark:bg-slate-800 border border-purple-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-purple-900 dark:text-purple-300 font-medium">
+                  📱 <strong>Generated OTP Code:</strong>{' '}
+                  <span className="bg-purple-200 dark:bg-purple-950 text-purple-950 dark:text-purple-200 px-2 py-0.5 rounded font-mono font-bold text-xs">
+                    {demoOtpCode}
+                  </span>
+                </div>
+              )}
+
+              {otpError && (
+                <div className="bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-xs p-2.5 rounded-xl border border-red-200 dark:border-red-800 font-medium">
+                  ⚠️ {otpError}
+                </div>
+              )}
+
+              <div>
                 <input
                   type="text"
-                  placeholder="MM/YY"
-                  value={expiry}
-                  onChange={handleExpiryChange}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-sm"
-                  maxLength={5}
+                  placeholder="000000"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="w-44 mx-auto px-3 py-2 bg-gray-50 dark:bg-slate-800 border-2 border-purple-500 rounded-xl text-center text-xl font-mono font-bold tracking-[0.4em] focus:ring-2 focus:ring-purple-200 outline-none text-purple-950 dark:text-purple-300 shadow-inner"
+                  maxLength={6}
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                  CVV Code
-                </label>
-                <input
-                  type="password"
-                  placeholder="123"
-                  value={cvv}
-                  onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-sm"
-                  maxLength={4}
-                  required
-                />
+              <div className="flex justify-center items-center text-xs">
+                {canResend ? (
+                  <button
+                    type="button"
+                    onClick={requestOtpDispatch}
+                    disabled={sendingOtp}
+                    className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
+                  >
+                    {sendingOtp ? 'Sending code...' : 'Resend OTP 🔄'}
+                  </button>
+                ) : (
+                  <span className="text-gray-400 dark:text-gray-500">
+                    Resend code in <strong className="text-gray-700 dark:text-gray-300 font-mono">{resendTimer}s</strong>
+                  </span>
+                )}
               </div>
-            </div>
+            </form>
+          )}
 
-            <div className="pt-2 flex justify-between items-center">
+        </div>
+
+        {/* Modal Sticky Footer (Always visible at bottom) */}
+        <div className="flex-shrink-0 bg-gray-900 dark:bg-slate-950 px-4 py-3 sm:px-5 sm:py-3.5 border-t border-gray-800 flex items-center justify-between gap-3">
+          <div>
+            <span className="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">Total Course Fee</span>
+            <span className="text-lg sm:text-xl font-extrabold text-amber-400">LKR {courseFee.toLocaleString()}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-2 bg-gray-800 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1 cursor-pointer border border-gray-700 hover:border-red-600"
+            >
+              <span className="text-xs font-black">✕</span> Cancel
+            </button>
+
+            {step === 1 && (
               <button
                 type="button"
-                onClick={() => setStep(1)}
-                className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 font-bold hover:text-gray-900 dark:hover:text-white transition"
+                onClick={handleBankSlipSubmit}
+                disabled={submittingSlip}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition flex items-center gap-1.5 text-xs sm:text-sm cursor-pointer"
               >
-                ← Back to Details
+                {submittingSlip ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Submitting Slip...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Submit Bank Slip for Approval</span>
+                    <span className="font-black">➔</span>
+                  </>
+                )}
               </button>
+            )}
 
+            {step === 2 && (
               <button
-                type="submit"
+                type="button"
+                onClick={handleProceedToOTP}
                 disabled={sendingOtp}
-                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition text-sm flex items-center gap-2"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition text-xs sm:text-sm"
               >
-                {sendingOtp ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Sending OTP...
-                  </>
-                ) : (
-                  `Pay LKR ${courseFee.toLocaleString()}`
-                )}
+                {sendingOtp ? 'Sending OTP...' : `Pay LKR ${courseFee.toLocaleString()}`}
               </button>
-            </div>
-          </form>
-        )}
-
-        {/* STEP 3: Real OTP Verification */}
-        {step === 3 && (
-          <form onSubmit={handleCompletePayment} className="p-6 md:p-8 space-y-5 text-center">
-            <div className="w-14 h-14 bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 rounded-full flex items-center justify-center text-2xl mx-auto font-bold shadow-inner">
-              🔐
-            </div>
-
-            <div>
-              <h4 className="text-lg font-bold text-gray-800 dark:text-white">Two-Factor Payment Authentication</h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xs mx-auto">
-                Enter the 6-digit OTP code sent to your registered mobile number{' '}
-                <span className="font-bold text-gray-800 dark:text-white">{phoneMasked || student?.parentsPhoneNumber || 'your mobile'}</span>.
-              </p>
-            </div>
-
-            {/* Demo Helper Banner */}
-            {demoOtpCode && (
-              <div className="bg-purple-50 dark:bg-slate-800 border border-purple-200 dark:border-slate-700 rounded-2xl p-3 text-xs text-purple-900 dark:text-purple-300 font-medium">
-                📱 <strong>Real Generated OTP Code:</strong>{' '}
-                <span className="bg-purple-200 dark:bg-purple-950 text-purple-950 dark:text-purple-200 px-2.5 py-1 rounded-md font-mono font-bold text-sm tracking-widest border border-purple-300 dark:border-purple-800">
-                  {demoOtpCode}
-                </span>
-                <span className="block text-[10px] text-purple-700 dark:text-purple-400 mt-1">
-                  (Valid for 5 minutes • Saved in MongoDB OTP collection)
-                </span>
-              </div>
             )}
 
-            {otpError && (
-              <div className="bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-xs p-3 rounded-xl border border-red-200 dark:border-red-800 font-medium">
-                ⚠️ {otpError}
-              </div>
-            )}
-
-            <div>
-              <input
-                type="text"
-                placeholder="000000"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-52 mx-auto px-4 py-3 bg-gray-50 dark:bg-slate-800 border-2 border-purple-500 rounded-2xl text-center text-2xl font-mono font-bold tracking-[0.5em] focus:ring-4 focus:ring-purple-200 outline-none text-purple-950 dark:text-purple-300 shadow-inner"
-                maxLength={6}
-                required
-              />
-            </div>
-
-            <div className="flex justify-center items-center text-xs">
-              {canResend ? (
-                <button
-                  type="button"
-                  onClick={requestOtpDispatch}
-                  disabled={sendingOtp}
-                  className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
-                >
-                  {sendingOtp ? 'Sending new code...' : 'Didn\'t receive code? Resend OTP 🔄'}
-                </button>
-              ) : (
-                <span className="text-gray-400 dark:text-gray-500">
-                  Resend code in <strong className="text-gray-700 dark:text-gray-300 font-mono">{resendTimer}s</strong>
-                </span>
-              )}
-            </div>
-
-            <div className="flex justify-between items-center pt-2">
+            {step === 3 && (
               <button
                 type="button"
-                onClick={() => setStep(2)}
-                className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 font-bold hover:text-gray-900 dark:hover:text-white transition"
-              >
-                ← Back to Card
-              </button>
-
-              <button
-                type="submit"
+                onClick={handleCompletePayment}
                 disabled={loading}
-                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition text-sm flex items-center gap-2"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition text-xs sm:text-sm"
               >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Verifying...
-                  </>
-                ) : (
-                  'Verify & Complete Enrollment ✓'
-                )}
+                {loading ? 'Verifying...' : 'Verify & Complete'}
               </button>
-            </div>
-          </form>
-        )}
+            )}
+          </div>
+        </div>
 
       </div>
     </div>
