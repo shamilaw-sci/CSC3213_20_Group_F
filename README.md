@@ -90,7 +90,6 @@ It replaces manual processes with a **centralized digital platform** for managin
 
 - Thanuka Vishal - https://www.github.com/thanukavishal  
 - Pathum Gunawardhana - https://www.github.com/PathumGunawardhana 
-- Rashmika Wijewardhana - https://www.github.com/rashwije18 
 - Sakindu Rathnasiri - https://www.github.com/Sakindu99  
 
 ---
