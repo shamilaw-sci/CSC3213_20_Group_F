@@ -395,26 +395,11 @@ cd CSC3213_20_Group_F
 
 ## 👨‍💻 Project Development Team
 
-This project is developed as part of the academic curriculum for the **Department of Statistics and Computer Science, Faculty of Science, University of Peradeniya**.
-
 | Team Member | GitHub Profile | Role |
 | :--- | :--- | :--- |
 | **Thanuka Vishal** | [@thanukavishal](https://github.com/thanukavishal) | Full-Stack Development |
 | **Pathum Gunawardhana** | [@PathumGunawardhana](https://github.com/PathumGunawardhana) | Full-Stack Development |
-| **Rashmika Wijewardhana** | [@rashwije18](https://github.com/rashwije18) | Full-Stack Development |
 | **Sakindu Rathnasiri** | [@Sakindu99](https://github.com/Sakindu99) | Full-Stack Development |
 
 ---
-
-## 🎓 Academic Information
-
-- **📘 Course:** CSC3213 – Project in Computer Science I
-- **🏫 Institution:** University of Peradeniya, Sri Lanka
-- **🏛️ Faculty:** Faculty of Science (Department of Statistics & Computer Science)
-- **👨‍🏫 Project Supervisor:** Dr. Shamila Wickramasuriya
-
----
-
-## 📄 License
-
-This project is developed for academic purposes under the **ISC / Academic License**.
+Copyrights - LuminaLearn 2026
