@@ -628,10 +628,13 @@ router.post('/:lessonId/live-stream', protect, isTeacherOrAdmin, async (req, res
         const isScheduledMode = Boolean(isScheduled && scheduledStartTime && !goLiveNow);
         const prevLiveStream = lesson.liveStream || {};
 
+        const parsedScheduledTime = (isScheduledMode && scheduledStartTime) ? new Date(scheduledStartTime) : null;
+        const validScheduledTime = (parsedScheduledTime && !isNaN(parsedScheduledTime.getTime())) ? parsedScheduledTime : null;
+
         const updatePayload = {
             'liveStream.isLive': !isScheduledMode,
             'liveStream.isScheduled': isScheduledMode,
-            'liveStream.scheduledStartTime': isScheduledMode ? new Date(scheduledStartTime) : (prevLiveStream.scheduledStartTime || null),
+            'liveStream.scheduledStartTime': isScheduledMode ? validScheduledTime : (prevLiveStream.scheduledStartTime || null),
             'liveStream.title': streamTitle,
             'liveStream.youtubeUrl': String(youtubeUrl).trim(),
             'liveStream.thumbnail': thumbnailPath,
@@ -652,7 +655,7 @@ router.post('/:lessonId/live-stream', protect, isTeacherOrAdmin, async (req, res
 
                 if (enrolledStudents && enrolledStudents.length > 0) {
                     const isNowLive = !isScheduledMode;
-                    const formattedDate = isScheduledMode ? new Date(scheduledStartTime).toLocaleString() : '';
+                    const formattedDate = (isScheduledMode && validScheduledTime) ? validScheduledTime.toLocaleString() : '';
 
                     const notifDocs = enrolledStudents.map(st => ({
                         recipient: st._id,
@@ -748,6 +751,24 @@ router.delete('/:lessonId/live-stream', protect, isTeacherOrAdmin, handleEndLive
 // @route   POST /api/lessons/:lessonId/live-stream/end
 // @desc    End YouTube Live Stream POST fallback (Admin / Teacher)
 router.post('/:lessonId/live-stream/end', protect, isTeacherOrAdmin, handleEndLiveStreamHelper);
+
+// @route   GET /api/lessons/:lessonId/live-stream/status
+// @desc    Fast real-time live status check for student & teacher UI sync
+router.get('/:lessonId/live-stream/status', protect, async (req, res) => {
+    try {
+        const lesson = await Lesson.findById(req.params.lessonId).select('liveStream.isLive liveStream.isScheduled liveStream.title').lean();
+        if (!lesson) {
+            return res.json({ isLive: false, isScheduled: false });
+        }
+        res.json({
+            isLive: Boolean(lesson.liveStream?.isLive),
+            isScheduled: Boolean(lesson.liveStream?.isScheduled),
+            title: lesson.liveStream?.title || ''
+        });
+    } catch (err) {
+        res.json({ isLive: false, isScheduled: false });
+    }
+});
 
 // @route   POST /api/lessons/:lessonId/live-stream/viewer-ping
 // @desc    Heartbeat ping from watching student to verify lively presence
