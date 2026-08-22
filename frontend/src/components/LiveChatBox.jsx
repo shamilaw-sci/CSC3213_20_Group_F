@@ -374,19 +374,45 @@ const getFullAttachmentUrl = (url) => {
 const ChatAvatar = ({ avatarSrc, senderName, isSenderAdmin, isSenderTeacher }) => {
   const [imgError, setImgError] = useState(false);
 
+  useEffect(() => {
+    setImgError(false);
+  }, [avatarSrc]);
+
   const resolvedSrc = useMemo(() => {
-    const nameLower = (senderName || '').toLowerCase();
-    
-    // 1. If Admin: MUST use admin avatar
-    if (isSenderAdmin || (nameLower.includes('admin') && !nameLower.includes('chaminda') && !nameLower.includes('herath') && !isSenderTeacher)) {
-      if (avatarSrc && !avatarSrc.includes('LuminaLearn_Logo') && !avatarSrc.includes('logo') && !avatarSrc.includes('kirula_logo') && !avatarSrc.includes('founder_photo')) {
+    // 1. If custom profile picture/avatar URL is provided and valid, prioritize it!
+    if (avatarSrc && 
+        typeof avatarSrc === 'string' && 
+        !avatarSrc.includes('default') && 
+        !avatarSrc.includes('undefined') && 
+        !avatarSrc.includes('null') &&
+        avatarSrc.trim() !== '') {
+      
+      // If Admin and avatar is LuminaLearn logo or custom image
+      if (isSenderAdmin) {
+        if (!avatarSrc.includes('kirula_logo') && !avatarSrc.includes('founder_photo')) {
+          return avatarSrc;
+        }
+        return '/assets/LuminaLearn_Logo_icon.png';
+      }
+      
+      // For Teacher, Instructor, Student: return actual provided profile picture
+      if (!avatarSrc.includes('LuminaLearn_Logo')) {
         return avatarSrc;
       }
+    }
+
+    const nameLower = (senderName || '').toLowerCase();
+
+    // 2. Admin fallback
+    if (isSenderAdmin || (nameLower.includes('admin') && !isSenderTeacher)) {
       return '/assets/LuminaLearn_Logo_icon.png';
     }
 
-    // 2. If teacher / instructor: MUST use instructor photo
-    if (isSenderTeacher || nameLower.includes('chaminda') || nameLower.includes('herath') || nameLower.includes('kumara') || nameLower.includes('instructor') || nameLower.includes('teacher')) {
+    // 3. Teacher / Instructor fallback based on known name matches
+    if (isSenderTeacher || nameLower.includes('instructor') || nameLower.includes('teacher')) {
+      if (nameLower.includes('chaminda') || nameLower.includes('herath') || nameLower.includes('kumara')) {
+        return '/assets/founder_photo.png';
+      }
       if (nameLower.includes('pathum')) {
         return '/assets/pathum_gunawardhana.png';
       }
@@ -402,10 +428,8 @@ const ChatAvatar = ({ avatarSrc, senderName, isSenderAdmin, isSenderTeacher }) =
       if (nameLower.includes('rashmi')) {
         return '/assets/rashmi_gunawardhana.png';
       }
-      if (avatarSrc && !avatarSrc.includes('LuminaLearn_Logo') && !avatarSrc.includes('logo') && !avatarSrc.includes('kirula_logo') && !avatarSrc.includes('default')) {
-        return avatarSrc;
-      }
-      return '/assets/founder_photo.png';
+      // Return empty string so initial letter badge is cleanly displayed
+      return '';
     }
 
     return avatarSrc || '';
@@ -1084,7 +1108,7 @@ const LiveChatBox = ({
       sender: user?._id,
       senderName: user?.name || 'Me',
       senderRole: user?.role || (isTeacherOrAdmin ? 'teacher' : 'student'),
-      senderAvatar: user?.profilePicture || '',
+      senderAvatar: user?.profilePicture || user?.avatar || '',
       studentContext: isStudent ? user?._id : (selectedStudentId === 'staff' ? null : selectedStudentId),
       recipient: selectedStudentId && selectedStudentId !== 'staff' ? selectedStudentId : null,
       isBroadcast: isTeacherOrAdmin && !selectedStudentId,
@@ -1435,7 +1459,7 @@ const LiveChatBox = ({
       sender: user?._id,
       senderName: user?.name || 'Me',
       senderRole: user?.role || (isTeacherOrAdmin ? 'teacher' : 'student'),
-      senderAvatar: user?.profilePicture || '',
+      senderAvatar: user?.profilePicture || user?.avatar || '',
       studentContext: isStudent ? user?._id : (currentSelected === 'staff' ? null : currentSelected),
       recipient: currentSelected && currentSelected !== 'staff' ? currentSelected : null,
       isBroadcast: isTeacherOrAdmin && !currentSelected,
@@ -1559,7 +1583,7 @@ const LiveChatBox = ({
       sender: user?._id,
       senderName: user?.name || 'Staff',
       senderRole: user?.role || 'teacher',
-      senderAvatar: user?.profilePicture || '',
+      senderAvatar: user?.profilePicture || user?.avatar || '',
       studentContext: null,
       isBroadcast: false,
       isStaffOnly: true,
@@ -1740,7 +1764,7 @@ const LiveChatBox = ({
       sender: user?._id,
       senderName: user?.name || 'Me',
       senderRole: user?.role || (isTeacherOrAdmin ? 'teacher' : 'student'),
-      senderAvatar: user?.profilePicture || '',
+      senderAvatar: user?.profilePicture || user?.avatar || '',
       studentContext: isStudent ? user?._id : (selectedStudentId === 'staff' ? null : selectedStudentId),
       recipient: selectedStudentId && selectedStudentId !== 'staff' ? selectedStudentId : null,
       isBroadcast: isTeacherOrAdmin && !selectedStudentId,
@@ -2462,24 +2486,22 @@ const LiveChatBox = ({
                         const isSenderAdmin = msgRole === 'admin';
                         const isSenderTeacher = msgRole === 'teacher';
 
-                        const displaySenderName = isSenderTeacher
-                          ? (msg.senderName && !msg.senderName.toLowerCase().includes('admin') ? msg.senderName : 'Chaminda Herath')
-                          : isSenderAdmin
-                            ? 'LuminaLearn Admin'
-                            : msg.senderName;
+                        const displaySenderName = isFromMe
+                          ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
+                          : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
+                              ? msg.senderName
+                              : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+
+                        const senderAvatarUrl = isFromMe
+                          ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
+                          : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
 
                         return (
                           <div key={msg._id || index} className="w-full max-w-xl mx-auto bg-gradient-to-b from-emerald-50/95 to-emerald-50/90 hover:from-emerald-100/95 hover:to-emerald-100/80 border-2 border-emerald-400/80 hover:border-emerald-500 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-colors duration-200 text-gray-900 space-y-3 box-border min-h-[110px] flex flex-col justify-between cursor-default">
                             <div className="flex items-center justify-between border-b border-emerald-200/90 pb-2.5">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <ChatAvatar
-                                  avatarSrc={
-                                    isSenderTeacher
-                                      ? '/assets/founder_photo.png'
-                                      : isSenderAdmin
-                                        ? '/assets/LuminaLearn_Logo_icon.png'
-                                        : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
-                                  }
+                                  avatarSrc={senderAvatarUrl}
                                   senderName={displaySenderName}
                                   isSenderAdmin={isSenderAdmin}
                                   isSenderTeacher={isSenderTeacher}
@@ -2867,11 +2889,15 @@ const LiveChatBox = ({
                   const isBroadcast = msg.isBroadcast === true;
                   const isEmojiOnly = isOnlyEmoji(msg.text) && (!msg.attachments || msg.attachments.length === 0);
 
-                  const displaySenderName = isSenderTeacher
-                    ? (msg.senderName && !msg.senderName.toLowerCase().includes('admin') ? msg.senderName : 'Chaminda Herath')
-                    : isSenderAdmin
-                      ? 'LuminaLearn Admin'
-                      : msg.senderName;
+                  const displaySenderName = isFromMe
+                    ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
+                    : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
+                        ? msg.senderName
+                        : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+
+                  const senderAvatarUrl = isFromMe
+                    ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
+                    : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
 
                   return (
                     <div 
@@ -2895,13 +2921,7 @@ const LiveChatBox = ({
                           <div className="flex items-center justify-between border-b border-emerald-200/90 pb-2.5">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <ChatAvatar
-                                avatarSrc={
-                                  isSenderTeacher
-                                    ? '/assets/founder_photo.png'
-                                    : isSenderAdmin
-                                      ? '/assets/LuminaLearn_Logo_icon.png'
-                                      : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
-                                }
+                                avatarSrc={senderAvatarUrl}
                                 senderName={displaySenderName}
                                 isSenderAdmin={isSenderAdmin}
                                 isSenderTeacher={isSenderTeacher}
@@ -3003,23 +3023,21 @@ const LiveChatBox = ({
                             const isSenderAdmin = msgRole === 'admin';
                             const isSenderTeacher = msgRole === 'teacher';
 
-                            const displaySenderName = isSenderTeacher
-                              ? (msg.senderName && !msg.senderName.toLowerCase().includes('admin') ? msg.senderName : 'Chaminda Herath')
-                              : isSenderAdmin
-                                ? 'LuminaLearn Admin'
-                                : (isFromMe ? (user?.name || msg.senderName) : msg.senderName);
+                            const displaySenderName = isFromMe
+                              ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
+                              : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
+                                  ? msg.senderName
+                                  : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+
+                            const senderAvatarUrl = isFromMe
+                              ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
+                              : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
 
                             return (
                               <>
                                 {/* Circular Avatar for BOTH Incoming (Left) and Outgoing (Right) Messages */}
                                 <ChatAvatar
-                                  avatarSrc={
-                                    isSenderTeacher
-                                      ? '/assets/founder_photo.png'
-                                      : isSenderAdmin
-                                        ? '/assets/LuminaLearn_Logo_icon.png'
-                                        : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isFromMe ? (user?.profilePicture || user?.avatar) : ''))
-                                  }
+                                  avatarSrc={senderAvatarUrl}
                                   senderName={displaySenderName}
                                   isSenderAdmin={isSenderAdmin}
                                   isSenderTeacher={isSenderTeacher}
@@ -3972,22 +3990,20 @@ const LiveChatBox = ({
                     const isSenderAdmin = msgRole === 'admin';
                     const isSenderTeacher = msgRole === 'teacher';
 
-                    const displaySenderName = isSenderTeacher
-                      ? (msg.senderName && !msg.senderName.toLowerCase().includes('admin') ? msg.senderName : 'Chaminda Herath')
-                      : isSenderAdmin
-                        ? 'LuminaLearn Admin'
-                        : (isFromMe ? (user?.name || msg.senderName) : msg.senderName);
+                    const displaySenderName = isFromMe
+                      ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
+                      : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
+                          ? msg.senderName
+                          : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+
+                    const senderAvatarUrl = isFromMe
+                      ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
+                      : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
 
                     return (
                       <div key={msg._id || mIdx} className={`flex items-start gap-3 sm:gap-3.5 ${isEmojiOnly ? 'my-1.5 sm:my-2' : 'my-2.5 sm:my-3'} max-w-[85%] sm:max-w-[78%] ${isFromMe ? 'flex-row-reverse ml-auto mr-0' : 'flex-row mr-auto ml-0'}`}>
                         <ChatAvatar
-                          avatarSrc={
-                            isSenderTeacher
-                              ? '/assets/founder_photo.png'
-                              : isSenderAdmin
-                                ? '/assets/LuminaLearn_Logo_icon.png'
-                                : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isFromMe ? (user?.profilePicture || user?.avatar) : ''))
-                          }
+                          avatarSrc={senderAvatarUrl}
                           senderName={displaySenderName}
                           isSenderAdmin={isSenderAdmin}
                           isSenderTeacher={isSenderTeacher}

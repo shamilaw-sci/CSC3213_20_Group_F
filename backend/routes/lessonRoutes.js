@@ -1061,10 +1061,24 @@ router.post('/:lessonId/live-stream/messages', protect, optionalLiveChatUpload, 
             return res.status(400).json({ error: "Message text or an attachment/photo is required." });
         }
 
-        let senderAvatar = req.user.profilePicture || '';
-        if ((!senderAvatar || senderAvatar.includes('LuminaLearn_Logo') || senderAvatar.includes('logo')) && 
-            (req.user.role === 'teacher' || req.user.role === 'instructor' || req.user.name?.toLowerCase().includes('chaminda'))) {
-            senderAvatar = '/assets/founder_photo.png';
+        let senderAvatar = req.user.profilePicture || req.user.avatar || '';
+        if (!senderAvatar) {
+            const userNameLower = (req.user.name || '').toLowerCase();
+            if (userNameLower.includes('chaminda') || userNameLower.includes('herath') || userNameLower.includes('kumara')) {
+                senderAvatar = '/assets/founder_photo.png';
+            } else if (userNameLower.includes('pathum')) {
+                senderAvatar = '/assets/pathum_gunawardhana.png';
+            } else if (userNameLower.includes('sankha')) {
+                senderAvatar = '/assets/sankha_dissanayake.png';
+            } else if (userNameLower.includes('lasantha')) {
+                senderAvatar = '/assets/lasantha_wedagedara.png';
+            } else if (userNameLower.includes('kevin')) {
+                senderAvatar = '/assets/kevin_daraniyagala.png';
+            } else if (userNameLower.includes('rashmi')) {
+                senderAvatar = '/assets/rashmi_gunawardhana.png';
+            } else if (req.user.role === 'admin' || req.user.role === 'superadmin') {
+                senderAvatar = '/assets/LuminaLearn_Logo_icon.png';
+            }
         }
 
         let normalizedSenderRole = req.user.role || 'student';
@@ -1133,13 +1147,50 @@ router.get('/:lessonId/live-stream/messages', protect, async (req, res) => {
     try {
         const lesson = await Lesson.findById(req.params.lessonId)
             .select('liveStream.liveMessages')
+            .populate('liveStream.liveMessages.sender', 'name profilePicture avatar role')
             .lean();
 
         if (!lesson) {
             return res.status(404).json({ error: "Class not found." });
         }
 
-        const allMessages = lesson.liveStream?.liveMessages || [];
+        const rawMessages = lesson.liveStream?.liveMessages || [];
+        const allMessages = rawMessages.map(m => {
+            const senderObj = (m.sender && typeof m.sender === 'object') ? m.sender : null;
+            let currentAvatar = senderObj?.profilePicture || senderObj?.avatar || m.senderAvatar || '';
+            let currentName = senderObj?.name || m.senderName || 'User';
+            let currentRole = senderObj?.role || m.senderRole || 'student';
+            
+            // Clean up legacy fallback if it was saved as wrong founder_photo for a different instructor
+            if (currentAvatar === '/assets/founder_photo.png') {
+                const nameLower = currentName.toLowerCase();
+                if (!nameLower.includes('chaminda') && !nameLower.includes('herath') && !nameLower.includes('kumara')) {
+                    if (senderObj?.profilePicture) {
+                        currentAvatar = senderObj.profilePicture;
+                    } else if (nameLower.includes('pathum')) {
+                        currentAvatar = '/assets/pathum_gunawardhana.png';
+                    } else if (nameLower.includes('sankha')) {
+                        currentAvatar = '/assets/sankha_dissanayake.png';
+                    } else if (nameLower.includes('lasantha')) {
+                        currentAvatar = '/assets/lasantha_wedagedara.png';
+                    } else if (nameLower.includes('kevin')) {
+                        currentAvatar = '/assets/kevin_daraniyagala.png';
+                    } else if (nameLower.includes('rashmi')) {
+                        currentAvatar = '/assets/rashmi_gunawardhana.png';
+                    } else {
+                        currentAvatar = '';
+                    }
+                }
+            }
+
+            return {
+                ...m,
+                sender: senderObj ? senderObj._id : m.sender,
+                senderName: currentName,
+                senderRole: currentRole,
+                senderAvatar: currentAvatar
+            };
+        });
         const isStudent = req.user.role === 'student';
 
         if (isStudent) {
@@ -1267,7 +1318,7 @@ router.post('/:lessonId/live-stream/voice-request', protect, async (req, res) =>
                     sender: req.user._id,
                     senderName: req.user.name,
                     senderRole: req.user.role || 'student',
-                    senderAvatar: req.user.profilePicture || '',
+                    senderAvatar: req.user.profilePicture || req.user.avatar || '',
                     studentContext: req.user._id,
                     isBroadcast: false,
                     text: '🎙️ [Live Mic Request] Asked permission to speak live to ask a question.',
@@ -1382,7 +1433,7 @@ router.post('/:lessonId/live-stream/voice-respond', protect, isTeacherOrAdmin, a
                 sender: req.user._id,
                 senderName: req.user.name,
                 senderRole: req.user.role,
-                senderAvatar: req.user.profilePicture || '',
+                senderAvatar: req.user.profilePicture || req.user.avatar || '',
                 studentContext: reqItem.student,
                 isBroadcast: false,
                 text: `🎙️ Permission granted to ${reqItem.name}. Live microphone is now active.`,
@@ -1438,7 +1489,7 @@ router.post('/:lessonId/live-stream/voice-chunk', protect, async (req, res) => {
             sender: req.user._id,
             senderName: req.user.name,
             senderRole: req.user.role || 'student',
-            senderAvatar: req.user.profilePicture || '',
+            senderAvatar: req.user.profilePicture || req.user.avatar || '',
             studentContext: req.user._id,
             isBroadcast: false,
             text: '🎙️ Live Voice Question Stream',
