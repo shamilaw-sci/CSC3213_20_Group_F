@@ -178,11 +178,21 @@ const LiveStreamPlayer = ({
             setIsStreamEnded(true);
             setIsPlaying(false);
             setShowFeedbackModal(true);
+            if (typeof onEndStream === 'function') {
+              onEndStream();
+            }
           }
         } else {
           const res = await api.get(`/lessons/${lessonId}/live-stream/viewers`);
           if (typeof res.data.activeViewerCount === 'number') {
             setActiveViewerCount(res.data.activeViewerCount);
+          }
+          if (res.data.isLive === false || res.data.streamEnded) {
+            setIsStreamEnded(true);
+            setIsPlaying(false);
+            if (typeof onEndStream === 'function') {
+              onEndStream();
+            }
           }
         }
       } catch (err) {
@@ -391,6 +401,12 @@ const LiveStreamPlayer = ({
             events: {
               onReady: (event) => {
                 playerRef.current = event.target;
+                if (typeof event.target.setPlaybackQuality === 'function') {
+                  try {
+                    event.target.setPlaybackQuality('auto');
+                    event.target.setPlaybackQuality('default');
+                  } catch (e) {}
+                }
                 const pState = event.target.getPlayerState ? event.target.getPlayerState() : 1;
                 setIsPlaying(pState === 1);
                 setIsAtLiveEdge(true);
@@ -621,7 +637,7 @@ const LiveStreamPlayer = ({
   // Direct Native YouTube Live Stream URL with Full High-Definition Quality & Zero Downsampling
   const stableEmbedUrl = useMemo(() => {
     const origin = typeof window !== 'undefined' ? encodeURIComponent(window.location.origin) : '';
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=0&enablejsapi=1&playsinline=1&rel=0&modestbranding=1&fs=0&iv_load_policy=3&origin=${origin}&widget_referrer=${origin}`;
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=0&enablejsapi=1&playsinline=1&rel=0&modestbranding=1&fs=0&iv_load_policy=3&vq=auto&suggestedQuality=auto&origin=${origin}&widget_referrer=${origin}`;
   }, [videoId]);
 
   const currentVolPercentage = isMuted ? 0 : volume;

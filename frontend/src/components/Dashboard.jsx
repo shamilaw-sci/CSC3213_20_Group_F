@@ -513,11 +513,10 @@ const BroadcastClassNoticeModal = ({ isOpen, onClose, coursesList = [] }) => {
                   key={t.id}
                   type="button"
                   onClick={() => setType(t.id)}
-                  className={`p-2.5 rounded-xl text-[11px] font-bold border transition text-center cursor-pointer ${
-                    type === t.id
+                  className={`p-2.5 rounded-xl text-[11px] font-bold border transition text-center cursor-pointer ${type === t.id
                       ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-500 text-purple-700 dark:text-purple-300 shadow-xs font-black'
                       : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
+                    }`}
                 >
                   {t.label}
                 </button>
@@ -969,22 +968,20 @@ const AdminDashboard = ({ user }) => {
               <button
                 type="button"
                 onClick={() => setSelectedDayFilter('ALL')}
-                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
-                  selectedDayFilter === 'ALL'
+                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${selectedDayFilter === 'ALL'
                     ? 'bg-purple-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700'
-                }`}
+                  }`}
               >
                 ALL ({schedule.length})
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedDayFilter('TODAY')}
-                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
-                  selectedDayFilter === 'TODAY'
+                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${selectedDayFilter === 'TODAY'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/40 border border-emerald-200/60 dark:border-emerald-800'
-                }`}
+                  }`}
               >
                 <span>TODAY ({todayCode})</span>
               </button>
@@ -995,11 +992,10 @@ const AdminDashboard = ({ user }) => {
                     key={day}
                     type="button"
                     onClick={() => setSelectedDayFilter(day)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      selectedDayFilter === day
+                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${selectedDayFilter === day
                         ? 'bg-purple-600 text-white shadow-xs font-black'
                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700'
-                    }`}
+                      }`}
                   >
                     {day} {count > 0 && <span className="opacity-70 text-[10px]">({count})</span>}
                   </button>
@@ -1017,16 +1013,14 @@ const AdminDashboard = ({ user }) => {
                   return (
                     <div
                       key={sch._id}
-                      className={`flex justify-between items-center p-3.5 rounded-2xl border transition-all ${
-                        isToday
+                      className={`flex justify-between items-center p-3.5 rounded-2xl border transition-all ${isToday
                           ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/30 dark:bg-emerald-950/20 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40'
                           : 'border-slate-100 dark:border-slate-800 hover:border-purple-200 dark:hover:border-purple-800 hover:bg-purple-50/20 dark:hover:bg-slate-800/40 bg-white dark:bg-slate-900'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <div className={`p-2.5 rounded-2xl flex flex-col items-center min-w-[62px] shrink-0 ${
-                          isToday ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300' : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
-                        }`}>
+                        <div className={`p-2.5 rounded-2xl flex flex-col items-center min-w-[62px] shrink-0 ${isToday ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300' : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+                          }`}>
                           <span className="text-[10px] font-black uppercase tracking-wider">{sch.dayOfWeek ? sch.dayOfWeek.slice(0, 3) : 'DAY'}</span>
                           <FaCalendarAlt className="text-sm mt-0.5" />
                         </div>
@@ -1451,11 +1445,10 @@ const TeacherDashboard = ({ user }) => {
           <div className="mt-2">
             <h3 className="text-2xl font-black text-slate-800 dark:text-white">{pendingGradingCount}</h3>
             <div className="mt-1.5">
-              <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-md border ${
-                pendingGradingCount > 0
+              <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-md border ${pendingGradingCount > 0
                   ? 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60'
                   : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60'
-              }`}>
+                }`}>
                 {pendingGradingCount > 0 ? '📝 Submissions due' : '✓ All Graded'}
               </span>
             </div>
@@ -1655,22 +1648,20 @@ const TeacherDashboard = ({ user }) => {
               <button
                 type="button"
                 onClick={() => setSelectedDayFilter('ALL')}
-                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
-                  selectedDayFilter === 'ALL'
+                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${selectedDayFilter === 'ALL'
                     ? 'bg-purple-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700'
-                }`}
+                  }`}
               >
                 ALL ({schedule.length})
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedDayFilter('TODAY')}
-                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
-                  selectedDayFilter === 'TODAY'
+                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${selectedDayFilter === 'TODAY'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/40 border border-emerald-200/60 dark:border-emerald-800'
-                }`}
+                  }`}
               >
                 <span>TODAY ({todayCode})</span>
               </button>
@@ -1681,11 +1672,10 @@ const TeacherDashboard = ({ user }) => {
                     key={day}
                     type="button"
                     onClick={() => setSelectedDayFilter(day)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      selectedDayFilter === day
+                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${selectedDayFilter === day
                         ? 'bg-purple-600 text-white shadow-xs font-black'
                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700'
-                    }`}
+                      }`}
                   >
                     {day} {count > 0 && <span className="opacity-70 text-[10px]">({count})</span>}
                   </button>
@@ -1703,16 +1693,14 @@ const TeacherDashboard = ({ user }) => {
                   return (
                     <div
                       key={sch._id}
-                      className={`flex justify-between items-center p-3.5 rounded-2xl border transition-all ${
-                        isToday
+                      className={`flex justify-between items-center p-3.5 rounded-2xl border transition-all ${isToday
                           ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/30 dark:bg-emerald-950/20 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40'
                           : 'border-slate-100 dark:border-slate-800 hover:border-purple-200 dark:hover:border-purple-800 hover:bg-purple-50/20 dark:hover:bg-slate-800/40 bg-white dark:bg-slate-900'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <div className={`p-2.5 rounded-2xl flex flex-col items-center min-w-[62px] shrink-0 ${
-                          isToday ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300' : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
-                        }`}>
+                        <div className={`p-2.5 rounded-2xl flex flex-col items-center min-w-[62px] shrink-0 ${isToday ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300' : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+                          }`}>
                           <span className="text-[10px] font-black uppercase tracking-wider">{sch.dayOfWeek ? sch.dayOfWeek.slice(0, 3) : 'DAY'}</span>
                           <FaCalendarAlt className="text-sm mt-0.5" />
                         </div>
@@ -2324,13 +2312,12 @@ const StudentDashboard = ({ user }) => {
                       </div>
 
                       <div className="flex items-center gap-2 self-end sm:self-center">
-                        <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${
-                          isGraded 
-                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200' 
-                            : isSubmitted 
-                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200' 
-                            : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200'
-                        }`}>
+                        <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${isGraded
+                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200'
+                            : isSubmitted
+                              ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200'
+                              : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200'
+                          }`}>
                           {isGraded ? `Score: ${task.marks}/${task.maxMarks}` : isSubmitted ? '✓ Submitted' : '⏳ Pending'}
                         </span>
                         <button
@@ -2485,22 +2472,20 @@ const StudentDashboard = ({ user }) => {
               <button
                 type="button"
                 onClick={() => setSelectedDayFilter('ALL')}
-                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
-                  selectedDayFilter === 'ALL'
+                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${selectedDayFilter === 'ALL'
                     ? 'bg-purple-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700'
-                }`}
+                  }`}
               >
                 ALL ({schedule.length})
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedDayFilter('TODAY')}
-                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
-                  selectedDayFilter === 'TODAY'
+                className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${selectedDayFilter === 'TODAY'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/40 border border-emerald-200/60 dark:border-emerald-800'
-                }`}
+                  }`}
               >
                 <span>TODAY ({todayCode})</span>
               </button>
@@ -2511,11 +2496,10 @@ const StudentDashboard = ({ user }) => {
                     key={day}
                     type="button"
                     onClick={() => setSelectedDayFilter(day)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      selectedDayFilter === day
+                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${selectedDayFilter === day
                         ? 'bg-purple-600 text-white shadow-xs font-black'
                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700'
-                    }`}
+                      }`}
                   >
                     {day} {count > 0 && <span className="opacity-70 text-[10px]">({count})</span>}
                   </button>
@@ -2532,18 +2516,16 @@ const StudentDashboard = ({ user }) => {
                   return (
                     <div
                       key={sch._id}
-                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border transition gap-3 ${
-                        isToday
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border transition gap-3 ${isToday
                           ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/30 dark:bg-emerald-950/20'
                           : 'border-slate-100 dark:border-slate-800 hover:bg-purple-50/20 dark:hover:bg-slate-800/60'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3.5">
-                        <div className={`px-3 py-2 rounded-2xl text-xs min-w-[70px] text-center uppercase font-black ${
-                          isToday
+                        <div className={`px-3 py-2 rounded-2xl text-xs min-w-[70px] text-center uppercase font-black ${isToday
                             ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300'
                             : 'bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800/50'
-                        }`}>
+                          }`}>
                           {sch.dayOfWeek ? sch.dayOfWeek.slice(0, 3) : 'DAY'}
                         </div>
                         <div>
@@ -2600,11 +2582,10 @@ const StudentDashboard = ({ user }) => {
                       <h4 className="font-bold text-slate-800 dark:text-white">{log.scheduleId?.title || log.courseId?.title || 'Class Session'}</h4>
                       <p className="text-xs text-slate-400 font-medium mt-0.5">📅 {new Date(log.date).toLocaleDateString()}</p>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
-                      log.status === 'Present' 
-                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50' 
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${log.status === 'Present'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
                         : 'bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50'
-                    }`}>
+                      }`}>
                       {log.status === 'Present' ? '✓ Present' : '✗ Absent'}
                     </span>
                   </div>

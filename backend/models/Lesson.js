@@ -136,5 +136,7 @@ const lessonSchema = new mongoose.Schema({
 
 lessonSchema.index({ course: 1, grade: 1 });
 lessonSchema.index({ course: 1 });
+lessonSchema.index({ 'liveStream.isLive': 1 });
+lessonSchema.index({ 'liveStream.isScheduled': 1 });
 
 module.exports = mongoose.model('Lesson', lessonSchema);

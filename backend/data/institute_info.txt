@@ -47,7 +47,7 @@ Class Schedules:
         - Grade 6 - 9 = Rs. 1000/month
         - Grade 10 = Rs. 1200/month
         - Grade 11 = Rs. 1500/month
-    - Instructor : Mr. Kevin Daraniyagala
+    - Instructor : Mr. Kevin Deraniyagala
         - Grade 6 : Saturday 7.30 AM - 9.30 AM
         - Grade 7 : Saturday 11.30 AM - 1.30 PM
         - Grade 8 : Saturday 9.30 AM - 11.30 AM
