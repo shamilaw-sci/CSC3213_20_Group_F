@@ -46,7 +46,7 @@ export const INSTRUCTORS = [
     category: "Science",
     grades: "Grade 6 - 9 & O/L (Grade 10, Grade 11)",
     singleLineSummary: "Grade 6 - 11 (Saturday & Sunday)",
-    photo: "/assets/pathum_gunawardhana.png",
+    photo: "/assets/Pathum_Gunawardhana.jpeg",
     defaultPhoto: "/assets/default_instructor_icon.png",
     fees: "Rs. 1000 - 1500/month",
     feeBreakdown: "Grade 6 - 9: Rs. 1000 | Grade 10: Rs. 1200 | Grade 11: Rs. 1500",
@@ -67,7 +67,7 @@ export const INSTRUCTORS = [
     category: "Primary",
     grades: "Grade 2 - 5",
     singleLineSummary: "Grade 2 - 5 (Sunday)",
-    photo: "/assets/sankha_dissanayake.png",
+    photo: "/assets/Sankha_Dissanayake.jpeg",
     defaultPhoto: "/assets/default_instructor_icon.png",
     fees: "Rs. 1200/month",
     feeBreakdown: "Grade 2 - 5: Rs. 1200/month",
@@ -84,7 +84,7 @@ export const INSTRUCTORS = [
     category: "Mathematics",
     grades: "Grade 6 - 9 & O/L (Grade 10, Grade 11)",
     singleLineSummary: "Grade 6 - 11 (Saturday & Sunday)",
-    photo: "/assets/lasantha_wedagedara.png",
+    photo: "/assets/Lasantha_Wedagedara.png",
     defaultPhoto: "/assets/default_instructor_icon.png",
     fees: "Rs. 1000 - 1500/month",
     feeBreakdown: "Grade 6 - 9: Rs. 1000 | Grade 10: Rs. 1200 | Grade 11: Rs. 1500",
@@ -105,8 +105,8 @@ export const INSTRUCTORS = [
     category: "Sinhala",
     grades: "O/L Grade 10 and Grade 11",
     singleLineSummary: "Grade 10 & 11 O/L (Sunday)",
-    photo: "/assets/founder_photo.png",
-    defaultPhoto: "/assets/founder_photo.png",
+    photo: "/assets/Chaminda_Kumara_Herath.png",
+    defaultPhoto: "/assets/Chaminda_Kumara_Herath.png",
     fees: "Rs. 1200/month",
     feeBreakdown: "Grade 10 & Grade 11: Rs. 1200/month",
     bio: "Founder of Kirula Education Center and expert Sinhala language lecturer specializing in O/L literature, grammar, and essay writing.",
@@ -116,13 +116,13 @@ export const INSTRUCTORS = [
     ]
   },
   {
-    id: "kevin-daraniyagala",
-    name: "Mr. Kevin Daraniyagala",
+    id: "kevin-deraniyagala",
+    name: "Mr. Kevin Deraniyagala",
     subject: "English (Secondary & O/L)",
     category: "English",
     grades: "Grade 6 - 9 & O/L (Grade 10, Grade 11)",
     singleLineSummary: "Grade 6 - 11 (Saturday)",
-    photo: "/assets/kevin_daraniyagala.png",
+    photo: "/assets/Kevin_Deraniyagala.jpeg",
     defaultPhoto: "/assets/default_instructor_icon.png",
     fees: "Rs. 1000 - 1500/month",
     feeBreakdown: "Grade 6 - 9: Rs. 1000 | Grade 10: Rs. 1200 | Grade 11: Rs. 1500",
@@ -143,7 +143,7 @@ export const INSTRUCTORS = [
     category: "English",
     grades: "Grade 1 - 5",
     singleLineSummary: "Grade 1 - 5 (Saturday & Sunday)",
-    photo: "/assets/rashmi_gunawardhana.png",
+    photo: "/assets/Rashmi_Gunawardhana.png",
     defaultPhoto: "/assets/default_instructor_icon.png",
     fees: "Rs. 1000/month",
     feeBreakdown: "Grade 1 - 5: Rs. 1000/month",
@@ -197,4 +197,17 @@ export const GET_DIVERSE_TIMETABLE_PREVIEW = () => {
     }
   });
   return previewList;
+};
+
+// Helper function to find instructor photo by name or subject
+export const getInstructorPhoto = (nameOrSubject) => {
+  if (!nameOrSubject) return "/assets/default_instructor_icon.png";
+  const query = String(nameOrSubject).toLowerCase();
+  const found = INSTRUCTORS.find(inst =>
+    inst.id.toLowerCase() === query ||
+    inst.name.toLowerCase().includes(query) ||
+    query.includes(inst.name.toLowerCase()) ||
+    inst.subject.toLowerCase().includes(query)
+  );
+  return found ? found.photo : "/assets/default_instructor_icon.png";
 };

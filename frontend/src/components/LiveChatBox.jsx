@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { 
-  FaPaperPlane, 
-  FaLock, 
-  FaUserGraduate, 
-  FaChalkboardTeacher, 
-  FaChevronDown, 
-  FaChevronUp, 
+import {
+  FaPaperPlane,
+  FaLock,
+  FaUserGraduate,
+  FaChalkboardTeacher,
+  FaChevronDown,
+  FaChevronUp,
   FaComments,
   FaSmile,
   FaCamera,
@@ -236,18 +236,16 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
   const isAdmin = !isBroadcastMsg && role === 'admin';
 
   return (
-    <div className={`relative px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl sm:rounded-3xl flex items-center gap-2.5 sm:gap-3 w-full max-w-[285px] sm:max-w-[325px] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-      isPlaying ? 'ring-2 ring-white/70 shadow-xl' : ''
-    } ${
-      isBroadcastMsg
+    <div className={`relative px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl sm:rounded-3xl flex items-center gap-2.5 sm:gap-3 w-full max-w-[285px] sm:max-w-[325px] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isPlaying ? 'ring-2 ring-white/70 shadow-xl' : ''
+      } ${isBroadcastMsg
         ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-emerald-950/25 border border-emerald-300/60 ring-1 ring-emerald-200/40 font-medium'
         : isTeacher
           ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-amber-950 shadow-amber-950/20 border border-amber-400/80 font-bold'
           : isAdmin
             ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white shadow-purple-950/25 border border-purple-400/30 font-medium'
             : 'bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white shadow-sky-950/25 border border-sky-300/50 font-medium'
-    }`}>
-      
+      }`}>
+
       <audio
         ref={audioRef}
         src={resolvedAudioSrc}
@@ -269,15 +267,14 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
         type="button"
         onClick={togglePlay}
         title={isPlaying ? "Pause voice note" : "Play voice note"}
-        className={`w-8.5 h-8.5 sm:w-9.5 sm:h-9.5 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-md cursor-pointer shrink-0 active:scale-90 hover:scale-105 ${
-          isBroadcastMsg
+        className={`w-8.5 h-8.5 sm:w-9.5 sm:h-9.5 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-md cursor-pointer shrink-0 active:scale-90 hover:scale-105 ${isBroadcastMsg
             ? 'bg-white text-emerald-700 hover:bg-emerald-50 shadow-emerald-950/30'
             : isTeacher
               ? 'bg-white text-amber-700 hover:bg-amber-50 shadow-amber-950/30'
               : isAdmin
                 ? 'bg-white text-purple-700 hover:bg-purple-50 shadow-purple-950/30'
                 : 'bg-white text-sky-700 hover:bg-sky-50 shadow-sky-950/30'
-        }`}
+          }`}
       >
         {isPlaying ? (
           <FaPause className="text-xs" />
@@ -289,7 +286,7 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
       {/* Center Waveform Spectrum & Time */}
       <div className="flex-1 min-w-0 flex flex-col justify-between gap-1.5 select-none">
         {/* Interactive Soundwave Bars */}
-        <div 
+        <div
           onClick={handleWaveformClick}
           className="flex items-center gap-[2px] sm:gap-[2.5px] h-6 cursor-pointer py-1 group/wave"
         >
@@ -299,11 +296,10 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
             return (
               <span
                 key={idx}
-                className={`w-[2.5px] sm:w-[3px] rounded-full transition-all duration-75 group-hover/wave:opacity-90 ${
-                  isPlayed
+                className={`w-[2.5px] sm:w-[3px] rounded-full transition-all duration-75 group-hover/wave:opacity-90 ${isPlayed
                     ? (isBroadcastMsg ? 'bg-amber-300 shadow-2xs' : isTeacher ? 'bg-amber-600' : 'bg-amber-300 shadow-2xs')
                     : (isBroadcastMsg ? 'bg-emerald-200/50' : isTeacher ? 'bg-amber-300/60' : isAdmin ? 'bg-purple-300/40' : 'bg-sky-200/40')
-                }`}
+                  }`}
                 style={{
                   height: `${Math.max(4, Math.round((heightPct / 100) * 18) + 2)}px`
                 }}
@@ -313,19 +309,17 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
         </div>
 
         {/* Bottom Metadata: Timer + Voice Note Label + Speed Toggle */}
-        <div className={`flex items-center justify-between text-xs font-sans font-semibold ${
-          isBroadcastMsg ? 'text-emerald-50' : isTeacher ? 'text-amber-950' : 'text-white/95'
-        }`}>
+        <div className={`flex items-center justify-between text-xs font-sans font-semibold ${isBroadcastMsg ? 'text-emerald-50' : isTeacher ? 'text-amber-950' : 'text-white/95'
+          }`}>
           <span className="font-semibold text-xs tracking-tight">
             {formatSec(currentTime > 0 ? currentTime : targetDuration)}
           </span>
 
           <div className="flex items-center gap-2">
-            <span className={`text-[11px] font-semibold flex items-center gap-1 font-sans ${
-              isBroadcastMsg
+            <span className={`text-[11px] font-semibold flex items-center gap-1 font-sans ${isBroadcastMsg
                 ? 'text-emerald-100 font-bold'
                 : isTeacher ? 'text-amber-900/90' : 'text-white/90'
-            }`}>
+              }`}>
               {isBroadcastMsg ? (
                 <>
                   <FaBullhorn className="text-[10px] text-amber-300" />
@@ -343,13 +337,12 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
             <button
               type="button"
               onClick={togglePlaybackRate}
-              className={`px-2 py-0.5 rounded-full text-[11px] font-bold font-sans transition cursor-pointer active:scale-95 shadow-2xs ${
-                isBroadcastMsg
+              className={`px-2 py-0.5 rounded-full text-[11px] font-bold font-sans transition cursor-pointer active:scale-95 shadow-2xs ${isBroadcastMsg
                   ? 'bg-emerald-900/60 hover:bg-emerald-900/80 text-emerald-100 border border-emerald-300/40'
                   : isTeacher
                     ? 'bg-amber-200/80 hover:bg-amber-300 text-amber-950 border border-amber-300/80'
                     : 'bg-white/25 hover:bg-white/35 text-white ring-1 ring-white/30'
-              }`}
+                }`}
               title="Change audio playback speed"
             >
               {playbackRate}x
@@ -380,13 +373,13 @@ const ChatAvatar = ({ avatarSrc, senderName, isSenderAdmin, isSenderTeacher }) =
 
   const resolvedSrc = useMemo(() => {
     // 1. If custom profile picture/avatar URL is provided and valid, prioritize it!
-    if (avatarSrc && 
-        typeof avatarSrc === 'string' && 
-        !avatarSrc.includes('default') && 
-        !avatarSrc.includes('undefined') && 
-        !avatarSrc.includes('null') &&
-        avatarSrc.trim() !== '') {
-      
+    if (avatarSrc &&
+      typeof avatarSrc === 'string' &&
+      !avatarSrc.includes('default') &&
+      !avatarSrc.includes('undefined') &&
+      !avatarSrc.includes('null') &&
+      avatarSrc.trim() !== '') {
+
       // If Admin and avatar is LuminaLearn logo or custom image
       if (isSenderAdmin) {
         if (!avatarSrc.includes('kirula_logo') && !avatarSrc.includes('founder_photo')) {
@@ -394,7 +387,7 @@ const ChatAvatar = ({ avatarSrc, senderName, isSenderAdmin, isSenderTeacher }) =
         }
         return '/assets/LuminaLearn_Logo_icon.png';
       }
-      
+
       // For Teacher, Instructor, Student: return actual provided profile picture
       if (!avatarSrc.includes('LuminaLearn_Logo')) {
         return avatarSrc;
@@ -423,7 +416,7 @@ const ChatAvatar = ({ avatarSrc, senderName, isSenderAdmin, isSenderTeacher }) =
         return '/assets/lasantha_wedagedara.png';
       }
       if (nameLower.includes('kevin')) {
-        return '/assets/kevin_daraniyagala.png';
+        return '/assets/kevin_deraniyagala.png';
       }
       if (nameLower.includes('rashmi')) {
         return '/assets/rashmi_gunawardhana.png';
@@ -438,16 +431,16 @@ const ChatAvatar = ({ avatarSrc, senderName, isSenderAdmin, isSenderTeacher }) =
   const fullUrl = getFullAttachmentUrl(resolvedSrc);
   const initial = (senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User')).charAt(0).toUpperCase();
 
-  const borderClasses = isSenderAdmin 
-    ? 'border-purple-300 ring-2 ring-purple-100' 
-    : isSenderTeacher 
-      ? 'border-amber-300 ring-2 ring-amber-100' 
+  const borderClasses = isSenderAdmin
+    ? 'border-purple-300 ring-2 ring-purple-100'
+    : isSenderTeacher
+      ? 'border-amber-300 ring-2 ring-amber-100'
       : 'border-indigo-300 ring-2 ring-indigo-100';
 
   const gradientClasses = isSenderAdmin
     ? 'bg-gradient-to-tr from-purple-700 to-indigo-700 text-white'
-    : isSenderTeacher 
-      ? 'bg-gradient-to-tr from-amber-500 to-yellow-500 text-slate-950' 
+    : isSenderTeacher
+      ? 'bg-gradient-to-tr from-amber-500 to-yellow-500 text-slate-950'
       : 'bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white';
 
   return (
@@ -475,10 +468,10 @@ const DocumentMessageCard = ({ attachment, isFromMe, isSenderAdmin, isSenderTeac
   const fileName = attachment.originalName || 'Document File';
   const fileExt = (fileName.split('.').pop() || 'FILE').toUpperCase();
   const sizeBytes = attachment.size || attachment.fileSize;
-  const formattedSize = sizeBytes 
-    ? (sizeBytes > 1024 * 1024 
-        ? `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB` 
-        : `${Math.round(sizeBytes / 1024)} KB`)
+  const formattedSize = sizeBytes
+    ? (sizeBytes > 1024 * 1024
+      ? `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`
+      : `${Math.round(sizeBytes / 1024)} KB`)
     : `${fileExt} File`;
 
   const getFileIconAndColors = () => {
@@ -520,15 +513,14 @@ const DocumentMessageCard = ({ attachment, isFromMe, isSenderAdmin, isSenderTeac
       target="_blank"
       rel="noopener noreferrer"
       download={fileName}
-      className={`group p-3 sm:p-3.5 rounded-2xl flex items-center gap-3 min-w-[240px] sm:min-w-[270px] max-w-[340px] transition-all duration-200 hover:scale-[1.015] hover:shadow-lg select-none no-underline border cursor-pointer ${
-        isFromMe
+      className={`group p-3 sm:p-3.5 rounded-2xl flex items-center gap-3 min-w-[240px] sm:min-w-[270px] max-w-[340px] transition-all duration-200 hover:scale-[1.015] hover:shadow-lg select-none no-underline border cursor-pointer ${isFromMe
           ? 'bg-white/15 hover:bg-white/25 text-white border-white/30 shadow-md backdrop-blur-xs'
           : isSenderAdmin
             ? 'bg-gradient-to-r from-purple-100/95 via-indigo-50/90 to-purple-100/95 hover:from-purple-200/95 hover:to-indigo-100/95 text-purple-950 border-purple-300 shadow-sm'
             : isSenderTeacher
               ? 'bg-gradient-to-r from-amber-100/95 via-yellow-50/90 to-amber-100/95 hover:from-amber-200/95 hover:to-yellow-100/95 text-amber-950 border-amber-300 shadow-sm'
               : 'bg-gradient-to-r from-sky-100/95 via-blue-50/90 to-sky-100/95 hover:from-sky-200/95 hover:to-blue-100/95 text-sky-950 border-sky-300 shadow-sm'
-      }`}
+        }`}
       title={`Click to open/download ${fileName}`}
     >
       {/* File Type Icon Badge */}
@@ -552,11 +544,10 @@ const DocumentMessageCard = ({ attachment, isFromMe, isSenderAdmin, isSenderTeac
       </div>
 
       {/* Action Download / Open Icon Circle */}
-      <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110 shrink-0 shadow-2xs ${
-        isFromMe 
-          ? 'bg-white/20 text-white group-hover:bg-white group-hover:text-purple-900' 
+      <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110 shrink-0 shadow-2xs ${isFromMe
+          ? 'bg-white/20 text-white group-hover:bg-white group-hover:text-purple-900'
           : 'bg-white text-gray-700 group-hover:bg-gray-900 group-hover:text-white border border-gray-200'
-      }`}>
+        }`}>
         <FaDownload className="text-xs" />
       </div>
     </a>
@@ -589,16 +580,16 @@ const QUICK_EMOJIS = [
 // Helper to get role styling for bubbles, badges, and themes (Yellow for Instructor, Purple for Admin, Blue for Student)
 const getMessageTheme = (msg, isFromMe, currentUserRole, isTeacherOrAdmin) => {
   if (!msg) return 'student';
-  
+
   const role = (
-    msg.senderRole || 
-    (typeof msg.sender === 'object' && msg.sender !== null ? msg.sender.role : '') || 
+    msg.senderRole ||
+    (typeof msg.sender === 'object' && msg.sender !== null ? msg.sender.role : '') ||
     ''
   ).toLowerCase();
 
   const name = (
-    msg.senderName || 
-    (typeof msg.sender === 'object' && msg.sender !== null ? msg.sender.name : '') || 
+    msg.senderName ||
+    (typeof msg.sender === 'object' && msg.sender !== null ? msg.sender.name : '') ||
     ''
   ).toLowerCase();
 
@@ -609,12 +600,12 @@ const getMessageTheme = (msg, isFromMe, currentUserRole, isTeacherOrAdmin) => {
 
   // 2. Direct check: If Teacher / Instructor
   if (
-    role === 'teacher' || 
-    role === 'instructor' || 
-    name.includes('teacher') || 
-    name.includes('instructor') || 
-    name.includes('chaminda') || 
-    name.includes('herath') || 
+    role === 'teacher' ||
+    role === 'instructor' ||
+    name.includes('teacher') ||
+    name.includes('instructor') ||
+    name.includes('chaminda') ||
+    name.includes('herath') ||
     name.includes('kumara') ||
     name.includes('pathum') ||
     name.includes('lasantha') ||
@@ -628,7 +619,7 @@ const getMessageTheme = (msg, isFromMe, currentUserRole, isTeacherOrAdmin) => {
   if (role === 'student' || name.includes('student')) {
     return 'student';
   }
-  
+
   // 3. If outgoing (isFromMe), check the current user's logged-in role
   if (isFromMe) {
     if (currentUserRole === 'admin' || currentUserRole === 'superadmin') return 'admin';
@@ -640,16 +631,16 @@ const getMessageTheme = (msg, isFromMe, currentUserRole, isTeacherOrAdmin) => {
   if (msg.isBroadcast) {
     return 'teacher';
   }
-  
+
   return 'student';
 };
 
-const LiveChatBox = ({ 
-  lessonId, 
-  isTeacherOrAdmin, 
-  isFullscreen, 
+const LiveChatBox = ({
+  lessonId,
+  isTeacherOrAdmin,
+  isFullscreen,
   isVisible = true,
-  currentGrade, 
+  currentGrade,
   classTitle,
   isLiveMicActive = false,
   isStreamEnded = false,
@@ -690,7 +681,7 @@ const LiveChatBox = ({
   const [sendMode, setSendMode] = useState(isTeacherOrAdmin ? 'broadcast' : 'private'); // 'broadcast' | 'private'
   const [chatFilterTab, setChatFilterTab] = useState('all'); // 'all' | 'broadcast' | 'inquiries' | 'staff'
   const [loading, setLoading] = useState(false);
-  
+
   // Emojis, Attachments, Camera, and Student Profile States
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachedFile, setAttachedFile] = useState(null);
@@ -780,7 +771,7 @@ const LiveChatBox = ({
       voiceAnimationRef.current = null;
     }
     if (voiceAudioContextRef.current) {
-      voiceAudioContextRef.current.close().catch(() => {});
+      voiceAudioContextRef.current.close().catch(() => { });
       voiceAudioContextRef.current = null;
     }
     if (voiceTimerRef.current) {
@@ -788,7 +779,7 @@ const LiveChatBox = ({
       voiceTimerRef.current = null;
     }
     if (voiceMediaRecorderRef.current && voiceMediaRecorderRef.current.state !== 'inactive') {
-      try { voiceMediaRecorderRef.current.stop(); } catch (e) {}
+      try { voiceMediaRecorderRef.current.stop(); } catch (e) { }
     }
     if (voiceStreamRef.current) {
       voiceStreamRef.current.getTracks().forEach(track => track.stop());
@@ -822,14 +813,14 @@ const LiveChatBox = ({
 
     try {
       isCancelledRef.current = false;
-      
+
       // Stop previous streams & audio context safely without resetting voice states
       if (voiceAnimationRef.current) {
         cancelAnimationFrame(voiceAnimationRef.current);
         voiceAnimationRef.current = null;
       }
       if (voiceAudioContextRef.current) {
-        voiceAudioContextRef.current.close().catch(() => {});
+        voiceAudioContextRef.current.close().catch(() => { });
         voiceAudioContextRef.current = null;
       }
       if (voiceTimerRef.current) {
@@ -900,7 +891,7 @@ const LiveChatBox = ({
         }
       }
 
-      const mediaRecorder = preferredMimeType 
+      const mediaRecorder = preferredMimeType
         ? new MediaRecorder(stream, { mimeType: preferredMimeType })
         : new MediaRecorder(stream);
 
@@ -926,9 +917,9 @@ const LiveChatBox = ({
 
         const finalMime = mediaRecorder.mimeType || preferredMimeType || 'audio/webm';
         const blob = new Blob(voiceChunksRef.current, { type: finalMime });
-        
+
         // Compute exact elapsed recording time
-        const elapsedSec = voiceStartTimeRef.current 
+        const elapsedSec = voiceStartTimeRef.current
           ? Math.max(1, Math.round((Date.now() - voiceStartTimeRef.current) / 1000))
           : Math.max(1, voiceDurationRef.current || 1);
 
@@ -945,7 +936,7 @@ const LiveChatBox = ({
           voiceStreamRef.current = null;
         }
         if (voiceAudioContextRef.current) {
-          voiceAudioContextRef.current.close().catch(() => {});
+          voiceAudioContextRef.current.close().catch(() => { });
           voiceAudioContextRef.current = null;
         }
       };
@@ -1095,12 +1086,12 @@ const LiveChatBox = ({
     // 1. Create instant optimistic voice note in 0ms
     const tempId = `temp-voice-${Date.now()}-${Math.random()}`;
     const blobUrl = URL.createObjectURL(currentBlob);
-    const voiceText = isStudent 
-      ? '🎙️ Voice Question for Instructor' 
-      : selectedStudentId === 'staff' 
-        ? '🎙️ Staff Voice Note' 
-        : selectedStudentId 
-          ? `🎙️ Voice Response to ${selectedThreadStudent?.studentName || 'Student'}` 
+    const voiceText = isStudent
+      ? '🎙️ Voice Question for Instructor'
+      : selectedStudentId === 'staff'
+        ? '🎙️ Staff Voice Note'
+        : selectedStudentId
+          ? `🎙️ Voice Response to ${selectedThreadStudent?.studentName || 'Student'}`
           : '🎙️ Class Voice Announcement';
 
     const optimisticMsg = {
@@ -1155,7 +1146,7 @@ const LiveChatBox = ({
       formData.append('attachment', audioFile, fileName);
       formData.append('audioDuration', String(currentDuration));
       formData.append('text', voiceText);
-      
+
       if (isTeacherOrAdmin) {
         if (selectedStudentId === 'staff') {
           formData.append('isStaffOnly', 'true');
@@ -1171,7 +1162,7 @@ const LiveChatBox = ({
       const res = await api.post(`/lessons/${lessonId}/live-stream/messages`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+
       if (res.data?.liveMessage) {
         if (selectedStudentId === 'staff') {
           setStaffMessages(prev => prev.map(m => m._id === tempId ? res.data.liveMessage : m));
@@ -1200,10 +1191,10 @@ const LiveChatBox = ({
   useEffect(() => {
     return () => {
       if (voiceAnimationRef.current) cancelAnimationFrame(voiceAnimationRef.current);
-      if (voiceAudioContextRef.current) voiceAudioContextRef.current.close().catch(() => {});
+      if (voiceAudioContextRef.current) voiceAudioContextRef.current.close().catch(() => { });
       if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
       if (voiceMediaRecorderRef.current && voiceMediaRecorderRef.current.state !== 'inactive') {
-        try { voiceMediaRecorderRef.current.stop(); } catch (e) {}
+        try { voiceMediaRecorderRef.current.stop(); } catch (e) { }
       }
       if (voiceStreamRef.current) {
         voiceStreamRef.current.getTracks().forEach(t => t.stop());
@@ -1276,7 +1267,7 @@ const LiveChatBox = ({
     try {
       if (isInitial && messagesLengthRef.current === 0) setLoading(true);
       const res = await api.get(`/lessons/${lessonId}/live-stream/messages`);
-      
+
       const newMsgs = res.data.messages || [];
       setMessages(prev => {
         if (prev.length === newMsgs.length && prev[prev.length - 1]?._id === newMsgs[newMsgs.length - 1]?._id) {
@@ -1284,7 +1275,7 @@ const LiveChatBox = ({
         }
         try {
           sessionStorage.setItem(`lumina_chat_msgs_${lessonId}`, JSON.stringify(newMsgs));
-        } catch {}
+        } catch { }
         return newMsgs;
       });
 
@@ -1304,7 +1295,7 @@ const LiveChatBox = ({
           }
           try {
             sessionStorage.setItem(`lumina_chat_threads_${lessonId}`, JSON.stringify(newThreads));
-          } catch {}
+          } catch { }
           return newThreads;
         });
       }
@@ -1316,7 +1307,7 @@ const LiveChatBox = ({
           }
           try {
             sessionStorage.setItem(`lumina_chat_staff_${lessonId}`, JSON.stringify(newStaff));
-          } catch {}
+          } catch { }
           return newStaff;
         });
       }
@@ -1514,7 +1505,7 @@ const LiveChatBox = ({
       } else {
         const formData = new FormData();
         if (currentText) formData.append('text', currentText);
-        
+
         if (isTeacherOrAdmin) {
           if (currentSelected === 'staff') {
             formData.append('isStaffOnly', 'true');
@@ -1832,11 +1823,10 @@ const LiveChatBox = ({
   const selectedThreadStudent = studentThreads.find(t => t.studentId === selectedStudentId);
 
   return (
-    <div className={`relative w-full bg-white live-chat-font transition-all duration-300 ${
-      isFullscreen 
-        ? 'h-full flex flex-col border-0 rounded-none shadow-none' 
+    <div className={`relative w-full bg-white live-chat-font transition-all duration-300 ${isFullscreen
+        ? 'h-full flex flex-col border-0 rounded-none shadow-none'
         : 'rounded-2xl sm:rounded-3xl border border-gray-200 shadow-xl overflow-hidden'
-    }`}>
+      }`}>
       {/* Custom Keyframe Animations for Emojis & Chat-wide Floating Reactions */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap');
@@ -2187,7 +2177,7 @@ const LiveChatBox = ({
 
       {/* Header Bar (Only in regular inline mode, omitted in fullscreen to avoid duplicate header) */}
       {!isFullscreen && (
-        <div 
+        <div
           onClick={() => setIsExpanded(!isExpanded)}
           className="px-4 py-3 sm:px-5 sm:py-3.5 bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/70 border-b border-purple-100 flex items-center justify-between cursor-pointer select-none shrink-0 transition-colors"
         >
@@ -2233,8 +2223,8 @@ const LiveChatBox = ({
                   </span>
                   <p className="text-gray-600 text-[11px] sm:text-xs truncate">
                     {isStreamEnded ? (
-                      isStudent 
-                        ? "Send questions or feedback directly to your teacher." 
+                      isStudent
+                        ? "Send questions or feedback directly to your teacher."
                         : "Review student questions. Click a student card to reply."
                     ) : (
                       isStudent
@@ -2256,7 +2246,7 @@ const LiveChatBox = ({
       {/* Expanded Chat Body */}
       {isExpanded && (
         <div className={`relative flex flex-col bg-white overflow-x-hidden ${isFullscreen ? 'flex-1 min-h-0' : ''}`}>
-          
+
           {/* 1. FULL CHAT SCREEN BIG HERO ENTRANCE & LEAVING STAGE (Pinned in Exact Middle of Visible Chat) */}
           {heroReaction && (
             <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center overflow-hidden">
@@ -2291,7 +2281,7 @@ const LiveChatBox = ({
           )}
 
           {/* Messages Display Area (with Relative Positioning for Full-Chat Hero Reaction & Floating Emoji Particles) */}
-          <div 
+          <div
             ref={chatContainerRef}
             onScroll={handleMainScroll}
             className={`relative ${isFullscreen ? 'flex-1 min-h-0' : 'h-80 sm:h-96'} overflow-y-auto overflow-x-hidden p-3.5 sm:p-4 pb-8 space-y-4 sm:space-y-5 bg-gray-50/70 border-b border-gray-100 scroll-smooth overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400`}
@@ -2332,7 +2322,7 @@ const LiveChatBox = ({
                   </span>
                 </div>
                 <p className="text-[11.5px] text-purple-900/90 font-medium pl-7 leading-relaxed">
-                  {isStudent 
+                  {isStudent
                     ? "Provide your feedback, final reactions, or post-stream questions below. Your instructor can review and reply to you directly."
                     : "The live stream has ended. You can review student questions, feedback reactions, and reply to each student inquiry anytime."}
                 </p>
@@ -2380,20 +2370,18 @@ const LiveChatBox = ({
                       <button
                         type="button"
                         onClick={() => setChatFilterTab(chatFilterTab === 'broadcast' ? 'all' : 'broadcast')}
-                        className={`relative flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-2xl text-xs font-black transition-all duration-200 cursor-pointer active:scale-95 border ${
-                          chatFilterTab === 'broadcast'
+                        className={`relative flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-2xl text-xs font-black transition-all duration-200 cursor-pointer active:scale-95 border ${chatFilterTab === 'broadcast'
                             ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white border-emerald-500 shadow-md shadow-emerald-950/20 ring-2 ring-emerald-400/40 -translate-y-0.5'
                             : 'bg-white hover:bg-emerald-50/70 text-emerald-950 border-emerald-200/90 hover:border-emerald-400 hover:shadow-xs'
-                        }`}
+                          }`}
                         title="Filter by Class Broadcast Announcements"
                       >
                         <FaBullhorn className={`text-xs shrink-0 ${chatFilterTab === 'broadcast' ? 'text-amber-300' : 'text-emerald-600'}`} />
                         <span className="whitespace-nowrap tracking-tight font-extrabold">Broadcasts</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10.5px] font-black shrink-0 transition-all ${
-                          chatFilterTab === 'broadcast' 
-                            ? 'bg-white/25 text-white ring-1 ring-white/30 backdrop-blur-xs' 
+                        <span className={`px-2 py-0.5 rounded-full text-[10.5px] font-black shrink-0 transition-all ${chatFilterTab === 'broadcast'
+                            ? 'bg-white/25 text-white ring-1 ring-white/30 backdrop-blur-xs'
                             : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                        }`}>
+                          }`}>
                           {broadcastCount}
                         </span>
                       </button>
@@ -2402,20 +2390,18 @@ const LiveChatBox = ({
                       <button
                         type="button"
                         onClick={() => setChatFilterTab(chatFilterTab === 'inquiries' ? 'all' : 'inquiries')}
-                        className={`relative flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-2xl text-xs font-black transition-all duration-200 cursor-pointer active:scale-95 border ${
-                          chatFilterTab === 'inquiries'
+                        className={`relative flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-2xl text-xs font-black transition-all duration-200 cursor-pointer active:scale-95 border ${chatFilterTab === 'inquiries'
                             ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white border-blue-500 shadow-md shadow-blue-950/20 ring-2 ring-sky-400/40 -translate-y-0.5'
                             : 'bg-white hover:bg-sky-50/70 text-sky-950 border-sky-200/90 hover:border-sky-400 hover:shadow-xs'
-                        }`}
+                          }`}
                         title="Filter by Student Inquiries"
                       >
                         <FaUserGraduate className={`text-xs shrink-0 ${chatFilterTab === 'inquiries' ? 'text-amber-300' : 'text-sky-600'}`} />
                         <span className="whitespace-nowrap tracking-tight font-extrabold">Inquiries</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10.5px] font-black shrink-0 transition-all ${
-                          chatFilterTab === 'inquiries' 
-                            ? 'bg-white/25 text-white ring-1 ring-white/30 backdrop-blur-xs' 
+                        <span className={`px-2 py-0.5 rounded-full text-[10.5px] font-black shrink-0 transition-all ${chatFilterTab === 'inquiries'
+                            ? 'bg-white/25 text-white ring-1 ring-white/30 backdrop-blur-xs'
                             : 'bg-sky-100 text-sky-900 border border-sky-200'
-                        }`}>
+                          }`}>
                           {studentThreads.length}
                         </span>
                         {hasAnyUnreadStudent && (
@@ -2430,20 +2416,18 @@ const LiveChatBox = ({
                       <button
                         type="button"
                         onClick={() => setChatFilterTab(chatFilterTab === 'staff' ? 'all' : 'staff')}
-                        className={`relative flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-2xl text-xs font-black transition-all duration-200 cursor-pointer active:scale-95 border ${
-                          chatFilterTab === 'staff'
+                        className={`relative flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-2xl text-xs font-black transition-all duration-200 cursor-pointer active:scale-95 border ${chatFilterTab === 'staff'
                             ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white border-purple-500 shadow-md shadow-purple-950/20 ring-2 ring-purple-400/40 -translate-y-0.5'
                             : 'bg-white hover:bg-purple-50/70 text-purple-950 border-purple-200/90 hover:border-purple-400 hover:shadow-xs'
-                        }`}
+                          }`}
                         title="Filter by Admin & Instructor Staff Channel"
                       >
                         <FaShieldAlt className={`text-xs shrink-0 ${chatFilterTab === 'staff' ? 'text-amber-300' : 'text-purple-600'}`} />
                         <span className="whitespace-nowrap tracking-tight font-extrabold">Staff</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10.5px] font-black shrink-0 transition-all ${
-                          chatFilterTab === 'staff' 
-                            ? 'bg-white/25 text-white ring-1 ring-white/30 backdrop-blur-xs' 
+                        <span className={`px-2 py-0.5 rounded-full text-[10.5px] font-black shrink-0 transition-all ${chatFilterTab === 'staff'
+                            ? 'bg-white/25 text-white ring-1 ring-white/30 backdrop-blur-xs'
                             : 'bg-purple-100 text-purple-900 border border-purple-200'
-                        }`}>
+                          }`}>
                           {staffMessages.length}
                         </span>
                         {hasUnreadStaff && (
@@ -2489,8 +2473,8 @@ const LiveChatBox = ({
                         const displaySenderName = isFromMe
                           ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
                           : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
-                              ? msg.senderName
-                              : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+                            ? msg.senderName
+                            : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
 
                         const senderAvatarUrl = isFromMe
                           ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
@@ -2530,70 +2514,70 @@ const LiveChatBox = ({
                               </span>
                             </div>
 
-                          {msg.text && (
-                            isOnlyEmoji(msg.text) ? (
-                              <div className={`py-1.5 text-center select-none flex items-center justify-center min-h-[56px] transition-all duration-200 transform hover:scale-115 active:scale-95 cursor-pointer ${getEmojiCustomAnimation(msg.text)}`}>
-                                {getEmojiAppleCode(msg.text) ? (
-                                  <img
-                                    src={getHighResEmojiUrl(getEmojiAppleCode(msg.text))}
-                                    alt={msg.text}
-                                    className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-md select-none will-change-transform filter"
-                                    onError={(e) => {
-                                      if (!e.currentTarget.dataset.retried) {
-                                        e.currentTarget.dataset.retried = 'true';
-                                        e.currentTarget.src = getStandardEmojiUrl(getEmojiAppleCode(msg.text));
-                                      } else {
-                                        e.currentTarget.style.display = 'none';
-                                        if (e.currentTarget.nextSibling) {
-                                          e.currentTarget.nextSibling.style.display = 'inline';
+                            {msg.text && (
+                              isOnlyEmoji(msg.text) ? (
+                                <div className={`py-1.5 text-center select-none flex items-center justify-center min-h-[56px] transition-all duration-200 transform hover:scale-115 active:scale-95 cursor-pointer ${getEmojiCustomAnimation(msg.text)}`}>
+                                  {getEmojiAppleCode(msg.text) ? (
+                                    <img
+                                      src={getHighResEmojiUrl(getEmojiAppleCode(msg.text))}
+                                      alt={msg.text}
+                                      className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-md select-none will-change-transform filter"
+                                      onError={(e) => {
+                                        if (!e.currentTarget.dataset.retried) {
+                                          e.currentTarget.dataset.retried = 'true';
+                                          e.currentTarget.src = getStandardEmojiUrl(getEmojiAppleCode(msg.text));
+                                        } else {
+                                          e.currentTarget.style.display = 'none';
+                                          if (e.currentTarget.nextSibling) {
+                                            e.currentTarget.nextSibling.style.display = 'inline';
+                                          }
                                         }
-                                      }
-                                    }}
-                                  />
-                                ) : null}
-                                <span className={`${getEmojiAppleCode(msg.text) ? 'hidden' : 'inline'} text-4xl sm:text-5xl md:text-6xl drop-shadow-md select-none leading-none`}>
-                                  {msg.text}
-                                </span>
-                              </div>
-                            ) : (
-                              <p className="text-xs sm:text-sm font-semibold text-emerald-950 whitespace-pre-wrap break-words leading-relaxed py-1">
-                                {msg.text}
-                              </p>
-                            )
-                          )}
-
-                          {/* Attachments */}
-                          {msg.attachments?.map((att, aIdx) => (
-                            <div key={aIdx} className="pt-0.5">
-                              {att.category === 'image' || att.fileType?.startsWith('image/') ? (
-                                <img
-                                  src={getFullAttachmentUrl(att.url)}
-                                  alt=""
-                                  onClick={() => setPreviewImageModal(getFullAttachmentUrl(att.url))}
-                                  className="max-h-56 rounded-xl object-contain border border-emerald-300 shadow-sm cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-lg"
-                                />
-                              ) : (att.category === 'audio' || att.fileType?.startsWith('audio/') || att.fileType === 'video/webm' || att.url?.endsWith('.webm') || att.url?.endsWith('.ogg')) ? (
-                                <AudioMessagePlayer
-                                  src={att.url}
-                                  duration={att.duration}
-                                  isFromMe={true}
-                                  isBroadcast={true}
-                                  role="broadcast"
-                                  audioId={att.url}
-                                />
+                                      }}
+                                    />
+                                  ) : null}
+                                  <span className={`${getEmojiAppleCode(msg.text) ? 'hidden' : 'inline'} text-4xl sm:text-5xl md:text-6xl drop-shadow-md select-none leading-none`}>
+                                    {msg.text}
+                                  </span>
+                                </div>
                               ) : (
-                                <DocumentMessageCard
-                                  attachment={att}
-                                  isFromMe={true}
-                                  isSenderAdmin={false}
-                                  isSenderTeacher={true}
-                                />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
+                                <p className="text-xs sm:text-sm font-semibold text-emerald-950 whitespace-pre-wrap break-words leading-relaxed py-1">
+                                  {msg.text}
+                                </p>
+                              )
+                            )}
+
+                            {/* Attachments */}
+                            {msg.attachments?.map((att, aIdx) => (
+                              <div key={aIdx} className="pt-0.5">
+                                {att.category === 'image' || att.fileType?.startsWith('image/') ? (
+                                  <img
+                                    src={getFullAttachmentUrl(att.url)}
+                                    alt=""
+                                    onClick={() => setPreviewImageModal(getFullAttachmentUrl(att.url))}
+                                    className="max-h-56 rounded-xl object-contain border border-emerald-300 shadow-sm cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-lg"
+                                  />
+                                ) : (att.category === 'audio' || att.fileType?.startsWith('audio/') || att.fileType === 'video/webm' || att.url?.endsWith('.webm') || att.url?.endsWith('.ogg')) ? (
+                                  <AudioMessagePlayer
+                                    src={att.url}
+                                    duration={att.duration}
+                                    isFromMe={true}
+                                    isBroadcast={true}
+                                    role="broadcast"
+                                    audioId={att.url}
+                                  />
+                                ) : (
+                                  <DocumentMessageCard
+                                    attachment={att}
+                                    isFromMe={true}
+                                    isSenderAdmin={false}
+                                    isSenderTeacher={true}
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : chatFilterTab === 'broadcast' ? (
                     <div className="w-full bg-emerald-50/40 rounded-2xl border-2 border-dashed border-emerald-200 p-6 text-center space-y-2">
@@ -2644,7 +2628,7 @@ const LiveChatBox = ({
                       const hasUnreadStaff = Boolean(lastStaffMsg && (new Date(lastStaffMsg.createdAt).getTime() > lastStaffRead) && !isStaffFromMe);
 
                       return (
-                        <div 
+                        <div
                           onClick={() => {
                             setSelectedStudentId('staff');
                             setSendMode('private');
@@ -2749,112 +2733,112 @@ const LiveChatBox = ({
                     ) : (
                       <div className="w-full space-y-3 flex flex-col items-center">
                         {studentThreads.map(thread => {
-                        const lastReadTime = readThreadTimestamps[thread.studentId] || sessionStartTimeRef.current;
-                        const lastMsgTime = thread.lastMessageTime ? new Date(thread.lastMessageTime).getTime() : 0;
-                        const hasUnread = Boolean(thread.lastSenderRole === 'student' && lastMsgTime > lastReadTime);
+                          const lastReadTime = readThreadTimestamps[thread.studentId] || sessionStartTimeRef.current;
+                          const lastMsgTime = thread.lastMessageTime ? new Date(thread.lastMessageTime).getTime() : 0;
+                          const hasUnread = Boolean(thread.lastSenderRole === 'student' && lastMsgTime > lastReadTime);
 
-                        return (
-                          <div
-                            key={thread.studentId}
-                            onClick={() => {
-                              setSelectedStudentId(thread.studentId);
-                              setSendMode('private');
-                              setReadThreadTimestamps(prev => ({
-                                ...prev,
-                                [thread.studentId]: Date.now()
-                              }));
-                            }}
-                            className="relative w-full max-w-xl mx-auto bg-gradient-to-br from-white via-sky-50/50 to-sky-100/50 hover:from-white hover:to-sky-100/90 rounded-2xl sm:rounded-3xl border-2 border-sky-200/90 hover:border-sky-500 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between group active:scale-[0.99] overflow-visible box-border"
-                          >
-                            {/* Top Row: Student Avatar + Name + Grade + Formatted Time */}
-                            <div className="flex items-center justify-between gap-3 min-w-0">
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                {/* 1. Clickable Picture/Avatar ONLY */}
-                                <div 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (thread.studentId) {
-                                      setInspectStudentId(thread.studentId);
-                                    }
-                                  }}
-                                  className="cursor-pointer group/avatar shrink-0 select-none"
-                                  title="Click picture to view student profile & courses"
-                                >
-                                  {thread.studentAvatar ? (
-                                    <img
-                                      src={getFullAttachmentUrl(thread.studentAvatar)}
-                                      alt={thread.studentName}
-                                      className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-sky-400 shadow-xs ring-2 ring-sky-100/80 group-hover/avatar:scale-110 group-hover/avatar:border-sky-600 transition-all duration-200"
-                                    />
-                                  ) : (
-                                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-sky-600 to-blue-700 text-white font-black text-sm sm:text-base flex items-center justify-center border-2 border-sky-400 shadow-xs ring-2 ring-sky-100/80 group-hover/avatar:scale-110 group-hover/avatar:border-sky-600 transition-all duration-200">
-                                      {(thread.studentName || 'S').charAt(0).toUpperCase()}
+                          return (
+                            <div
+                              key={thread.studentId}
+                              onClick={() => {
+                                setSelectedStudentId(thread.studentId);
+                                setSendMode('private');
+                                setReadThreadTimestamps(prev => ({
+                                  ...prev,
+                                  [thread.studentId]: Date.now()
+                                }));
+                              }}
+                              className="relative w-full max-w-xl mx-auto bg-gradient-to-br from-white via-sky-50/50 to-sky-100/50 hover:from-white hover:to-sky-100/90 rounded-2xl sm:rounded-3xl border-2 border-sky-200/90 hover:border-sky-500 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between group active:scale-[0.99] overflow-visible box-border"
+                            >
+                              {/* Top Row: Student Avatar + Name + Grade + Formatted Time */}
+                              <div className="flex items-center justify-between gap-3 min-w-0">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  {/* 1. Clickable Picture/Avatar ONLY */}
+                                  <div
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (thread.studentId) {
+                                        setInspectStudentId(thread.studentId);
+                                      }
+                                    }}
+                                    className="cursor-pointer group/avatar shrink-0 select-none"
+                                    title="Click picture to view student profile & courses"
+                                  >
+                                    {thread.studentAvatar ? (
+                                      <img
+                                        src={getFullAttachmentUrl(thread.studentAvatar)}
+                                        alt={thread.studentName}
+                                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-sky-400 shadow-xs ring-2 ring-sky-100/80 group-hover/avatar:scale-110 group-hover/avatar:border-sky-600 transition-all duration-200"
+                                      />
+                                    ) : (
+                                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-sky-600 to-blue-700 text-white font-black text-sm sm:text-base flex items-center justify-center border-2 border-sky-400 shadow-xs ring-2 ring-sky-100/80 group-hover/avatar:scale-110 group-hover/avatar:border-sky-600 transition-all duration-200">
+                                        {(thread.studentName || 'S').charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* 2. Clickable Name ONLY & Grade */}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (thread.studentId) {
+                                            setInspectStudentId(thread.studentId);
+                                          }
+                                        }}
+                                        className="font-black text-sm sm:text-base text-gray-950 truncate hover:text-sky-700 transition leading-tight flex items-center gap-1 cursor-pointer text-left"
+                                        title="Click name to view student profile & courses"
+                                      >
+                                        <span>{thread.studentName || 'Student'}</span>
+                                        <FaInfoCircle className="text-xs sm:text-sm text-sky-600 opacity-80 hover:opacity-100 shrink-0" />
+                                      </button>
                                     </div>
-                                  )}
+                                    {thread.studentGrade && (
+                                      <span className="text-[11px] sm:text-xs text-sky-800 font-bold block truncate mt-0.5">
+                                        {thread.studentGrade}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
 
-                                {/* 2. Clickable Name ONLY & Grade */}
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (thread.studentId) {
-                                          setInspectStudentId(thread.studentId);
-                                        }
-                                      }}
-                                      className="font-black text-sm sm:text-base text-gray-950 truncate hover:text-sky-700 transition leading-tight flex items-center gap-1 cursor-pointer text-left"
-                                      title="Click name to view student profile & courses"
-                                    >
-                                      <span>{thread.studentName || 'Student'}</span>
-                                      <FaInfoCircle className="text-xs sm:text-sm text-sky-600 opacity-80 hover:opacity-100 shrink-0" />
-                                    </button>
-                                  </div>
-                                  {thread.studentGrade && (
-                                    <span className="text-[11px] sm:text-xs text-sky-800 font-bold block truncate mt-0.5">
-                                      {thread.studentGrade}
+                                {/* Formatted Message Time and New Badge */}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {hasUnread && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500 text-white font-black text-[10px] uppercase tracking-wider shadow-2xs animate-pulse">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                                      <span>New</span>
+                                    </span>
+                                  )}
+                                  {thread.lastMessageTime && (
+                                    <span className="text-xs text-gray-700 font-mono font-bold shrink-0 bg-white/90 px-2.5 py-1 rounded-lg border border-sky-200/90 shadow-2xs">
+                                      {formatMessageTime(thread.lastMessageTime)}
                                     </span>
                                   )}
                                 </div>
                               </div>
 
-                              {/* Formatted Message Time and New Badge */}
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {hasUnread && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500 text-white font-black text-[10px] uppercase tracking-wider shadow-2xs animate-pulse">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-                                    <span>New</span>
-                                  </span>
-                                )}
-                                {thread.lastMessageTime && (
-                                  <span className="text-xs text-gray-700 font-mono font-bold shrink-0 bg-white/90 px-2.5 py-1 rounded-lg border border-sky-200/90 shadow-2xs">
-                                    {formatMessageTime(thread.lastMessageTime)}
-                                  </span>
-                                )}
+                              {/* Bottom Row: Message Count Badge + Action Button */}
+                              <div className="flex items-center justify-between pt-3 mt-3 border-t border-sky-200/70 text-xs min-w-0">
+                                <span className="px-3 py-1.5 rounded-xl bg-sky-100/90 text-sky-950 font-black text-xs border border-sky-300/90 shadow-2xs shrink-0">
+                                  {thread.messageCount || 1} msg{thread.messageCount === 1 ? '' : 's'}
+                                </span>
+
+                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 hover:from-sky-700 hover:to-blue-700 text-white font-black text-xs sm:text-[13px] shadow-sm shadow-sky-950/20 group-hover:shadow-md group-hover:scale-[1.03] active:scale-95 transition-all duration-200 shrink-0 border border-sky-300/50">
+                                  <span>Open Chat & Reply</span>
+                                  <span className="text-sm">💬</span>
+                                </span>
                               </div>
                             </div>
-
-                            {/* Bottom Row: Message Count Badge + Action Button */}
-                            <div className="flex items-center justify-between pt-3 mt-3 border-t border-sky-200/70 text-xs min-w-0">
-                              <span className="px-3 py-1.5 rounded-xl bg-sky-100/90 text-sky-950 font-black text-xs border border-sky-300/90 shadow-2xs shrink-0">
-                                {thread.messageCount || 1} msg{thread.messageCount === 1 ? '' : 's'}
-                              </span>
-
-                              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 hover:from-sky-700 hover:to-blue-700 text-white font-black text-xs sm:text-[13px] shadow-sm shadow-sky-950/20 group-hover:shadow-md group-hover:scale-[1.03] active:scale-95 transition-all duration-200 shrink-0 border border-sky-300/50">
-                                <span>Open Chat & Reply</span>
-                                <span className="text-sm">💬</span>
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ) : (
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
               /* When in 1-on-1 Student Chat (Teacher) OR Student Chat Feed (Student) */
               loading && messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-xs text-purple-700 font-bold">
@@ -2866,15 +2850,15 @@ const LiveChatBox = ({
                     {selectedStudentId === 'staff' ? '🛡️' : '💬'}
                   </div>
                   <p className="text-xs sm:text-sm font-extrabold text-gray-900">
-                    {isStudent 
-                      ? "Have any doubts during today's live lecture?" 
+                    {isStudent
+                      ? "Have any doubts during today's live lecture?"
                       : selectedStudentId === 'staff'
                         ? "Admin ↔ Instructor Staff Channel"
                         : `Private chat with ${selectedThreadStudent?.studentName || 'Student'}`}
                   </p>
                   <p className="text-xs text-gray-600 max-w-sm font-medium">
-                    {isStudent 
-                      ? "Type your question in the message bar below. Your teacher will respond directly to you in real-time." 
+                    {isStudent
+                      ? "Type your question in the message bar below. Your teacher will respond directly to you in real-time."
                       : selectedStudentId === 'staff'
                         ? "Type your message in the bar below. Messages sent here are private between Admins and Teachers."
                         : "Type your private response in the message bar below to send it directly to this student."}
@@ -2892,27 +2876,25 @@ const LiveChatBox = ({
                   const displaySenderName = isFromMe
                     ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
                     : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
-                        ? msg.senderName
-                        : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+                      ? msg.senderName
+                      : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
 
                   const senderAvatarUrl = isFromMe
                     ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
                     : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
 
                   return (
-                    <div 
+                    <div
                       key={msg._id || index}
-                      className={`flex items-start gap-3 sm:gap-3.5 ${
-                        isBroadcast 
-                          ? 'justify-center my-3.5 sm:my-4' 
-                          : isEmojiOnly 
-                            ? 'my-1.5 sm:my-2' 
+                      className={`flex items-start gap-3 sm:gap-3.5 ${isBroadcast
+                          ? 'justify-center my-3.5 sm:my-4'
+                          : isEmojiOnly
+                            ? 'my-1.5 sm:my-2'
                             : 'my-2.5 sm:my-3'
-                      } ${
-                        isFromMe 
-                          ? 'justify-end' 
+                        } ${isFromMe
+                          ? 'justify-end'
                           : 'justify-start'
-                      } w-full animate-in fade-in slide-in-from-bottom-2 duration-150 group`}
+                        } w-full animate-in fade-in slide-in-from-bottom-2 duration-150 group`}
                     >
                       {/* 1. WHATSAPP GROUP CHAT STYLE ANNOUNCEMENT BUBBLE (To All Students) */}
                       {isBroadcast ? (
@@ -2955,36 +2937,36 @@ const LiveChatBox = ({
                             msg.attachments?.some(a => a.category === 'audio' || a.fileType?.startsWith('audio/')) &&
                             (msg.text.includes('Voice Question') || msg.text.includes('Voice Response'))
                           ) && (
-                            isOnlyEmoji(msg.text) ? (
-                              <div className={`py-1.5 text-center select-none flex items-center justify-center min-h-[56px] transition-all duration-200 transform hover:scale-115 active:scale-95 cursor-pointer ${getEmojiCustomAnimation(msg.text)}`}>
-                                {getEmojiAppleCode(msg.text) ? (
-                                  <img
-                                    src={getHighResEmojiUrl(getEmojiAppleCode(msg.text))}
-                                    alt={msg.text}
-                                    className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-md select-none will-change-transform filter"
-                                    onError={(e) => {
-                                      if (!e.currentTarget.dataset.retried) {
-                                        e.currentTarget.dataset.retried = 'true';
-                                        e.currentTarget.src = getStandardEmojiUrl(getEmojiAppleCode(msg.text));
-                                      } else {
-                                        e.currentTarget.style.display = 'none';
-                                        if (e.currentTarget.nextSibling) {
-                                          e.currentTarget.nextSibling.style.display = 'inline';
+                              isOnlyEmoji(msg.text) ? (
+                                <div className={`py-1.5 text-center select-none flex items-center justify-center min-h-[56px] transition-all duration-200 transform hover:scale-115 active:scale-95 cursor-pointer ${getEmojiCustomAnimation(msg.text)}`}>
+                                  {getEmojiAppleCode(msg.text) ? (
+                                    <img
+                                      src={getHighResEmojiUrl(getEmojiAppleCode(msg.text))}
+                                      alt={msg.text}
+                                      className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-md select-none will-change-transform filter"
+                                      onError={(e) => {
+                                        if (!e.currentTarget.dataset.retried) {
+                                          e.currentTarget.dataset.retried = 'true';
+                                          e.currentTarget.src = getStandardEmojiUrl(getEmojiAppleCode(msg.text));
+                                        } else {
+                                          e.currentTarget.style.display = 'none';
+                                          if (e.currentTarget.nextSibling) {
+                                            e.currentTarget.nextSibling.style.display = 'inline';
+                                          }
                                         }
-                                      }
-                                    }}
-                                  />
-                                ) : null}
-                                <span className={`${getEmojiAppleCode(msg.text) ? 'hidden' : 'inline'} text-4xl sm:text-5xl md:text-6xl drop-shadow-md select-none leading-none`}>
+                                      }}
+                                    />
+                                  ) : null}
+                                  <span className={`${getEmojiAppleCode(msg.text) ? 'hidden' : 'inline'} text-4xl sm:text-5xl md:text-6xl drop-shadow-md select-none leading-none`}>
+                                    {msg.text}
+                                  </span>
+                                </div>
+                              ) : (
+                                <p className="text-xs sm:text-sm font-semibold text-emerald-950 whitespace-pre-wrap break-words leading-relaxed py-1">
                                   {msg.text}
-                                </span>
-                              </div>
-                            ) : (
-                              <p className="text-xs sm:text-sm font-semibold text-emerald-950 whitespace-pre-wrap break-words leading-relaxed py-1">
-                                {msg.text}
-                              </p>
-                            )
-                          )}
+                                </p>
+                              )
+                            )}
 
                           {/* Attachments */}
                           {msg.attachments?.map((att, aIdx) => (
@@ -3026,8 +3008,8 @@ const LiveChatBox = ({
                             const displaySenderName = isFromMe
                               ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
                               : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
-                                  ? msg.senderName
-                                  : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+                                ? msg.senderName
+                                : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
 
                             const senderAvatarUrl = isFromMe
                               ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
@@ -3045,153 +3027,151 @@ const LiveChatBox = ({
 
                                 {/* Column Container: Header (Name + Time Outside Box) + Message / Voice Bubble */}
                                 <div className={`flex flex-col ${isFromMe ? 'items-end' : 'items-start'} max-w-full`}>
-                                {/* Sender Identity Header & Time OUTSIDE of the message box */}
-                                <div className={`flex items-center gap-1.5 mb-1 px-1 text-[11px] ${isFromMe ? 'justify-end' : 'justify-start'}`}>
-                                  {isFromMe ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[10.5px] text-gray-400 font-mono font-medium">
-                                        {formatMessageTime(msg.createdAt)}
-                                      </span>
-                                      <span className={`font-extrabold text-xs tracking-tight ${
-                                        user?.role === 'admin' ? 'text-purple-950' : user?.role === 'teacher' || user?.role === 'instructor' ? 'text-amber-950' : 'text-sky-950'
-                                      }`}>
-                                        You
-                                      </span>
-                                      {user?.role === 'admin' ? (
+                                  {/* Sender Identity Header & Time OUTSIDE of the message box */}
+                                  <div className={`flex items-center gap-1.5 mb-1 px-1 text-[11px] ${isFromMe ? 'justify-end' : 'justify-start'}`}>
+                                    {isFromMe ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium">
+                                          {formatMessageTime(msg.createdAt)}
+                                        </span>
+                                        <span className={`font-extrabold text-xs tracking-tight ${user?.role === 'admin' ? 'text-purple-950' : user?.role === 'teacher' || user?.role === 'instructor' ? 'text-amber-950' : 'text-sky-950'
+                                          }`}>
+                                          You
+                                        </span>
+                                        {user?.role === 'admin' ? (
+                                          <span className="px-2 py-0.2 rounded-md bg-purple-100 text-purple-900 text-[10px] font-black border border-purple-300 shadow-2xs">
+                                            Admin
+                                          </span>
+                                        ) : user?.role === 'teacher' || user?.role === 'instructor' ? (
+                                          <span className="px-2 py-0.2 rounded-md bg-amber-400 text-amber-950 text-[10px] font-black border border-amber-500/60 shadow-2xs">
+                                            Instructor
+                                          </span>
+                                        ) : (
+                                          <span className="px-2 py-0.2 rounded-md bg-sky-100 text-sky-900 text-[10px] font-black border border-sky-200/90 shadow-2xs">
+                                            Student
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : isSenderAdmin ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-extrabold text-xs text-purple-950 tracking-tight">
+                                          {displaySenderName}
+                                        </span>
                                         <span className="px-2 py-0.2 rounded-md bg-purple-100 text-purple-900 text-[10px] font-black border border-purple-300 shadow-2xs">
                                           Admin
                                         </span>
-                                      ) : user?.role === 'teacher' || user?.role === 'instructor' ? (
+                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
+                                      </div>
+                                    ) : isSenderTeacher ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-extrabold text-xs text-amber-950 tracking-tight">
+                                          {displaySenderName}
+                                        </span>
                                         <span className="px-2 py-0.2 rounded-md bg-amber-400 text-amber-950 text-[10px] font-black border border-amber-500/60 shadow-2xs">
                                           Instructor
                                         </span>
-                                      ) : (
-                                        <span className="px-2 py-0.2 rounded-md bg-sky-100 text-sky-900 text-[10px] font-black border border-sky-200/90 shadow-2xs">
-                                          Student
-                                        </span>
-                                      )}
-                                    </div>
-                                  ) : isSenderAdmin ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-extrabold text-xs text-purple-950 tracking-tight">
-                                        {displaySenderName}
-                                      </span>
-                                      <span className="px-2 py-0.2 rounded-md bg-purple-100 text-purple-900 text-[10px] font-black border border-purple-300 shadow-2xs">
-                                        Admin
-                                      </span>
-                                      <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
-                                    </div>
-                                  ) : isSenderTeacher ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-extrabold text-xs text-amber-950 tracking-tight">
-                                        {displaySenderName}
-                                      </span>
-                                      <span className="px-2 py-0.2 rounded-md bg-amber-400 text-amber-950 text-[10px] font-black border border-amber-500/60 shadow-2xs">
-                                        Instructor
-                                      </span>
-                                      <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
-                                    </div>
-                                  ) : !isFromMe && isTeacherOrAdmin && msg.sender ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const sid = typeof msg.sender === 'object' ? msg.sender._id : msg.sender;
-                                          setInspectStudentId(sid);
-                                        }}
-                                        className="flex items-center gap-1 font-bold text-slate-800 bg-sky-50/90 hover:bg-sky-100 border border-sky-200/90 px-1.5 py-0.2 rounded-md shadow-2xs cursor-pointer transition-all duration-150 hover:scale-105"
-                                        title="Click to view student profile and assigned courses"
-                                      >
-                                        <span className="font-extrabold text-xs text-slate-900 tracking-tight">{displaySenderName}</span>
-                                        <span className="px-1.5 py-0.2 rounded bg-sky-100 text-sky-900 text-[9.5px] font-black border border-sky-300 shadow-2xs">
-                                          Student
-                                        </span>
-                                        <FaInfoCircle className="text-[9px] text-sky-500 ml-0.5" />
-                                      </button>
-                                      <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-extrabold text-xs text-slate-900 tracking-tight">
-                                        {displaySenderName}
-                                      </span>
-                                      <span className="px-2 py-0.2 rounded-md bg-sky-100 text-sky-900 text-[10px] font-black border border-sky-300 shadow-2xs">
-                                        Student
-                                      </span>
-                                      <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Message Body: Direct WhatsApp Voice Note or Compact Bubble */}
-                                {(() => {
-                                  const audioAttachment = msg.attachments?.find(a => 
-                                    a.category === 'audio' || 
-                                    a.fileType?.startsWith('audio/') || 
-                                    a.fileType === 'video/webm' || 
-                                    a.fileType === 'video/ogg' ||
-                                    (a.url && (a.url.endsWith('.webm') || a.url.endsWith('.ogg') || a.url.endsWith('.wav') || a.url.endsWith('.m4a') || a.url.endsWith('.mp3')))
-                                  );
-                                  const isVoiceText = msg.text && (msg.text.includes('Voice Question') || msg.text.includes('Voice Response'));
-                                  const audioSrc = audioAttachment?.url || (msg.attachments?.[0]?.url) || '';
-
-                                  if ((audioAttachment || isVoiceText) && audioSrc) {
-                                    return (
-                                      <div className="my-1">
-                                        <AudioMessagePlayer
-                                          src={audioSrc}
-                                          duration={audioAttachment?.duration || 10}
-                                          isFromMe={isFromMe}
-                                          isBroadcast={Boolean(msg.isBroadcast)}
-                                          role={msg.isBroadcast ? 'broadcast' : msgRole}
-                                          audioId={audioSrc}
-                                        />
+                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
                                       </div>
+                                    ) : !isFromMe && isTeacherOrAdmin && msg.sender ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const sid = typeof msg.sender === 'object' ? msg.sender._id : msg.sender;
+                                            setInspectStudentId(sid);
+                                          }}
+                                          className="flex items-center gap-1 font-bold text-slate-800 bg-sky-50/90 hover:bg-sky-100 border border-sky-200/90 px-1.5 py-0.2 rounded-md shadow-2xs cursor-pointer transition-all duration-150 hover:scale-105"
+                                          title="Click to view student profile and assigned courses"
+                                        >
+                                          <span className="font-extrabold text-xs text-slate-900 tracking-tight">{displaySenderName}</span>
+                                          <span className="px-1.5 py-0.2 rounded bg-sky-100 text-sky-900 text-[9.5px] font-black border border-sky-300 shadow-2xs">
+                                            Student
+                                          </span>
+                                          <FaInfoCircle className="text-[9px] text-sky-500 ml-0.5" />
+                                        </button>
+                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-extrabold text-xs text-slate-900 tracking-tight">
+                                          {displaySenderName}
+                                        </span>
+                                        <span className="px-2 py-0.2 rounded-md bg-sky-100 text-sky-900 text-[10px] font-black border border-sky-300 shadow-2xs">
+                                          Student
+                                        </span>
+                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Message Body: Direct WhatsApp Voice Note or Compact Bubble */}
+                                  {(() => {
+                                    const audioAttachment = msg.attachments?.find(a =>
+                                      a.category === 'audio' ||
+                                      a.fileType?.startsWith('audio/') ||
+                                      a.fileType === 'video/webm' ||
+                                      a.fileType === 'video/ogg' ||
+                                      (a.url && (a.url.endsWith('.webm') || a.url.endsWith('.ogg') || a.url.endsWith('.wav') || a.url.endsWith('.m4a') || a.url.endsWith('.mp3')))
                                     );
-                                  }
+                                    const isVoiceText = msg.text && (msg.text.includes('Voice Question') || msg.text.includes('Voice Response'));
+                                    const audioSrc = audioAttachment?.url || (msg.attachments?.[0]?.url) || '';
 
-                                  // Proportional Standalone Animated Emoji (Clean Sticker, No Box/Border)
-                                  const isEmojiOnly = isOnlyEmoji(msg.text) && (!msg.attachments || msg.attachments.length === 0);
-
-                                  if (isEmojiOnly) {
-                                    const appleCode = getEmojiAppleCode(msg.text);
-
-                                    return (
-                                      <div className={`py-1 px-1 select-none transition-all duration-200 transform hover:scale-120 active:scale-95 cursor-pointer flex items-center ${isFromMe ? 'justify-end' : 'justify-start'} ${getEmojiCustomAnimation(msg.text)}`}>
-                                        {appleCode ? (
-                                          <img
-                                            src={getHighResEmojiUrl(appleCode)}
-                                            alt={msg.text}
-                                            className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-md select-none will-change-transform filter"
-                                            onError={(e) => {
-                                              if (!e.currentTarget.dataset.retried) {
-                                                e.currentTarget.dataset.retried = 'true';
-                                                e.currentTarget.src = getStandardEmojiUrl(appleCode);
-                                              } else {
-                                                e.currentTarget.style.display = 'none';
-                                                if (e.currentTarget.nextSibling) {
-                                                  e.currentTarget.nextSibling.style.display = 'inline';
-                                                }
-                                              }
-                                            }}
+                                    if ((audioAttachment || isVoiceText) && audioSrc) {
+                                      return (
+                                        <div className="my-1">
+                                          <AudioMessagePlayer
+                                            src={audioSrc}
+                                            duration={audioAttachment?.duration || 10}
+                                            isFromMe={isFromMe}
+                                            isBroadcast={Boolean(msg.isBroadcast)}
+                                            role={msg.isBroadcast ? 'broadcast' : msgRole}
+                                            audioId={audioSrc}
                                           />
-                                        ) : null}
-                                        <span className={`${appleCode ? 'hidden' : 'inline'} text-4xl sm:text-5xl md:text-6xl drop-shadow-md select-none leading-none`}>
-                                          {msg.text}
-                                        </span>
-                                      </div>
-                                    );
-                                  }
+                                        </div>
+                                      );
+                                    }
 
-                                  return (
-                                    <div className={`${isFullscreen ? 'px-3 py-2 rounded-2xl text-[12.5px] sm:text-[13px]' : 'px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-[13.5px] sm:text-[14px]'} leading-relaxed tracking-normal shadow-md space-y-1.5 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-lg ${
-                                      msgRole === 'admin'
-                                        ? `bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white font-bold shadow-purple-950/25 border border-purple-400/40 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
-                                        : msgRole === 'teacher'
-                                          ? `bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-amber-950 font-bold shadow-amber-950/20 border border-amber-400/80 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
-                                          : `bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white font-bold shadow-sky-950/25 border border-sky-300/50 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
-                                    }`}>
-                                      {msg.text && <p className="whitespace-pre-wrap break-words font-sans font-semibold text-inherit">{msg.text}</p>}
+                                    // Proportional Standalone Animated Emoji (Clean Sticker, No Box/Border)
+                                    const isEmojiOnly = isOnlyEmoji(msg.text) && (!msg.attachments || msg.attachments.length === 0);
+
+                                    if (isEmojiOnly) {
+                                      const appleCode = getEmojiAppleCode(msg.text);
+
+                                      return (
+                                        <div className={`py-1 px-1 select-none transition-all duration-200 transform hover:scale-120 active:scale-95 cursor-pointer flex items-center ${isFromMe ? 'justify-end' : 'justify-start'} ${getEmojiCustomAnimation(msg.text)}`}>
+                                          {appleCode ? (
+                                            <img
+                                              src={getHighResEmojiUrl(appleCode)}
+                                              alt={msg.text}
+                                              className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-md select-none will-change-transform filter"
+                                              onError={(e) => {
+                                                if (!e.currentTarget.dataset.retried) {
+                                                  e.currentTarget.dataset.retried = 'true';
+                                                  e.currentTarget.src = getStandardEmojiUrl(appleCode);
+                                                } else {
+                                                  e.currentTarget.style.display = 'none';
+                                                  if (e.currentTarget.nextSibling) {
+                                                    e.currentTarget.nextSibling.style.display = 'inline';
+                                                  }
+                                                }
+                                              }}
+                                            />
+                                          ) : null}
+                                          <span className={`${appleCode ? 'hidden' : 'inline'} text-4xl sm:text-5xl md:text-6xl drop-shadow-md select-none leading-none`}>
+                                            {msg.text}
+                                          </span>
+                                        </div>
+                                      );
+                                    }
+
+                                    return (
+                                      <div className={`${isFullscreen ? 'px-3 py-2 rounded-2xl text-[12.5px] sm:text-[13px]' : 'px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-[13.5px] sm:text-[14px]'} leading-relaxed tracking-normal shadow-md space-y-1.5 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-lg ${msgRole === 'admin'
+                                          ? `bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white font-bold shadow-purple-950/25 border border-purple-400/40 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
+                                          : msgRole === 'teacher'
+                                            ? `bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-amber-950 font-bold shadow-amber-950/20 border border-amber-400/80 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
+                                            : `bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white font-bold shadow-sky-950/25 border border-sky-300/50 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
+                                        }`}>
+                                        {msg.text && <p className="whitespace-pre-wrap break-words font-sans font-semibold text-inherit">{msg.text}</p>}
 
                                         {/* Render Other Attachments (Images, Documents) */}
                                         {msg.attachments?.map((att, aIdx) => (
@@ -3334,12 +3314,12 @@ const LiveChatBox = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-red-900 font-medium font-sans">
-                    {isStudent 
-                      ? "Direct private question to Teacher" 
-                      : selectedStudentId === 'staff' 
-                        ? "Private voice note to admin" 
-                        : selectedStudentId 
-                          ? `Private voice reply to ${selectedThreadStudent?.studentName || 'Student'}` 
+                    {isStudent
+                      ? "Direct private question to Teacher"
+                      : selectedStudentId === 'staff'
+                        ? "Private voice note to admin"
+                        : selectedStudentId
+                          ? `Private voice reply to ${selectedThreadStudent?.studentName || 'Student'}`
                           : "Live voice broadcast to entire class"}
                   </p>
                 </div>
@@ -3427,15 +3407,15 @@ const LiveChatBox = ({
 
               {/* Mini Audio Playback Progress Bar */}
               <div className="w-full bg-red-100 rounded-full h-1 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-red-600 to-rose-600 h-full transition-all duration-100 rounded-full" 
+                <div
+                  className="bg-gradient-to-r from-red-600 to-rose-600 h-full transition-all duration-100 rounded-full"
                   style={{ width: `${voicePreviewProgress}%` }}
                 />
               </div>
             </div>
           ) : (
             /* 3. Normal Message Input Bar - Spacious, Clear, Unified with Quick Chips */
-            <form 
+            <form
               onSubmit={handleSendMessage}
               className="p-3 sm:p-3.5 bg-white border-t border-gray-200/80 select-auto shrink-0 space-y-2.5 transition-all"
             >
@@ -3481,11 +3461,10 @@ const LiveChatBox = ({
               {/* 2. Class Broadcast Quick Announcement Tips (Admin vs Teacher) */}
               {isTeacherOrAdmin && !selectedStudentId && (
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] animate-fadeIn pb-0.5">
-                  <div className={`flex items-center gap-1.5 text-[11px] font-black shrink-0 select-none px-2.5 py-1 rounded-xl shadow-2xs border ${
-                    isUserAdmin 
-                      ? 'text-purple-950 bg-purple-100/90 border-purple-300/80' 
+                  <div className={`flex items-center gap-1.5 text-[11px] font-black shrink-0 select-none px-2.5 py-1 rounded-xl shadow-2xs border ${isUserAdmin
+                      ? 'text-purple-950 bg-purple-100/90 border-purple-300/80'
                       : 'text-emerald-950 bg-emerald-100/90 border-emerald-300/80'
-                  }`}>
+                    }`}>
                     {isUserAdmin ? (
                       <>
                         <FaShieldAlt className="text-purple-700 text-xs" />
@@ -3522,11 +3501,10 @@ const LiveChatBox = ({
                       key={idx}
                       type="button"
                       onClick={() => setInputText(chip)}
-                      className={`px-3 py-1 rounded-xl text-[11px] sm:text-xs font-bold border shadow-2xs hover:shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] shrink-0 cursor-pointer active:scale-95 whitespace-nowrap ${
-                        isUserAdmin
+                      className={`px-3 py-1 rounded-xl text-[11px] sm:text-xs font-bold border shadow-2xs hover:shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] shrink-0 cursor-pointer active:scale-95 whitespace-nowrap ${isUserAdmin
                           ? 'bg-purple-50/90 hover:bg-purple-100 text-purple-950 border-purple-200 hover:border-purple-300'
                           : 'bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 border-emerald-200 hover:border-emerald-300'
-                      }`}
+                        }`}
                     >
                       {chip}
                     </button>
@@ -3573,11 +3551,10 @@ const LiveChatBox = ({
               {/* 4. Teacher/Admin Quick Student Replies (Admin vs Teacher) */}
               {isTeacherOrAdmin && selectedStudentId && selectedStudentId !== 'staff' && (
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] animate-fadeIn pb-0.5">
-                  <div className={`flex items-center gap-1.5 text-[11px] font-black shrink-0 select-none px-2.5 py-1 rounded-xl shadow-2xs border ${
-                    isUserAdmin
+                  <div className={`flex items-center gap-1.5 text-[11px] font-black shrink-0 select-none px-2.5 py-1 rounded-xl shadow-2xs border ${isUserAdmin
                       ? 'text-purple-950 bg-purple-100/90 border-purple-300/80'
                       : 'text-amber-950 bg-amber-100/90 border-amber-300/80'
-                  }`}>
+                    }`}>
                     {isUserAdmin ? (
                       <>
                         <FaShieldAlt className="text-purple-700 text-xs" />
@@ -3613,11 +3590,10 @@ const LiveChatBox = ({
                       key={idx}
                       type="button"
                       onClick={() => setInputText(chip)}
-                      className={`px-3 py-1 rounded-xl text-[11px] sm:text-xs font-bold border shadow-2xs hover:shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] shrink-0 cursor-pointer active:scale-95 whitespace-nowrap ${
-                        isUserAdmin
+                      className={`px-3 py-1 rounded-xl text-[11px] sm:text-xs font-bold border shadow-2xs hover:shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] shrink-0 cursor-pointer active:scale-95 whitespace-nowrap ${isUserAdmin
                           ? 'bg-purple-50/90 hover:bg-purple-100 text-purple-950 border-purple-200 hover:border-purple-300'
                           : 'bg-amber-50/90 hover:bg-amber-100 text-amber-950 border-amber-200 hover:border-amber-300'
-                      }`}
+                        }`}
                     >
                       {chip}
                     </button>
@@ -3648,8 +3624,8 @@ const LiveChatBox = ({
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder={
-                          isStudent 
-                            ? "Ask a question or type a message..." 
+                          isStudent
+                            ? "Ask a question or type a message..."
                             : selectedStudentId === 'staff'
                               ? "Type private message to Admin / Teacher..."
                               : selectedStudentId
@@ -3664,13 +3640,12 @@ const LiveChatBox = ({
                     <button
                       type="submit"
                       disabled={(!inputText.trim() && !attachedFile && !capturedPhoto) || isSending}
-                      className={`h-9.5 sm:h-10 px-4 sm:px-4.5 rounded-xl sm:rounded-2xl text-white font-bold text-xs sm:text-sm transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0 ${
-                        selectedStudentId === 'staff'
+                      className={`h-9.5 sm:h-10 px-4 sm:px-4.5 rounded-xl sm:rounded-2xl text-white font-bold text-xs sm:text-sm transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0 ${selectedStudentId === 'staff'
                           ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 shadow-indigo-950/20'
                           : isTeacherOrAdmin && !selectedStudentId
                             ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-950/20'
                             : 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 shadow-purple-950/20'
-                      }`}
+                        }`}
                     >
                       <FaPaperPlane className={`text-xs ${isSending ? 'animate-bounce' : ''}`} />
                       <span>{isTeacherOrAdmin ? (selectedStudentId === 'staff' ? 'Send Staff' : !selectedStudentId ? 'Broadcast' : 'Reply') : 'Send'}</span>
@@ -3684,9 +3659,8 @@ const LiveChatBox = ({
                       <button
                         type="button"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className={`p-1.5 sm:p-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:scale-110 hover:shadow-xs cursor-pointer flex items-center justify-center ${
-                        showEmojiPicker ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs' : 'bg-gray-100/90 hover:bg-amber-50 text-gray-600 hover:text-amber-600 border border-gray-200'
-                        }`}
+                        className={`p-1.5 sm:p-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:scale-110 hover:shadow-xs cursor-pointer flex items-center justify-center ${showEmojiPicker ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs' : 'bg-gray-100/90 hover:bg-amber-50 text-gray-600 hover:text-amber-600 border border-gray-200'
+                          }`}
                         title="Insert Emoji"
                       >
                         <FaSmile className="text-sm text-amber-500" />
@@ -3757,8 +3731,8 @@ const LiveChatBox = ({
                       onChange={(e) => setInputText(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder={
-                        isStudent 
-                          ? "Ask a question or type a message..." 
+                        isStudent
+                          ? "Ask a question or type a message..."
                           : selectedStudentId === 'staff'
                             ? "Type private message to Admin / Teacher..."
                             : selectedStudentId
@@ -3774,9 +3748,8 @@ const LiveChatBox = ({
                       <button
                         type="button"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className={`p-1.5 sm:p-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:scale-115 hover:shadow-2xs cursor-pointer flex items-center justify-center ${
-                          showEmojiPicker ? 'bg-amber-100 text-amber-800' : 'hover:bg-amber-50 text-gray-500 hover:text-amber-600'
-                        }`}
+                        className={`p-1.5 sm:p-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:scale-115 hover:shadow-2xs cursor-pointer flex items-center justify-center ${showEmojiPicker ? 'bg-amber-100 text-amber-800' : 'hover:bg-amber-50 text-gray-500 hover:text-amber-600'
+                          }`}
                         title="Insert Emoji"
                       >
                         <FaSmile className="text-lg text-amber-500" />
@@ -3818,13 +3791,12 @@ const LiveChatBox = ({
                   <button
                     type="submit"
                     disabled={(!inputText.trim() && !attachedFile && !capturedPhoto) || isSending}
-                    className={`h-11 sm:h-12 px-5 sm:px-6 rounded-2xl sm:rounded-3xl text-white font-extrabold text-xs sm:text-sm transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none cursor-pointer flex items-center gap-2 active:scale-95 shrink-0 ${
-                      selectedStudentId === 'staff'
+                    className={`h-11 sm:h-12 px-5 sm:px-6 rounded-2xl sm:rounded-3xl text-white font-extrabold text-xs sm:text-sm transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none cursor-pointer flex items-center gap-2 active:scale-95 shrink-0 ${selectedStudentId === 'staff'
                         ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 shadow-indigo-950/20'
                         : isTeacherOrAdmin && !selectedStudentId
                           ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-950/20'
                           : 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 shadow-purple-950/20'
-                    }`}
+                      }`}
                   >
                     <FaPaperPlane className={`text-xs sm:text-sm ${isSending ? 'animate-bounce' : ''}`} />
                     <span>{isTeacherOrAdmin ? (selectedStudentId === 'staff' ? 'Send Staff' : !selectedStudentId ? 'Broadcast' : 'Reply') : 'Send'}</span>
@@ -3838,14 +3810,14 @@ const LiveChatBox = ({
 
       {/* 5. Floating Dedicated Chat Window Modal for Teacher/Admin (Student Chat & Staff Chat) */}
       {isTeacherOrAdmin && selectedStudentId && (
-        <div 
+        <div
           className={`absolute inset-0 z-40 flex items-center justify-center ${isFullscreen ? 'p-1.5 sm:p-2' : 'p-2.5 sm:p-4'} bg-slate-950/60 backdrop-blur-xs animate-fadeIn select-none overflow-hidden`}
           onClick={() => {
             setSelectedStudentId(null);
             setSendMode('broadcast');
           }}
         >
-          <div 
+          <div
             className={`relative w-full ${isFullscreen ? 'max-w-full h-full rounded-2xl' : 'max-w-xl sm:max-w-2xl h-[94%] max-h-[670px] rounded-3xl'} bg-white border border-gray-200/90 shadow-2xl text-gray-900 animate-in zoom-in-95 duration-200 flex flex-col overflow-hidden`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -3870,7 +3842,7 @@ const LiveChatBox = ({
                 </div>
               ) : (
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div 
+                  <div
                     onClick={() => setInspectStudentId(selectedThreadStudent?.studentId || selectedStudentId)}
                     className="cursor-pointer group flex items-center gap-2.5 min-w-0 flex-1"
                     title="Click to view student profile & assigned courses"
@@ -3921,14 +3893,13 @@ const LiveChatBox = ({
             </div>
 
             {/* Conversation Feed */}
-            <div 
+            <div
               ref={privateChatContainerRef}
               onScroll={handlePrivateScroll}
-              className={`flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 pb-8 sm:px-6 sm:py-5 custom-scrollbar relative scroll-smooth overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 ${
-                selectedStudentId === 'staff' 
-                  ? 'bg-gradient-to-b from-purple-50/40 via-white to-purple-50/20' 
+              className={`flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 pb-8 sm:px-6 sm:py-5 custom-scrollbar relative scroll-smooth overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 ${selectedStudentId === 'staff'
+                  ? 'bg-gradient-to-b from-purple-50/40 via-white to-purple-50/20'
                   : 'bg-gradient-to-b from-slate-50 via-sky-50/20 to-slate-50'
-              }`}
+                }`}
             >
               <div className="w-full max-w-lg sm:max-w-xl mx-auto space-y-2.5 sm:space-y-3 flex flex-col">
                 {(() => {
@@ -3945,24 +3916,23 @@ const LiveChatBox = ({
 
                   const sId = String(selectedStudentId || '').trim();
 
-                  const currentMessages = selectedStudentId === 'staff' 
-                    ? staffMessages 
+                  const currentMessages = selectedStudentId === 'staff'
+                    ? staffMessages
                     : messages.filter(m => {
-                        if (m.isBroadcast || m.isStaffOnly) return false;
-                        const ctxId = getMongoId(m.studentContext);
-                        const senderId = getMongoId(m.sender);
-                        const recipientId = getMongoId(m.recipient);
-                        return ctxId === sId || senderId === sId || recipientId === sId;
-                      });
+                      if (m.isBroadcast || m.isStaffOnly) return false;
+                      const ctxId = getMongoId(m.studentContext);
+                      const senderId = getMongoId(m.sender);
+                      const recipientId = getMongoId(m.recipient);
+                      return ctxId === sId || senderId === sId || recipientId === sId;
+                    });
 
                   if (currentMessages.length === 0) {
                     return (
                       <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center p-4 space-y-3 select-none">
-                        <div className={`w-16 h-16 rounded-3xl flex items-center justify-center text-3xl shadow-lg ${
-                          selectedStudentId === 'staff' 
-                            ? 'bg-gradient-to-tr from-purple-700 to-indigo-700 text-white shadow-purple-950/20 ring-4 ring-purple-100 border border-purple-300' 
+                        <div className={`w-16 h-16 rounded-3xl flex items-center justify-center text-3xl shadow-lg ${selectedStudentId === 'staff'
+                            ? 'bg-gradient-to-tr from-purple-700 to-indigo-700 text-white shadow-purple-950/20 ring-4 ring-purple-100 border border-purple-300'
                             : 'bg-gradient-to-tr from-sky-600 to-blue-700 text-white shadow-sky-950/20 ring-4 ring-sky-100 border border-sky-300'
-                        }`}>
+                          }`}>
                           {selectedStudentId === 'staff' ? '🛡️' : '💬'}
                         </div>
                         <p className={`text-base font-black ${selectedStudentId === 'staff' ? 'text-purple-950' : 'text-gray-950'}`}>
@@ -3978,10 +3948,10 @@ const LiveChatBox = ({
                   return currentMessages.map((msg, mIdx) => {
                     const isFromMe = getIsFromMe(msg);
                     const isEmojiOnly = isOnlyEmoji(msg.text) && (!msg.attachments || msg.attachments.length === 0);
-                    const audioAttachment = msg.attachments?.find(a => 
-                      a.category === 'audio' || 
-                      a.fileType?.startsWith('audio/') || 
-                      a.fileType === 'video/webm' || 
+                    const audioAttachment = msg.attachments?.find(a =>
+                      a.category === 'audio' ||
+                      a.fileType?.startsWith('audio/') ||
+                      a.fileType === 'video/webm' ||
                       a.fileType === 'video/ogg' ||
                       (a.url && (a.url.endsWith('.webm') || a.url.endsWith('.ogg') || a.url.endsWith('.wav') || a.url.endsWith('.m4a') || a.url.endsWith('.mp3')))
                     );
@@ -3993,8 +3963,8 @@ const LiveChatBox = ({
                     const displaySenderName = isFromMe
                       ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
                       : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
-                          ? msg.senderName
-                          : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+                        ? msg.senderName
+                        : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
 
                     const senderAvatarUrl = isFromMe
                       ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
@@ -4016,9 +3986,8 @@ const LiveChatBox = ({
                                 <span className="text-[10.5px] text-gray-400 font-mono font-medium">
                                   {formatMessageTime(msg.createdAt)}
                                 </span>
-                                <span className={`font-extrabold text-xs tracking-tight ${
-                                  user?.role === 'admin' ? 'text-purple-950' : user?.role === 'teacher' || user?.role === 'instructor' ? 'text-amber-950' : 'text-sky-950'
-                                }`}>
+                                <span className={`font-extrabold text-xs tracking-tight ${user?.role === 'admin' ? 'text-purple-950' : user?.role === 'teacher' || user?.role === 'instructor' ? 'text-amber-950' : 'text-sky-950'
+                                  }`}>
                                   You
                                 </span>
                                 {user?.role === 'admin' ? (
@@ -4073,10 +4042,10 @@ const LiveChatBox = ({
                           {/* 1. If Voice Note: Standalone Role Themed Audio Player ONLY (No outer container) */}
                           {(audioAttachment || isVoiceText) && (audioAttachment?.url || msg.attachments?.[0]?.url) ? (
                             <div className="my-1">
-                              <AudioMessagePlayer 
-                                src={audioAttachment?.url || msg.attachments?.[0]?.url} 
-                                duration={audioAttachment?.duration || 10} 
-                                isFromMe={isFromMe} 
+                              <AudioMessagePlayer
+                                src={audioAttachment?.url || msg.attachments?.[0]?.url}
+                                duration={audioAttachment?.duration || 10}
+                                isFromMe={isFromMe}
                                 isBroadcast={Boolean(msg.isBroadcast)}
                                 role={msg.isBroadcast ? 'broadcast' : msgRole}
                                 audioId={audioAttachment?.url || msg.attachments?.[0]?.url}
@@ -4086,10 +4055,10 @@ const LiveChatBox = ({
                             /* 2. Standalone Proportional Animated Emoji (Clean Sticker, No Box/Border) */
                             <div className={`py-1 px-1 select-none transition-all duration-200 transform hover:scale-120 active:scale-95 cursor-pointer flex items-center ${isFromMe ? 'justify-end' : 'justify-start'} ${getEmojiCustomAnimation(msg.text)}`}>
                               {getEmojiAppleCode(msg.text) ? (
-                                <img 
-                                  src={getHighResEmojiUrl(getEmojiAppleCode(msg.text))} 
-                                  alt={msg.text} 
-                                  className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-md select-none will-change-transform filter" 
+                                <img
+                                  src={getHighResEmojiUrl(getEmojiAppleCode(msg.text))}
+                                  alt={msg.text}
+                                  className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-md select-none will-change-transform filter"
                                   onError={(e) => {
                                     if (!e.currentTarget.dataset.retried) {
                                       e.currentTarget.dataset.retried = 'true';
@@ -4108,24 +4077,23 @@ const LiveChatBox = ({
                             </div>
                           ) : (
                             /* 3. Text Message Bubble with Professional Theme Styling & Micro-Interaction */
-                            <div className={`${isFullscreen ? 'px-3 py-2 rounded-2xl text-[12.5px] sm:text-[13px]' : 'px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-[13.5px] sm:text-[14px]'} leading-relaxed tracking-normal shadow-md space-y-1.5 max-w-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-lg cursor-default ${
-                              msgRole === 'admin'
+                            <div className={`${isFullscreen ? 'px-3 py-2 rounded-2xl text-[12.5px] sm:text-[13px]' : 'px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-[13.5px] sm:text-[14px]'} leading-relaxed tracking-normal shadow-md space-y-1.5 max-w-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-lg cursor-default ${msgRole === 'admin'
                                 ? `bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white font-bold shadow-purple-950/25 border border-purple-400/40 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
                                 : msgRole === 'teacher'
                                   ? `bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-amber-950 font-bold shadow-amber-950/20 border border-amber-400/80 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
                                   : `bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white font-bold shadow-sky-950/25 border border-sky-300/50 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
-                            }`}>
+                              }`}>
                               {msg.text && <p className="whitespace-pre-wrap break-words tracking-wide leading-relaxed font-sans font-semibold text-inherit">{msg.text}</p>}
-                              
+
                               {/* Non-audio attachments */}
                               {msg.attachments?.filter(att => att.category !== 'audio' && !att.fileType?.startsWith('audio/')).map((att, aIdx) => (
                                 <div key={aIdx} className="pt-0.5 max-w-full overflow-hidden">
                                   {att.category === 'image' || att.fileType?.startsWith('image/') ? (
-                                    <img 
-                                      src={getFullAttachmentUrl(att.url)} 
-                                      alt="" 
-                                      onClick={() => setPreviewImageModal(getFullAttachmentUrl(att.url))} 
-                                      className={`${isFullscreen ? 'max-h-44 sm:max-h-52' : 'max-h-56 sm:max-h-72'} max-w-full rounded-xl object-contain border border-white/20 shadow-sm cursor-pointer hover:scale-[1.01] transition block`} 
+                                    <img
+                                      src={getFullAttachmentUrl(att.url)}
+                                      alt=""
+                                      onClick={() => setPreviewImageModal(getFullAttachmentUrl(att.url))}
+                                      className={`${isFullscreen ? 'max-h-44 sm:max-h-52' : 'max-h-56 sm:max-h-72'} max-w-full rounded-xl object-contain border border-white/20 shadow-sm cursor-pointer hover:scale-[1.01] transition block`}
                                     />
                                   ) : (
                                     <DocumentMessageCard
@@ -4213,11 +4181,10 @@ const LiveChatBox = ({
                   type="button"
                   onClick={() => setInputText(chip)}
                   title={`Click to quickly use: "${chip}"`}
-                  className={`${isFullscreen ? 'px-2.5 py-1 text-[10.5px] rounded-lg' : 'px-3.5 py-1.5 text-xs rounded-xl'} font-bold border shadow-2xs hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 active:scale-95 shrink-0 whitespace-nowrap cursor-pointer ${
-                    isUserAdmin
+                  className={`${isFullscreen ? 'px-2.5 py-1 text-[10.5px] rounded-lg' : 'px-3.5 py-1.5 text-xs rounded-xl'} font-bold border shadow-2xs hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 active:scale-95 shrink-0 whitespace-nowrap cursor-pointer ${isUserAdmin
                       ? 'bg-white hover:bg-purple-50 hover:border-purple-300 text-gray-800 hover:text-purple-950 border-gray-200/90'
                       : 'bg-white hover:bg-amber-50 hover:border-amber-300 text-gray-800 hover:text-amber-950 border-gray-200/90'
-                  }`}
+                    }`}
                 >
                   {chip}
                 </button>
@@ -4288,8 +4255,8 @@ const LiveChatBox = ({
                       </span>
                     </div>
                     <p className="text-[11px] text-red-900 font-medium font-sans">
-                      {selectedStudentId === 'staff' 
-                        ? "Private voice note to admin" 
+                      {selectedStudentId === 'staff'
+                        ? "Private voice note to admin"
                         : `Private voice reply to ${selectedThreadStudent?.studentName || 'Student'}`}
                     </p>
                   </div>
@@ -4371,8 +4338,8 @@ const LiveChatBox = ({
                 </div>
 
                 <div className="w-full bg-red-100 rounded-full h-1 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-red-600 to-rose-600 h-full transition-all duration-100 rounded-full" 
+                  <div
+                    className="bg-gradient-to-r from-red-600 to-rose-600 h-full transition-all duration-100 rounded-full"
                     style={{ width: `${voicePreviewProgress}%` }}
                   />
                 </div>
@@ -4477,7 +4444,7 @@ const LiveChatBox = ({
 
       {/* Image Preview Lightbox Modal */}
       {previewImageModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
           onClick={() => setPreviewImageModal(null)}
         >

@@ -433,17 +433,17 @@ const Instructors = () => {
                           </span>
                         </td>
                         <td className="py-4 px-6 font-medium">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2.5">
                             <img
                               src={row.instructorPhoto}
                               alt={row.instructor}
-                              className="w-6 h-6 rounded-full object-cover border border-purple-300"
+                              className="w-7 h-7 rounded-full object-cover border-2 border-purple-300 dark:border-purple-600/70 shadow-xs shrink-0 bg-slate-100 dark:bg-slate-800"
                               onError={(e) => {
                                 e.currentTarget.onerror = null;
                                 e.currentTarget.src = row.defaultPhoto;
                               }}
                             />
-                            <span>{row.instructor}</span>
+                            <span className="font-semibold">{row.instructor}</span>
                           </div>
                         </td>
                         <td className="py-4 px-6">

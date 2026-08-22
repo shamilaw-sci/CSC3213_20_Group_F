@@ -18,50 +18,50 @@ const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
 // --- MULTER STORAGE FOR LIVE CHAT ATTACHMENTS & PHOTOS ---
 const liveChatUploadsDir = path.join(__dirname, '../uploads/live_chat');
 if (!fs.existsSync(liveChatUploadsDir)) {
-  fs.mkdirSync(liveChatUploadsDir, { recursive: true });
+    fs.mkdirSync(liveChatUploadsDir, { recursive: true });
 }
 
 const liveChatStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, liveChatUploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    let ext = path.extname(file.originalname || '');
-    if (!ext) {
-      if (file.mimetype?.includes('webm')) ext = '.webm';
-      else if (file.mimetype?.includes('ogg')) ext = '.ogg';
-      else if (file.mimetype?.includes('mp4') || file.mimetype?.includes('m4a')) ext = '.m4a';
-      else if (file.mimetype?.includes('wav')) ext = '.wav';
-      else if (file.mimetype?.includes('jpeg') || file.mimetype?.includes('jpg')) ext = '.jpg';
-      else if (file.mimetype?.includes('png')) ext = '.png';
-      else if (file.mimetype?.includes('pdf')) ext = '.pdf';
-      else ext = '.webm';
+    destination: (req, file, cb) => {
+        cb(null, liveChatUploadsDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        let ext = path.extname(file.originalname || '');
+        if (!ext) {
+            if (file.mimetype?.includes('webm')) ext = '.webm';
+            else if (file.mimetype?.includes('ogg')) ext = '.ogg';
+            else if (file.mimetype?.includes('mp4') || file.mimetype?.includes('m4a')) ext = '.m4a';
+            else if (file.mimetype?.includes('wav')) ext = '.wav';
+            else if (file.mimetype?.includes('jpeg') || file.mimetype?.includes('jpg')) ext = '.jpg';
+            else if (file.mimetype?.includes('png')) ext = '.png';
+            else if (file.mimetype?.includes('pdf')) ext = '.pdf';
+            else ext = '.webm';
+        }
+        cb(null, 'live-' + uniqueSuffix + ext);
     }
-    cb(null, 'live-' + uniqueSuffix + ext);
-  }
 });
 
 const liveChatUpload = multer({
-  storage: liveChatStorage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max file size
+    storage: liveChatStorage,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB max file size
 });
 
 const optionalLiveChatUpload = (req, res, next) => {
-  const contentType = req.headers['content-type'] || '';
-  if (contentType.includes('multipart/form-data')) {
-    liveChatUpload.single('attachment')(req, res, (err) => {
-      if (err) {
-        if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({ error: "File size exceeds 5MB limit. Please upload a file under 5MB." });
-        }
-        return res.status(400).json({ error: err.message || "File upload error" });
-      }
-      next();
-    });
-  } else {
-    next();
-  }
+    const contentType = req.headers['content-type'] || '';
+    if (contentType.includes('multipart/form-data')) {
+        liveChatUpload.single('attachment')(req, res, (err) => {
+            if (err) {
+                if (err.code === 'LIMIT_FILE_SIZE') {
+                    return res.status(400).json({ error: "File size exceeds 5MB limit. Please upload a file under 5MB." });
+                }
+                return res.status(400).json({ error: err.message || "File upload error" });
+            }
+            next();
+        });
+    } else {
+        next();
+    }
 };
 
 // Middleware to authorize teachers and admins
@@ -364,7 +364,7 @@ router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, as
         try {
             const course = await Course.findById(lesson.course);
             const enrolledUsers = await getClassEnrolledStudents(lesson.course, lesson.grade);
-            
+
             if (enrolledUsers.length > 0) {
                 const notifDocs = enrolledUsers.map(st => ({
                     recipient: st._id,
@@ -466,7 +466,7 @@ router.post('/:lessonId/assignment', protect, isTeacherOrAdmin, uploadPdfMiddlew
         try {
             const course = await Course.findById(lesson.course);
             const enrolledUsers = await getClassEnrolledStudents(lesson.course, lesson.grade);
-            
+
             if (enrolledUsers.length > 0) {
                 const notifDocs = enrolledUsers.map(st => ({
                     recipient: st._id,
@@ -509,7 +509,7 @@ router.patch('/:lessonId/material-download-settings', protect, isTeacherOrAdmin,
         const settings = resolveDownloadSettings({ allowDownload, downloadDelayType, downloadUnlockDate });
 
         if (materialType === 'pdf') {
-            const item = (lesson.pdfMaterials && lesson.pdfMaterials.id) 
+            const item = (lesson.pdfMaterials && lesson.pdfMaterials.id)
                 ? (lesson.pdfMaterials.id(materialId) || lesson.pdfMaterials.find(p => p._id && p._id.toString() === materialId))
                 : lesson.pdfMaterials.find(p => p._id && p._id.toString() === materialId);
             if (!item) return res.status(404).json({ error: "PDF material not found." });
@@ -517,7 +517,7 @@ router.patch('/:lessonId/material-download-settings', protect, isTeacherOrAdmin,
             item.downloadDelayType = settings.downloadDelayType;
             item.downloadUnlockDate = settings.downloadUnlockDate;
         } else if (materialType === 'assignment') {
-            const item = (lesson.assignments && lesson.assignments.id) 
+            const item = (lesson.assignments && lesson.assignments.id)
                 ? (lesson.assignments.id(materialId) || lesson.assignments.find(a => a._id && a._id.toString() === materialId))
                 : lesson.assignments.find(a => a._id && a._id.toString() === materialId);
             if (!item) return res.status(404).json({ error: "Assignment not found." });
@@ -525,7 +525,7 @@ router.patch('/:lessonId/material-download-settings', protect, isTeacherOrAdmin,
             item.downloadDelayType = settings.downloadDelayType;
             item.downloadUnlockDate = settings.downloadUnlockDate;
         } else if (materialType === 'video') {
-            const item = (lesson.videoLessons && lesson.videoLessons.id) 
+            const item = (lesson.videoLessons && lesson.videoLessons.id)
                 ? (lesson.videoLessons.id(materialId) || lesson.videoLessons.find(v => v._id && v._id.toString() === materialId))
                 : lesson.videoLessons.find(v => v._id && v._id.toString() === materialId);
             if (!item) return res.status(404).json({ error: "Video lesson not found." });
@@ -593,7 +593,7 @@ const convertBase64ToStaticFile = (base64OrPath, prefix = 'live-thumb') => {
         const ext = mime.split('/')[1] || 'jpeg';
         const filename = `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
         const uploadsDir = path.join(__dirname, '..', 'uploads');
-        
+
         if (!fs.existsSync(uploadsDir)) {
             fs.mkdirSync(uploadsDir, { recursive: true });
         }
@@ -624,7 +624,7 @@ router.post('/:lessonId/live-stream', protect, isTeacherOrAdmin, async (req, res
 
         const streamTitle = (title && String(title).trim()) ? String(title).trim() : `Grade ${lesson.grade} Live Class`;
         const thumbnailPath = thumbnail ? convertBase64ToStaticFile(thumbnail, 'live-thumb') : (lesson.liveStream?.thumbnail || '');
-        
+
         const isScheduledMode = Boolean(isScheduled && scheduledStartTime && !goLiveNow);
         const prevLiveStream = lesson.liveStream || {};
 
@@ -661,7 +661,7 @@ router.post('/:lessonId/live-stream', protect, isTeacherOrAdmin, async (req, res
                         recipient: st._id,
                         type: 'LIVE_CLASS',
                         title: isNowLive ? `🔴 LIVE NOW: ${course?.title || 'Course'}` : `📅 LIVE CLASS SCHEDULED: ${course?.title || 'Course'}`,
-                        message: isNowLive 
+                        message: isNowLive
                             ? `Live class "${streamTitle}" has started for Grade ${lesson.grade}! Click to join now.`
                             : `Live class "${streamTitle}" is scheduled for ${formattedDate} (Grade ${lesson.grade}).`,
                         link: `/courses`,
@@ -689,9 +689,9 @@ router.post('/:lessonId/live-stream', protect, isTeacherOrAdmin, async (req, res
             }
         })();
 
-        res.json({ 
-            message: isScheduledMode ? "Live Class scheduled successfully!" : "Live Class published successfully!", 
-            lesson: updatedLesson 
+        res.json({
+            message: isScheduledMode ? "Live Class scheduled successfully!" : "Live Class published successfully!",
+            lesson: updatedLesson
         });
     } catch (err) {
         console.error("Live stream start error:", err);
@@ -817,7 +817,7 @@ router.post('/:lessonId/live-stream/viewer-ping', protect, async (req, res) => {
             const viewer = lesson.liveStream.viewers[existingViewerIndex];
             const lastPing = viewer.lastPing ? new Date(viewer.lastPing).getTime() : now.getTime();
             const elapsed = Math.min(Math.max(Math.floor((now.getTime() - lastPing) / 1000), 0), 20);
-            
+
             if (isPlaying) {
                 viewer.watchedSeconds = (viewer.watchedSeconds || 0) + (elapsed > 0 ? elapsed : 5);
             }
@@ -957,15 +957,15 @@ router.post('/:lessonId/live-stream/messages', protect, optionalLiveChatUpload, 
         }
 
         const isStaffOnly = !isStudent && (
-            req.body.isStaffOnly === 'true' || 
-            req.body.isStaffOnly === true || 
-            req.body.staffOnly === 'true' || 
+            req.body.isStaffOnly === 'true' ||
+            req.body.isStaffOnly === true ||
+            req.body.staffOnly === 'true' ||
             rawStudentIdBody === 'staff'
         );
 
         const isBroadcast = !isStudent && !isStaffOnly && (
-            isBroadcastRaw === true || 
-            isBroadcastRaw === 'true' || 
+            isBroadcastRaw === true ||
+            isBroadcastRaw === 'true' ||
             !cleanStudentId
         );
 
@@ -995,18 +995,18 @@ router.post('/:lessonId/live-stream/messages', protect, optionalLiveChatUpload, 
             const fname = (req.file.filename || '').toLowerCase();
 
             const isImg = mime.startsWith('image/') || fname.endsWith('.jpg') || fname.endsWith('.jpeg') || fname.endsWith('.png') || fname.endsWith('.webp') || fname.endsWith('.gif');
-            const isAud = mime.startsWith('audio/') || 
-                          mime.includes('webm') || 
-                          mime.includes('ogg') || 
-                          orig.includes('voice') || 
-                          orig.endsWith('.webm') || 
-                          orig.endsWith('.ogg') || 
-                          orig.endsWith('.m4a') || 
-                          fname.endsWith('.webm') || 
-                          fname.endsWith('.ogg') || 
-                          fname.endsWith('.m4a') || 
-                          fname.endsWith('.mp3') || 
-                          fname.endsWith('.wav');
+            const isAud = mime.startsWith('audio/') ||
+                mime.includes('webm') ||
+                mime.includes('ogg') ||
+                orig.includes('voice') ||
+                orig.endsWith('.webm') ||
+                orig.endsWith('.ogg') ||
+                orig.endsWith('.m4a') ||
+                fname.endsWith('.webm') ||
+                fname.endsWith('.ogg') ||
+                fname.endsWith('.m4a') ||
+                fname.endsWith('.mp3') ||
+                fname.endsWith('.wav');
 
             const cat = isImg ? 'image' : (isAud ? 'audio' : 'document');
 
@@ -1094,7 +1094,7 @@ router.post('/:lessonId/live-stream/messages', protect, optionalLiveChatUpload, 
             } else if (userNameLower.includes('lasantha')) {
                 senderAvatar = '/assets/lasantha_wedagedara.png';
             } else if (userNameLower.includes('kevin')) {
-                senderAvatar = '/assets/kevin_daraniyagala.png';
+                senderAvatar = '/assets/kevin_deraniyagala.png';
             } else if (userNameLower.includes('rashmi')) {
                 senderAvatar = '/assets/rashmi_gunawardhana.png';
             } else if (req.user.role === 'admin' || req.user.role === 'superadmin') {
@@ -1181,7 +1181,7 @@ router.get('/:lessonId/live-stream/messages', protect, async (req, res) => {
             let currentAvatar = senderObj?.profilePicture || senderObj?.avatar || m.senderAvatar || '';
             let currentName = senderObj?.name || m.senderName || 'User';
             let currentRole = senderObj?.role || m.senderRole || 'student';
-            
+
             // Clean up legacy fallback if it was saved as wrong founder_photo for a different instructor
             if (currentAvatar === '/assets/founder_photo.png') {
                 const nameLower = currentName.toLowerCase();
@@ -1195,7 +1195,7 @@ router.get('/:lessonId/live-stream/messages', protect, async (req, res) => {
                     } else if (nameLower.includes('lasantha')) {
                         currentAvatar = '/assets/lasantha_wedagedara.png';
                     } else if (nameLower.includes('kevin')) {
-                        currentAvatar = '/assets/kevin_daraniyagala.png';
+                        currentAvatar = '/assets/kevin_deraniyagala.png';
                     } else if (nameLower.includes('rashmi')) {
                         currentAvatar = '/assets/rashmi_gunawardhana.png';
                     } else {
@@ -1281,7 +1281,7 @@ router.get('/:lessonId/live-stream/messages', protect, async (req, res) => {
                         t.studentAvatar = u.profilePicture || u.avatar || t.studentAvatar;
                     }
                 });
-            } catch (uErr) {}
+            } catch (uErr) { }
         }
 
         res.json({
@@ -1392,7 +1392,7 @@ router.get('/:lessonId/live-stream/voice-status', protect, async (req, res) => {
             myRequest = myRequests[myRequests.length - 1] || null;
         }
 
-        const pendingRequests = isTeacherOrAdmin 
+        const pendingRequests = isTeacherOrAdmin
             ? (liveSpeaking.requests || []).filter(r => r.status === 'pending')
             : [];
 
@@ -1633,10 +1633,10 @@ router.post('/:lessonId/live-stream/feedback', protect, async (req, res) => {
             const teacherId = course?.instructor;
             if (teacherId && teacherId.toString() !== req.user._id.toString()) {
                 let notifTitle = `Live Class Feedback: ${req.user.name} (${feedbackData.reactionEmoji} ${feedbackData.reactionLabel})`;
-                let notifBody = feedbackData.question 
+                let notifBody = feedbackData.question
                     ? `Question: "${feedbackData.question}"`
-                    : feedbackData.message 
-                        ? `Feedback: "${feedbackData.message}"` 
+                    : feedbackData.message
+                        ? `Feedback: "${feedbackData.message}"`
                         : `${req.user.name} reacted with ${feedbackData.reactionEmoji} ${feedbackData.reactionLabel}`;
 
                 await Notification.create({
@@ -1672,7 +1672,7 @@ router.get('/:lessonId/live-stream/feedbacks', protect, async (req, res) => {
         }
 
         const feedbacks = lesson.liveStream?.feedbacks || [];
-        
+
         // Summary metrics
         const reactionsSummary = {};
         feedbacks.forEach(f => {
@@ -1710,7 +1710,7 @@ router.post('/:lessonId/live-stream/record-attendance', protect, isTeacherOrAdmi
         const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
         const currentYear = now.getFullYear();
         const monthStr = `${currentMonthName} ${currentYear}`;
-        
+
         const dayOfMonth = now.getDate();
         let weekNumber = 1;
         if (dayOfMonth <= 7) weekNumber = 1;
