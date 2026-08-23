@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import API from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { 
@@ -57,8 +58,7 @@ const Analytics = () => {
   const fetchAnalytics = async (typeFilter = 'all', childOrStudentId = '', courseId = 'all', adminTeacherId = 'all') => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      let url = `http://localhost:5000/api/auth/analytics-summary?studentType=${typeFilter}`;
+      let url = `/auth/analytics-summary?studentType=${typeFilter}`;
       if (childOrStudentId) {
         url += `&studentId=${childOrStudentId}`;
       }
@@ -68,9 +68,7 @@ const Analytics = () => {
       if (adminTeacherId && adminTeacherId !== 'all') {
         url += `&teacherId=${adminTeacherId}`;
       }
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await API.get(url);
       setData(res.data);
       if (res.data?.selectedStudentId && !selectedChildId && isParent) {
         setSelectedChildId(res.data.selectedStudentId);

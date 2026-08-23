@@ -218,8 +218,11 @@ async function runFullMigration() {
     await migratePhysicalFiles();
 
     // 2. Connect to database if not connected
-    const fallbackDbURI = 'mongodb://developer:dev1234@ac-zqvmyqq-shard-00-00.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-01.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-02.br5bcum.mongodb.net:27017/?ssl=true&replicaSet=atlas-l6y6kk-shard-0&authSource=admin&appName=LuminaLearnCluster';
-    const dbURI = process.env.MONGO_URI || fallbackDbURI;
+    const dbURI = process.env.MONGO_URI;
+
+    if (!dbURI) {
+      throw new Error("MONGO_URI environment variable is missing.");
+    }
 
     if (mongoose.connection.readyState !== 1) {
       console.log('Connecting to MongoDB...');

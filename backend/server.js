@@ -27,12 +27,35 @@ const app = express();
 // Initialize physical storage folders
 fileStorage.initStorage();
 
+// --- CORS CONFIGURATION ---
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'https://luminalearn.edu.lk',
+    'https://www.luminalearn.edu.lk',
+    'http://localhost:5173',
+    'http://localhost:3000'
+].filter(Boolean);
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(null, true); // Fallback gracefully or set callback(new Error('Not allowed by CORS'))
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // --- MIDDLEWARE ---
 app.use(express.json({ limit: '50mb' })); // Parses incoming JSON requests
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(cors());         // Enables Cross-Origin Resource Sharing
-app.use('/media', cors(), express.static(path.join(__dirname, 'storage/public'))); // Public media (courses/profiles)
-app.use('/uploads', cors(), express.static(path.join(__dirname, 'uploads'))); // Legacy uploads compatibility
+app.use(cors(corsOptions)); // Enables Cross-Origin Resource Sharing
+app.use('/media', cors(corsOptions), express.static(path.join(__dirname, 'storage/public'))); // Public media (courses/profiles)
+app.use('/uploads', cors(corsOptions), express.static(path.join(__dirname, 'uploads'))); // Legacy uploads compatibility
 
 // --- ROOT HEALTH CHECK ---
 app.get('/', (req, res) => {
@@ -74,11 +97,10 @@ app.use((err, req, res, next) => {
 });
 
 // --- DATABASE CONNECTION ---
-const fallbackDbURI = 'mongodb://developer:dev1234@ac-zqvmyqq-shard-00-00.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-01.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-02.br5bcum.mongodb.net:27017/?ssl=true&replicaSet=atlas-l6y6kk-shard-0&authSource=admin&appName=LuminaLearnCluster';
-const dbURI = process.env.MONGO_URI || fallbackDbURI;
+const dbURI = process.env.MONGO_URI;
 
 if (!dbURI) {
-    console.error("FATAL ERROR: MONGO_URI is not defined in .env file.");
+    console.error("FATAL ERROR: MONGO_URI is not defined in environment variables. Please provide a valid MongoDB connection string.");
     process.exit(1);
 }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import API from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { FaCreditCard, FaSearch, FaCheckCircle, FaBookOpen, FaReceipt, FaGraduationCap, FaPlusCircle, FaBuilding, FaStore, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import RecordPhysicalPaymentModal from '../components/RecordPhysicalPaymentModal';
@@ -33,14 +33,11 @@ const Payments = () => {
   const fetchPayments = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const endpoint = (isAdmin || isTeacher)
-        ? 'http://localhost:5000/api/payments/all'
-        : 'http://localhost:5000/api/payments/my-payments';
+        ? '/payments/all'
+        : '/payments/my-payments';
 
-      const res = await axios.get(endpoint, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await API.get(endpoint);
       setPayments(res.data || []);
     } catch (err) {
       console.error('Error fetching payments:', err);

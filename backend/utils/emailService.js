@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
  * Sends a password reset email to the specified user email.
  */
 const sendResetPasswordEmail = async (toEmail, token, userName) => {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://luminalearn.edu.lk';
   const resetLink = `${frontendUrl}/reset-password/${token}`;
 
   const mailOptions = {
@@ -330,7 +330,7 @@ const sendMessageNotificationEmail = async (toEmail, recipientName, senderName) 
             </div>
 
             <div style="text-align: center; margin: 25px 0;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 26px; font-size: 14px; font-weight: 600; border-radius: 8px; display: inline-block;">
+              <a href="${process.env.FRONTEND_URL || 'https://luminalearn.edu.lk'}" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 26px; font-size: 14px; font-weight: 600; border-radius: 8px; display: inline-block;">
                 Open LuminaLearn Portal
               </a>
             </div>
