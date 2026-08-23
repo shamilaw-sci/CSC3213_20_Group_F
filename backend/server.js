@@ -19,15 +19,20 @@ const assignmentRoutes = require('./routes/assignmentRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 const searchRoutes = require('./routes/searchRoutes');
+const fileRoutes = require('./routes/fileRoutes');
+const fileStorage = require('./services/fileStorage');
 
 const app = express();
 
+// Initialize physical storage folders
+fileStorage.initStorage();
 
 // --- MIDDLEWARE ---
 app.use(express.json({ limit: '50mb' })); // Parses incoming JSON requests
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());         // Enables Cross-Origin Resource Sharing
-app.use('/uploads', cors(), express.static(path.join(__dirname, 'uploads'))); // Serve uploaded images & PDF materials with CORS
+app.use('/media', cors(), express.static(path.join(__dirname, 'storage/public'))); // Public media (courses/profiles)
+app.use('/uploads', cors(), express.static(path.join(__dirname, 'uploads'))); // Legacy uploads compatibility
 
 // --- ROOT HEALTH CHECK ---
 app.get('/', (req, res) => {
@@ -57,6 +62,7 @@ app.use('/api/assignments', assignmentRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/files', fileRoutes);
 
 
 // --- GLOBAL ERROR HANDLER ---

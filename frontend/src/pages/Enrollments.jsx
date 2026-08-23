@@ -7,6 +7,7 @@ import {
   FaEye, FaDownload, FaFilePdf, FaImage 
 } from 'react-icons/fa';
 import PdfReaderModal from '../components/PdfReaderModal';
+import { fetchBlobUrl, downloadProtectedFile } from '../utils/fileApi';
 
 const isPdfFile = (fileStr) => {
   if (!fileStr) return false;
@@ -61,64 +62,58 @@ const Enrollments = () => {
     }));
   };
 
-  const handleViewSlip = (slip) => {
+  const handleViewSlip = async (slip) => {
     if (!slip || !slip.slipImage) {
       toast.error('No bank slip uploaded.');
       return;
     }
     const isPdf = isPdfFile(slip.slipImage);
+    const slipEndpoint = `/files/payment/${slip._id}/slip`;
+
     if (isPdf) {
       setActivePdfSlip({
-        fileUrl: slip.slipImage,
+        fileUrl: slipEndpoint,
         title: `Bank Deposit Slip - ${slip.student?.name || 'Student'} (${slip.course?.title || 'Course'})`
       });
     } else {
-      setSelectedSlipImage(slip.slipImage);
+      if (slip.slipImage.startsWith('data:')) {
+        setSelectedSlipImage(slip.slipImage);
+      } else {
+        try {
+          const { blobUrl } = await fetchBlobUrl(slipEndpoint);
+          setSelectedSlipImage(blobUrl);
+        } catch (err) {
+          toast.error('Failed to load bank slip image.');
+        }
+      }
     }
   };
 
-  const handleDownloadSlip = (slip) => {
+  const handleDownloadSlip = async (slip) => {
     if (!slip || !slip.slipImage) {
       toast.error('No bank slip available to download.');
       return;
     }
-    const slipUrl = slip.slipImage;
-    const isPdf = isPdfFile(slipUrl);
+    const isPdf = isPdfFile(slip.slipImage);
     const ext = isPdf ? 'pdf' : 'jpg';
     const cleanName = (slip.student?.name || 'student').replace(/[^a-zA-Z0-9]/g, '_');
     const fileName = `Bank_Slip_${cleanName}_${slip.transactionId || 'slip'}.${ext}`;
 
-    if (slipUrl.startsWith('data:')) {
+    if (slip.slipImage.startsWith('data:')) {
       const a = document.createElement('a');
-      a.href = slipUrl;
+      a.href = slip.slipImage;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       toast.success('Bank slip download started!');
     } else {
-      fetch(slipUrl)
-        .then(res => res.blob())
-        .then(blob => {
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(blobUrl);
-          toast.success('Bank slip download started!');
-        })
-        .catch(() => {
-          const a = document.createElement('a');
-          a.href = slipUrl;
-          a.download = fileName;
-          a.target = '_blank';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        });
+      try {
+        await downloadProtectedFile(`/files/payment/${slip._id}/slip?download=true`, fileName);
+        toast.success('Bank slip download started!');
+      } catch (err) {
+        toast.error('Failed to download bank slip.');
+      }
     }
   };
 

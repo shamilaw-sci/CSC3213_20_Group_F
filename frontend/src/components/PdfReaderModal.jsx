@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
+import { fetchBlobUrl, downloadProtectedFile } from '../utils/fileApi';
 import {
   FaTimes, FaBookOpen, FaDownload, FaSync,
   FaSpinner, FaChevronLeft, FaChevronRight, FaCheckCircle
@@ -12,8 +13,8 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
   const [currentPage, setCurrentPage]   = useState(initialProgress?.maxPageRead || 1);
   const [saving, setSaving]             = useState(false);
   const [savedFlash, setSavedFlash]     = useState(false);
-  const [manualPage, setManualPage]     = useState('');
-  const [showManual, setShowManual]     = useState(false);
+  const [blobUrl, setBlobUrl]           = useState(null);
+  const [downloading, setDownloading]   = useState(false);
 
   const maxPageReadRef   = useRef(initialProgress?.maxPageRead || 0);
   const totalPagesRef    = useRef(initialProgress?.totalPages  || 20);
@@ -25,22 +26,14 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
   const pagesContRef     = useRef(null);
   const visObsRef        = useRef(null);
   const renderObsRef     = useRef(null);
+  const blobCleanupRef   = useRef(null);
   const onProgressUpdRef = useRef(onProgressUpdated);
   useEffect(() => { onProgressUpdRef.current = onProgressUpdated; }, [onProgressUpdated]);
 
-  // ── URL builder ─────────────────────────────────────────────────────────
-  const getFullPdfUrl = (raw) => {
-    if (!raw || !raw.trim()) return null;
-    if (/^https?:\/\/|^data:/.test(raw)) return raw;
-    const file = raw.includes('/uploads/') ? raw.split('/uploads/').pop() : raw.replace(/^\//, '');
-    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
-    return `${base}/uploads/${file}`;
-  };
-
-  const fileUrl  = getFullPdfUrl(pdf?.fileUrl);
   const pdfTitle = pdf?.title || 'Study Material PDF';
   const pdfId    = pdf?._id ? String(pdf._id) : (pdf?.filename || pdf?.title || 'pdf-doc');
   const pct      = totalPages > 0 ? Math.min(100, Math.round((maxPageRead / totalPages) * 100)) : 0;
+  const canDownload = pdf?.allowDownload !== false;
 
   // ── Save progress ────────────────────────────────────────────────────────
   const doSave = (page, total) => {
@@ -76,9 +69,9 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
   const renderOnePage = async (pageNum) => {
     if (!pdfDocRef.current || renderedRef.current.has(pageNum)) return;
     renderedRef.current.add(pageNum);
-    const wrapper     = document.getElementById(`pdf-page-${pageNum}`);
+    const wrapper = document.getElementById(`pdf-page-${pageNum}`);
     if (!wrapper) return;
-    const canvas      = wrapper.querySelector('canvas');
+    const canvas = wrapper.querySelector('canvas');
     const placeholder = wrapper.querySelector('.ph');
     if (!canvas) return;
     try {
@@ -117,23 +110,45 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
     return tryLoad(0);
   };
 
-  // ── PDF.js init — runs ONCE per fileUrl ──────────────────────────────────
+  // ── Fetch authenticated Blob and load PDF.js ────────────────────────────
   useEffect(() => {
-    if (!fileUrl) { setStatus('native'); return; }
     let alive = true;
 
     (async () => {
       setStatus('loading');
       try {
+        // 1. Determine protected API route
+        let targetEndpoint = '';
+        if (lessonId && (pdf?._id || pdf?.filename)) {
+          targetEndpoint = `/files/lesson/${lessonId}/pdf/${pdf._id || pdf.filename}`;
+        } else if (pdf?.fileUrl) {
+          targetEndpoint = pdf.fileUrl.replace(/^https?:\/\/[^/]+\/api/, '').replace(/^\/api/, '');
+        }
+
+        if (!targetEndpoint) {
+          setStatus('native');
+          return;
+        }
+
+        // 2. Fetch authenticated blob
+        const { blobUrl: objectUrl, revoke } = await fetchBlobUrl(targetEndpoint);
+        if (!alive) {
+          revoke();
+          return;
+        }
+
+        blobCleanupRef.current = revoke;
+        setBlobUrl(objectUrl);
+
+        // 3. Initialize PDF.js
         await loadPdfJsScript();
         if (!alive) return;
 
         window.pdfjsLib.GlobalWorkerOptions.workerSrc =
           'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // Fetch document metadata
         const doc = await window.pdfjsLib.getDocument({
-          url: fileUrl,
+          url: objectUrl,
           cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
           cMapPacked: true,
         }).promise;
@@ -158,196 +173,127 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
           Object.assign(w.style, {
             position:'relative', borderRadius:'14px', marginBottom:'28px',
             overflow:'hidden', border:'1px solid #334155', background:'#1e293b',
-            minHeight:'320px', display:'flex', alignItems:'center', justifyContent:'center',
+            boxShadow:'0 20px 40px -15px rgba(0,0,0,0.6)', minHeight:'500px',
+            display:'flex', alignItems:'center', justifyContent:'center'
           });
 
           const ph = document.createElement('div');
           ph.className = 'ph';
-          ph.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:8px;padding:40px;color:#475569;';
-          ph.innerHTML = `
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"
-              style="animation:_spin 1s linear infinite">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83
-                       M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-            <span style="font-size:11px;font-weight:600;color:#64748b;">Page ${p} of ${n}</span>`;
+          ph.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#475569;font-size:12px;font-weight:600;';
+          ph.textContent = `Page ${p} of ${n}`;
+          w.appendChild(ph);
 
           const cv = document.createElement('canvas');
-          cv.style.cssText = 'display:none;width:100%;height:auto;';
+          cv.style.cssText = 'display:none;width:100%;height:auto;border-radius:14px;';
+          w.appendChild(cv);
 
-          const badge = document.createElement('div');
-          badge.style.cssText = `position:absolute;top:10px;right:10px;z-index:5;
-            background:rgba(15,23,42,.9);color:#fff;font-size:10px;font-weight:700;
-            padding:3px 9px;border-radius:999px;border:1px solid #475569;
-            pointer-events:none;font-family:monospace;`;
-          badge.innerText = `${p} / ${n}`;
-
-          w.appendChild(ph); w.appendChild(cv); w.appendChild(badge);
           container.appendChild(w);
         }
 
-        setStatus('done');
-
-        // Observer A — visibility detection
+        // Set up IntersectionObservers
         if (visObsRef.current) visObsRef.current.disconnect();
         visObsRef.current = new IntersectionObserver((entries) => {
           entries.forEach(e => {
             const p = parseInt(e.target.getAttribute('data-page-number'), 10);
-            if (!isNaN(p)) pageRatiosRef.current[p] = e.intersectionRatio;
+            if (e.isIntersecting) {
+              pageRatiosRef.current[p] = e.intersectionRatio;
+            } else {
+              delete pageRatiosRef.current[p];
+            }
           });
-          const ratios = pageRatiosRef.current;
-          const keys   = Object.keys(ratios).filter(k => ratios[k] > 0);
-          if (!keys.length) return;
-          const best = parseInt(keys.reduce((a, b) => ratios[a] > ratios[b] ? a : b), 10);
-          onPageSeen(best);
-        }, { root: scrollContRef.current, threshold: [0, 0.25, 0.5, 0.75, 1] });
+          const active = Object.entries(pageRatiosRef.current).sort((a,b) => b[1] - a[1])[0];
+          if (active) onPageSeen(parseInt(active[0], 10));
+        }, { root: scrollContRef.current, threshold: [0.1, 0.3, 0.6] });
 
-        // Observer B — render trigger
         if (renderObsRef.current) renderObsRef.current.disconnect();
         renderObsRef.current = new IntersectionObserver((entries) => {
           entries.forEach(e => {
             if (e.isIntersecting) {
               const p = parseInt(e.target.getAttribute('data-page-number'), 10);
-              if (!isNaN(p)) renderOnePage(p);
+              renderOnePage(p);
             }
           });
-        }, { root: scrollContRef.current, rootMargin: '400px 0px', threshold: 0 });
+        }, { root: scrollContRef.current, rootMargin: '400px 0px' });
 
-        container.querySelectorAll('[data-page-number]').forEach(el => {
-          visObsRef.current.observe(el);
-          renderObsRef.current.observe(el);
-        });
-
-        // Auto-scroll to last-read page
-        const startPg = maxPageReadRef.current > 1 ? maxPageReadRef.current : 1;
-        if (startPg > 1) {
-          setTimeout(() => {
-            document.getElementById(`pdf-page-${startPg}`)?.scrollIntoView({ behavior:'smooth', block:'start' });
-          }, 400);
+        for (let p = 1; p <= n; p++) {
+          const el = document.getElementById(`pdf-page-${p}`);
+          if (el) {
+            visObsRef.current.observe(el);
+            renderObsRef.current.observe(el);
+          }
         }
 
+        // Render page 1 immediately
+        await renderOnePage(1);
+        setStatus('done');
       } catch (err) {
-        console.warn('PDF.js init failed, loading native PDF view:', err);
+        console.warn('PDF.js rendering error, switching to native viewer:', err);
         if (alive) setStatus('native');
       }
     })();
 
     return () => {
       alive = false;
-      visObsRef.current?.disconnect();
-      renderObsRef.current?.disconnect();
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (visObsRef.current) visObsRef.current.disconnect();
+      if (renderObsRef.current) renderObsRef.current.disconnect();
+      if (blobCleanupRef.current) {
+        blobCleanupRef.current();
+      }
     };
-  }, [fileUrl]);
+  }, [lessonId, pdf?._id, pdf?.filename, pdf?.fileUrl]);
 
-  // ── Prev / Next button ───────────────────────────────────────────────────
-  const handlePageChange = (newPage) => {
-    const vp = Math.min(totalPagesRef.current, Math.max(1, newPage));
-    setCurrentPage(vp);
-    if (vp > maxPageReadRef.current) { maxPageReadRef.current = vp; setMaxPageRead(vp); }
-    document.getElementById(`pdf-page-${vp}`)?.scrollIntoView({ behavior:'smooth', block:'start' });
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    doSave(Math.max(vp, maxPageReadRef.current), totalPagesRef.current);
-  };
-
-  // ── Manual page sync ─────────────────────────────────────────────────────
-  const handleManualSync = () => {
-    const pg = parseInt(manualPage, 10);
-    if (!pg || pg < 1 || pg > totalPagesRef.current) return;
-    maxPageReadRef.current = Math.max(maxPageReadRef.current, pg);
-    setMaxPageRead(maxPageReadRef.current);
-    setCurrentPage(pg);
-    setManualPage('');
-    setShowManual(false);
-    doSave(maxPageReadRef.current, totalPagesRef.current);
+  // ── Handle Download ──────────────────────────────────────────────────────
+  const handleDownload = async () => {
+    if (!canDownload) return;
+    setDownloading(true);
+    try {
+      const targetEndpoint = lessonId && (pdf?._id || pdf?.filename)
+        ? `/files/lesson/${lessonId}/pdf/${pdf._id || pdf.filename}?download=true`
+        : (pdf?.fileUrl || '');
+      await downloadProtectedFile(targetEndpoint, `${pdfTitle}.pdf`);
+    } catch (err) {
+      console.error('Download error:', err);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
-    <div style={{ position:'fixed',inset:0,zIndex:50,display:'flex',flexDirection:'column',
-      background:'rgba(2,6,23,.97)', fontFamily:"'Inter',sans-serif", color:'#f1f5f9' }}>
-
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div style={{ background:'#0f172a', borderBottom:'1px solid #1e293b',
-        padding:'10px 20px', display:'flex', flexWrap:'wrap',
-        justifyContent:'space-between', alignItems:'center', gap:'10px', zIndex:20 }}>
-
+    <div style={{
+      position:'fixed', inset:0, zIndex:9999,
+      display:'flex', flexDirection:'column',
+      background:'rgba(2,6,23,0.96)', backdropFilter:'blur(12px)',
+      fontFamily:'system-ui,-apple-system,sans-serif'
+    }}>
+      {/* ── Top Bar ────────────────────────────────────────────────────── */}
+      <div style={{
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding:'12px 20px', background:'#0f172a', borderBottom:'1px solid #1e293b',
+        gap:'12px', flexWrap:'wrap'
+      }}>
         {/* Title */}
-        <div style={{ display:'flex', itemsCenter:'center', gap:'10px', minWidth:0 }}>
-          <div style={{ padding:'8px', background:'#3b0764', border:'1px solid #6b21a8',
-            borderRadius:'10px', color:'#d8b4fe', flexShrink:0 }}><FaBookOpen /></div>
+        <div style={{ display:'flex', alignItems:'center', gap:'10px', minWidth:0 }}>
+          <div style={{ width:'36px', height:'36px', borderRadius:'10px',
+            background:'linear-gradient(135deg,#7c3aed,#4f46e5)',
+            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <FaBookOpen style={{ color:'#fff', fontSize:'16px' }} />
+          </div>
           <div style={{ minWidth:0 }}>
-            <div style={{ fontWeight:700, fontSize:'13px', color:'#fff',
-              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'200px' }}>{pdfTitle}</div>
-            <div style={{ fontSize:'10px', color:'#a855f7', fontWeight:600 }}>Scroll Detection Active • Auto-Save</div>
+            <div style={{ fontWeight:800, fontSize:'14px', color:'#f8fafc',
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'280px' }}>
+              {pdfTitle}
+            </div>
+            <div style={{ fontSize:'11px', color:'#94a3b8' }}>
+              Reading Progress: {pct}%
+            </div>
           </div>
         </div>
 
-        {/* Page counter + manual sync */}
-        <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'8px',
-            background:'#1e293b', border:'1px solid #334155',
-            padding:'7px 14px', borderRadius:'12px', fontWeight:700, fontSize:'14px' }}>
-            <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1 || status === 'native'}
-              style={{ background:'none', border:'none', color: (currentPage <= 1 || status === 'native') ? '#475569' : '#94a3b8',
-                cursor: (currentPage <= 1 || status === 'native') ? 'not-allowed' : 'pointer',
-                paddingRight:'8px', borderRight:'1px solid #334155' }}>
-              <FaChevronLeft />
-            </button>
-            <span style={{ fontFamily:'monospace', color:'#fff', padding:'0 4px' }}>
-              {currentPage} <span style={{ color:'#475569' }}>/</span> {totalPages || '…'}
-            </span>
-            <button onClick={() => handlePageChange(currentPage + 1)}
-              disabled={!totalPages || currentPage >= totalPages || status === 'native'}
-              style={{ background:'none', border:'none',
-                color: (!totalPages || currentPage >= totalPages || status === 'native') ? '#475569' : '#94a3b8',
-                cursor: (!totalPages || currentPage >= totalPages || status === 'native') ? 'not-allowed' : 'pointer',
-                paddingLeft:'8px', borderLeft:'1px solid #334155' }}>
-              <FaChevronRight />
-            </button>
-          </div>
-
-          {/* Manual "I'm on page X" sync button */}
-          {!showManual ? (
-            <button onClick={() => setShowManual(true)} title="Manually set current page"
-              style={{ fontSize:'10px', fontWeight:700, color:'#94a3b8',
-                background:'#1e293b', border:'1px solid #334155', borderRadius:'8px',
-                padding:'6px 10px', cursor:'pointer', whiteSpace:'nowrap' }}>
-              Set page
-            </button>
-          ) : (
-            <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
-              <input
-                type="number" min={1} max={totalPages || 999}
-                value={manualPage}
-                onChange={e => setManualPage(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleManualSync()}
-                placeholder={`1–${totalPages || '?'}`}
-                style={{ width:'70px', padding:'6px 8px', fontSize:'12px', fontWeight:700,
-                  background:'#0f172a', border:'1px solid #7c3aed', borderRadius:'8px',
-                  color:'#fff', outline:'none' }}
-                autoFocus
-              />
-              <button onClick={handleManualSync}
-                style={{ padding:'6px 10px', fontSize:'11px', fontWeight:700,
-                  background:'#7c3aed', border:'none', borderRadius:'8px',
-                  color:'#fff', cursor:'pointer' }}>Save</button>
-              <button onClick={() => { setShowManual(false); setManualPage(''); }}
-                style={{ padding:'6px 8px', fontSize:'11px',
-                  background:'#1e293b', border:'1px solid #334155', borderRadius:'8px',
-                  color:'#94a3b8', cursor:'pointer' }}>✕</button>
-            </div>
-          )}
-        </div>
-
-        {/* Progress pill */}
-        <div style={{ display:'flex', alignItems:'center', gap:'12px',
-          background:'#020617', border:'1px solid #1e293b', padding:'8px 14px', borderRadius:'12px' }}>
-          <div>
-            <div style={{ fontSize:'14px', fontWeight:800, color: pct >= 100 ? '#34d399' : '#a855f7' }}>
-              {pct}% Read
-            </div>
-            <div style={{ fontSize:'10px', color:'#475569' }}>
-              Up to pg {maxPageRead}{totalPages ? ` of ${totalPages}` : ''}
+        {/* Progress status */}
+        <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+            <div style={{ fontSize:'12px', color:'#94a3b8', fontWeight:600 }}>
+              Page {currentPage} of {totalPages}
             </div>
           </div>
           <div style={{ width:'52px', height:'10px', background:'#1e293b',
@@ -373,15 +319,20 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
 
         {/* Download + Close */}
         <div style={{ display:'flex', gap:'8px' }}>
-          {fileUrl && (
-            <a href={fileUrl} target="_blank" rel="noopener noreferrer" download title="Download PDF"
-              style={{ padding:'8px', background:'#1e293b', border:'1px solid #334155',
-                borderRadius:'10px', color:'#94a3b8', cursor:'pointer', display:'flex', alignItems:'center' }}>
-              <FaDownload />
-            </a>
+          {canDownload && (
+            <button 
+              onClick={handleDownload} 
+              disabled={downloading}
+              title="Download PDF"
+              style={{ padding:'8px 12px', background:'#1e293b', border:'1px solid #334155',
+                borderRadius:'10px', color:'#94a3b8', cursor: downloading ? 'wait' : 'pointer', 
+                display:'flex', alignItems:'center', gap:'6px', fontSize:'13px' }}>
+              {downloading ? <FaSpinner style={{ animation:'_spin 1s linear infinite' }} /> : <FaDownload />}
+              <span className="hidden sm:inline">Download</span>
+            </button>
           )}
           <button onClick={onClose}
-            style={{ padding:'8px', background:'rgba(220,38,38,.8)', border:'none',
+            style={{ padding:'8px 12px', background:'rgba(220,38,38,.8)', border:'none',
               borderRadius:'10px', color:'#fff', cursor:'pointer' }}>
             <FaTimes />
           </button>
@@ -398,29 +349,29 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
             justifyContent:'center', padding:'120px 0', gap:'16px' }}>
             <FaSpinner style={{ fontSize:'40px', color:'#7c3aed', animation:'_spin 1s linear infinite' }} />
-            <p style={{ fontWeight:700, fontSize:'14px', color:'#cbd5e1' }}>Loading PDF…</p>
-            <p style={{ fontSize:'12px', color:'#475569' }}>Preparing document</p>
+            <p style={{ fontWeight:700, fontSize:'14px', color:'#cbd5e1' }}>Loading Protected PDF…</p>
+            <p style={{ fontSize:'12px', color:'#475569' }}>Authenticating access and preparing document</p>
           </div>
         )}
 
-        {/* Native browser viewer fallback (embeds PDF directly in browser so it ALWAYS displays) */}
+        {/* Native browser viewer fallback with authenticated blob */}
         {status === 'native' && (
           <div style={{ width:'100%', maxWidth:'1000px', height:'calc(100vh - 120px)', background:'#1e293b', borderRadius:'16px', overflow:'hidden', border:'1px solid #334155' }}>
-            {fileUrl ? (
+            {blobUrl ? (
               <object
-                data={`${fileUrl}#toolbar=1`}
+                data={`${blobUrl}#toolbar=1`}
                 type="application/pdf"
                 style={{ width:'100%', height:'100%', border:'none' }}
               >
                 <iframe
-                  src={`${fileUrl}#toolbar=1`}
+                  src={`${blobUrl}#toolbar=1`}
                   title={pdfTitle}
                   style={{ width:'100%', height:'100%', border:'none' }}
                 />
               </object>
             ) : (
               <div style={{ textAlign:'center', padding:'80px 20px', color:'#94a3b8' }}>
-                PDF file URL is missing or unavailable.
+                PDF file is unavailable or you do not have permission to view it.
               </div>
             )}
           </div>

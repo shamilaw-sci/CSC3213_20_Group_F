@@ -19,21 +19,9 @@ import {
 } from 'react-icons/fa';
 import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
 import TeacherModal from '../components/TeacherModal';
+import { getMediaUrl } from '../utils/mediaUrl';
 
-const getImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-    return url;
-  }
-  let filename = url;
-  if (url.includes('/uploads/')) {
-    filename = url.split('/uploads/').pop();
-  } else if (url.startsWith('/')) {
-    filename = url.substring(1);
-  }
-  const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
-  return `${backendBase}/uploads/${filename}`;
-};
+const getImageUrl = (url) => getMediaUrl(url);
 
 const Courses = () => {
   const [courses, setCourses] = useState(() => {

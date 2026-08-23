@@ -18,6 +18,8 @@ import {
   FaDownload, FaHourglassHalf, FaCog, FaPlayCircle, FaPlay, FaBroadcastTower,
   FaCalendarCheck, FaCrop, FaImage, FaTrash
 } from 'react-icons/fa';
+import { getMediaUrl } from '../utils/mediaUrl';
+import { downloadProtectedFile } from '../utils/fileApi';
 
 const getYouTubeVideoId = (url) => {
   if (!url) return null;
@@ -31,20 +33,7 @@ const getYouTubeThumbnail = (url) => {
   return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
 };
 
-const getImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-    return url;
-  }
-  let filename = url;
-  if (url.includes('/uploads/')) {
-    filename = url.split('/uploads/').pop();
-  } else if (url.startsWith('/')) {
-    filename = url.substring(1);
-  }
-  const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
-  return `${backendBase}/uploads/${filename}`;
-};
+const getImageUrl = (url) => getMediaUrl(url);
 
 const CourseDetails = () => {
   const { courseId } = useParams();
@@ -3227,14 +3216,13 @@ const CourseDetails = () => {
                         <div className="pt-3 border-t border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                           <div className="flex items-center gap-2 flex-wrap">
                             {asgn.attachmentUrl && (
-                              <a
-                                href={asgn.attachmentUrl.startsWith('http') ? asgn.attachmentUrl : `http://localhost:5000${asgn.attachmentUrl}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 rounded-xl text-xs font-extrabold transition border border-purple-200 dark:border-purple-800"
+                              <button
+                                type="button"
+                                onClick={() => downloadProtectedFile(`/files/assignment/${asgn._id}?download=true`, asgn.attachmentName || 'Question_Sheet.pdf')}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 rounded-xl text-xs font-extrabold transition border border-purple-200 dark:border-purple-800 cursor-pointer"
                               >
                                 <FaCloudDownloadAlt className="text-sm" /> Question Sheet ({asgn.attachmentName || 'Download'})
-                              </a>
+                              </button>
                             )}
 
                             {!isTeacher && (
@@ -5326,14 +5314,13 @@ const CourseDetails = () => {
 
                         {/* Solution File Download */}
                         <div className="flex items-center gap-3">
-                          <a
-                            href={sub.fileUrl?.startsWith('http') ? sub.fileUrl : `http://localhost:5000${sub.fileUrl}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-black transition shadow-xs"
+                          <button
+                            type="button"
+                            onClick={() => downloadProtectedFile(`/files/submission/${sub._id}?download=true`, sub.fileName || 'student_solution.pdf')}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-black transition shadow-xs cursor-pointer"
                           >
-                            <FaCloudDownloadAlt /> Download Student Solution ({sub.fileName})
-                          </a>
+                            <FaCloudDownloadAlt /> Download Student Solution ({sub.fileName || 'Solution File'})
+                          </button>
                         </div>
 
                         {/* Inline Grading Form */}

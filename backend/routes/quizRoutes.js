@@ -14,15 +14,14 @@ const { sendCourseUpdateEmail } = require('../utils/emailService');
 const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
 const { notifyParentsOfStudent, notifyParentsInBatch } = require('../utils/notificationHelper');
 
-// --- MULTER STORAGE FOR QUIZ QUESTION IMAGES (Max 1MB) ---
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+const { getCategoryDir } = require('../services/fileStorage');
+
+// --- MULTER STORAGE FOR QUIZ QUESTION IMAGES (Max 2MB) ---
+const quizUploadDir = getCategoryDir('quizzes');
 
 const quizImageStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, quizUploadDir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
@@ -44,7 +43,7 @@ const quizImageFilter = (req, file, cb) => {
 const uploadQuizImage = multer({
   storage: quizImageStorage,
   fileFilter: quizImageFilter,
-  limits: { fileSize: 1 * 1024 * 1024 } // Strict 1 MB per file limit
+  limits: { fileSize: 2 * 1024 * 1024 } // Strict 2 MB per file limit
 });
 
 // Helper to validate questions structure

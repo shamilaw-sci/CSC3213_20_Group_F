@@ -23,21 +23,41 @@ const isTeacherOrAdmin = (req, res, next) => {
   return res.status(403).json({ error: "Access denied. Teachers and Admins only." });
 };
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const { getCategoryDir, deleteFile } = require('../services/fileStorage');
+
+// Helper to delete legacy or private files safely
+function safeDeleteAssignmentFile(category, fileUrlOrName) {
+  if (!fileUrlOrName) return;
+  const filename = path.basename(fileUrlOrName);
+  deleteFile(category, filename);
+  // Also check legacy uploads dir
+  const legacyPath = path.join(__dirname, '..', 'uploads', filename);
+  if (fs.existsSync(legacyPath)) {
+    try { fs.unlinkSync(legacyPath); } catch (e) {}
+  }
 }
 
-// Multer Storage Configuration
-const storage = multer.diskStorage({
+// Multer Storage for Teacher Question Sheets
+const assignmentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, getCategoryDir('assignments'));
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const safeName = file.originalname.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20);
     cb(null, `asgn-${Date.now()}-${safeName}${ext}`);
+  }
+});
+
+// Multer Storage for Student Submissions
+const submissionStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, getCategoryDir('submissions'));
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20);
+    cb(null, `sub-${Date.now()}-${safeName}${ext}`);
   }
 });
 
@@ -51,18 +71,24 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({
-  storage,
+const uploadAssignment = multer({
+  storage: assignmentStorage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10 MB limit
+  limits: { fileSize: 15 * 1024 * 1024 } // 15 MB limit
 });
 
-// Helper for multer errors
+const uploadSubmission = multer({
+  storage: submissionStorage,
+  fileFilter,
+  limits: { fileSize: 25 * 1024 * 1024 } // 25 MB limit
+});
+
 const handleUpload = (fieldName) => (req, res, next) => {
-  upload.single(fieldName)(req, res, (err) => {
+  const uploader = fieldName === 'solution' ? uploadSubmission : uploadAssignment;
+  uploader.single(fieldName)(req, res, (err) => {
     if (err) {
       if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: "File exceeds the 10MB maximum limit." });
+        return res.status(400).json({ error: "File exceeds the allowed maximum upload limit." });
       }
       return res.status(400).json({ error: err.message || "File upload failed." });
     }
@@ -321,21 +347,15 @@ router.put('/:assignmentId', protect, isTeacherOrAdmin, handleUpload('attachment
     // Handle attachment update or removal
     if (req.file) {
       // Remove old file if exists
-      if (assignment.attachmentUrl && assignment.attachmentUrl.startsWith('/uploads/')) {
-        const oldFile = path.join(__dirname, '..', assignment.attachmentUrl);
-        if (fs.existsSync(oldFile)) {
-          try { fs.unlinkSync(oldFile); } catch (e) {}
-        }
+      if (assignment.attachmentUrl) {
+        safeDeleteAssignmentFile('assignments', assignment.attachmentUrl);
       }
       assignment.attachmentUrl = `/uploads/${req.file.filename}`;
       assignment.attachmentName = req.file.originalname;
       assignment.attachmentSize = req.file.size;
     } else if (removeAttachment === 'true' || removeAttachment === true) {
-      if (assignment.attachmentUrl && assignment.attachmentUrl.startsWith('/uploads/')) {
-        const oldFile = path.join(__dirname, '..', assignment.attachmentUrl);
-        if (fs.existsSync(oldFile)) {
-          try { fs.unlinkSync(oldFile); } catch (e) {}
-        }
+      if (assignment.attachmentUrl) {
+        safeDeleteAssignmentFile('assignments', assignment.attachmentUrl);
       }
       assignment.attachmentUrl = '';
       assignment.attachmentName = '';
@@ -361,21 +381,15 @@ router.delete('/:assignmentId', protect, isTeacherOrAdmin, async (req, res) => {
     }
 
     // Delete question attachment file
-    if (assignment.attachmentUrl && assignment.attachmentUrl.startsWith('/uploads/')) {
-      const filePath = path.join(__dirname, '..', assignment.attachmentUrl);
-      if (fs.existsSync(filePath)) {
-        try { fs.unlinkSync(filePath); } catch (e) {}
-      }
+    if (assignment.attachmentUrl) {
+      safeDeleteAssignmentFile('assignments', assignment.attachmentUrl);
     }
 
     // Delete all student submission files
     const submissions = await AssignmentSubmission.find({ assignment: assignment._id });
     submissions.forEach(sub => {
-      if (sub.fileUrl && sub.fileUrl.startsWith('/uploads/')) {
-        const subFilePath = path.join(__dirname, '..', sub.fileUrl);
-        if (fs.existsSync(subFilePath)) {
-          try { fs.unlinkSync(subFilePath); } catch (e) {}
-        }
+      if (sub.fileUrl) {
+        safeDeleteAssignmentFile('submissions', sub.fileUrl);
       }
     });
 
@@ -414,10 +428,7 @@ router.post('/:assignmentId/submit', protect, handleUpload('solution'), async (r
 
     if (isLate && !assignment.allowLateSubmissions) {
       // Remove uploaded file
-      const uploadedFilePath = path.join(uploadDir, req.file.filename);
-      if (fs.existsSync(uploadedFilePath)) {
-        try { fs.unlinkSync(uploadedFilePath); } catch (e) {}
-      }
+      safeDeleteAssignmentFile('submissions', req.file.filename);
       return res.status(400).json({ error: "Submission deadline has passed and late submissions are not allowed." });
     }
 
@@ -433,11 +444,8 @@ router.post('/:assignmentId/submit', protect, handleUpload('solution'), async (r
 
     if (submission) {
       // Remove old solution file from disk
-      if (submission.fileUrl && submission.fileUrl.startsWith('/uploads/')) {
-        const oldFile = path.join(__dirname, '..', submission.fileUrl);
-        if (fs.existsSync(oldFile)) {
-          try { fs.unlinkSync(oldFile); } catch (e) {}
-        }
+      if (submission.fileUrl) {
+        safeDeleteAssignmentFile('submissions', submission.fileUrl);
       }
 
       submission.fileUrl = fileUrl;

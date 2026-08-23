@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
+import { getMediaUrl } from '../utils/mediaUrl';
 
 const createImage = (url) => new Promise((resolve, reject) => {
   const image = new Image();
@@ -62,20 +63,7 @@ const parseTag = (tag) => {
   };
 };
 
-const getImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-    return url;
-  }
-  let filename = url;
-  if (url.includes('/uploads/')) {
-    filename = url.split('/uploads/').pop();
-  } else if (url.startsWith('/')) {
-    filename = url.substring(1);
-  }
-  const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
-  return `${backendBase}/uploads/${filename}`;
-};
+const getImageUrl = (url) => getMediaUrl(url);
 
 const renderHighlightedText = (text) => {
   if (!text) return text;

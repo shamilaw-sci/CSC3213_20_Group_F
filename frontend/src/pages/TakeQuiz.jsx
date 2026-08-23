@@ -6,6 +6,7 @@ import {
   FaClock, FaCheckCircle, FaTimesCircle, FaArrowLeft, FaArrowRight, 
   FaTrophy, FaLightbulb, FaImage, FaCheckSquare, FaDotCircle, FaExclamationCircle
 } from 'react-icons/fa';
+import { getMediaUrl } from '../utils/mediaUrl';
 
 const TakeQuiz = () => {
   const { quizId } = useParams();
@@ -355,7 +356,7 @@ const TakeQuiz = () => {
                     {question.questionImage && (
                       <div className="border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden max-w-md bg-gray-50 dark:bg-slate-800 p-2">
                         <img 
-                          src={question.questionImage.startsWith('http') ? question.questionImage : `http://localhost:5000${question.questionImage}`}
+                          src={getMediaUrl(question.questionImage)}
                           alt="Question diagram"
                           className="max-h-60 object-contain mx-auto"
                         />
@@ -481,7 +482,7 @@ const TakeQuiz = () => {
           {currentQuestion.questionImage && (
             <div className="border border-purple-100 dark:border-slate-700 rounded-2xl overflow-hidden max-w-lg mx-auto bg-gray-50 dark:bg-slate-800 p-2 shadow-inner">
               <img 
-                src={currentQuestion.questionImage.startsWith('http') ? currentQuestion.questionImage : `http://localhost:5000${currentQuestion.questionImage}`}
+                src={getMediaUrl(currentQuestion.questionImage)}
                 alt="Question Diagram"
                 className="max-h-72 object-contain mx-auto"
               />

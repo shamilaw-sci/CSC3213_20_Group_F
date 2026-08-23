@@ -14,21 +14,10 @@ import {
   FaTrashAlt
 } from 'react-icons/fa';
 import api from '../utils/api';
+import { getMediaUrl } from '../utils/mediaUrl';
+import { downloadProtectedFile } from '../utils/fileApi';
 
-const getImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-    return url;
-  }
-  let filename = url;
-  if (url.includes('/uploads/')) {
-    filename = url.split('/uploads/').pop();
-  } else if (url.startsWith('/')) {
-    filename = url.substring(1);
-  }
-  const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
-  return `${backendBase}/uploads/${filename}`;
-};
+const getImageUrl = (url) => getMediaUrl(url);
 
 const formatFileSize = (bytes) => {
   if (!bytes || bytes === 0) return '0 B';
@@ -649,12 +638,11 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                                   />
                                 </div>
                               ) : (
-                                <a
-                                  href={getImageUrl(att.url)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`flex items-center gap-2 p-2 rounded-lg text-xs font-semibold ${isMe ? 'bg-purple-800/60 text-white hover:bg-purple-800' : 'bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700'
-                                    } transition-colors`}
+                                <button
+                                  type="button"
+                                  onClick={() => downloadProtectedFile(`/files/message/${msg._id}/${idx}?download=true`, att.originalName || 'attachment')}
+                                  className={`w-full flex items-center gap-2 p-2 rounded-lg text-xs font-semibold ${isMe ? 'bg-purple-800/60 text-white hover:bg-purple-800' : 'bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700'
+                                    } transition-colors cursor-pointer text-left`}
                                 >
                                   <FaFileAlt className="text-base flex-shrink-0" />
                                   <div className="min-w-0 flex-1">
@@ -662,7 +650,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
                                     <p className="text-[9px] opacity-80">{formatFileSize(att.fileSize)}</p>
                                   </div>
                                   <FaDownload className="text-xs" />
-                                </a>
+                                </button>
                               )}
                             </div>
                           ))}

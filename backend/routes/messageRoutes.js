@@ -10,12 +10,10 @@ const DirectMessage = require('../models/DirectMessage');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const { sendMessageNotificationEmail } = require('../utils/emailService');
+const { getCategoryDir } = require('../services/fileStorage');
 
 // --- MULTER STORAGE SETUP ---
-const uploadsDir = path.join(__dirname, '../uploads/messages');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+const uploadsDir = getCategoryDir('messages');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -30,7 +28,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 } // Max absolute file size 5MB
+  limits: { fileSize: 10 * 1024 * 1024 } // Max absolute file size 10MB
 });
 
 // --- HELPER: GET ALLOWED RECIPIENT USER IDS BASED ON ROLE & COURSE ENROLLMENT ---

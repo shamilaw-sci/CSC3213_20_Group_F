@@ -14,12 +14,10 @@ const { protect, isAdmin } = require('../middleware/authMiddleware');
 const uploadPdfMiddleware = require('../middleware/pdfUpload');
 const { sendCourseUpdateEmail } = require('../utils/emailService');
 const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
+const { getCategoryDir } = require('../services/fileStorage');
 
 // --- MULTER STORAGE FOR LIVE CHAT ATTACHMENTS & PHOTOS ---
-const liveChatUploadsDir = path.join(__dirname, '../uploads/live_chat');
-if (!fs.existsSync(liveChatUploadsDir)) {
-    fs.mkdirSync(liveChatUploadsDir, { recursive: true });
-}
+const liveChatUploadsDir = getCategoryDir('live-chat');
 
 const liveChatStorage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -409,11 +407,13 @@ router.delete('/:lessonId/pdf/:pdfId', protect, isTeacherOrAdmin, async (req, re
         }
 
         const pdf = lesson.pdfMaterials[pdfIndex];
-        const pdfFilePath = path.join(__dirname, '..', 'uploads', pdf.filename);
-
-        // Delete from filesystem
-        if (fs.existsSync(pdfFilePath)) {
-            fs.unlinkSync(pdfFilePath);
+        
+        // Delete from filesystem (checks private storage then legacy uploads)
+        const { deleteFile } = require('../services/fileStorage');
+        deleteFile('lessons', pdf.filename);
+        const legacyPdfPath = path.join(__dirname, '..', 'uploads', pdf.filename);
+        if (fs.existsSync(legacyPdfPath)) {
+            try { fs.unlinkSync(legacyPdfPath); } catch (e) {}
         }
 
         // Remove from database array
