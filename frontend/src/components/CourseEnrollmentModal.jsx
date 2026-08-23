@@ -13,7 +13,7 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
 
   // Step 1 State: Enrollment details
   const [enrollmentDate, setEnrollmentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedBatch, setSelectedBatch] = useState(student?.grade ? `Grade ${student.grade} - Regular Session` : 'Regular Session');
+  const [selectedBatch, setSelectedBatch] = useState(student?.grade ? `${student.grade} - Regular Session` : 'Regular Session');
 
   // Bank Slip Upload State
   const [slipImage, setSlipImage] = useState('');
@@ -64,10 +64,40 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
 
   const cardType = getCardType(cardNumber);
 
-  if (!isOpen || !course) return null;
+  const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
 
-  const courseFee = course.price || 2500;
-  const courseBankDetails = course.bankDetails || {};
+  const getMatchingGrade = (gradeVal) => {
+    if (!course?.enrolledGrades?.length) return null;
+    const targetNorm = normalizeGrade(gradeVal);
+    if (!targetNorm) return course.enrolledGrades[0] || null;
+    return course.enrolledGrades.find(g => {
+      const gNorm = normalizeGrade(g.gradeNumber);
+      const parts = String(g.gradeNumber).split(/[\&,/\+\-]|(?:\s+and\s+)/i).map(normalizeGrade);
+      return gNorm === targetNorm || parts.includes(targetNorm);
+    }) || course.enrolledGrades[0] || null;
+  };
+
+  const [selectedGradeOption, setSelectedGradeOption] = useState(() => {
+    const matched = getMatchingGrade(student?.grade);
+    return matched?.gradeNumber || student?.grade || (course?.enrolledGrades?.[0]?.gradeNumber || '');
+  });
+
+  useEffect(() => {
+    if (course?.enrolledGrades?.length) {
+      const matched = getMatchingGrade(student?.grade);
+      if (matched) {
+        setSelectedGradeOption(matched.gradeNumber);
+      } else if (course.enrolledGrades[0]) {
+        setSelectedGradeOption(course.enrolledGrades[0].gradeNumber);
+      }
+    }
+  }, [course, student]);
+
+  const activeGradeObj = getMatchingGrade(selectedGradeOption) || getMatchingGrade(student?.grade);
+  const courseFee = (activeGradeObj && activeGradeObj.fee !== undefined && activeGradeObj.fee !== null && Number(activeGradeObj.fee) >= 0)
+    ? Number(activeGradeObj.fee)
+    : (course?.price || 2500);
+  const courseBankDetails = course?.bankDetails || {};
 
   // Handle Slip File Upload to Base64
   const handleFileUpload = (e) => {
@@ -107,6 +137,7 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
       const res = await api.post('/payments/submit-bank-slip', {
         courseId: course._id,
         amount: courseFee,
+        grade: selectedGradeOption || student?.grade,
         slipImage,
         depositorName: depositorName.trim(),
         depositDate,
@@ -235,6 +266,7 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
         courseId: course._id,
         enrollmentDate,
         amount: courseFee,
+        grade: selectedGradeOption || student?.grade,
         cardLastFour,
         otpCode: otpCode.trim()
       });
@@ -252,6 +284,8 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
       setLoading(false);
     }
   };
+
+  if (!isOpen || !course) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
@@ -312,11 +346,37 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
                   <div>
                     <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Registered Grade:</span>
                     <span className="inline-block px-1.5 py-0.5 bg-purple-200 dark:bg-purple-950/80 text-purple-900 dark:text-purple-300 font-bold rounded text-[11px] border border-purple-300 dark:border-purple-800">
-                      Grade {student?.grade || 'N/A'}
+                      {student?.grade || 'N/A'}
                     </span>
                   </div>
                 </div>
               </div>
+
+              {/* Enrolling Class & Batch Selector */}
+              {course?.enrolledGrades && course.enrolledGrades.length > 0 && (
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                    Select Grade Class / Fee Tier <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedGradeOption}
+                    onChange={(e) => {
+                      setSelectedGradeOption(e.target.value);
+                      setSelectedBatch(`${e.target.value} - Regular Session`);
+                    }}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-semibold text-xs sm:text-sm cursor-pointer"
+                  >
+                    {course.enrolledGrades.map((g) => {
+                      const gFee = (g.fee !== undefined && g.fee !== null && Number(g.fee) >= 0) ? Number(g.fee) : (course.price || 2500);
+                      return (
+                        <option key={g.gradeNumber} value={g.gradeNumber}>
+                          {g.title || g.gradeNumber} ({g.gradeNumber}) — Fee: LKR {gFee.toLocaleString()}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
 
               {/* Enrollment Date & Batch (2-Column Grid) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

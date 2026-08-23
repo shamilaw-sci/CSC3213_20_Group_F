@@ -858,9 +858,13 @@ router.post('/:id/toggle-grade', protect, isAdmin, async (req, res) => {
             // නැත්නම් ඇඩ් කරන්න
             const isCourseDeactive = course.status === 'deactive' || course.isActive === false;
             const titleVal = req.body.title || (gradeNumber.toLowerCase().startsWith('grade') ? gradeNumber : `Grade ${gradeNumber}`);
+            const feeVal = (req.body.fee !== undefined && req.body.fee !== null && !isNaN(Number(req.body.fee)) && Number(req.body.fee) >= 0)
+                ? Number(req.body.fee)
+                : (course.price || 2500);
             course.enrolledGrades.push({ 
                 gradeNumber, 
                 title: titleVal,
+                fee: feeVal,
                 messages: [],
                 status: isCourseDeactive ? 'deactive' : 'active',
                 isActive: !isCourseDeactive,
@@ -1055,6 +1059,55 @@ router.put('/:courseId/grades/:gradeId/status', protect, async (req, res) => {
     } catch (err) {
         console.error("Failed to update grade status:", err.message);
         res.status(500).json({ error: "Failed to update grade status: " + err.message });
+    }
+});
+
+// @route   PUT /api/courses/:courseId/grades/:gradeId/details
+// @desc    Admin / Teacher update grade fee and title
+router.put('/:courseId/grades/:gradeId/details', protect, isTeacherOrAdmin, async (req, res) => {
+    try {
+        const { courseId, gradeId } = req.params;
+        const { fee, title } = req.body;
+
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ error: "Course not found" });
+        }
+
+        // Locate target grade in course.enrolledGrades
+        let gradeItem = course.enrolledGrades.find(g => 
+            String(g._id) === String(gradeId) || 
+            String(g.id) === String(gradeId) || 
+            String(g.gradeNumber).toLowerCase() === String(gradeId).toLowerCase()
+        );
+
+        if (!gradeItem) {
+            gradeItem = course.enrolledGrades.find(g => 
+                String(g.gradeNumber).replace(/\D/g, '') === String(gradeId).replace(/\D/g, '')
+            );
+        }
+
+        if (!gradeItem) {
+            return res.status(404).json({ error: "Grade not found in this course" });
+        }
+
+        if (fee !== undefined && fee !== null && !isNaN(Number(fee)) && Number(fee) >= 0) {
+            gradeItem.fee = Number(fee);
+        }
+        if (title && String(title).trim()) {
+            gradeItem.title = String(title).trim();
+        }
+
+        course.markModified('enrolledGrades');
+        await course.save();
+
+        res.json({ 
+            message: "Grade details updated successfully", 
+            grade: gradeItem 
+        });
+    } catch (err) {
+        console.error("Failed to update grade details:", err.message);
+        res.status(500).json({ error: "Failed to update grade details: " + err.message });
     }
 });
 

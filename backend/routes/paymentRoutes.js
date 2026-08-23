@@ -26,6 +26,48 @@ const isStaffTeacherOrAdmin = (req, res, next) => {
 
 const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
 
+const resolveGradeAndFee = (course, studentGradeParam, requestedAmount) => {
+  if (!course) return { gradeNumber: '', className: 'General', fee: 2500 };
+  
+  const rawGrade = studentGradeParam || '';
+  const normTarget = normalizeGrade(rawGrade);
+  
+  let matchingGrade = null;
+  if (Array.isArray(course.enrolledGrades) && course.enrolledGrades.length > 0) {
+    if (normTarget) {
+      matchingGrade = course.enrolledGrades.find(g => {
+        const gNorm = normalizeGrade(g.gradeNumber);
+        const parts = String(g.gradeNumber).split(/[\&,/\+\-]|(?:\s+and\s+)/i).map(normalizeGrade);
+        return gNorm === normTarget || parts.includes(normTarget);
+      });
+    }
+    if (!matchingGrade && course.enrolledGrades.length === 1) {
+      matchingGrade = course.enrolledGrades[0];
+    }
+  }
+
+  const effectiveGradeNumber = matchingGrade?.gradeNumber || rawGrade || 'Grade 6';
+  const formattedClassName = effectiveGradeNumber.toLowerCase().startsWith('grade') 
+    ? effectiveGradeNumber 
+    : `Grade ${effectiveGradeNumber}`;
+
+  let effectiveFee;
+  if (requestedAmount !== undefined && requestedAmount !== null && !isNaN(Number(requestedAmount)) && Number(requestedAmount) > 0) {
+    effectiveFee = Number(requestedAmount);
+  } else if (matchingGrade && matchingGrade.fee !== undefined && matchingGrade.fee !== null && Number(matchingGrade.fee) >= 0) {
+    effectiveFee = Number(matchingGrade.fee);
+  } else {
+    effectiveFee = course.price || 2500;
+  }
+
+  return {
+    gradeNumber: effectiveGradeNumber,
+    className: formattedClassName,
+    fee: effectiveFee,
+    gradeDoc: matchingGrade
+  };
+};
+
 // @route   POST /api/payments/send-otp
 // @desc    Generate a real 6-digit random OTP, store in MongoDB (5-min TTL), and dispatch SMS
 // @access  Private (Student)
@@ -99,7 +141,7 @@ router.post('/send-otp', protect, async (req, res) => {
 // @access  Private (Student)
 router.post('/process-mock', protect, async (req, res) => {
   try {
-    const { courseId, enrollmentDate, amount, cardLastFour, otpCode } = req.body;
+    const { courseId, enrollmentDate, amount, cardLastFour, otpCode, grade } = req.body;
     const studentId = req.user._id;
 
     if (!otpCode || !otpCode.trim()) {
@@ -132,22 +174,25 @@ router.post('/process-mock', protect, async (req, res) => {
       return res.status(404).json({ error: 'Student not found.', message: 'Student not found.' });
     }
 
-    const studentGrade = student.grade;
+    const studentGrade = grade || student.grade;
     if (!studentGrade) {
       return res.status(400).json({ error: 'Student grade must be set before enrolling.', message: 'Student grade must be set before enrolling.' });
     }
 
     // Check grade eligibility using normalized grade matching
-    const isAllowed = course.enrolledGrades && course.enrolledGrades.some(
-      g => normalizeGrade(g.gradeNumber) === normalizeGrade(studentGrade)
+    const isAllowed = !course.enrolledGrades?.length || course.enrolledGrades.some(
+      g => {
+        const gNorm = normalizeGrade(g.gradeNumber);
+        const parts = String(g.gradeNumber).split(/[\&,/\+\-]|(?:\s+and\s+)/i).map(normalizeGrade);
+        return gNorm === normalizeGrade(studentGrade) || parts.includes(normalizeGrade(studentGrade));
+      }
     );
     if (!isAllowed) {
       const errMsg = `Your grade (${studentGrade}) is not eligible for this course.`;
       return res.status(403).json({ error: errMsg, message: errMsg });
     }
 
-    // Format standard class name (e.g. "Grade 6")
-    const formattedClassName = studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`;
+    const { className: formattedClassName, fee: paymentAmount } = resolveGradeAndFee(course, studentGrade, amount);
 
     // 3. Delete verified OTP record immediately to enforce single-use
     await OTP.deleteOne({ _id: activeOtp._id });
@@ -155,7 +200,6 @@ router.post('/process-mock', protect, async (req, res) => {
     // 4. Generate unique transaction ID
     const randomDigits = Math.floor(1000 + Math.random() * 9000);
     const transactionId = `PAY-${Date.now()}-${randomDigits}`;
-    const paymentAmount = amount || course.price || 2500;
 
     // 5. Create Payment Record
     const currentMonth = new Date().toLocaleString('default', { month: 'long' });
@@ -353,7 +397,7 @@ router.get('/student/:studentId', protect, isStaffTeacherOrAdmin, async (req, re
 // @access  Private (Admin, Counter Staff)
 router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (req, res) => {
   try {
-    const { studentId, courseId, amount, paymentMethod, receiptNumber, remarks, paymentDate } = req.body;
+    const { studentId, courseId, grade, amount, paymentMethod, receiptNumber, remarks, paymentDate } = req.body;
 
     if (!studentId || !courseId) {
       return res.status(400).json({ error: 'Student and Course selection are required.', message: 'Student and Course selection are required.' });
@@ -369,9 +413,8 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
       return res.status(404).json({ error: 'Selected course not found.', message: 'Selected course not found.' });
     }
 
-    const studentGrade = student.grade || 'Grade 6';
-    const formattedClassName = studentGrade.toLowerCase().startsWith('grade') ? studentGrade : `Grade ${studentGrade}`;
-    const finalAmount = Number(amount) || course.price || 2500;
+    const targetGrade = grade || student.grade || 'Grade 6';
+    const { className: formattedClassName, fee: finalAmount } = resolveGradeAndFee(course, targetGrade, amount);
     const finalPaymentMethod = paymentMethod || 'CASH_COUNTER';
 
     // Generate counter receipt transaction ID
@@ -396,7 +439,7 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
       status: 'COMPLETED',
       cardLastFour: 'CASH',
       paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
-      remarks: remarks || 'In-Person Counter Payment'
+      remarks: remarks || `In-Person Counter Payment (${formattedClassName})`
     });
 
     // 2. Create or Update Enrollment Record
@@ -414,7 +457,7 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
       course.enrolledStudents.push(studentId);
     }
 
-    let targetClass = course.classes.find(c => normalizeGrade(c.className) === normalizeGrade(studentGrade));
+    let targetClass = course.classes.find(c => normalizeGrade(c.className) === normalizeGrade(formattedClassName) || normalizeGrade(c.className) === normalizeGrade(targetGrade));
     if (!targetClass) {
       course.classes.push({ className: formattedClassName, enrolledStudents: [studentId] });
     } else {
@@ -516,7 +559,7 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
 // ==========================================
 router.post('/submit-bank-slip', protect, async (req, res) => {
   try {
-    const { courseId, amount, slipImage, depositorName, depositDate, transactionId } = req.body;
+    const { courseId, amount, slipImage, depositorName, depositDate, transactionId, grade } = req.body;
     const studentId = req.user._id;
 
     if (!courseId) {
@@ -543,7 +586,7 @@ router.post('/submit-bank-slip', protect, async (req, res) => {
       return res.status(400).json({ error: 'You are already enrolled in this course.', message: 'You are already enrolled in this course.' });
     }
 
-    const finalAmount = amount || course.price || 2500;
+    const { className: formattedClassName, fee: finalAmount } = resolveGradeAndFee(course, grade || student.grade, amount);
     const txId = transactionId && transactionId.trim() ? transactionId.trim() : `REC-SLIP-${Date.now()}`;
 
     // Check duplicate pending slip for same student & course
@@ -573,7 +616,8 @@ router.post('/submit-bank-slip', protect, async (req, res) => {
       slipImage,
       depositorName: depositorName || student.name,
       depositDate: depositDate ? new Date(depositDate) : new Date(),
-      paymentDate: new Date()
+      paymentDate: new Date(),
+      remarks: `Bank Slip for ${formattedClassName}`
     });
 
     // Notify Admins & Student
@@ -697,21 +741,39 @@ router.put('/:id/approve-slip', protect, isCounterStaffOrAdmin, async (req, res)
     const student = payment.student;
 
     if (course && student) {
+      const studentGrade = student.grade || 'Grade 6';
+      const { className: formattedClassName } = resolveGradeAndFee(course, studentGrade);
+
       const isAlreadyEnrolled = course.enrolledStudents.some(id => id.toString() === student._id.toString());
       if (!isAlreadyEnrolled) {
         course.enrolledStudents.push(student._id);
-        await course.save();
       }
 
-      // Also create Enrollment record
-      await Enrollment.create({
-        student: student._id,
-        course: course._id,
-        className: course.grade || student.grade || 'Grade Active',
-        paymentStatus: 'COMPLETED',
-        paymentId: payment._id,
-        enrollmentDate: new Date()
-      }).catch((err) => console.error("Enrollment creation error during slip approval:", err));
+      // Synchronize course.classes
+      if (!course.classes) course.classes = [];
+      let targetClass = course.classes.find(c => normalizeGrade(c.className) === normalizeGrade(formattedClassName) || normalizeGrade(c.className) === normalizeGrade(studentGrade));
+      if (!targetClass) {
+        course.classes.push({ className: formattedClassName, enrolledStudents: [student._id] });
+      } else {
+        if (!targetClass.enrolledStudents.map(id => id.toString()).includes(student._id.toString())) {
+          targetClass.enrolledStudents.push(student._id);
+        }
+      }
+      await course.save();
+
+      // Also create or update Enrollment record
+      await Enrollment.findOneAndUpdate(
+        { student: student._id, course: course._id },
+        {
+          student: student._id,
+          course: course._id,
+          className: formattedClassName,
+          paymentStatus: 'COMPLETED',
+          paymentId: payment._id,
+          enrollmentDate: new Date()
+        },
+        { upsert: true, new: true }
+      ).catch((err) => console.error("Enrollment creation error during slip approval:", err));
 
       // Notifications
       try {

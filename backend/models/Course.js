@@ -9,6 +9,7 @@ const messageSchema = new mongoose.Schema({
 const gradeSchema = new mongoose.Schema({
   gradeNumber: { type: String, required: true },
   title: { type: String, trim: true, default: '' },
+  fee: { type: Number, default: 2500 },
   status: { type: String, enum: ['active', 'deactive'], default: 'active' },
   isActive: { type: Boolean, default: true },
   deactivatedBy: { type: String, default: null },

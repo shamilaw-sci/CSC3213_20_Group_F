@@ -72,9 +72,9 @@ const isTeacherOrAdmin = (req, res, next) => {
 };
 
 // @route   POST /api/lessons/add-grade
-// @desc    Admin විසින් Course එකක් තුළට Grade එකක් ඇතුළත් කිරීම
-router.post('/add-grade', protect, isAdmin, async (req, res) => {
-    const { grade, title, courseId } = req.body;
+// @desc    Admin or Teacher adds a Grade assignment to a Course with custom fee
+router.post('/add-grade', protect, isTeacherOrAdmin, async (req, res) => {
+    const { grade, title, courseId, fee } = req.body;
 
     if (!grade || !String(grade).trim()) {
         return res.status(400).json({ error: "Invalid grade selection." });
@@ -99,10 +99,15 @@ router.post('/add-grade', protect, isAdmin, async (req, res) => {
             return res.status(400).json({ error: "This class was already added to this course" });
         }
 
+        const parsedFee = (fee !== undefined && fee !== null && !isNaN(Number(fee)) && Number(fee) >= 0)
+            ? Number(fee)
+            : (course.price || 2500);
+
         const isCourseDeactive = course.status === 'deactive' || course.isActive === false;
         course.enrolledGrades.push({
             gradeNumber: gradeVal,
             title: gradeTitle,
+            fee: parsedFee,
             messages: [],
             status: isCourseDeactive ? 'deactive' : 'active',
             isActive: !isCourseDeactive,
