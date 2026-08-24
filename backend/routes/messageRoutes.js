@@ -10,7 +10,7 @@ const DirectMessage = require('../models/DirectMessage');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const { sendMessageNotificationEmail } = require('../utils/emailService');
-const { getCategoryDir } = require('../services/fileStorage');
+const { getCategoryDir, deleteFile } = require('../services/fileStorage');
 
 // --- MULTER STORAGE SETUP ---
 const uploadsDir = getCategoryDir('messages');
@@ -305,6 +305,7 @@ router.post('/send', protect, upload.single('attachment'), async (req, res) => {
       });
     }
 
+    const messageId = new mongoose.Types.ObjectId();
     let attachments = [];
 
     if (req.file) {
@@ -323,9 +324,10 @@ router.post('/send', protect, upload.single('attachment'), async (req, res) => {
         return res.status(400).json({ message: 'Document attachment size exceeds the maximum limit of 5MB.' });
       }
 
-      const fileUrl = `/uploads/messages/${file.filename}`;
+      const fileUrl = `/api/files/message/${messageId}/0`;
       attachments.push({
         url: fileUrl,
+        filename: file.filename,
         originalName: file.originalname,
         fileType: file.mimetype,
         fileSize: file.size,
@@ -340,6 +342,7 @@ router.post('/send', protect, upload.single('attachment'), async (req, res) => {
     }
 
     const newMsg = await DirectMessage.create({
+      _id: messageId,
       sender: req.user._id,
       recipient: recipientUser._id,
       content: messageText,
@@ -407,15 +410,12 @@ router.delete('/:messageId', protect, async (req, res) => {
     // Delete attached files from disk if present
     if (msg.attachments && msg.attachments.length > 0) {
       for (const att of msg.attachments) {
-        if (att.url && att.url.startsWith('/uploads/messages/')) {
-          const relativePath = att.url.replace(/^\//, '');
-          const filePath = path.join(__dirname, '..', relativePath);
-          if (fs.existsSync(filePath)) {
-            try {
-              fs.unlinkSync(filePath);
-            } catch (unlinkErr) {
-              console.error('Failed to delete message attachment file:', unlinkErr);
-            }
+        const filename = att.filename || path.basename(att.url || '');
+        if (filename) {
+          deleteFile('messages', filename);
+          const legacyPath = path.join(__dirname, '../uploads/messages', filename);
+          if (fs.existsSync(legacyPath)) {
+            try { fs.unlinkSync(legacyPath); } catch (e) {}
           }
         }
       }
@@ -449,15 +449,12 @@ router.delete('/conversation/:targetUserId', protect, async (req, res) => {
     for (const msg of messages) {
       if (msg.attachments && msg.attachments.length > 0) {
         for (const att of msg.attachments) {
-          if (att.url && att.url.startsWith('/uploads/messages/')) {
-            const relativePath = att.url.replace(/^\//, '');
-            const filePath = path.join(__dirname, '..', relativePath);
-            if (fs.existsSync(filePath)) {
-              try {
-                fs.unlinkSync(filePath);
-              } catch (unlinkErr) {
-                console.error('Failed to delete attachment file during conversation purge:', unlinkErr);
-              }
+          const filename = att.filename || path.basename(att.url || '');
+          if (filename) {
+            deleteFile('messages', filename);
+            const legacyPath = path.join(__dirname, '../uploads/messages', filename);
+            if (fs.existsSync(legacyPath)) {
+              try { fs.unlinkSync(legacyPath); } catch (e) {}
             }
           }
         }

@@ -9,23 +9,29 @@ const Quiz = require('../models/Quiz');
 const Assignment = require('../models/Assignment');
 const { protect } = require('../middleware/authMiddleware');
 
+const { getCategoryDir } = require('../services/fileStorage');
+
 // Helper to resolve full image URLs
 const getFullUrl = (req, filenameOrUrl) => {
     if (!filenameOrUrl) return "";
     if (filenameOrUrl.startsWith('data:') || filenameOrUrl.startsWith('http://') || filenameOrUrl.startsWith('https://')) {
         return filenameOrUrl;
     }
-    let filename = filenameOrUrl;
-    if (filenameOrUrl.includes('/uploads/')) {
-        filename = filenameOrUrl.split('/uploads/').pop();
-    } else if (filenameOrUrl.startsWith('/')) {
-        filename = filenameOrUrl.substring(1);
+    const filename = path.basename(filenameOrUrl.replace(/\\/g, '/'));
+    const coursesDir = getCategoryDir('courses');
+    const profilesDir = getCategoryDir('profiles');
+
+    if (fs.existsSync(path.join(coursesDir, filename))) {
+        return `/media/courses/${filename}`;
     }
-    const filePath = path.join(__dirname, '..', 'uploads', filename);
-    if (!fs.existsSync(filePath)) {
-        return filenameOrUrl.startsWith('/') ? filenameOrUrl : "";
+    if (fs.existsSync(path.join(profilesDir, filename))) {
+        return `/media/profiles/${filename}`;
     }
-    return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+    const legacyPath = path.join(__dirname, '..', 'uploads', filename);
+    if (fs.existsSync(legacyPath)) {
+        return `/uploads/${filename}`;
+    }
+    return filenameOrUrl.startsWith('/') ? filenameOrUrl : `/media/courses/${filename}`;
 };
 
 // Escape special regex characters safely

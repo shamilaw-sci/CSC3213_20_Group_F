@@ -14,43 +14,37 @@ const { protect, isAdmin, isTeacherOrAdmin } = require('../middleware/authMiddle
 const upload = require('../middleware/upload');
 const { getClassNameFromGrade } = require('../utils/migration');
 const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
+const { getCategoryDir, deleteFile } = require('../services/fileStorage');
 
-// Extract the raw filename if a full path is stored, and build a dynamic URL based on the request host
-// Also verifies the file actually exists on disk so images work across team members' machines
+// Extract the raw filename if a full path is stored, and build a dynamic URL or canonical media path
 const getFullUrl = (req, filenameOrUrl) => {
     if (!filenameOrUrl) return "";
     // If it is a Base64 string or an absolute URL (http/https), return it directly
     if (filenameOrUrl.startsWith('data:') || filenameOrUrl.startsWith('http://') || filenameOrUrl.startsWith('https://')) {
         return filenameOrUrl;
     }
-    let filename = filenameOrUrl;
-    if (filenameOrUrl.includes('/uploads/')) {
-        filename = filenameOrUrl.split('/uploads/').pop();
+    const filename = path.basename(filenameOrUrl.replace(/\\/g, '/'));
+    const targetDir = getCategoryDir('courses');
+    const targetPath = path.join(targetDir, filename);
+    const legacyPath = path.join(__dirname, '..', 'uploads', filename);
+
+    if (fs.existsSync(targetPath)) {
+        return `/media/courses/${filename}`;
     }
-    // Check if the file actually exists on this machine's disk
-    const filePath = path.join(__dirname, '..', 'uploads', filename);
-    if (!fs.existsSync(filePath)) {
-        // Fallback: if filename starts with / or looks like a static asset, return as-is
-        return filenameOrUrl.startsWith('/') ? filenameOrUrl : "";
+    if (fs.existsSync(legacyPath)) {
+        return `/uploads/${filename}`;
     }
-    return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+    return filenameOrUrl.startsWith('/') ? filenameOrUrl : `/media/courses/${filename}`;
 };
 
 // Extract filename to locate the file in the filesystem
 const getFilename = (filenameOrUrl) => {
-    if (!filenameOrUrl) return null;
-    // Base64 strings are stored in database, no local file to delete
-    if (filenameOrUrl.startsWith('data:')) {
-        return null;
-    }
-    if (filenameOrUrl.includes('/uploads/')) {
-        return filenameOrUrl.split('/uploads/').pop();
-    }
-    return filenameOrUrl;
+    if (!filenameOrUrl || filenameOrUrl.startsWith('data:')) return null;
+    return path.basename(filenameOrUrl.replace(/\\/g, '/'));
 };
 
-// Helper function to convert base64 data URIs to static files in /uploads to prevent database bloating and ensure super-fast image loading
-const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
+// Helper function to convert base64 data URIs to static files in /media/courses/
+const convertBase64ToStaticFile = (base64OrPath, prefix = 'course') => {
     if (!base64OrPath) return "";
     if (!base64OrPath.startsWith('data:')) {
         return base64OrPath;
@@ -63,16 +57,12 @@ const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
         const base64Data = matches[2];
         const ext = mimeType.split('/')[1] || 'jpeg';
         const filename = `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
-        const uploadsDir = path.join(__dirname, '..', 'uploads');
-        
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
+        const coursesDir = getCategoryDir('courses');
 
-        const filePath = path.join(uploadsDir, filename);
+        const filePath = path.join(coursesDir, filename);
         fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
 
-        return `/uploads/${filename}`;
+        return `/media/courses/${filename}`;
     } catch (err) {
         console.error("Failed to convert Base64 to static file:", err.message);
         return base64OrPath;
@@ -361,14 +351,14 @@ router.post(
 
             let bannerPath = "";
             if (req.files?.banner?.[0]) {
-                bannerPath = `/uploads/${req.files.banner[0].filename}`;
+                bannerPath = `/media/courses/${req.files.banner[0].filename}`;
             } else if (req.body.banner) {
                 bannerPath = convertBase64ToStaticFile(req.body.banner, 'banner');
             }
 
             let cardImagePath = "";
             if (req.files?.cardImage?.[0]) {
-                cardImagePath = `/uploads/${req.files.cardImage[0].filename}`;
+                cardImagePath = `/media/courses/${req.files.cardImage[0].filename}`;
             } else if (req.body.cardImage) {
                 cardImagePath = convertBase64ToStaticFile(req.body.cardImage, 'cardImage');
             }
@@ -526,20 +516,22 @@ router.delete('/:id', protect, isAdmin, async (req, res) => {
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: "Course not found" });
 
-        // Delete physical files from filesystem
+        // Delete physical files from filesystem (storage/public/courses and legacy uploads)
         const bannerFile = getFilename(course.banner);
         const cardImageFile = getFilename(course.cardImage);
 
         if (bannerFile) {
-            const bannerFilePath = path.join(__dirname, '..', 'uploads', bannerFile);
-            if (fs.existsSync(bannerFilePath)) {
-                fs.unlinkSync(bannerFilePath);
+            deleteFile('courses', bannerFile);
+            const bannerLegacyPath = path.join(__dirname, '..', 'uploads', bannerFile);
+            if (fs.existsSync(bannerLegacyPath)) {
+                try { fs.unlinkSync(bannerLegacyPath); } catch (e) {}
             }
         }
         if (cardImageFile) {
-            const cardImageFilePath = path.join(__dirname, '..', 'uploads', cardImageFile);
-            if (fs.existsSync(cardImageFilePath)) {
-                fs.unlinkSync(cardImageFilePath);
+            deleteFile('courses', cardImageFile);
+            const cardImageLegacyPath = path.join(__dirname, '..', 'uploads', cardImageFile);
+            if (fs.existsSync(cardImageLegacyPath)) {
+                try { fs.unlinkSync(cardImageLegacyPath); } catch (e) {}
             }
         }
 

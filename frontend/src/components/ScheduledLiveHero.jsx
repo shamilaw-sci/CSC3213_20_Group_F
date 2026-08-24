@@ -11,6 +11,7 @@ import {
   FaCheckCircle,
   FaInfoCircle
 } from 'react-icons/fa';
+import { getMediaUrl } from '../utils/mediaUrl';
 
 const ScheduledLiveHero = ({
   liveStream,
@@ -93,11 +94,7 @@ const ScheduledLiveHero = ({
       })
     : '';
 
-  const thumbnailSrc = liveStream?.thumbnail
-    ? (liveStream.thumbnail.startsWith('http') || liveStream.thumbnail.startsWith('data:')
-        ? liveStream.thumbnail
-        : `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')}${liveStream.thumbnail.startsWith('/') ? '' : '/'}${liveStream.thumbnail}`)
-    : null;
+  const thumbnailSrc = liveStream?.thumbnail ? getMediaUrl(liveStream.thumbnail) : null;
 
   return (
     <div className="relative overflow-hidden rounded-3xl bg-slate-950 text-white shadow-2xl border border-slate-800 animate-fadeIn">

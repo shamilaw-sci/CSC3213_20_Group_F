@@ -340,9 +340,8 @@ router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, as
             return res.status(400).json({ error: "Please upload a PDF file." });
         }
 
-        const title = req.body.title || req.file.originalname;
-        const filename = req.file.filename;
-        const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+        const newPdfId = new mongoose.Types.ObjectId();
+        const fileUrl = `/api/files/lesson/${lesson._id}/pdf/${newPdfId}`;
         const fileSize = req.file.size;
         const { allowDownload, downloadDelayType, downloadUnlockDate } = resolveDownloadSettings(req.body);
 
@@ -351,6 +350,7 @@ router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, as
         }
 
         lesson.pdfMaterials.push({
+            _id: newPdfId,
             title,
             filename,
             fileUrl,
@@ -446,7 +446,8 @@ router.post('/:lessonId/assignment', protect, isTeacherOrAdmin, uploadPdfMiddlew
 
         const title = req.body.title || req.file.originalname;
         const filename = req.file.filename;
-        const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+        const newAssignId = new mongoose.Types.ObjectId();
+        const fileUrl = `/api/files/assignment/${newAssignId}`;
         const fileSize = req.file.size;
         const { allowDownload, downloadDelayType, downloadUnlockDate } = resolveDownloadSettings(req.body);
 
@@ -455,6 +456,7 @@ router.post('/:lessonId/assignment', protect, isTeacherOrAdmin, uploadPdfMiddlew
         }
 
         lesson.assignments.push({
+            _id: newAssignId,
             title,
             filename,
             fileUrl,
@@ -567,11 +569,13 @@ router.delete('/:lessonId/assignment/:pdfId', protect, isTeacherOrAdmin, async (
         }
 
         const pdf = lesson.assignments[pdfIndex];
-        const pdfFilePath = path.join(__dirname, '..', 'uploads', pdf.filename);
-
+        
         // Delete from filesystem
-        if (fs.existsSync(pdfFilePath)) {
-            fs.unlinkSync(pdfFilePath);
+        const { deleteFile } = require('../services/fileStorage');
+        deleteFile('assignments', pdf.filename);
+        const pdfLegacyPath = path.join(__dirname, '..', 'uploads', pdf.filename);
+        if (fs.existsSync(pdfLegacyPath)) {
+            try { fs.unlinkSync(pdfLegacyPath); } catch (e) {}
         }
 
         // Remove from database array
@@ -597,16 +601,12 @@ const convertBase64ToStaticFile = (base64OrPath, prefix = 'live-thumb') => {
         const mime = base64Parts[0].replace('data:', '');
         const ext = mime.split('/')[1] || 'jpeg';
         const filename = `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
-        const uploadsDir = path.join(__dirname, '..', 'uploads');
+        const coursesDir = getCategoryDir('courses');
 
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-
-        const filePath = path.join(uploadsDir, filename);
+        const filePath = path.join(coursesDir, filename);
         fs.writeFileSync(filePath, Buffer.from(base64Parts[1], 'base64'));
 
-        return `/uploads/${filename}`;
+        return `/media/courses/${filename}`;
     } catch (err) {
         console.error("Failed to convert Base64 to static file:", err.message);
         return base64OrPath;
@@ -1016,7 +1016,7 @@ router.post('/:lessonId/live-stream/messages', protect, optionalLiveChatUpload, 
             const cat = isImg ? 'image' : (isAud ? 'audio' : 'document');
 
             attachments.push({
-                url: `/uploads/live_chat/${req.file.filename}`,
+                url: `/api/files/live/${lesson._id}/file/${req.file.filename}`,
                 originalName: req.file.originalname || (isAud ? `voice-${Date.now()}.webm` : 'attachment'),
                 fileType: isAud ? (mime.startsWith('audio/') ? mime : 'audio/webm') : (req.file.mimetype || 'application/octet-stream'),
                 fileSize: req.file.size || 0,
@@ -1037,7 +1037,7 @@ router.post('/:lessonId/live-stream/messages', protect, optionalLiveChatUpload, 
                     fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
                     const stats = fs.statSync(filePath);
                     attachments.push({
-                        url: `/uploads/live_chat/${filename}`,
+                        url: `/api/files/live/${lesson._id}/file/${filename}`,
                         originalName: `camera-photo-${Date.now()}.${ext}`,
                         fileType: `image/${ext}`,
                         fileSize: stats.size,
@@ -1068,7 +1068,7 @@ router.post('/:lessonId/live-stream/messages', protect, optionalLiveChatUpload, 
                     fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
                     const stats = fs.statSync(filePath);
                     attachments.push({
-                        url: `/uploads/live_chat/${filename}`,
+                        url: `/api/files/live/${lesson._id}/file/${filename}`,
                         originalName: `voice-question-${Date.now()}.${ext}`,
                         fileType: `audio/${ext}`,
                         fileSize: stats.size,
@@ -1505,7 +1505,7 @@ router.post('/:lessonId/live-stream/voice-chunk', protect, async (req, res) => {
         const filePath = path.join(liveChatUploadsDir, filename);
         fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
         const stats = fs.statSync(filePath);
-        const chunkUrl = `/uploads/live_chat/${filename}`;
+        const chunkUrl = `/api/files/live/${lesson._id}/file/${filename}`;
 
         if (!lesson.liveStream.liveSpeaking) {
             lesson.liveStream.liveSpeaking = { requests: [] };

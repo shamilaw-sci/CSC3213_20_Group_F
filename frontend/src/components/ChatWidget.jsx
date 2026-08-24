@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import api from '../utils/api';
+import api, { getApiBaseUrl } from '../utils/api';
 import axios from 'axios';
 import {
   FaTimes,
@@ -52,7 +52,7 @@ export default function ChatWidget() {
       } catch (primaryErr) {
         // Direct Axios fallback
         const token = localStorage.getItem('token');
-        const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const baseURL = getApiBaseUrl();
         const headers = (token && token !== 'null' && token !== 'undefined') ? { Authorization: `Bearer ${token}` } : {};
         res = await axios.post(
           `${baseURL}/chat`,

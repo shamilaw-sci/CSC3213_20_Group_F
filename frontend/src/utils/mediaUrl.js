@@ -1,5 +1,7 @@
+import { getBackendBaseUrl } from './api';
+
 /**
- * Resolves full URL for public assets (courses banners/thumbnails, profile photos, covers)
+ * Resolves full URL for public assets (course banners/thumbnails, profile photos, covers, etc.)
  * 
  * @param {string} url - Raw URL or filename stored in database
  * @param {string} fallback - Fallback URL/image if url is empty
@@ -10,19 +12,19 @@ export function getMediaUrl(url, fallback = '') {
     return fallback;
   }
 
-  // Already a complete HTTP/HTTPS URL or Data URI
+  // Already a complete HTTP/HTTPS URL or Data URI or Blob
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
     return url;
   }
 
-  const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+  const backendBase = getBackendBaseUrl();
 
-  // If already prefixed with /media/
-  if (url.startsWith('/media/')) {
+  // If already prefixed with /media/ or /api/files/
+  if (url.startsWith('/media/') || url.startsWith('/api/files/')) {
     return `${backendBase}${url}`;
   }
 
-  // If prefixed with /uploads/
+  // Legacy fallback: If prefixed with /uploads/
   if (url.includes('/uploads/')) {
     const filename = url.split('/uploads/').pop();
     return `${backendBase}/uploads/${filename}`;

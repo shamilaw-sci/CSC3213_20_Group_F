@@ -130,17 +130,19 @@ router.post('/', protect, isTeacherOrAdmin, handleUpload('attachment'), async (r
       return res.status(404).json({ error: "Course not found." });
     }
 
+    const assignmentId = new mongoose.Types.ObjectId();
     let attachmentUrl = '';
     let attachmentName = '';
     let attachmentSize = 0;
 
     if (req.file) {
-      attachmentUrl = `/uploads/${req.file.filename}`;
+      attachmentUrl = `/api/files/assignment/${assignmentId}`;
       attachmentName = req.file.originalname;
       attachmentSize = req.file.size;
     }
 
     const assignment = await Assignment.create({
+      _id: assignmentId,
       title: title.trim(),
       description: description ? description.trim() : '',
       course: courseId,
@@ -350,7 +352,7 @@ router.put('/:assignmentId', protect, isTeacherOrAdmin, handleUpload('attachment
       if (assignment.attachmentUrl) {
         safeDeleteAssignmentFile('assignments', assignment.attachmentUrl);
       }
-      assignment.attachmentUrl = `/uploads/${req.file.filename}`;
+      assignment.attachmentUrl = `/api/files/assignment/${assignment._id}`;
       assignment.attachmentName = req.file.originalname;
       assignment.attachmentSize = req.file.size;
     } else if (removeAttachment === 'true' || removeAttachment === true) {
@@ -432,15 +434,16 @@ router.post('/:assignmentId/submit', protect, handleUpload('solution'), async (r
       return res.status(400).json({ error: "Submission deadline has passed and late submissions are not allowed." });
     }
 
-    const fileUrl = `/uploads/${req.file.filename}`;
-    const fileName = req.file.originalname;
-    const fileSize = req.file.size;
-
     // Check if submission already exists (resubmission)
     let submission = await AssignmentSubmission.findOne({
       assignment: assignment._id,
       student: req.user._id
     });
+
+    const submissionId = submission ? submission._id : new mongoose.Types.ObjectId();
+    const fileUrl = `/api/files/submission/${submissionId}`;
+    const fileName = req.file.originalname;
+    const fileSize = req.file.size;
 
     if (submission) {
       // Remove old solution file from disk
@@ -463,6 +466,7 @@ router.post('/:assignmentId/submit', protect, handleUpload('solution'), async (r
       await submission.save();
     } else {
       submission = await AssignmentSubmission.create({
+        _id: submissionId,
         assignment: assignment._id,
         student: req.user._id,
         course: assignment.course,

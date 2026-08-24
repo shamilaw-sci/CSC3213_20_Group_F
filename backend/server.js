@@ -42,7 +42,7 @@ const corsOptions = {
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(null, true); // Fallback gracefully or set callback(new Error('Not allowed by CORS'))
+            callback(new Error(`Origin ${origin} not allowed by CORS policy.`));
         }
     },
     credentials: true,
@@ -135,12 +135,15 @@ const startServer = async () => {
             console.warn("Index check note:", indexSyncErr.message);
         }
 
-        // Run data migration (Base64 images to disk & Enrollments collection)
-        try {
-            const { migrateData } = require('./utils/migration');
-            await migrateData();
-        } catch (migrationErr) {
-            console.error("Failed to run startup migration:", migrationErr);
+        // Run data migration only if explicitly requested via environment variable
+        if (process.env.RUN_STARTUP_MIGRATION === 'true') {
+            try {
+                const { migrateData } = require('./utils/migration');
+                console.log("🔄 RUN_STARTUP_MIGRATION is enabled. Running migration...");
+                await migrateData();
+            } catch (migrationErr) {
+                console.error("Failed to run startup migration:", migrationErr);
+            }
         }
     } catch (err) {
         console.error("Database connection error:", err.message);

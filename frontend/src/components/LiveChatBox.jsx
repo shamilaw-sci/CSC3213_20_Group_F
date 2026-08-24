@@ -32,7 +32,7 @@ import {
   FaClock,
   FaListUl
 } from 'react-icons/fa';
-import api from '../utils/api';
+import api, { getBackendBaseUrl } from '../utils/api';
 import { toast } from 'react-hot-toast';
 import StudentProfileModal from './StudentProfileModal';
 import CameraCaptureModal from './CameraCaptureModal';
@@ -359,7 +359,7 @@ const getFullAttachmentUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
   if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
   if (url.startsWith('/assets/') || url.startsWith('assets/')) return url.startsWith('/') ? url : `/${url}`;
-  const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+  const backendBase = getBackendBaseUrl();
   return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 

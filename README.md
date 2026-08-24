@@ -344,11 +344,13 @@ cd CSC3213_20_Group_F
    ```
 4. Seed the initial Administrator Account:
    ```bash
+   # Optionally specify custom admin seed credentials via env vars or .env:
+   # ADMIN_SEED_EMAIL=admin@luminalearn.edu.lk
+   # ADMIN_SEED_PASSWORD=YourSecurePasswordHere
    node seedAdmin.js
    ```
-   > **Default Admin Credentials:**
-   > - **Email:** `admin@luminalearn.com`
-   > - **Password:** `admin123`
+   > **Admin Account Configuration:**
+   > Configure `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` in your backend `.env` file prior to running the seed script, or update the password immediately upon first login.
 5. Start the backend server:
    ```bash
    # For development with auto-reload:

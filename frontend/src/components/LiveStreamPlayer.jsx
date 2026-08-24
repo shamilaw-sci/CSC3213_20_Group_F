@@ -17,7 +17,7 @@ import {
   FaMicrophone,
   FaMicrophoneSlash
 } from 'react-icons/fa';
-import api from '../utils/api';
+import api, { getApiBaseUrl } from '../utils/api';
 import { toast } from 'react-hot-toast';
 import LiveChatBox from './LiveChatBox';
 import LiveEndFeedbackModal from './LiveEndFeedbackModal';
@@ -218,7 +218,7 @@ const LiveStreamPlayer = ({
     if (!lessonId || !isStudent) return;
     const handleUnload = () => {
       try {
-        const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') + `/lessons/${lessonId}/live-stream/viewer-leave`;
+        const url = `${getApiBaseUrl()}/lessons/${lessonId}/live-stream/viewer-leave`;
         navigator.sendBeacon(url);
       } catch (e) {}
     };

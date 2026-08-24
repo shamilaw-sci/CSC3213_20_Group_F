@@ -119,7 +119,7 @@ router.post('/upload-image', protect, isTeacherOrAdmin, (req, res) => {
       return res.status(400).json({ message: 'Please select an image file to upload.' });
     }
 
-    const imageUrl = `/uploads/${req.file.filename}`;
+    const imageUrl = req.file.filename;
     res.json({
       success: true,
       imageUrl,
