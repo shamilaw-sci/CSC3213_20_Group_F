@@ -112,6 +112,16 @@ const generatePhysicalRegistrationNumber = async (grade, dateOfBirth) => {
 };
 
 // Helper to ensure parent account exists and links student without creating duplicate accounts
+// Helper to generate a secure, readable temporary password for new auto-created accounts
+const generateTemporaryPassword = (prefix = 'P@') => {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+  let rand = '';
+  for (let i = 0; i < 6; i++) {
+    rand += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `${prefix}${rand}`;
+};
+
 const ensureParentAccount = async (parentPhone, studentId, studentName = 'Student') => {
   if (!parentPhone || !parentPhone.trim()) return null;
   const cleanedPhone = parentPhone.trim();
@@ -149,7 +159,7 @@ const ensureParentAccount = async (parentPhone, studentId, studentName = 'Studen
       }
       return { parent, isNew: false, phone: cleanedPhone };
     } else {
-      const defaultPassword = 'Parent@123';
+      const defaultPassword = generateTemporaryPassword('P@');
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(defaultPassword, salt);
 
@@ -165,7 +175,7 @@ const ensureParentAccount = async (parentPhone, studentId, studentName = 'Studen
       };
 
       parent = await User.create(parentData);
-      console.log(`👨‍👩‍👧 Created new parent account for ${cleanedPhone} with default password (${defaultPassword})`);
+      console.log(`👨‍👩‍👧 Created new parent account for ${cleanedPhone} with unique temporary password (${defaultPassword})`);
       return { parent, isNew: true, defaultPassword, phone: cleanedPhone };
     }
   } catch (err) {
@@ -300,7 +310,7 @@ router.post('/parent-login', authLimiter, async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, parent.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Incorrect password. If this is your first login, use your default password (e.g. Parent@123)." });
+      return res.status(400).json({ message: "Incorrect password. If this is your first login, please use the temporary password sent via SMS." });
     }
 
     const token = jwt.sign(
@@ -554,7 +564,7 @@ router.post('/register-verify', otpLimiter, async (req, res) => {
         sendParentCredentialSMS({
           parentPhone,
           studentName: newUser.name,
-          defaultPassword: parentResult.defaultPassword || 'Parent@123'
+          temporaryPassword: parentResult.defaultPassword
         }).catch(smsErr => console.error('Parent Credential SMS error:', smsErr));
       }
     }
@@ -1580,7 +1590,7 @@ router.post('/users', protect, isAdmin, async (req, res) => {
           sendParentCredentialSMS({
             parentPhone: user.parentsPhoneNumber,
             studentName: user.name,
-            defaultPassword: parentResult.defaultPassword || 'Parent@123'
+            temporaryPassword: parentResult.defaultPassword
           }).catch(smsErr => console.error('Parent Credential SMS Error:', smsErr));
         }
       } else if (role === 'parent') {

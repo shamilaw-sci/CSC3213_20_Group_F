@@ -2,7 +2,7 @@ import axios from 'axios';
 
 /**
  * Resolves the primary API Base URL from Vite environment variables.
- * In production, warns clearly if VITE_API_URL is omitted.
+ * In production, throws an explicit configuration error if VITE_API_URL is omitted rather than silently falling back to localhost.
  */
 export function getApiBaseUrl() {
   const envUrl = import.meta.env.VITE_API_URL;
@@ -11,9 +11,9 @@ export function getApiBaseUrl() {
   }
 
   if (import.meta.env.PROD) {
-    console.error(
-      '⚠️ CRITICAL: VITE_API_URL is not configured in production environment variables! ' +
-      'API requests may fail. Please configure VITE_API_URL in your hosting platform (e.g. https://luminalearn.edu.lk/api).'
+    throw new Error(
+      'VITE_API_URL environment variable is required in production builds. ' +
+      'Please configure VITE_API_URL in your deployment environment (e.g. https://luminalearn.edu.lk/api).'
     );
   }
 

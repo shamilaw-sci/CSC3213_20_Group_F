@@ -902,7 +902,7 @@ const ManageUsers = () => {
                   Do you want to create or link a parent account associated with phone number <strong>{studentForm.parentsPhoneNumber}</strong>?
                 </p>
                 <div className="mt-2.5 pt-2 border-t border-purple-200/80 dark:border-purple-800/60 text-[11px] text-purple-700 dark:text-purple-400">
-                  🔑 Default temporary password: <strong className="font-mono text-purple-900 dark:text-purple-300">Parent@123</strong> (Mandatory password change on 1st login).
+                  📲 A unique temporary password will be generated and sent via SMS to the parent's phone number.
                 </div>
               </div>
 

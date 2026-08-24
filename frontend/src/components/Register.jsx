@@ -607,7 +607,7 @@ const Register = () => {
                     A parent account associated with phone number <strong>{currentParentPhone}</strong> allows parents to monitor attendance, fee payments, and exam reports online.
                   </p>
                   <div className="mt-2.5 pt-2 border-t border-purple-200/80 dark:border-purple-800/60 text-[11px] text-purple-700 dark:text-purple-400">
-                    🔑 Default password on 1st login: <strong className="font-mono text-purple-900 dark:text-purple-300">Parent@123</strong> (Mandatory password change enforced on first login).
+                    📲 A unique temporary password will be sent via SMS to the parent's phone number upon creation.
                   </div>
                 </div>
 
