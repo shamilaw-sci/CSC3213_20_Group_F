@@ -1617,23 +1617,23 @@ const CourseDetails = () => {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans text-gray-800 dark:text-gray-100 space-y-6 transition-colors duration-200">
+    <div className="p-3 sm:p-6 md:p-8 max-w-7xl mx-auto font-sans text-gray-800 dark:text-gray-100 space-y-5 sm:space-y-6 transition-colors duration-200">
 
       {/* Parent Read-Only Overview Banner */}
       {user?.role === 'parent' && (
-        <div className="bg-gradient-to-r from-purple-950 via-indigo-900 to-purple-900 text-white p-5 sm:p-6 rounded-3xl shadow-lg border border-purple-700/50 flex items-center justify-between flex-wrap gap-4">
+        <div className="bg-gradient-to-r from-purple-950 via-indigo-900 to-purple-900 text-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-lg border border-purple-700/50 flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/40 text-amber-300 flex items-center justify-center text-2xl font-black shrink-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-400/20 border border-amber-400/40 text-amber-300 flex items-center justify-center text-xl sm:text-2xl font-black shrink-0">
               👨‍👩‍👧
             </div>
             <div>
-              <h4 className="font-extrabold text-white text-base sm:text-lg">Parent Read-Only Mode</h4>
-              <p className="text-xs text-purple-200/90 mt-0.5 max-w-2xl leading-relaxed">
+              <h4 className="font-extrabold text-white text-sm sm:text-lg">Parent Read-Only Mode</h4>
+              <p className="text-[11px] sm:text-xs text-purple-200/90 mt-0.5 max-w-2xl leading-relaxed">
                 Overview of course curriculum, assigned instructors, available grade streams, and live class timetables. Management and upload controls are disabled for parents.
               </p>
             </div>
           </div>
-          <span className="px-4 py-1.5 bg-amber-400 text-purple-950 text-xs font-black rounded-full uppercase tracking-wider shadow-sm">
+          <span className="px-3 sm:px-4 py-1 sm:py-1.5 bg-amber-400 text-purple-950 text-[10px] sm:text-xs font-black rounded-full uppercase tracking-wider shadow-sm">
             👁️ Read-Only View
           </span>
         </div>
@@ -1641,9 +1641,9 @@ const CourseDetails = () => {
 
       {/* Dynamic Header: Shows course details or class breadcrumbs */}
       {selectedGrade === null ? (
-        <div className="mb-8 relative">
+        <div className="mb-6 sm:mb-8 relative">
           {/* Facebook Style Cover Banner */}
-          <div className="relative w-full h-72 md:h-96 rounded-3xl overflow-hidden shadow-lg bg-gradient-to-r from-[#2d1b64] via-purple-900 to-indigo-900 group">
+          <div className="relative w-full h-44 sm:h-64 md:h-96 rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg bg-gradient-to-r from-[#2d1b64] via-purple-900 to-indigo-900 group">
             {course?.banner || course?.cardImage ? (
               <img
                 src={getImageUrl(course.banner || course.cardImage)}
@@ -1655,20 +1655,20 @@ const CourseDetails = () => {
               />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-purple-700 via-indigo-900 to-[#2d1b64] flex items-center justify-center text-white">
-                <FaBookOpen className="text-6xl text-purple-300/40" />
+                <FaBookOpen className="text-4xl sm:text-6xl text-purple-300/40" />
               </div>
             )}
           </div>
 
           {/* Facebook Style Instructor Profile Overlay (Prominent Size, NO Arrow) */}
           {course?.instructor && (
-            <div className="relative -mt-14 sm:-mt-20 px-6 sm:px-8 z-20 flex items-end justify-between flex-wrap gap-4">
+            <div className="relative -mt-10 sm:-mt-20 px-3 sm:px-8 z-20 flex items-end justify-between flex-wrap gap-3 sm:gap-4">
               <div
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedTeacherForModal(course.instructor);
                 }}
-                className="flex items-end gap-4 sm:gap-5 cursor-pointer group/teacher transition-transform duration-300 transform hover:scale-102"
+                className="flex items-end gap-3 sm:gap-5 cursor-pointer group/teacher transition-transform duration-300 transform hover:scale-102"
                 title="Click to view Teacher Profile"
               >
                 {/* Facebook Style Large Profile Avatar */}
@@ -1677,11 +1677,11 @@ const CourseDetails = () => {
                     <img
                       src={getImageUrl(course.instructor.profilePicture)}
                       alt={course.instructor.name || 'Instructor'}
-                      className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-4 ring-white dark:ring-slate-900 shadow-2xl bg-white dark:bg-slate-800 border-2 border-purple-100 dark:border-purple-800 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all duration-300"
+                      className="w-18 h-18 sm:w-32 sm:h-32 rounded-full object-cover ring-3 sm:ring-4 ring-white dark:ring-slate-900 shadow-2xl bg-white dark:bg-slate-800 border-2 border-purple-100 dark:border-purple-800 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all duration-300"
                       onError={(e) => { e.target.style.display = 'none'; }}
                     />
                   ) : (
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-600 to-[#2d1b64] text-white rounded-full flex items-center justify-center font-black text-4xl sm:text-5xl ring-4 ring-white dark:ring-slate-900 shadow-2xl border-2 border-purple-100 dark:border-purple-800 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all">
+                    <div className="w-18 h-18 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-600 to-[#2d1b64] text-white rounded-full flex items-center justify-center font-black text-2xl sm:text-5xl ring-3 sm:ring-4 ring-white dark:ring-slate-900 shadow-2xl border-2 border-purple-100 dark:border-purple-800 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all">
                       {course.instructor.name ? course.instructor.name.charAt(0) : '?'}
                     </div>
                   )}
@@ -2465,33 +2465,35 @@ const CourseDetails = () => {
                     key={wNum}
                     type="button"
                     onClick={() => setActiveWeek(wNum)}
-                    className={`p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden group ${
+                    className={`p-3 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden group ${
                       isActive
                         ? 'bg-gradient-to-br from-purple-500/10 via-indigo-500/5 to-purple-600/15 dark:from-purple-950/70 dark:to-indigo-950/50 border-2 border-purple-500/80 shadow-lg shadow-purple-500/15 ring-4 ring-purple-500/10 scale-[1.02] -translate-y-0.5'
                         : 'bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700/60 hover:bg-white dark:hover:bg-slate-800 shadow-2xs hover:shadow-md hover:-translate-y-0.5'
                     }`}
                   >
-                    <div className="flex justify-between items-center mb-2 gap-1.5">
-                      <span className={`text-xs sm:text-sm font-black tracking-tight flex items-center gap-1 ${isActive ? 'text-purple-950 dark:text-purple-200' : 'text-slate-800 dark:text-slate-200'}`}>
-                        <span>🗓️</span>
-                        <span>{session.label}</span>
+                    <div className="flex items-center justify-between mb-2 gap-1">
+                      <span className={`text-[11px] sm:text-sm font-black tracking-tight flex items-center gap-1 min-w-0 truncate ${isActive ? 'text-purple-950 dark:text-purple-200' : 'text-slate-800 dark:text-slate-200'}`}>
+                        <span className="shrink-0 text-xs">🗓️</span>
+                        <span className="truncate">{session.label}</span>
                       </span>
                       {isAttended ? (
-                        <span className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1 shrink-0">
+                        <span className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-0.5 shrink-0 whitespace-nowrap">
                           <span>✓</span> Attended
                         </span>
                       ) : (
-                        <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1 shrink-0">
+                        <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-0.5 shrink-0 whitespace-nowrap">
                           <span>⏳</span> Pending
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 dark:border-slate-700/50 mt-1">
-                      <span className="text-xs font-extrabold text-purple-700 dark:text-purple-300">
-                        Session {wNum} {session.isFifthWeek ? '• 5th Class' : ''}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 dark:border-slate-700/50 mt-1 gap-1">
+                      <span className="text-[11px] sm:text-xs font-extrabold text-purple-700 dark:text-purple-300 shrink-0">
+                        Session {wNum}
+                        {session.isFifthWeek ? <span className="hidden sm:inline"> • 5th Class</span> : ''}
                       </span>
-                      <span className={`text-[11px] font-extrabold flex items-center gap-1 transition-transform group-hover:translate-x-0.5 ${isAttended ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'}`}>
-                        <span>{isAttended ? 'Logged ✓' : 'View Lesson'}</span>
+                      <span className={`text-[10px] sm:text-[11px] font-extrabold flex items-center gap-0.5 transition-transform group-hover:translate-x-0.5 shrink-0 ${isAttended ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'}`}>
+                        <span className="hidden sm:inline">{isAttended ? 'Logged ✓' : 'View Lesson'}</span>
+                        <span className="sm:hidden">{isAttended ? 'Logged' : 'View'}</span>
                         <span className="text-[10px]">→</span>
                       </span>
                     </div>
@@ -2621,50 +2623,61 @@ const CourseDetails = () => {
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
             <div
               onClick={() => toggleSection('announcement')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
-                  📢
+              <div className="flex items-start sm:items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
+                <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 flex items-center justify-center text-base sm:text-lg font-black shrink-0 shadow-inner">
+                    📢
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white leading-tight">
+                      Teacher's Announcement (Week {activeWeek})
+                    </h4>
+                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium line-clamp-1">
+                      {currentLesson?.teacherMessage
+                        ? 'Important guidelines, schedule reminders, and teacher notes for this class.'
+                        : 'No announcement published for this class session yet.'}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h4 className="font-extrabold text-base text-gray-900 dark:text-white leading-tight">
-                    Teacher's Announcement (Week {activeWeek})
-                  </h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                    {currentLesson?.teacherMessage
-                      ? 'Important guidelines, schedule reminders, and teacher notes for this class.'
-                      : 'No announcement published for this class session yet.'}
-                  </p>
+
+                {/* Mobile-only toggle chevron */}
+                <div className="sm:hidden w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs shrink-0 self-center">
+                  {expandedSections.announcement ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 shrink-0">
-                {currentLesson?.teacherMessage ? (
-                  <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 text-xs font-extrabold px-2.5 py-1 rounded-xl border border-purple-200 dark:border-purple-800">
-                    Active Message
-                  </span>
-                ) : (
-                  <span className="bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs font-semibold px-2.5 py-1 rounded-xl border border-transparent dark:border-slate-700">
-                    Empty
-                  </span>
-                )}
+              {/* Badges & action controls */}
+              <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800/60 w-full sm:w-auto">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {currentLesson?.teacherMessage ? (
+                    <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border border-purple-200 dark:border-purple-800 whitespace-nowrap">
+                      Active Message
+                    </span>
+                  ) : (
+                    <span className="bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-xl border border-transparent dark:border-slate-700 whitespace-nowrap">
+                      Empty
+                    </span>
+                  )}
 
-                {isTeacherOrAdmin && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingMessage(currentLesson?.teacherMessage || '');
-                      setShowAnnouncementModal(true);
-                    }}
-                    className="px-3 py-1.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <FaEdit className="text-xs" /> Edit
-                  </button>
-                )}
+                  {isTeacherOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingMessage(currentLesson?.teacherMessage || '');
+                        setShowAnnouncementModal(true);
+                      }}
+                      className="px-3 py-1 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    >
+                      <FaEdit className="text-xs" /> Edit
+                    </button>
+                  )}
+                </div>
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
+                {/* Desktop-only toggle chevron */}
+                <div className="hidden sm:flex w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
                   {expandedSections.announcement ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
@@ -2702,58 +2715,71 @@ const CourseDetails = () => {
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300 hover:border-purple-200 dark:hover:border-purple-900/50">
             <div
               onClick={() => toggleSection('videos')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-gradient-to-r from-purple-50/20 via-white to-purple-50/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 hover:from-purple-50/50 transition-all duration-300 text-left cursor-pointer select-none"
+              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-purple-50/20 via-white to-purple-50/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 hover:from-purple-50/50 transition-all duration-300 text-left cursor-pointer select-none"
             >
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-700 text-white flex items-center justify-center text-xl font-black shrink-0 shadow-md shadow-purple-600/25 border border-purple-400/30">
-                  <FaVideo className="text-base text-white drop-shadow-xs" />
+              <div className="flex items-start sm:items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
+                <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-700 text-white flex items-center justify-center text-base sm:text-xl font-black shrink-0 shadow-md shadow-purple-600/25 border border-purple-400/30">
+                    <FaVideo className="text-sm sm:text-base text-white drop-shadow-xs" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <h4 className="font-black text-sm sm:text-lg text-slate-900 dark:text-white leading-tight">
+                        Video Lessons
+                      </h4>
+                      <span className="text-[10px] sm:text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/80 px-2 py-0.5 rounded-lg border border-purple-200/80 dark:border-purple-800/80 whitespace-nowrap shrink-0">
+                        Week {activeWeek} • {selectedMonth}
+                      </span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-semibold line-clamp-1">
+                      Recorded lecture streams & walkthrough explanations.
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h4 className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-tight tracking-tight flex flex-wrap items-center gap-2">
-                    <span>Video Lessons</span>
-                    <span className="text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/80 px-2.5 py-0.5 rounded-lg border border-purple-200/80 dark:border-purple-800/80">
-                      Week {activeWeek} • {selectedMonth}
-                    </span>
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate font-semibold">
-                    Recorded lecture streams & walkthrough explanations.
-                  </p>
+
+                {/* Mobile-only toggle chevron */}
+                <div className="sm:hidden w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 dark:text-purple-300 text-xs shrink-0 self-center">
+                  {expandedSections.videos ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 shrink-0">
-                <span className="bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80 text-xs font-black px-3 py-1 rounded-xl shadow-2xs">
-                  {currentLesson?.videoLessons?.length || 0} {currentLesson?.videoLessons?.length === 1 ? 'Video' : 'Videos'}
-                </span>
-
-                {!isTeacherOrAdmin && currentLesson?.videoLessons && currentLesson.videoLessons.length > 0 && (
-                  <span className={`text-xs font-extrabold px-3 py-1 rounded-xl border ${
-                    isVideoWatched
-                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                      : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                  }`}>
-                    {isVideoWatched ? '✓ Watched' : 'Pending View'}
+              {/* Badges & action controls */}
+              <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800/60 w-full sm:w-auto">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80 text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-xl shadow-2xs whitespace-nowrap">
+                    {currentLesson?.videoLessons?.length || 0} {currentLesson?.videoLessons?.length === 1 ? 'Video' : 'Videos'}
                   </span>
-                )}
 
-                {isTeacherOrAdmin && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setVideoTitle('');
-                      setVideoUrl('');
-                      setVideoDownloadType('immediate');
-                      setVideoCustomUnlockDate('');
-                      setShowAddVideoModal(true);
-                    }}
-                    className="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-md shadow-purple-600/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-purple-400/30"
-                  >
-                    <FaPlus className="text-[10px]" /> Add Video
-                  </button>
-                )}
+                  {!isTeacherOrAdmin && currentLesson?.videoLessons && currentLesson.videoLessons.length > 0 && (
+                    <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${
+                      isVideoWatched
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                    }`}>
+                      {isVideoWatched ? '✓ Watched' : 'Pending View'}
+                    </span>
+                  )}
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-purple-100/50 dark:hover:bg-purple-950/60 flex items-center justify-center text-gray-500 dark:text-purple-300 text-xs transition">
+                  {isTeacherOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setVideoTitle('');
+                        setVideoUrl('');
+                        setVideoDownloadType('immediate');
+                        setVideoCustomUnlockDate('');
+                        setShowAddVideoModal(true);
+                      }}
+                      className="px-3 py-1 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-md shadow-purple-600/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-purple-400/30 whitespace-nowrap"
+                    >
+                      <FaPlus className="text-[10px]" /> Add Video
+                    </button>
+                  )}
+                </div>
+
+                {/* Desktop-only toggle chevron */}
+                <div className="hidden sm:flex w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-purple-100/50 dark:hover:bg-purple-950/60 items-center justify-center text-gray-500 dark:text-purple-300 text-xs transition">
                   {expandedSections.videos ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
@@ -2935,53 +2961,71 @@ const CourseDetails = () => {
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
             <div
               onClick={() => toggleSection('pdfs')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
-                  📕
+              <div className="flex items-start sm:items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
+                <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 flex items-center justify-center text-base sm:text-lg font-black shrink-0 shadow-inner">
+                    📕
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <h4 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white leading-tight">
+                        Study Materials — PDF Notes
+                      </h4>
+                      <span className="text-[10px] sm:text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/80 px-2 py-0.5 rounded-lg border border-purple-200/80 dark:border-purple-800/80 whitespace-nowrap shrink-0">
+                        Week {activeWeek} • {selectedMonth}
+                      </span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium line-clamp-1">
+                      Read lecture slides, revision summaries, and structured study booklets.
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h4 className="font-extrabold text-base text-gray-900 dark:text-white leading-tight">
-                    Study Materials — PDF Notes (Week {activeWeek} — {selectedMonth})
-                  </h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Read lecture slides, revision summaries, and structured study booklets.</p>
+
+                {/* Mobile-only toggle chevron */}
+                <div className="sm:hidden w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs shrink-0 self-center">
+                  {expandedSections.pdfs ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 shrink-0">
-                <span className="bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-black px-2.5 py-1 rounded-xl">
-                  {currentLesson?.pdfMaterials?.length || 0} {currentLesson?.pdfMaterials?.length === 1 ? 'PDF' : 'PDFs'}
-                </span>
-
-                {!isTeacherOrAdmin && currentLesson?.pdfMaterials && currentLesson.pdfMaterials.length > 0 && (
-                  <span className={`text-xs font-extrabold px-3 py-1 rounded-xl border ${
-                    isPdfDownloaded
-                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                      : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
-                  }`}>
-                    {isPdfDownloaded ? '✓ Completed' : 'Pending View'}
+              {/* Badges & action controls */}
+              <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800/60 w-full sm:w-auto">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-xl shadow-2xs whitespace-nowrap">
+                    {currentLesson?.pdfMaterials?.length || 0} {currentLesson?.pdfMaterials?.length === 1 ? 'PDF' : 'PDFs'}
                   </span>
-                )}
 
-                {isTeacherOrAdmin && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPdfTitle('');
-                      setPdfFile(null);
-                      setPdfDownloadType('immediate');
-                      setPdfCustomUnlockDate('');
-                      setShowAddPdfModal(true);
-                    }}
-                    className="px-3 py-1.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <FaPlus className="text-[10px]" /> Upload PDF
-                  </button>
-                )}
+                  {!isTeacherOrAdmin && currentLesson?.pdfMaterials && currentLesson.pdfMaterials.length > 0 && (
+                    <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${
+                      isPdfDownloaded
+                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                    }`}>
+                      {isPdfDownloaded ? '✓ Completed' : 'Pending View'}
+                    </span>
+                  )}
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
+                  {isTeacherOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPdfTitle('');
+                        setPdfFile(null);
+                        setPdfDownloadType('immediate');
+                        setPdfCustomUnlockDate('');
+                        setShowAddPdfModal(true);
+                      }}
+                      className="px-3 py-1 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    >
+                      <FaPlus className="text-[10px]" /> Upload PDF
+                    </button>
+                  )}
+                </div>
+
+                {/* Desktop-only toggle chevron */}
+                <div className="hidden sm:flex w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
                   {expandedSections.pdfs ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
@@ -3144,47 +3188,65 @@ const CourseDetails = () => {
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
             <div
               onClick={() => toggleSection('assignments')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
-                  📑
+              <div className="flex items-start sm:items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
+                <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 flex items-center justify-center text-base sm:text-lg font-black shrink-0 shadow-inner">
+                    📑
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <h4 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white leading-tight">
+                        Assignments & Homework
+                      </h4>
+                      <span className="text-[10px] sm:text-[11px] font-extrabold text-amber-800 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-200/80 dark:border-amber-800/80 whitespace-nowrap shrink-0">
+                        {selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth}
+                      </span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium line-clamp-1">
+                      Submit homework solutions, question sheets, and review instructor grading.
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h4 className="font-extrabold text-base text-gray-900 dark:text-white leading-tight">
-                    Assignments & Homework ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
-                  </h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Submit homework solutions, question sheets, and review instructor grading.</p>
+
+                {/* Mobile-only toggle chevron */}
+                <div className="sm:hidden w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs shrink-0 self-center">
+                  {expandedSections.assignments ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 shrink-0">
-                <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-black px-2.5 py-1 rounded-xl">
-                  {assignments.filter(asgn => {
-                    const matchesGrade = asgn.grade === selectedGrade;
-                    const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
-                    return matchesGrade && matchesMonth;
-                  }).length} {assignments.filter(asgn => {
-                    const matchesGrade = asgn.grade === selectedGrade;
-                    const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
-                    return matchesGrade && matchesMonth;
-                  }).length === 1 ? 'Assignment' : 'Assignments'}
-                </span>
+              {/* Badges & action controls */}
+              <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800/60 w-full sm:w-auto">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-xl shadow-2xs whitespace-nowrap">
+                    {assignments.filter(asgn => {
+                      const matchesGrade = asgn.grade === selectedGrade;
+                      const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
+                      return matchesGrade && matchesMonth;
+                    }).length} {assignments.filter(asgn => {
+                      const matchesGrade = asgn.grade === selectedGrade;
+                      const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
+                      return matchesGrade && matchesMonth;
+                    }).length === 1 ? 'Assignment' : 'Assignments'}
+                  </span>
 
-                {isTeacherOrAdmin && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenCreateAssignment();
-                    }}
-                    className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <FaPlus className="text-[10px]" /> Create Asgn
-                  </button>
-                )}
+                  {isTeacherOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenCreateAssignment();
+                      }}
+                      className="px-3 py-1 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    >
+                      <FaPlus className="text-[10px]" /> Create Asgn
+                    </button>
+                  )}
+                </div>
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
+                {/* Desktop-only toggle chevron */}
+                <div className="hidden sm:flex w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
                   {expandedSections.assignments ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
@@ -3520,28 +3582,28 @@ const CourseDetails = () => {
       )}
 
       {showStudentPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-6xl h-[650px] rounded-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-6 shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-slate-800 animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-6xl h-[92vh] sm:h-[650px] rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-3.5 sm:p-6 shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-slate-800 animate-fadeIn">
             {/* Modal Header */}
-            <div className="mb-4 flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-4">
-              <div>
-                <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{selectedEnrollGrade && (selectedEnrollGrade.toLowerCase().startsWith('grade') ? selectedEnrollGrade : `Grade ${selectedEnrollGrade}`)} Student Management</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Manage enrollment, view real-time class attendance, and monitor fee payments.</p>
+            <div className="mb-3 sm:mb-4 flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3 sm:pb-4 gap-2">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight truncate">{selectedEnrollGrade && (selectedEnrollGrade.toLowerCase().startsWith('grade') ? selectedEnrollGrade : `Grade ${selectedEnrollGrade}`)} Student Management</h3>
+                <p className="text-[11px] sm:text-sm text-gray-500 dark:text-gray-400 truncate">Manage enrollment, class attendance, and fee payments.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowStudentPicker(false)}
-                className="rounded-xl border border-gray-300 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                className="rounded-xl border border-gray-300 dark:border-slate-700 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
               >
-                Close Dashboard
+                Close
               </button>
             </div>
 
-            {/* Split Pane Work Area */}
-            <div className="flex-1 flex overflow-hidden">
+            {/* Split Pane Work Area: Stacked on mobile (< lg), split side-by-side on desktop (lg:) */}
+            <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden gap-4 lg:gap-0">
 
               {/* LEFT PANE: Student List & Search & Filters */}
-              <div className="w-5/12 flex flex-col border-r border-gray-150 dark:border-slate-800 pr-4 overflow-hidden">
+              <div className="w-full lg:w-5/12 flex flex-col border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-slate-800 pb-4 lg:pb-0 lg:pr-4 overflow-visible lg:overflow-hidden shrink-0 lg:shrink">
                 {/* Search Bar */}
                 <div className="relative">
                   <input
@@ -3754,7 +3816,7 @@ const CourseDetails = () => {
               </div>
 
               {/* RIGHT PANE: Selected Student Detailed Overview */}
-              <div className="w-7/12 flex flex-col pl-6 overflow-hidden">
+              <div className="w-full lg:w-7/12 flex flex-col lg:pl-6 overflow-visible lg:overflow-hidden min-h-[280px] flex-1">
                 {!selectedStudentDetail ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gray-50 dark:bg-slate-800/60 rounded-2xl border border-dashed border-gray-200 dark:border-slate-700">
                     <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

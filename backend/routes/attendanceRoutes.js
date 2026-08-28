@@ -513,7 +513,7 @@ router.get('/weekly-status/:courseId', protect, async (req, res) => {
 // ==========================================
 router.get('/admin/all-logs', protect, isStaffTeacherOrAdmin, async (req, res) => {
   try {
-    const { date, courseId, grade, search } = req.query;
+    const { date, startDate, endDate, courseId, grade, search } = req.query;
     let filter = {};
 
     // IF REQUESTER IS A TEACHER: STRICTLY SCOPE TO TEACHER'S CLASSES
@@ -541,7 +541,20 @@ router.get('/admin/all-logs', protect, isStaffTeacherOrAdmin, async (req, res) =
       filter.courseId = courseId;
     }
 
-    if (date) {
+    // Support Date Range (startDate & endDate) or specific Single Date
+    if (startDate || endDate) {
+      filter.date = {};
+      if (startDate) {
+        const startOfDay = new Date(startDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        filter.date.$gte = startOfDay;
+      }
+      if (endDate) {
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        filter.date.$lte = endOfDay;
+      }
+    } else if (date) {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(date);

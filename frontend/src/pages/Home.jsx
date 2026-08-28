@@ -22,7 +22,9 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaArrowRight,
-  FaCheckCircle
+  FaCheckCircle,
+  FaBars,
+  FaTimes
 } from 'react-icons/fa';
 import { INSTRUCTORS, GET_DIVERSE_TIMETABLE_PREVIEW, INSTITUTE_INFO } from '../utils/instituteData';
 import { useTheme } from '../context/ThemeContext';
@@ -30,6 +32,9 @@ import { useTheme } from '../context/ThemeContext';
 const Home = () => {
   const navigate = useNavigate();
   const { isDark, toggleTheme: contextToggleTheme, setDarkMode } = useTheme();
+
+  // Mobile menu open state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Automatic time-based theme state
   const [isDarkMode, setIsDarkMode] = useState(isDark);
@@ -184,13 +189,13 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Logo & Branding */}
           <div
-            className="flex items-center gap-3.5 cursor-pointer group"
+            className="flex items-center gap-2.5 sm:gap-3.5 cursor-pointer group shrink-0"
             onClick={() => navigate('/')}
           >
             <img
               src="/assets/kirula_logo.png"
               alt="Kirula Education Center"
-              className="h-12 w-auto object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
+              className="h-9 sm:h-12 w-auto object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
             />
             <div
               className={`h-8 w-px hidden sm:block ${
@@ -198,9 +203,9 @@ const Home = () => {
               }`}
             />
             <div className="flex flex-col">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <span
-                  className={`text-xl font-extrabold tracking-tight bg-gradient-to-r ${
+                  className={`text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r ${
                     isDarkMode
                       ? 'from-purple-400 via-indigo-300 to-cyan-400'
                       : 'from-purple-700 via-indigo-600 to-purple-900'
@@ -209,7 +214,7 @@ const Home = () => {
                   LuminaLearn
                 </span>
                 <span
-                  className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold ${
+                  className={`hidden sm:inline-flex text-[11px] px-2.5 py-0.5 rounded-full font-bold ${
                     isDarkMode
                       ? 'bg-purple-950/80 border border-purple-500/30 text-purple-300'
                       : 'bg-purple-50 border border-purple-200 text-purple-700'
@@ -219,7 +224,7 @@ const Home = () => {
                 </span>
               </div>
               <span
-                className={`text-xs font-medium ${
+                className={`hidden sm:block text-xs font-medium ${
                   isDarkMode ? 'text-slate-400' : 'text-slate-500'
                 }`}
               >
@@ -267,8 +272,9 @@ const Home = () => {
           </nav>
 
           {/* Right Controls: Theme Toggle & Login Button */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Theme Toggle - Desktop & Tablet (Mobile accessed in drawer) */}
+            <div className="hidden sm:flex items-center gap-2">
               <button
                 onClick={toggleTheme}
                 title={
@@ -287,7 +293,7 @@ const Home = () => {
                 ) : (
                   <FaMoon className="text-purple-600 text-sm" />
                 )}
-                <span className="hidden sm:inline">
+                <span className="hidden md:inline">
                   {isDarkMode ? 'Dark' : 'Light'}
                 </span>
               </button>
@@ -317,13 +323,88 @@ const Home = () => {
 
             <button
               onClick={() => navigate('/login')}
-              className="group relative flex items-center gap-2 bg-gradient-to-r from-purple-700 via-purple-800 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 text-white text-sm font-semibold px-4 sm:px-5 py-2.5 rounded-xl shadow-md shadow-purple-900/20 hover:shadow-purple-700/30 transition-all duration-300 transform active:scale-95 cursor-pointer"
+              className="group relative flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-purple-700 via-purple-800 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-md shadow-purple-900/20 hover:shadow-purple-700/30 transition-all duration-300 transform active:scale-95 cursor-pointer"
             >
               <span>Portal Login</span>
               <FaSignInAlt className="text-xs transition-transform group-hover:translate-x-1" />
             </button>
+
+            {/* Mobile Hamburger Menu Toggle Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className={`md:hidden p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer ${
+                isDarkMode
+                  ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+              title={isMobileMenuOpen ? "Close navigation" : "Open navigation"}
+              aria-label="Toggle navigation"
+            >
+              {isMobileMenuOpen ? <FaTimes className="text-base" /> : <FaBars className="text-base" />}
+            </button>
           </div>
         </div>
+
+        {/* --- MOBILE NAVIGATION SHEET --- */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl px-4 py-4 space-y-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex flex-col space-y-1 text-sm font-semibold">
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); navigate('/instructors'); }}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors text-left"
+              >
+                <span>👨‍🏫 Instructors</span>
+                <FaArrowRight className="text-xs text-purple-500" />
+              </button>
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); navigate('/instructors#timetable'); }}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors text-left"
+              >
+                <span>📅 Class Timetable</span>
+                <FaArrowRight className="text-xs text-purple-500" />
+              </button>
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); navigate('/about'); }}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors text-left"
+              >
+                <span>🏛️ About Us</span>
+                <FaArrowRight className="text-xs text-purple-500" />
+              </button>
+              <a
+                href="#features"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors text-left"
+              >
+                <span>✨ Features</span>
+                <FaArrowRight className="text-xs text-purple-500" />
+              </a>
+              <a
+                href="#contact"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors text-left"
+              >
+                <span>📞 Contact</span>
+                <FaArrowRight className="text-xs text-purple-500" />
+              </a>
+            </div>
+
+            {/* Mobile theme toggle row */}
+            <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800/70 flex items-center justify-between px-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Theme</span>
+              <button
+                onClick={toggleTheme}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                  isDarkMode
+                    ? 'bg-slate-900 border-slate-800 text-yellow-400'
+                    : 'bg-white border-slate-200 text-slate-700'
+                }`}
+              >
+                {isDarkMode ? <FaSun className="text-sm text-yellow-400" /> : <FaMoon className="text-sm text-purple-600" />}
+                <span>{isDarkMode ? 'Dark Mode' : 'Light Mode'}</span>
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* --- HERO SECTION --- */}
@@ -810,128 +891,134 @@ const Home = () => {
               Saturday & Sunday academic sessions across Science, Mathematics,
               Sinhala, English, and Scholarship
             </p>
-          </div>
 
-          {/* Schedule Table Preview */}
-          <div
-            className={`rounded-3xl border overflow-hidden shadow-xl mb-8 ${
-              isDarkMode
-                ? 'bg-slate-900/80 border-slate-800'
-                : 'bg-white border-slate-200/90 shadow-slate-200/40'
-            }`}
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr
-                    className={`border-b font-bold uppercase tracking-wider ${
+            {/* Schedule Table Preview */}
+            <div className="sm:hidden flex items-center justify-end text-[11px] font-semibold text-purple-600 dark:text-purple-400 mb-2 px-1 gap-1">
+              <span>👈 Swipe table to view full schedule 👉</span>
+            </div>
+
+            <div
+              className={`rounded-3xl border overflow-hidden shadow-xl mb-8 ${
+                isDarkMode
+                  ? 'bg-slate-900/80 border-slate-800'
+                  : 'bg-white border-slate-200/90 shadow-slate-200/40'
+              }`}
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px] text-left border-collapse text-xs">
+                  <thead>
+                    <tr
+                      className={`border-b font-bold uppercase tracking-wider ${
+                        isDarkMode
+                          ? 'bg-slate-950 text-cyan-400 border-slate-800'
+                          : 'bg-slate-100/90 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <th className="py-4 px-4 sm:px-6 whitespace-nowrap">Subject</th>
+                      <th className="py-4 px-4 sm:px-6 whitespace-nowrap">Grade / Group</th>
+                      <th className="py-4 px-4 sm:px-6 whitespace-nowrap">Instructor</th>
+                      <th className="py-4 px-4 sm:px-6 whitespace-nowrap">Day</th>
+                      <th className="py-4 px-4 sm:px-6 whitespace-nowrap">Time Slot</th>
+                      <th className="py-4 px-4 sm:px-6 whitespace-nowrap text-right">Class Fees</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    className={`divide-y ${
                       isDarkMode
-                        ? 'bg-slate-950 text-cyan-400 border-slate-800'
-                        : 'bg-slate-100/90 text-slate-700 border-slate-200'
+                        ? 'divide-slate-800 text-slate-300'
+                        : 'divide-slate-100 text-slate-700'
                     }`}
                   >
-                    <th className="py-4 px-6">Subject</th>
-                    <th className="py-4 px-6">Grade / Group</th>
-                    <th className="py-4 px-6">Instructor</th>
-                    <th className="py-4 px-6">Day</th>
-                    <th className="py-4 px-6">Time Slot</th>
-                    <th className="py-4 px-6 text-right">Class Fees</th>
-                  </tr>
-                </thead>
-                <tbody
-                  className={`divide-y ${
-                    isDarkMode
-                      ? 'divide-slate-800 text-slate-300'
-                      : 'divide-slate-100 text-slate-700'
-                  }`}
-                >
-                  {masterTimetablePreview.map((item) => (
-                    <tr
-                      key={item.id}
-                      className={
-                        isDarkMode
-                          ? 'hover:bg-slate-950/60 transition-colors'
-                          : 'hover:bg-purple-50/40 transition-colors'
-                      }
-                    >
-                      <td className="py-3.5 px-6 font-bold flex items-center gap-2.5">
-                        <span
-                          className={`w-2.5 h-2.5 rounded-full ${
-                            item.subject.includes('Science')
-                              ? 'bg-cyan-500'
-                              : item.subject.includes('Math')
-                              ? 'bg-purple-500'
-                              : item.subject.includes('English')
-                              ? 'bg-emerald-500'
-                              : item.subject.includes('Sinhala')
-                              ? 'bg-amber-500'
-                              : 'bg-pink-500'
-                          }`}
-                        />
-                        <span className="font-bold text-slate-900 dark:text-slate-100">
-                          {item.subject}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-6 font-semibold">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${
-                            isDarkMode
-                              ? 'bg-slate-950 border-slate-800 text-purple-300'
-                              : 'bg-purple-50 border-purple-200/70 text-purple-700'
-                          }`}
-                        >
-                          {item.grade}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-6 font-medium">
-                        <div className="flex items-center gap-2.5">
-                          <img
-                            src={item.instructorPhoto}
-                            alt={item.instructor}
-                            className="w-7 h-7 rounded-full object-cover border-2 border-purple-200 dark:border-purple-600/70 shadow-xs shrink-0 bg-slate-100 dark:bg-slate-800"
-                            onError={(e) => {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src = item.defaultPhoto;
-                            }}
-                          />
-                          <span className="font-semibold text-slate-800 dark:text-slate-200">
-                            {item.instructor}
+                    {masterTimetablePreview.map((item) => (
+                      <tr
+                        key={item.id}
+                        className={
+                          isDarkMode
+                            ? 'hover:bg-slate-950/60 transition-colors'
+                            : 'hover:bg-purple-50/40 transition-colors'
+                        }
+                      >
+                        <td className="py-3.5 px-4 sm:px-6 font-bold whitespace-nowrap">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                item.subject.includes('Science')
+                                  ? 'bg-cyan-500'
+                                  : item.subject.includes('Math')
+                                  ? 'bg-purple-500'
+                                  : item.subject.includes('English')
+                                  ? 'bg-emerald-500'
+                                  : item.subject.includes('Sinhala')
+                                  ? 'bg-amber-500'
+                                  : 'bg-pink-500'
+                              }`}
+                            />
+                            <span className="font-bold text-slate-900 dark:text-slate-100">
+                              {item.subject}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 sm:px-6 font-semibold whitespace-nowrap">
+                          <span
+                            className={`whitespace-nowrap px-2.5 py-1 rounded-md text-[11px] font-bold border inline-block ${
+                              isDarkMode
+                                ? 'bg-slate-950 border-slate-800 text-purple-300'
+                                : 'bg-purple-50 border-purple-200/70 text-purple-700'
+                            }`}
+                          >
+                            {item.grade}
                           </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-6">
-                        <span
-                          className={`font-bold px-2 py-0.5 rounded text-[11px] ${
-                            item.day === 'Saturday'
-                              ? isDarkMode
-                                ? 'bg-purple-950/80 text-purple-300 border border-purple-800'
-                                : 'bg-purple-50 text-purple-700 font-bold border border-purple-200/60'
-                              : isDarkMode
-                              ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800'
-                              : 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/60'
-                          }`}
-                        >
-                          {item.day}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-6 font-semibold text-slate-700 dark:text-slate-300">
-                        {item.time}
-                      </td>
-                      <td className="py-3.5 px-6 text-right font-mono text-[11px]">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                            isDarkMode
-                              ? 'bg-slate-950 border-slate-800 text-amber-400'
-                              : 'bg-amber-50 border-amber-200 text-amber-800'
-                          }`}
-                        >
-                          {item.fees}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                        <td className="py-3.5 px-4 sm:px-6 font-medium whitespace-nowrap">
+                          <div className="flex items-center gap-2.5 whitespace-nowrap">
+                            <img
+                              src={item.instructorPhoto}
+                              alt={item.instructor}
+                              className="w-7 h-7 rounded-full object-cover border-2 border-purple-200 dark:border-purple-600/70 shadow-xs shrink-0 bg-slate-100 dark:bg-slate-800"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = item.defaultPhoto;
+                              }}
+                            />
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                              {item.instructor}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 sm:px-6 whitespace-nowrap">
+                          <span
+                            className={`font-bold px-2 py-0.5 rounded text-[11px] whitespace-nowrap ${
+                              item.day === 'Saturday'
+                                ? isDarkMode
+                                  ? 'bg-purple-950/80 text-purple-300 border border-purple-800'
+                                  : 'bg-purple-50 text-purple-700 font-bold border border-purple-200/60'
+                                : isDarkMode
+                                ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800'
+                                : 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/60'
+                            }`}
+                          >
+                            {item.day}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 sm:px-6 font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                          {item.time}
+                        </td>
+                        <td className="py-3.5 px-4 sm:px-6 text-right font-mono text-[11px] whitespace-nowrap">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                              isDarkMode
+                                ? 'bg-slate-950 border-slate-800 text-amber-400'
+                                : 'bg-amber-50 border-amber-200 text-amber-800'
+                            }`}
+                          >
+                            {item.fees}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 

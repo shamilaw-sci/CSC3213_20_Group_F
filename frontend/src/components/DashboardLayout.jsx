@@ -26,7 +26,8 @@ import {
   FaAward,
   FaClipboardCheck,
   FaSun,
-  FaMoon
+  FaMoon,
+  FaBars
 } from 'react-icons/fa';
 import api from '../utils/api';
 import { useTheme } from '../context/ThemeContext';
@@ -40,6 +41,7 @@ const DashboardLayout = () => {
   const { isDark, toggleTheme } = useTheme();
 
   // --- UI STATES ---
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
@@ -198,21 +200,50 @@ const DashboardLayout = () => {
     }
   };
 
+  const getMobilePageTitle = () => {
+    switch (location.pathname) {
+      case '/dashboard': return 'Dashboard';
+      case '/parent-dashboard': return 'Parent Portal';
+      case '/courses': return 'Courses';
+      case '/attendance': return 'Attendance';
+      case '/payments': return 'Payments';
+      case '/analytics': return 'Analytics';
+      case '/manage-users': return 'Users';
+      case '/add-course': return 'New Course';
+      case '/settings': return 'Settings';
+      default: return userName || 'LuminaLearn';
+    }
+  };
+
   const canCreateCourse = role === 'admin';
   const canBroadcast = role === 'admin' || role === 'teacher';
   const showAddCourseButton = canCreateCourse && (location.pathname === '/dashboard' || location.pathname === '/courses');
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors duration-500">
-      <Sidebar />
+      <Sidebar isOpen={isMobileSidebarOpen} onClose={() => setIsMobileSidebarOpen(false)} />
 
-      <div className="flex-1 flex flex-col overflow-y-auto ml-64">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto ml-0 md:ml-64">
 
-        <header className="h-20 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-8 shadow-sm sticky top-0 z-40 transition-all duration-500">
+        <header className="h-16 sm:h-20 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-3 sm:px-6 lg:px-8 shadow-sm sticky top-0 z-40 transition-all duration-500">
 
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white flex-shrink-0 truncate max-w-[25%] mr-4">
-            {getPageTitle()}
-          </h2>
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+            {/* Hamburger Button for Mobile */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-lumina-purple hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              title="Open menu"
+              aria-label="Open navigation menu"
+            >
+              <FaBars className="text-lg" />
+            </button>
+
+            {/* Title: Concise on mobile, full on desktop */}
+            <h2 className="text-base sm:text-lg lg:text-xl font-bold text-gray-800 dark:text-white flex-shrink-0">
+              <span className="sm:hidden font-extrabold">{getMobilePageTitle()}</span>
+              <span className="hidden sm:inline truncate max-w-[150px] md:max-w-[200px]">{getPageTitle()}</span>
+            </h2>
+          </div>
 
           {/* --- SYSTEM GLOBAL SEARCH BAR --- */}
           <GlobalSearchBar
@@ -220,32 +251,35 @@ const DashboardLayout = () => {
             onSelectStudent={(sId) => setSelectedStudentIdForModal(sId)}
           />
 
-          <div className="flex items-center gap-3 w-auto flex-shrink-0 justify-end">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 w-auto flex-shrink-0 justify-end">
 
-            {/* --- BROADCAST ANNOUNCEMENT BUTTON (TEACHERS & ADMINS) --- */}
+            {/* --- BROADCAST ANNOUNCEMENT BUTTON (TEACHERS & ADMINS) - Hidden on mobile (< sm) --- */}
             {canBroadcast && (
               <button
                 onClick={() => setIsBroadcastOpen(true)}
-                className="bg-amber-500 hover:bg-amber-600 cursor-pointer text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all shadow-sm flex items-center gap-2"
+                className="hidden sm:flex bg-amber-500 hover:bg-amber-600 cursor-pointer text-white px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all shadow-sm items-center gap-1.5"
                 title="Broadcast Announcement via SMS, Email & In-App"
               >
-                <FaBullhorn className="text-sm" /> Announcement
+                <FaBullhorn className="text-xs sm:text-sm" />
+                <span className="hidden lg:inline">Announcement</span>
               </button>
             )}
 
             {showAddCourseButton && (
               <Link
                 to="/add-course"
-                className="bg-lumina-purple hover:bg-purple-800 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md flex items-center gap-2 whitespace-nowrap flex-shrink-0 text-sm"
+                className="hidden sm:flex bg-lumina-purple hover:bg-purple-800 text-white px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg font-semibold transition-all shadow-md items-center gap-1.5 whitespace-nowrap flex-shrink-0 text-xs sm:text-sm"
+                title="Create Course"
               >
-                <span className="text-xl leading-none">+</span> Create Course
+                <span className="text-base sm:text-xl leading-none">+</span>
+                <span className="hidden md:inline">Create Course</span>
               </Link>
             )}
 
-            {/* --- THEME TOGGLE (DARK / LIGHT MODE) — Animated Pill Switch --- */}
+            {/* --- THEME TOGGLE — Desktop / Tablet (sm:) — Hidden on mobile to keep topbar clean --- */}
             <button
               onClick={toggleTheme}
-              className={`relative w-16 h-8 rounded-full transition-all duration-500 outline-none cursor-pointer border-2 flex items-center px-1 group ${
+              className={`hidden sm:flex relative w-12 sm:w-16 h-7 sm:h-8 rounded-full transition-all duration-500 outline-none cursor-pointer border-2 items-center px-0.5 sm:px-1 group flex-shrink-0 ${
                 isDark
                   ? 'bg-slate-800 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.25)]'
                   : 'bg-gradient-to-r from-sky-400 to-blue-500 border-sky-300 shadow-[0_0_8px_rgba(56,189,248,0.3)]'
@@ -254,18 +288,18 @@ const DashboardLayout = () => {
             >
               {/* Sliding Dot */}
               <div
-                className={`w-5.5 h-5.5 rounded-full flex items-center justify-center text-[11px] transition-all duration-500 shadow-md ${
+                className={`w-5 sm:w-5.5 h-5 sm:h-5.5 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] transition-all duration-500 shadow-md ${
                   isDark
-                    ? 'translate-x-8 bg-purple-500 text-white shadow-purple-500/40'
+                    ? 'translate-x-5 sm:translate-x-8 bg-purple-500 text-white shadow-purple-500/40'
                     : 'translate-x-0 bg-white text-amber-500 shadow-amber-200/60'
                 }`}
               >
-                {isDark ? <FaMoon className="text-[10px]" /> : <FaSun className="text-[11px]" />}
+                {isDark ? <FaMoon className="text-[9px] sm:text-[10px]" /> : <FaSun className="text-[10px] sm:text-[11px]" />}
               </div>
               {/* Background icons */}
-              <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
-                <FaSun className={`text-[10px] transition-opacity duration-300 ${isDark ? 'opacity-30 text-slate-500' : 'opacity-0'}`} />
-                <FaMoon className={`text-[10px] transition-opacity duration-300 ${isDark ? 'opacity-0' : 'opacity-40 text-white/70'}`} />
+              <div className="absolute inset-0 flex items-center justify-between px-1.5 sm:px-2 pointer-events-none">
+                <FaSun className={`text-[9px] sm:text-[10px] transition-opacity duration-300 ${isDark ? 'opacity-30 text-slate-500' : 'opacity-0'}`} />
+                <FaMoon className={`text-[9px] sm:text-[10px] transition-opacity duration-300 ${isDark ? 'opacity-0' : 'opacity-40 text-white/70'}`} />
               </div>
             </button>
 
@@ -277,12 +311,12 @@ const DashboardLayout = () => {
                   setShowNotifications(false);
                   setShowProfileMenu(false);
                 }}
-                className="p-2.5 text-gray-500 dark:text-gray-300 hover:text-lumina-purple dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-slate-800 rounded-full transition-all relative outline-none cursor-pointer"
+                className="p-1.5 sm:p-2.5 text-gray-500 dark:text-gray-300 hover:text-lumina-purple dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-slate-800 rounded-full transition-all relative outline-none cursor-pointer"
                 title="Direct Messages"
               >
-                <FaPaperPlane className="text-lg" />
+                <FaPaperPlane className="text-base sm:text-lg" />
                 {unreadMessageCount > 0 && (
-                  <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900 min-w-[18px] text-center leading-none">
+                  <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 px-1 sm:px-1.5 py-0.5 bg-red-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900 min-w-[16px] sm:min-w-[18px] text-center leading-none">
                     {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
                   </span>
                 )}
@@ -297,19 +331,19 @@ const DashboardLayout = () => {
                   setShowProfileMenu(false);
                   setIsMessagingOpen(false);
                 }}
-                className="p-2.5 text-gray-500 dark:text-gray-300 hover:text-lumina-purple dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-slate-800 rounded-full transition-all relative outline-none cursor-pointer"
+                className="p-1.5 sm:p-2.5 text-gray-500 dark:text-gray-300 hover:text-lumina-purple dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-slate-800 rounded-full transition-all relative outline-none cursor-pointer"
                 title="Notifications"
               >
-                <FaBell className="text-xl" />
+                <FaBell className="text-lg sm:text-xl" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900 min-w-[18px] text-center leading-none">
+                  <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 px-1 sm:px-1.5 py-0.5 bg-red-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900 min-w-[16px] sm:min-w-[18px] text-center leading-none">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden transform transition-all z-50">
+                <div className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-3 w-auto sm:w-96 max-w-none sm:max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden transform transition-all z-50">
                   <div className="p-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/80 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-gray-800 dark:text-white text-sm">Notifications</h3>
@@ -395,7 +429,7 @@ const DashboardLayout = () => {
               </button>
 
               {showProfileMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden transform transition-all z-50">
+                <div className="absolute right-0 mt-3 w-56 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden transform transition-all z-50">
                   <div className="p-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/80 text-center flex flex-col items-center">
                     <div className="relative mb-2">
                       {user?.profilePicture ? (

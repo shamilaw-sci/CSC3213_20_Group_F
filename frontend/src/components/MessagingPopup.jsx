@@ -345,7 +345,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 w-[420px] max-w-[calc(100vw-2.5rem)] h-[580px] max-h-[calc(100vh-8rem)] bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+    <div className="fixed inset-x-2 bottom-3 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] h-[82vh] sm:h-[580px] max-h-[calc(100vh-4rem)] bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
 
       {/* --- POPUP HEADER --- */}
       <div className="bg-gradient-to-r from-purple-700 via-lumina-purple to-purple-900 text-white p-4 flex items-center justify-between shadow-md">

@@ -263,11 +263,78 @@ const GlobalSearchBar = ({ onSelectTeacher, onSelectStudent }) => {
     { id: 'lessons', label: 'Lessons' }
   ];
 
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+
   return (
-    <div ref={containerRef} className="relative flex-1 max-w-xl mx-4 min-w-[220px]">
-      {/* Search Input Box */}
-      <div className="relative group">
-        <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 group-focus-within:text-purple-600 dark:group-focus-within:text-purple-400 transition-colors pointer-events-none">
+    <div ref={containerRef} className="relative flex-1 sm:max-w-xl mx-1 sm:mx-4 min-w-0 flex items-center justify-end sm:justify-start">
+      
+      {/* --- MOBILE SEARCH TRIGGER BUTTON (< sm) --- */}
+      <div className="sm:hidden">
+        <button
+          type="button"
+          onClick={() => {
+            setIsMobileSearchOpen(true);
+            setIsOpen(true);
+            setTimeout(() => inputRef.current?.focus(), 150);
+          }}
+          className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+          title="Search courses, teachers, students..."
+          aria-label="Open search"
+        >
+          <FaSearch className="text-base" />
+        </button>
+      </div>
+
+      {/* --- MOBILE EXPANDED FULL-WIDTH SEARCH BAR OVERLAY --- */}
+      {isMobileSearchOpen && (
+        <div className="sm:hidden fixed inset-x-0 top-0 h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 z-50 flex items-center px-3 gap-2 animate-fadeIn shadow-lg">
+          <div className="relative flex-1 flex items-center">
+            <span className="absolute left-3.5 text-purple-600 dark:text-purple-400 text-xs">
+              {loading ? <FaSpinner className="animate-spin" /> : <FaSearch />}
+            </span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setIsOpen(true);
+                setHighlightedIndex(-1);
+              }}
+              onFocus={() => setIsOpen(true)}
+              onKeyDown={handleInputKeyDown}
+              placeholder="Search courses, teachers, students..."
+              className="w-full pl-9 pr-8 py-2 bg-gray-100 dark:bg-slate-800 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none border border-transparent focus:border-purple-500"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  inputRef.current?.focus();
+                }}
+                className="absolute right-2.5 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+              >
+                <FaTimes className="text-xs" />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileSearchOpen(false);
+              setIsOpen(false);
+            }}
+            className="px-2.5 py-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer shrink-0"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* --- DESKTOP/TABLET INLINE SEARCH BAR (sm:) --- */}
+      <div className="hidden sm:block relative group w-full">
+        <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 group-focus-within:text-purple-600 dark:group-focus-within:text-purple-400 transition-colors pointer-events-none text-sm">
           {loading ? (
             <FaSpinner className="animate-spin text-purple-600 dark:text-purple-400" />
           ) : (
@@ -286,12 +353,12 @@ const GlobalSearchBar = ({ onSelectTeacher, onSelectStudent }) => {
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleInputKeyDown}
-          placeholder="Search courses, teachers, lessons, students..."
-          className="w-full py-2.5 pl-10 pr-20 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 dark:text-white dark:placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 transition-all text-sm shadow-xs"
+          placeholder="Search courses, teachers, lessons..."
+          className="w-full py-2.5 pl-10 pr-16 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 dark:text-white dark:placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 transition-all text-sm shadow-xs"
         />
 
         {/* Clear Button or Ctrl+K shortcut indicator */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-1.5">
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-1">
           {query ? (
             <button
               type="button"
@@ -305,8 +372,8 @@ const GlobalSearchBar = ({ onSelectTeacher, onSelectStudent }) => {
               <FaTimes className="text-xs" />
             </button>
           ) : (
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-bold text-gray-400 dark:text-slate-400 bg-gray-200/70 dark:bg-slate-700/70 rounded-md border border-gray-300 dark:border-slate-600 shadow-2xs">
-              <span className="text-xs">⌘</span>K
+            <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold text-gray-400 dark:text-slate-400 bg-gray-200/70 dark:bg-slate-700/70 rounded border border-gray-300 dark:border-slate-600 shadow-2xs">
+              <span className="text-[10px]">⌘</span>K
             </kbd>
           )}
         </div>
@@ -314,7 +381,7 @@ const GlobalSearchBar = ({ onSelectTeacher, onSelectStudent }) => {
 
       {/* Floating Dropdown Results Menu */}
       {isOpen && (
-        <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 overflow-hidden z-50 animate-fadeIn max-h-[80vh] flex flex-col">
+        <div className="fixed sm:absolute inset-x-2 sm:inset-x-0 top-16 sm:top-full mt-1.5 sm:mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 overflow-hidden z-50 animate-fadeIn max-h-[75vh] sm:max-h-[80vh] flex flex-col">
           
           {/* Filter Categories Bar (When querying) */}
           {query.trim() && (

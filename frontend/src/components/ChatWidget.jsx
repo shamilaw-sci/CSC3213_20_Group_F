@@ -111,24 +111,24 @@ export default function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 font-sans">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 font-sans">
       {/* --- FLOATING TOGGLE BUTTON WITH FAROBOT ICON --- */}
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
-          className="relative bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl transition-all duration-300 transform hover:scale-110 group cursor-pointer focus:outline-none focus:ring-4 focus:ring-purple-300"
+          className="relative bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-2xl flex items-center justify-center text-xl sm:text-2xl transition-all duration-300 transform hover:scale-110 group cursor-pointer focus:outline-none focus:ring-4 focus:ring-purple-300"
           title="Open LuminaChat Assistant"
         >
-          <FaRobot className="text-2xl transition-transform group-hover:rotate-12" />
-          <span className="absolute -top-1 -right-1 flex h-4 w-4">
+          <FaRobot className="text-xl sm:text-2xl transition-transform group-hover:rotate-12" />
+          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 sm:h-4 sm:w-4">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white"></span>
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 bg-emerald-500 border-2 border-white"></span>
           </span>
         </button>
       ) : (
 
         /* --- EMBEDDED POPUP CHAT CONTAINER --- */
-        <div className="w-[340px] sm:w-[380px] h-[540px] bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl flex flex-col border border-purple-100 dark:border-slate-800 overflow-hidden transform transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
+        <div className="fixed inset-x-2 bottom-3 sm:inset-auto sm:right-6 sm:bottom-6 sm:w-[380px] h-[80vh] sm:h-[540px] max-h-[640px] bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl flex flex-col border border-purple-100 dark:border-slate-800 overflow-hidden transform transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-700 via-purple-600 to-indigo-700 text-white p-4 flex justify-between items-center shadow-md relative">
             <div className="flex items-center gap-3">

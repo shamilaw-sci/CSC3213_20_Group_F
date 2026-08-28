@@ -597,14 +597,14 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
   const displayCover = isEditing ? editCoverPicture : currentTeacher?.coverPicture;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-4 animate-fadeIn">
-      <div className="relative w-full max-w-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] border border-purple-100/50 dark:border-slate-800 custom-scrollbar">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-2 sm:p-4 animate-fadeIn">
+      <div className="relative w-full max-w-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-2xl sm:rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] border border-purple-100/50 dark:border-slate-800 custom-scrollbar">
         
         {/* Floating Top-Right Red Cross Close Button (Compact Size) */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-3.5 right-3.5 z-50 bg-red-600 hover:bg-red-700 active:scale-95 text-white w-8 h-8 rounded-full shadow-md border border-white dark:border-slate-700 flex items-center justify-center transition-all duration-200 cursor-pointer group/close"
+          className="absolute top-3 right-3 sm:top-3.5 sm:right-3.5 z-50 bg-red-600 hover:bg-red-700 active:scale-95 text-white w-8 h-8 rounded-full shadow-md border border-white dark:border-slate-700 flex items-center justify-center transition-all duration-200 cursor-pointer group/close"
           title="Close Profile"
           aria-label="Close Profile"
         >
@@ -612,7 +612,7 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
         </button>
 
         {/* Cover Banner (Facebook Style) - Expanded for Crystal-Clear Picture Display */}
-        <div className="relative h-56 sm:h-64 sm:min-h-[260px] bg-gradient-to-r from-[#2d1b64] via-purple-900 to-indigo-900 shadow-inner group/cover overflow-hidden">
+        <div className="relative h-40 sm:h-64 bg-gradient-to-r from-[#2d1b64] via-purple-900 to-indigo-900 shadow-inner group/cover overflow-hidden">
           {displayCover ? (
             <img
               src={getImageUrl(displayCover)}

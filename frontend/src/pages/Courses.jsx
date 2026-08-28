@@ -40,6 +40,7 @@ const Courses = () => {
     }
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [studentTypeFilter, setStudentTypeFilter] = useState('ALL');
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
   const [selectedCourseForEnrollment, setSelectedCourseForEnrollment] = useState(null);
   const [selectedTeacherForModal, setSelectedTeacherForModal] = useState(null);
@@ -516,27 +517,72 @@ const Courses = () => {
     <div className="min-h-screen bg-[#f3f4f6] dark:bg-slate-950 p-4 md:p-10 font-sans text-gray-800 dark:text-gray-100 transition-colors duration-200">
       <div className="max-w-7xl mx-auto">
         
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-          <div>
-            <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white">
-              {user?.role === 'admin' ? 'All Courses' : user?.role === 'teacher' ? 'My Teaching Courses' : user?.role === 'parent' ? 'Institute Courses Catalogue' : 'Courses'}
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
-              {user?.role === 'admin' ? 'Manage all courses and educational content' : user?.role === 'teacher' ? 'View and manage your assigned courses' : user?.role === 'parent' ? 'Browse all institute courses, assigned instructors, and grade offerings' : 'Browse your enrolled and available courses'}
-            </p>
+        {/* Hero Banner Header matching Analytics mobile UI */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 sm:p-8 rounded-[28px] text-white shadow-xl mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shrink-0 shadow-inner">
+              📚
+            </div>
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                {user?.role === 'admin' ? 'All Courses Directory' : user?.role === 'teacher' ? 'My Teaching Courses' : user?.role === 'parent' ? 'Institute Courses Catalogue' : 'Explore Courses'}
+              </h2>
+              <p className="text-indigo-200 text-xs sm:text-sm mt-1 max-w-xl">
+                {user?.role === 'admin' ? 'Manage curriculum modules, instructors, active status, and class timetables.' : user?.role === 'teacher' ? 'View and manage student enrolments and schedules for your assigned courses.' : user?.role === 'parent' ? 'Browse all institute courses, instructors, and grade offerings for your children.' : 'Browse your enrolled courses and discover available subject modules.'}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="mb-8 max-w-md">
-          <input
-            type="text"
-            placeholder="Search courses by title, description or teacher..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none shadow-sm text-gray-900 dark:text-white transition"
-          />
+        {/* Search & Filter Bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div className="relative w-full md:w-96">
+            <input
+              type="text"
+              placeholder="Search courses by title, description or teacher..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-3 pl-10 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-purple-500 outline-none shadow-xs text-xs font-medium text-gray-900 dark:text-white transition"
+            />
+            <FaCompass className="absolute left-3.5 top-3.5 text-gray-400 text-xs" />
+          </div>
+
+          {/* Floating Pill Filter Mode matching Analytics image */}
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-xs self-start md:self-auto">
+            <span className="text-[11px] font-extrabold text-gray-400 dark:text-gray-400 px-2 uppercase tracking-wider">
+              Filter:
+            </span>
+            <button
+              onClick={() => setStudentTypeFilter('ALL')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                studentTypeFilter === 'ALL'
+                  ? 'bg-amber-400 text-purple-950 shadow-xs'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              🌐 All Courses
+            </button>
+            <button
+              onClick={() => setStudentTypeFilter('online')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                studentTypeFilter === 'online'
+                  ? 'bg-amber-400 text-purple-950 shadow-xs'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              💻 Online
+            </button>
+            <button
+              onClick={() => setStudentTypeFilter('physical')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                studentTypeFilter === 'physical'
+                  ? 'bg-amber-400 text-purple-950 shadow-xs'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              🏫 Physical
+            </button>
+          </div>
         </div>
 
         {user?.role === 'student' ? (
@@ -591,225 +637,353 @@ const Courses = () => {
                 <p className="text-base font-semibold">No courses found matching your search criteria.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-purple-50/80 dark:bg-slate-800/80 text-purple-950 dark:text-purple-300 text-xs font-black uppercase tracking-wider border-b border-purple-200/80 dark:border-slate-700">
-                      <th className="py-4 px-6">Course Name</th>
-                      <th className="py-4 px-6">Available Grades</th>
-                      <th className="py-4 px-6">Teacher / Instructor</th>
-                      <th className="py-4 px-6">Child Status</th>
-                      <th className="py-4 px-6 text-center">Course Details</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
-                    {filteredCourses.map((course) => {
-                      const linkedChild = getLinkedChildEnrollment(course);
-                      const cSchedules = getCourseSchedules(course._id || course.id);
-                      const isExpanded = !!expandedCourseIds[course._id || course.id];
+              <>
+                {/* Desktop Table View (hidden on mobile < md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-purple-50/80 dark:bg-slate-800/80 text-purple-950 dark:text-purple-300 text-xs font-black uppercase tracking-wider border-b border-purple-200/80 dark:border-slate-700">
+                        <th className="py-4 px-6">Course Name</th>
+                        <th className="py-4 px-6">Available Grades</th>
+                        <th className="py-4 px-6">Teacher / Instructor</th>
+                        <th className="py-4 px-6">Child Status</th>
+                        <th className="py-4 px-6 text-center">Course Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
+                      {filteredCourses.map((course) => {
+                        const linkedChild = getLinkedChildEnrollment(course);
+                        const cSchedules = getCourseSchedules(course._id || course.id);
+                        const isExpanded = !!expandedCourseIds[course._id || course.id];
 
-                      return (
-                        <React.Fragment key={course._id || course.id}>
-                          {/* Main Summary Row */}
-                          <tr 
-                            onClick={() => toggleCourseExpand(course._id || course.id)}
-                            className={`transition-colors cursor-pointer ${
-                              isExpanded ? 'bg-purple-50/60 dark:bg-slate-800/60' : 'hover:bg-purple-50/30 dark:hover:bg-slate-800/40'
-                            }`}
-                          >
-                            {/* Course Name */}
-                            <td className="py-4 px-6 font-extrabold text-slate-900 dark:text-white align-middle">
-                              <div className="space-y-1">
-                                <span className="text-base font-black text-purple-950 dark:text-white block">{course.title}</span>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  {course.studentType === 'online' ? (
-                                    <span className="bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
-                                      💻 Online
-                                    </span>
-                                  ) : course.studentType === 'physical' ? (
-                                    <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
-                                      🏫 Physical
-                                    </span>
-                                  ) : (
-                                    <span className="bg-indigo-100 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
-                                      🌐 Online & Physical
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* Available Grades */}
-                            <td className="py-4 px-6 align-middle">
-                              <span className="inline-block px-3.5 py-1.5 bg-purple-50 dark:bg-purple-950/60 text-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-black rounded-xl shadow-2xs">
-                                🎓 {getGradesDisplay(course)}
-                              </span>
-                            </td>
-
-                            {/* Teacher / Instructor */}
-                            <td className="py-4 px-6 align-middle">
-                              <div className="flex items-center gap-3">
-                                {course.instructor?.profilePicture ? (
-                                  <img
-                                    src={getImageUrl(course.instructor.profilePicture)}
-                                    alt={course.instructor.name || 'Teacher'}
-                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-600/20 shadow-xs shrink-0 bg-white dark:bg-slate-800"
-                                    onError={(e) => { e.target.style.display = 'none'; }}
-                                  />
-                                ) : (
-                                  <div className="w-10 h-10 bg-purple-900 text-white rounded-full flex items-center justify-center font-extrabold text-sm ring-2 ring-purple-600/20 shrink-0">
-                                    {course.instructor ? course.instructor.name.charAt(0) : '?'}
-                                  </div>
-                                )}
-                                <div>
-                                  <p className="font-extrabold text-slate-900 dark:text-white text-sm">{course.instructor ? course.instructor.name : 'Unassigned'}</p>
-                                  <p className="text-[11px] text-purple-700 dark:text-purple-400 font-bold uppercase tracking-wider">Instructor</p>
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* Child Status */}
-                            <td className="py-4 px-6 align-middle">
-                              {linkedChild ? (
-                                <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black px-3 py-1 rounded-full inline-block shadow-2xs">
-                                  ✓ Enrolled by {linkedChild.name} ({linkedChild.grade})
-                                </span>
-                              ) : (
-                                <span className="bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs font-bold px-3 py-1 rounded-full inline-block border border-gray-200 dark:border-slate-700">
-                                  Not Enrolled
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Action / Arrow Expand Button */}
-                            <td className="py-4 px-6 align-middle text-center">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleCourseExpand(course._id);
-                                }}
-                                className={`px-3.5 py-1.5 rounded-xl font-black text-xs transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-xs ${
-                                  isExpanded
-                                    ? 'bg-purple-700 text-white shadow-purple-200'
-                                    : 'bg-purple-100/90 dark:bg-slate-800 text-purple-950 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-slate-700'
-                                }`}
-                              >
-                                <span>{isExpanded ? 'Hide Details' : 'View Details'}</span>
-                                <FaChevronDown className={`text-xs transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
-                              </button>
-                            </td>
-                          </tr>
-
-                          {/* Collapsible Details Row */}
-                          {isExpanded && (
-                            <tr className="bg-purple-50/40 dark:bg-slate-900/90 border-b-2 border-purple-200 dark:border-slate-800">
-                              <td colSpan="5" className="p-4 md:p-6">
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 bg-white dark:bg-slate-800/90 p-5 rounded-2xl border border-purple-100 dark:border-slate-700 shadow-sm">
-                                  
-                                  {/* Card 1: Course Overview & Description */}
-                                  <div className="space-y-3 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-purple-100 dark:border-slate-700 pb-4 lg:pb-0 lg:pr-5">
-                                    <div className="flex items-center gap-2 text-purple-900 dark:text-purple-300 font-extrabold text-xs uppercase tracking-wider">
-                                      <FaBookOpen className="text-purple-700 dark:text-purple-400 text-sm" /> Course Overview & Description
-                                    </div>
-                                    <p className="text-xs text-gray-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-line">
-                                      {course.description || 'No detailed syllabus or description provided.'}
-                                    </p>
-                                    <div className="pt-2 flex flex-wrap gap-2 text-xs">
-                                      <div className="bg-purple-50 dark:bg-purple-950/60 px-3 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800 text-purple-950 dark:text-purple-300 font-bold flex items-center gap-1.5">
-                                        <FaMoneyBillWave className="text-amber-600 dark:text-amber-400" /> Monthly Fee: <span className="font-extrabold text-amber-700 dark:text-amber-400">LKR {course.price?.toLocaleString() || '2,500'}</span>
-                                      </div>
-                                      <div className="bg-indigo-50 dark:bg-indigo-950/60 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-300 font-bold flex items-center gap-1.5">
-                                        <FaGraduationCap className="text-indigo-600 dark:text-indigo-400" /> Target Grades: <span className="font-extrabold">{getGradesDisplay(course)}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Card 2: Class Timetables & Schedules */}
-                                  <div className="space-y-3 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-purple-100 dark:border-slate-700 pb-4 lg:pb-0 lg:pr-5">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-2 text-purple-900 dark:text-purple-300 font-extrabold text-xs uppercase tracking-wider">
-                                        <FaClock className="text-purple-700 dark:text-purple-400 text-sm" /> Class Timetables & Schedules
-                                      </div>
-                                      <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
-                                        {cSchedules.length} Sessions
+                        return (
+                          <React.Fragment key={course._id || course.id}>
+                            {/* Main Summary Row */}
+                            <tr 
+                              onClick={() => toggleCourseExpand(course._id || course.id)}
+                              className={`transition-colors cursor-pointer ${
+                                isExpanded ? 'bg-purple-50/60 dark:bg-slate-800/60' : 'hover:bg-purple-50/30 dark:hover:bg-slate-800/40'
+                              }`}
+                            >
+                              {/* Course Name */}
+                              <td className="py-4 px-6 font-extrabold text-slate-900 dark:text-white align-middle">
+                                <div className="space-y-1">
+                                  <span className="text-base font-black text-purple-950 dark:text-white block">{course.title}</span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {course.studentType === 'online' ? (
+                                      <span className="bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                                        💻 Online
                                       </span>
-                                    </div>
-                                    {cSchedules.length === 0 ? (
-                                      <p className="text-xs text-gray-400 italic py-2">No active class timetables published for this course yet.</p>
+                                    ) : course.studentType === 'physical' ? (
+                                      <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                                        🏫 Physical
+                                      </span>
                                     ) : (
-                                      <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                                        {cSchedules.map((sch) => (
-                                          <div key={sch._id} className="text-xs font-semibold text-gray-800 dark:text-gray-200 bg-purple-50/70 dark:bg-slate-900/80 border border-purple-200/90 dark:border-slate-700 p-2.5 rounded-xl flex items-center justify-between gap-2 hover:bg-purple-100/70 dark:hover:bg-slate-700 transition">
-                                            <div>
-                                              <span className="font-extrabold text-purple-950 dark:text-purple-300 block">🎓 {sch.className || sch.grade}</span>
-                                              <span className="text-[11px] text-gray-600 dark:text-gray-400">⏱️ {sch.startTime} - {sch.endTime}</span>
-                                            </div>
-                                            <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 font-extrabold text-[11px] px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800 whitespace-nowrap">
-                                              📅 {sch.dayOfWeek}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
+                                      <span className="bg-indigo-100 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                                        🌐 Online & Physical
+                                      </span>
                                     )}
                                   </div>
+                                </div>
+                              </td>
 
-                                  {/* Card 3: Child Enrollment & Instructor Details */}
-                                  <div className="space-y-3 lg:col-span-1">
-                                    <div className="flex items-center gap-2 text-purple-900 dark:text-purple-300 font-extrabold text-xs uppercase tracking-wider">
-                                      <FaCheckCircle className="text-emerald-600 dark:text-emerald-400 text-sm" /> Child Enrollment Status
+                              {/* Available Grades */}
+                              <td className="py-4 px-6 align-middle">
+                                <span className="inline-block px-3.5 py-1.5 bg-purple-50 dark:bg-purple-950/60 text-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-black rounded-xl shadow-2xs">
+                                  🎓 {getGradesDisplay(course)}
+                                </span>
+                              </td>
+
+                              {/* Teacher / Instructor */}
+                              <td className="py-4 px-6 align-middle">
+                                <div className="flex items-center gap-3">
+                                  {course.instructor?.profilePicture ? (
+                                    <img
+                                      src={getImageUrl(course.instructor.profilePicture)}
+                                      alt={course.instructor.name || 'Teacher'}
+                                      className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-600/20 shadow-xs shrink-0 bg-white dark:bg-slate-800"
+                                      onError={(e) => { e.target.style.display = 'none'; }}
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 bg-purple-900 text-white rounded-full flex items-center justify-center font-extrabold text-sm ring-2 ring-purple-600/20 shrink-0">
+                                      {course.instructor ? course.instructor.name.charAt(0) : '?'}
                                     </div>
-                                    {linkedChild ? (
-                                      <div className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 space-y-1.5">
-                                        <span className="text-xs font-extrabold text-emerald-950 dark:text-emerald-300 flex items-center gap-1.5">
-                                          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                                          Active Student Enrollment
-                                        </span>
-                                        <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
-                                          Your child <strong className="text-emerald-950 dark:text-white font-black">{linkedChild.name}</strong> is enrolled in this course for <strong className="text-emerald-950 dark:text-white">{linkedChild.grade}</strong>.
-                                        </p>
-                                      </div>
-                                    ) : (
-                                      <div className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-3">
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                          None of your registered children are currently enrolled in this course.
-                                        </p>
-                                      </div>
-                                    )}
+                                  )}
+                                  <div>
+                                    <p className="font-extrabold text-slate-900 dark:text-white text-sm">{course.instructor ? course.instructor.name : 'Unassigned'}</p>
+                                    <p className="text-[11px] text-purple-700 dark:text-purple-400 font-bold uppercase tracking-wider">Instructor</p>
+                                  </div>
+                                </div>
+                              </td>
 
-                                    <div className="pt-2 border-t border-purple-50 dark:border-slate-700">
-                                      <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Teaching Instructor</span>
-                                      <div className="flex items-center gap-2.5">
-                                        {course.instructor?.profilePicture ? (
-                                          <img
-                                            src={getImageUrl(course.instructor.profilePicture)}
-                                            alt={course.instructor.name || 'Instructor'}
-                                            className="w-9 h-9 rounded-full object-cover border border-purple-200 dark:border-purple-700 shrink-0"
-                                            onError={(e) => { e.target.style.display = 'none'; }}
-                                          />
-                                        ) : (
-                                          <div className="w-9 h-9 rounded-full bg-purple-900 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
-                                            {course.instructor?.name ? course.instructor.name.charAt(0) : 'T'}
-                                          </div>
-                                        )}
-                                        <div>
-                                          <p className="text-xs font-bold text-gray-900 dark:text-white">{course.instructor?.name || 'Assigned Instructor'}</p>
-                                          <p className="text-[10px] text-purple-700 dark:text-purple-400 font-semibold">{course.instructor?.email || 'Institute Teacher'}</p>
+                              {/* Child Status */}
+                              <td className="py-4 px-6 align-middle">
+                                {linkedChild ? (
+                                  <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black px-3 py-1 rounded-full inline-block shadow-2xs">
+                                    ✓ Enrolled by {linkedChild.name} ({linkedChild.grade})
+                                  </span>
+                                ) : (
+                                  <span className="bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs font-bold px-3 py-1 rounded-full inline-block border border-gray-200 dark:border-slate-700">
+                                    Not Enrolled
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Action / Arrow Expand Button */}
+                              <td className="py-4 px-6 align-middle text-center">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleCourseExpand(course._id);
+                                  }}
+                                  className={`px-3.5 py-1.5 rounded-xl font-black text-xs transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                                    isExpanded
+                                      ? 'bg-purple-700 text-white shadow-purple-200'
+                                      : 'bg-purple-100/90 dark:bg-slate-800 text-purple-950 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-slate-700'
+                                  }`}
+                                >
+                                  <span>{isExpanded ? 'Hide Details' : 'View Details'}</span>
+                                  <FaChevronDown className={`text-xs transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                              </td>
+                            </tr>
+
+                            {/* Collapsible Details Row */}
+                            {isExpanded && (
+                              <tr className="bg-purple-50/40 dark:bg-slate-900/90 border-b-2 border-purple-200 dark:border-slate-800">
+                                <td colSpan="5" className="p-4 md:p-6">
+                                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 bg-white dark:bg-slate-800/90 p-5 rounded-2xl border border-purple-100 dark:border-slate-700 shadow-sm">
+                                    
+                                    {/* Card 1: Course Overview & Description */}
+                                    <div className="space-y-3 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-purple-100 dark:border-slate-700 pb-4 lg:pb-0 lg:pr-5">
+                                      <div className="flex items-center gap-2 text-purple-900 dark:text-purple-300 font-extrabold text-xs uppercase tracking-wider">
+                                        <FaBookOpen className="text-purple-700 dark:text-purple-400 text-sm" /> Course Overview & Description
+                                      </div>
+                                      <p className="text-xs text-gray-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-line">
+                                        {course.description || 'No detailed syllabus or description provided.'}
+                                      </p>
+                                      <div className="pt-2 flex flex-wrap gap-2 text-xs">
+                                        <div className="bg-purple-50 dark:bg-purple-950/60 px-3 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800 text-purple-950 dark:text-purple-300 font-bold flex items-center gap-1.5">
+                                          <FaMoneyBillWave className="text-amber-600 dark:text-amber-400" /> Monthly Fee: <span className="font-extrabold text-amber-700 dark:text-amber-400">LKR {course.price?.toLocaleString() || '2,500'}</span>
+                                        </div>
+                                        <div className="bg-indigo-50 dark:bg-indigo-950/60 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-300 font-bold flex items-center gap-1.5">
+                                          <FaGraduationCap className="text-indigo-600 dark:text-indigo-400" /> Target Grades: <span className="font-extrabold">{getGradesDisplay(course)}</span>
                                         </div>
                                       </div>
                                     </div>
-                                  </div>
 
+                                    {/* Card 2: Class Timetables & Schedules */}
+                                    <div className="space-y-3 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-purple-100 dark:border-slate-700 pb-4 lg:pb-0 lg:pr-5">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-purple-900 dark:text-purple-300 font-extrabold text-xs uppercase tracking-wider">
+                                          <FaClock className="text-purple-700 dark:text-purple-400 text-sm" /> Class Timetables & Schedules
+                                        </div>
+                                        <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
+                                          {cSchedules.length} Sessions
+                                        </span>
+                                      </div>
+                                      {cSchedules.length === 0 ? (
+                                        <p className="text-xs text-gray-400 italic py-2">No active class timetables published for this course yet.</p>
+                                      ) : (
+                                        <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                                          {cSchedules.map((sch) => (
+                                            <div key={sch._id} className="text-xs font-semibold text-gray-800 dark:text-gray-200 bg-purple-50/70 dark:bg-slate-900/80 border border-purple-200/90 dark:border-slate-700 p-2.5 rounded-xl flex items-center justify-between gap-2 hover:bg-purple-100/70 dark:hover:bg-slate-700 transition">
+                                              <div>
+                                                <span className="font-extrabold text-purple-950 dark:text-purple-300 block">🎓 {sch.className || sch.grade}</span>
+                                                <span className="text-[11px] text-gray-600 dark:text-gray-400">⏱️ {sch.startTime} - {sch.endTime}</span>
+                                              </div>
+                                              <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 font-extrabold text-[11px] px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800 whitespace-nowrap">
+                                                📅 {sch.dayOfWeek}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Card 3: Child Enrollment & Instructor Details */}
+                                    <div className="space-y-3 lg:col-span-1">
+                                      <div className="flex items-center gap-2 text-purple-900 dark:text-purple-300 font-extrabold text-xs uppercase tracking-wider">
+                                        <FaCheckCircle className="text-emerald-600 dark:text-emerald-400 text-sm" /> Child Enrollment Status
+                                      </div>
+                                      {linkedChild ? (
+                                        <div className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 space-y-1.5">
+                                          <span className="text-xs font-extrabold text-emerald-950 dark:text-emerald-300 flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                                            Active Student Enrollment
+                                          </span>
+                                          <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
+                                            Your child <strong className="text-emerald-950 dark:text-white font-black">{linkedChild.name}</strong> is enrolled in this course for <strong className="text-emerald-950 dark:text-white">{linkedChild.grade}</strong>.
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <div className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-3">
+                                          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                            None of your registered children are currently enrolled in this course.
+                                          </p>
+                                        </div>
+                                      )}
+
+                                      <div className="pt-2 border-t border-purple-50 dark:border-slate-700">
+                                        <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Teaching Instructor</span>
+                                        <div className="flex items-center gap-2.5">
+                                          {course.instructor?.profilePicture ? (
+                                            <img
+                                              src={getImageUrl(course.instructor.profilePicture)}
+                                              alt={course.instructor.name || 'Instructor'}
+                                              className="w-9 h-9 rounded-full object-cover border border-purple-200 dark:border-purple-700 shrink-0"
+                                              onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
+                                          ) : (
+                                            <div className="w-9 h-9 rounded-full bg-purple-900 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                                              {course.instructor?.name ? course.instructor.name.charAt(0) : 'T'}
+                                            </div>
+                                          )}
+                                          <div>
+                                            <p className="text-xs font-bold text-gray-900 dark:text-white">{course.instructor?.name || 'Assigned Instructor'}</p>
+                                            <p className="text-[10px] text-purple-700 dark:text-purple-400 font-semibold">{course.instructor?.email || 'Institute Teacher'}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Course Cards View (< md) */}
+                <div className="md:hidden space-y-3.5 p-3.5 sm:p-5">
+                  {filteredCourses.map((course) => {
+                    const linkedChild = getLinkedChildEnrollment(course);
+                    const cSchedules = getCourseSchedules(course._id || course.id);
+                    const isExpanded = !!expandedCourseIds[course._id || course.id];
+
+                    return (
+                      <div key={course._id || course.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-purple-100 dark:border-slate-800 shadow-sm space-y-3">
+                        {/* Header: Title & Mode */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-1">
+                            <h4 className="text-base font-black text-purple-950 dark:text-white leading-snug">
+                              {course.title}
+                            </h4>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {course.studentType === 'online' ? (
+                                <span className="bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                                  💻 Online
+                                </span>
+                              ) : course.studentType === 'physical' ? (
+                                <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                                  🏫 Physical
+                                </span>
+                              ) : (
+                                <span className="bg-indigo-100 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                                  🌐 Both Modes
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Child Status Badge */}
+                          <div className="shrink-0">
+                            {linkedChild ? (
+                              <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full inline-block shadow-2xs whitespace-nowrap">
+                                ✓ {linkedChild.name}
+                              </span>
+                            ) : (
+                              <span className="bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block border border-gray-200 dark:border-slate-700 whitespace-nowrap">
+                                Not Enrolled
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Info Box: Grades & Instructor */}
+                        <div className="bg-purple-50/50 dark:bg-slate-800/60 p-3 rounded-xl border border-purple-100/80 dark:border-slate-700/60 space-y-2 text-xs">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-wider shrink-0 mt-0.5">Grades:</span>
+                            <span className="font-extrabold text-purple-950 dark:text-purple-300 text-right text-[11px] leading-snug">
+                              🎓 {getGradesDisplay(course)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-purple-100/60 dark:border-slate-700/60">
+                            <span className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-wider shrink-0">Instructor:</span>
+                            <div className="flex items-center gap-1.5">
+                              {course.instructor?.profilePicture ? (
+                                <img
+                                  src={getImageUrl(course.instructor.profilePicture)}
+                                  alt={course.instructor.name || 'Teacher'}
+                                  className="w-5 h-5 rounded-full object-cover ring-1 ring-purple-600/30"
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              ) : (
+                                <div className="w-5 h-5 bg-purple-900 text-white rounded-full flex items-center justify-center font-extrabold text-[9px]">
+                                  {course.instructor ? course.instructor.name.charAt(0) : '?'}
                                 </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                              )}
+                              <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                {course.instructor ? course.instructor.name : 'Unassigned'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action: Toggle Details */}
+                        <button
+                          type="button"
+                          onClick={() => toggleCourseExpand(course._id || course.id)}
+                          className={`w-full py-2 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs ${
+                            isExpanded
+                              ? 'bg-purple-700 text-white shadow-purple-200'
+                              : 'bg-purple-100/90 dark:bg-slate-800 text-purple-950 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          <span>{isExpanded ? 'Hide Details & Timetable' : 'View Details & Timetable'}</span>
+                          <FaChevronDown className={`text-xs transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {/* Collapsible Mobile Content */}
+                        {isExpanded && (
+                          <div className="pt-2 border-t border-purple-100 dark:border-slate-800 space-y-3 text-xs animate-fadeIn">
+                            {/* Overview */}
+                            <div className="space-y-1">
+                              <span className="font-extrabold text-purple-900 dark:text-purple-300 text-[10px] uppercase tracking-wider block">Course Overview</span>
+                              <p className="text-gray-600 dark:text-gray-300 text-xs leading-relaxed">
+                                {course.description || 'No detailed syllabus or course description provided.'}
+                              </p>
+                            </div>
+
+                            {/* Weekly Timetable Schedule */}
+                            <div className="space-y-1.5 pt-2 border-t border-gray-100 dark:border-slate-800">
+                              <span className="font-extrabold text-purple-900 dark:text-purple-300 text-[10px] uppercase tracking-wider block">Weekly Timetable Schedule</span>
+                              {cSchedules.length === 0 ? (
+                                <p className="text-gray-400 text-xs italic">No weekly timetable schedules set yet.</p>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {cSchedules.map((sch, sIdx) => (
+                                    <div key={sch._id || sIdx} className="bg-purple-50/60 dark:bg-slate-800/80 p-2 rounded-lg border border-purple-100 dark:border-slate-700 flex justify-between items-center text-xs">
+                                      <span className="font-bold text-purple-950 dark:text-purple-200">📅 {sch.dayOfWeek} ({sch.className || sch.grade})</span>
+                                      <span className="font-mono text-[11px] text-gray-600 dark:text-gray-300">{sch.startTime} - {sch.endTime}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         ) : (

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaHome, FaBook, FaCalendarCheck, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt, FaUserPlus, FaSms } from 'react-icons/fa';
+import { FaHome, FaBook, FaCalendarCheck, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt, FaUserPlus, FaSms, FaTimes } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isDark } = useTheme();
@@ -12,10 +12,16 @@ const Sidebar = () => {
   const user = storedUser ? JSON.parse(storedUser) : null;
   const role = user?.role;
 
+  // Auto-close sidebar on route change on mobile
+  useEffect(() => {
+    onClose();
+  }, [location.pathname]);
+
   // --- LOGOUT LOGIC ---
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    onClose();
     navigate('/login');
   };
 
@@ -45,28 +51,50 @@ const Sidebar = () => {
     : "bg-purple-800/60 border-purple-600/40";
 
   return (
-    <div className={`w-64 h-screen ${sidebarBg} text-white fixed left-0 top-0 flex flex-col overflow-hidden shadow-2xl z-30 transition-all duration-500`}>
-
-      {/* Ambient glow effect in dark mode */}
-      {isDark && (
-        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-purple-600/8 to-transparent pointer-events-none" />
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden transition-opacity"
+          onClick={onClose}
+          aria-hidden="true"
+        />
       )}
-      
-      {/* Brand / Logo Area */}
-      <div className={`p-6 mb-4 relative ${isDark ? 'border-b border-slate-800/50' : ''}`}>
-        <h2 className={`text-2xl font-bold flex items-center gap-3 ${logoTextColor}`}>
-          <img src="/assets/LuminaLearn_Logo_icon.png" alt="LuminaLearn Logo" className="h-10 w-auto" />
-          <span className={isDark ? "bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent" : ""}>
-            LuminaLearn
-          </span>
-        </h2>
+
+      <div
+        className={`w-64 h-screen ${sidebarBg} text-white fixed left-0 top-0 flex flex-col overflow-hidden shadow-2xl z-50 transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
+        {/* Ambient glow effect in dark mode */}
         {isDark && (
-          <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
+          <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-purple-600/8 to-transparent pointer-events-none" />
         )}
-      </div>
+        
+        {/* Brand / Logo Area */}
+        <div className={`p-5 mb-3 flex items-center justify-between relative ${isDark ? 'border-b border-slate-800/50' : ''}`}>
+          <h2 className={`text-2xl font-bold flex items-center gap-3 ${logoTextColor}`}>
+            <img src="/assets/LuminaLearn_Logo_icon.png" alt="LuminaLearn Logo" className="h-9 w-auto" />
+            <span className={isDark ? "bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent" : ""}>
+              LuminaLearn
+            </span>
+          </h2>
+          {/* Mobile Close Button */}
+          <button
+            onClick={onClose}
+            className="md:hidden p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            title="Close navigation"
+            aria-label="Close navigation"
+          >
+            <FaTimes className="text-base" />
+          </button>
+          {isDark && (
+            <div className="absolute bottom-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
+          )}
+        </div>
       
       {/* Navigation Links */}
-      <nav className="flex-1 min-h-0 px-4 pb-6 space-y-1.5 overflow-y-auto no-scrollbar relative">
+      <nav onClick={onClose} className="flex-1 min-h-0 px-4 pb-6 space-y-1.5 overflow-y-auto no-scrollbar relative">
         {role === 'counter_staff' ? (
           <>
             <div className={`${staffBadgeBg} p-3 rounded-xl mb-4 border transition-colors duration-300`}>
@@ -131,7 +159,8 @@ const Sidebar = () => {
         </button>
       </div>
     </div>
-  );
+  </>
+);
 };
 
 export default Sidebar;

@@ -146,18 +146,31 @@ const Login = () => {
       </div>
 
       {/* Right Side - Login Panel */}
-      <div className="flex w-full items-center justify-center bg-white dark:bg-slate-900/95 lg:dark:bg-slate-900/95 dark:backdrop-blur-xl px-6 py-10 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto border-l border-transparent dark:border-slate-800 transition-colors">
+      <div className="flex w-full items-center justify-center bg-white dark:bg-slate-900/95 lg:dark:bg-slate-900/95 dark:backdrop-blur-xl px-4 sm:px-6 py-8 sm:py-10 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto border-l border-transparent dark:border-slate-800 transition-colors">
         <div className="w-full max-w-md py-2">
+
+          {/* Mobile Branding Logo */}
+          <div className="lg:hidden flex flex-col items-center mb-6 text-center">
+            <img
+              src="/assets/LuminaLearn_Logo_banner.png"
+              alt="LuminaLearn Logo"
+              className="h-14 sm:h-16 w-auto object-contain mb-1 drop-shadow-sm cursor-pointer"
+              onClick={() => navigate('/')}
+            />
+            <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+              Smart Learning Platform
+            </span>
+          </div>
 
           {/* Header */}
           <div className="mb-6">
-            <h2 className="text-3xl sm:text-4xl font-black text-[#1e1e38] dark:text-white tracking-tight">Login</h2>
-            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400 font-medium">
+            <h2 className="text-2xl sm:text-4xl font-black text-[#1e1e38] dark:text-white tracking-tight">Login</h2>
+            <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
               Sign in to your learning account or parent portal
             </p>
 
             {/* Portal Switcher Tabs */}
-            <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1.5 rounded-2xl gap-2 mt-5 border border-slate-200/80 dark:border-slate-700/80">
+            <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl sm:rounded-2xl gap-1.5 sm:gap-2 mt-4 sm:mt-5 border border-slate-200/80 dark:border-slate-700/80">
               <button
                 type="button"
                 onClick={() => setPortalType('student')}

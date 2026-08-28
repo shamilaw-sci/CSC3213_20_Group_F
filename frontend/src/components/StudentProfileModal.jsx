@@ -59,7 +59,7 @@ const StudentProfileModal = ({ isOpen, onClose, studentId, onSelectPrivateChat, 
       className={
         containerScoped
           ? "absolute inset-0 z-50 flex items-center justify-center p-2 sm:p-3 bg-slate-950/60 backdrop-blur-xs animate-fadeIn select-none overflow-hidden"
-          : "fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-fadeIn select-none overflow-hidden"
+          : "fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-fadeIn select-none overflow-hidden"
       }
       onClick={onClose}
     >

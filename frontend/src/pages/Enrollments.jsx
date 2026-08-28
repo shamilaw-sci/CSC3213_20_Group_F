@@ -30,7 +30,7 @@ const isMatchingGrade = (studentGrade, classGrade) => {
 };
 
 const Enrollments = () => {
-  const [activeTab, setActiveTab] = useState('enrollments'); // 'enrollments' | 'pending_slips'
+  const [activeTab, setActiveTab] = useState('enrollments'); // 'enrollments' | 'approve_slips' | 'approved_slips' | 'declined_slips'
   const [enrollments, setEnrollments] = useState([]);
   const [bankSlips, setBankSlips] = useState([]);
   const [bankSlipStatusFilter, setBankSlipStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING_APPROVAL' | 'COMPLETED' | 'REJECTED'
@@ -334,15 +334,336 @@ const Enrollments = () => {
   const approvedSlipsCount = bankSlips.filter(s => s.status === 'COMPLETED').length;
   const rejectedSlipsCount = bankSlips.filter(s => s.status === 'REJECTED').length;
 
-  const filteredBankSlips = bankSlips.filter(s => {
-    if (bankSlipStatusFilter === 'ALL') return true;
-    if (bankSlipStatusFilter === 'COMPLETED') return s.status === 'COMPLETED';
-    if (bankSlipStatusFilter === 'REJECTED') return s.status === 'REJECTED';
-    return s.status === 'PENDING_APPROVAL';
-  });
+  const pendingSlips = bankSlips.filter(s => s.status === 'PENDING_APPROVAL');
+  const approvedSlips = bankSlips.filter(s => s.status === 'COMPLETED');
+  const declinedSlips = bankSlips.filter(s => s.status === 'REJECTED');
+
+  const filterSlips = (list) => {
+    if (!tableSearch) return list;
+    const term = tableSearch.toLowerCase();
+    return list.filter(s => 
+      (s.student?.name && s.student.name.toLowerCase().includes(term)) ||
+      (s.student?.email && s.student.email.toLowerCase().includes(term)) ||
+      (s.student?.registrationNumber && s.student.registrationNumber.toLowerCase().includes(term)) ||
+      (s.course?.title && s.course.title.toLowerCase().includes(term)) ||
+      (s.transactionId && s.transactionId.toLowerCase().includes(term)) ||
+      (s.depositorName && s.depositorName.toLowerCase().includes(term))
+    );
+  };
 
   const selectedCourse = courses.find(c => c._id === selectedCourseId);
   const assignedGrades = selectedCourse?.enrolledGrades || [];
+
+  const renderBankSlipsSection = (type) => {
+    let rawList = [];
+    let title = '';
+    let subtitle = '';
+    let emptyMsg = '';
+    let emptyIcon = '📋';
+
+    if (type === 'pending') {
+      rawList = pendingSlips;
+      title = '⏳ Bank Slips Awaiting Approval';
+      subtitle = 'Review incoming student deposit slips and grant immediate course access or decline with feedback.';
+      emptyMsg = 'All caught up! No bank deposit slips are currently awaiting review.';
+      emptyIcon = '🎉';
+    } else if (type === 'approved') {
+      rawList = approvedSlips;
+      title = '✅ Approved Bank Deposit Slips';
+      subtitle = 'Permanent audit ledger of all bank slips verified and granted active course enrollments.';
+      emptyMsg = 'No approved bank deposit slips found in the archive.';
+      emptyIcon = '📜';
+    } else {
+      rawList = declinedSlips;
+      title = '❌ Declined Bank Deposit Slips';
+      subtitle = 'Archive of rejected bank deposit submissions along with specified decline reasons.';
+      emptyMsg = 'No declined bank deposit slips in this archive.';
+      emptyIcon = '🛡️';
+    }
+
+    const currentSlips = filterSlips(rawList);
+
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        {/* Banner & Search */}
+        <div className="bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 p-4 md:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-extrabold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+              {title}
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>
+          </div>
+
+          <div className="relative w-full md:w-80">
+            <input
+              type="text"
+              placeholder="Search by student, reg no, course, or ref ID..."
+              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-medium text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+              value={tableSearch}
+              onChange={(e) => setTableSearch(e.target.value)}
+            />
+            <FaSearch className="absolute left-3 top-2.5 text-gray-400 text-xs" />
+          </div>
+        </div>
+
+        {currentSlips.length > 0 ? (
+          <div className="space-y-3">
+            {currentSlips.map((slip) => {
+              const isExpanded = !!expandedSlipIds[slip._id];
+              const isPdf = isPdfFile(slip.slipImage);
+
+              return (
+                <div 
+                  key={slip._id} 
+                  className={`bg-white dark:bg-slate-800/90 border rounded-2xl transition shadow-xs overflow-hidden ${
+                    isExpanded ? 'border-purple-300 dark:border-purple-500 ring-2 ring-purple-500/10' : 'border-gray-200 dark:border-slate-700 hover:border-purple-200 dark:hover:border-purple-600'
+                  }`}
+                >
+                  {/* Summary Row */}
+                  <div 
+                    onClick={() => toggleExpandSlip(slip._id)}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer select-none bg-gray-50/50 dark:bg-slate-800/50 hover:bg-purple-50/20 dark:hover:bg-slate-700/50 transition"
+                  >
+                    <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpandSlip(slip._id);
+                        }}
+                        className="p-2 text-gray-400 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl transition cursor-pointer text-xs shrink-0"
+                        title={isExpanded ? "Collapse details" : "Expand details"}
+                      >
+                        {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+                      </button>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="font-extrabold text-gray-900 dark:text-white text-sm sm:text-base truncate">
+                            {slip.student?.name || 'Unknown Student'}
+                          </h4>
+                          <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 font-mono font-bold text-[10px] rounded-md border border-purple-200 dark:border-purple-800">
+                            {slip.student?.registrationNumber || 'No Reg No'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <span>{slip.student?.email}</span>
+                          <span>•</span>
+                          <span>Course: <strong className="text-purple-900 dark:text-purple-300 font-bold">{slip.course?.title || 'N/A'}</strong></span>
+                          <span>•</span>
+                          <span>Date: {slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-slate-700">
+                      <div className="text-right">
+                        <span className="text-base sm:text-lg font-extrabold text-purple-950 dark:text-purple-300 block">LKR {slip.amount?.toLocaleString()}</span>
+                        {slip.status === 'PENDING_APPROVAL' && (
+                          <span className="text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-amber-200 dark:border-amber-800">
+                            Pending Approval
+                          </span>
+                        )}
+                        {slip.status === 'COMPLETED' && (
+                          <span className="text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center justify-end gap-1 border border-emerald-200 dark:border-emerald-800">
+                            <FaCheckCircle className="text-emerald-600 dark:text-emerald-400 text-[10px]" /> Approved
+                          </span>
+                        )}
+                        {slip.status === 'REJECTED' && (
+                          <span className="text-[10px] font-extrabold bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-red-200 dark:border-red-800">
+                            Declined
+                          </span>
+                        )}
+                      </div>
+
+                      {type === 'pending' && (
+                        <div className="hidden lg:flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenRejectModal(slip);
+                            }}
+                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300 text-xs font-bold rounded-xl transition border border-red-200 dark:border-red-800 cursor-pointer"
+                          >
+                            Decline
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleApproveSlip(slip._id);
+                            }}
+                            disabled={actionLoadingId === slip._id}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition border-none cursor-pointer"
+                          >
+                            {actionLoadingId === slip._id ? 'Approving...' : 'Approve & Enroll'}
+                          </button>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpandSlip(slip._id);
+                        }}
+                        className="px-3 py-1.5 bg-gray-100 hover:bg-purple-100 hover:text-purple-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 font-bold text-xs rounded-xl transition cursor-pointer border-none flex items-center gap-1.5"
+                      >
+                        <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
+                        {isExpanded ? <FaChevronUp className="text-[10px]" /> : <FaChevronDown className="text-[10px]" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded Detailed Section */}
+                  {isExpanded && (
+                    <div className="p-5 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4 animate-fadeIn">
+                      
+                      {/* Meta Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-gray-50 dark:bg-slate-800/80 p-4 rounded-xl text-xs text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-slate-700">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Depositor Name</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">{slip.depositorName || slip.student?.name || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Deposit Date</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">{slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Reference / Tx ID</span>
+                          <span className="font-mono font-bold text-purple-950 dark:text-purple-300">{slip.transactionId || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Student Contact</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">{slip.student?.parentsPhoneNumber || slip.student?.phone || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      {/* Bank Slip Attachment & View/Download options */}
+                      <div className="bg-purple-50/50 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-100 dark:border-purple-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${isPdf ? 'bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-300' : 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'}`}>
+                            {isPdf ? <FaFilePdf /> : <FaImage />}
+                          </div>
+                          <div>
+                            <h5 className="font-extrabold text-xs text-gray-900 dark:text-white">
+                              Uploaded Bank Slip Attachment ({isPdf ? 'PDF Document' : 'Image File'})
+                            </h5>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                              {slip.slipImage ? (isPdf ? 'PDF document ready to view/download' : 'Image file ready to preview/download') : 'No attachment file uploaded'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {slip.slipImage ? (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleViewSlip(slip)}
+                              className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-slate-700 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-slate-700 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                            >
+                              <FaEye className="text-purple-600 dark:text-purple-400" />
+                              <span>View Slip</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadSlip(slip)}
+                              className="px-3.5 py-2 bg-[#2d1b64] hover:bg-indigo-950 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-xs border-none"
+                            >
+                              <FaDownload className="text-amber-400 text-xs" />
+                              <span>Download Slip</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-semibold text-red-500">No slip file available</span>
+                        )}
+                      </div>
+
+                      {/* Image Preview Thumbnail inside expanded view if it's an image */}
+                      {slip.slipImage && !isPdf && (
+                        <div className="mt-2">
+                          <span className="text-[10px] font-extrabold uppercase text-gray-400 dark:text-gray-400 block mb-1.5">Slip Image Preview</span>
+                          <div 
+                            onClick={() => handleViewSlip(slip)}
+                            className="relative rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden cursor-pointer group max-h-48 max-w-md bg-gray-100 dark:bg-slate-800 flex items-center justify-center"
+                          >
+                            <img src={slip.slipImage} alt="Bank Slip Thumbnail" className="object-contain max-h-48 w-full group-hover:scale-105 transition duration-300" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-xs">
+                              🔍 Click to View Full Image
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons or Processed Status Footer */}
+                      {slip.status === 'PENDING_APPROVAL' ? (
+                        <div className="flex gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
+                          <button
+                            onClick={() => handleOpenRejectModal(slip)}
+                            disabled={actionLoadingId === slip._id}
+                            className="flex-1 py-2.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-700 dark:text-red-300 font-bold text-xs rounded-xl transition border border-red-200 dark:border-red-800 cursor-pointer"
+                          >
+                            ✕ Reject / Decline Slip
+                          </button>
+                          <button
+                            onClick={() => handleApproveSlip(slip._id)}
+                            disabled={actionLoadingId === slip._id}
+                            className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition border-none cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            {actionLoadingId === slip._id ? 'Processing...' : '✓ Approve & Enroll'}
+                          </button>
+                        </div>
+                      ) : slip.status === 'COMPLETED' ? (
+                        <div className="pt-3 border-t border-gray-100 dark:border-slate-800">
+                          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-2">
+                            <FaCheckCircle className="text-emerald-600 dark:text-emerald-400 text-base" /> 
+                            <span>Slip Approved & Student Access Granted {slip.paymentDate ? `on ${new Date(slip.paymentDate).toLocaleString()}` : ''}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-3 border-t border-gray-100 dark:border-slate-800 space-y-3">
+                          <div className="p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 text-xs rounded-xl space-y-1">
+                            <p className="font-extrabold text-red-900 dark:text-red-200 flex items-center gap-1.5">
+                              <span>✕</span> Bank Slip Declined
+                            </p>
+                            <p className="text-[11px] text-red-700 dark:text-red-300">
+                              <strong>Reason:</strong> {slip.rejectionReason || 'Deposit slip details could not be verified.'}
+                            </p>
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => handleApproveSlip(slip._id)}
+                              disabled={actionLoadingId === slip._id}
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition border-none cursor-pointer flex items-center gap-1.5"
+                            >
+                              {actionLoadingId === slip._id ? 'Processing...' : '✓ Re-approve & Grant Access'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-12 text-center bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-200 dark:border-slate-800">
+            <span className="text-4xl block mb-2">{emptyIcon}</span>
+            <h4 className="font-extrabold text-gray-800 dark:text-white text-base">{emptyMsg}</h4>
+            {tableSearch && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                No slips matched search query "{tableSearch}". Clear search to view all.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -356,60 +677,102 @@ const Enrollments = () => {
   return (
     <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 animate-fade-in font-sans text-gray-800 dark:text-gray-100 transition-colors duration-200">
       
-      {/* Header & Trigger Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">Enrollment & Bank Slip Management</h2>
-          <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Manage course enrollments and verify student bank deposit slips.</p>
+      {/* Hero Banner Header matching Analytics & Payments */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-6 sm:p-8 rounded-[28px] text-white shadow-xl mb-6">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shrink-0 shadow-inner">
+            🎓
+          </div>
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+              Course Enrollments & Bank Slips
+            </h2>
+            <p className="text-indigo-200 text-xs sm:text-sm mt-1 max-w-xl">
+              Verify student bank deposit slips, grant LMS course access, and manage active student enrollments.
+            </p>
+          </div>
         </div>
 
         {/* Action Button to trigger New Enrollment Modal */}
         {activeTab === 'enrollments' && (
           <button
             onClick={() => setShowEnrollModal(true)}
-            className="px-4 py-2.5 bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer border-none shrink-0"
+            className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-purple-950 font-extrabold text-xs rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer border-none shrink-0"
           >
-            <FaUserPlus className="text-amber-400 text-sm" />
+            <FaUserPlus className="text-sm" />
             <span>+ New Course Enrollment</span>
           </button>
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 space-x-6">
+      {/* 4 Dedicated Tabs: 2x2 Mobile Grid & Desktop Flex matching Attendance UI */}
+      <div className="grid grid-cols-2 lg:flex gap-2.5 sm:gap-3 mb-6">
         <button
-          onClick={() => setActiveTab('enrollments')}
-          className={`pb-3 font-semibold text-xs sm:text-sm transition-all border-b-2 cursor-pointer ${
+          onClick={() => { setActiveTab('enrollments'); setCurrentPage(1); }}
+          className={`p-3 rounded-2xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border ${
             activeTab === 'enrollments'
-              ? 'border-purple-700 dark:border-purple-400 text-purple-900 dark:text-purple-300 font-extrabold'
-              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              ? 'bg-[#2d1b64] dark:bg-purple-700 text-white shadow-md border-transparent'
+              : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:bg-purple-50 dark:hover:bg-slate-700'
           }`}
         >
-          🎓 Active Course Enrollments ({enrollments.length})
+          <span>🎓 Active Enrollments</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            activeTab === 'enrollments' ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'
+          }`}>
+            {enrollments.length}
+          </span>
         </button>
 
         <button
-          onClick={() => setActiveTab('pending_slips')}
-          className={`pb-3 font-semibold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
-            activeTab === 'pending_slips'
-              ? 'border-purple-700 dark:border-purple-400 text-purple-900 dark:text-purple-300 font-extrabold'
-              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+          onClick={() => { setActiveTab('approve_slips'); setCurrentPage(1); }}
+          className={`p-3 rounded-2xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border ${
+            activeTab === 'approve_slips'
+              ? 'bg-amber-500 text-purple-950 shadow-md border-transparent font-black'
+              : 'bg-gray-50 dark:bg-slate-800 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900/50 hover:bg-amber-50 dark:hover:bg-slate-700'
           }`}
         >
-          <span>🏦 Bank Deposit Slips</span>
-          {pendingSlipsCount > 0 ? (
-            <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
-              {pendingSlipsCount} Pending
+          <span>⏳ Approve Slips</span>
+          {pendingSlipsCount > 0 && (
+            <span className="bg-amber-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+              {pendingSlipsCount}
             </span>
-          ) : bankSlips.length > 0 ? (
-            <span className="bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
-              {bankSlips.length}
-            </span>
-          ) : null}
+          )}
+        </button>
+
+        <button
+          onClick={() => { setActiveTab('approved_slips'); setCurrentPage(1); }}
+          className={`p-3 rounded-2xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border ${
+            activeTab === 'approved_slips'
+              ? 'bg-emerald-600 text-white shadow-md border-transparent'
+              : 'bg-gray-50 dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-50 dark:hover:bg-slate-700'
+          }`}
+        >
+          <span>✅ Approved Slips</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            activeTab === 'approved_slips' ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'
+          }`}>
+            {approvedSlipsCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab('declined_slips'); setCurrentPage(1); }}
+          className={`p-3 rounded-2xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border ${
+            activeTab === 'declined_slips'
+              ? 'bg-red-600 text-white shadow-md border-transparent'
+              : 'bg-gray-50 dark:bg-slate-800 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-slate-700'
+          }`}
+        >
+          <span>❌ Declined Slips</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            activeTab === 'declined_slips' ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'
+          }`}>
+            {rejectedSlipsCount}
+          </span>
         </button>
       </div>
 
-      {activeTab === 'enrollments' ? (
+      {activeTab === 'enrollments' && (
         <>
           {/* Search bar */}
           <div className="mb-4 relative">
@@ -423,8 +786,8 @@ const Enrollments = () => {
             <FaSearch className="absolute left-3.5 top-3.5 text-gray-400 text-xs" />
           </div>
 
-          {/* Enrollments Table */}
-          <div className="overflow-x-auto rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs">
+          {/* Desktop Enrollments Table (hidden on mobile < md) */}
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-gray-50/80 dark:bg-slate-800/80 text-gray-600 dark:text-gray-300 uppercase text-[11px] tracking-wider border-b border-gray-200 dark:border-slate-700 font-bold">
@@ -477,6 +840,60 @@ const Enrollments = () => {
             </table>
           </div>
 
+          {/* Mobile Enrollments Cards View (visible only on mobile < md) */}
+          <div className="md:hidden space-y-3">
+            {paginatedEnrollments.length > 0 ? (
+              paginatedEnrollments.map((e, idx) => (
+                <div key={idx} className="bg-white dark:bg-slate-800/90 p-4 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xs space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-extrabold text-sm text-gray-900 dark:text-white">{e.studentName}</h4>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">{e.studentEmail}</p>
+                    </div>
+                    <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border border-purple-200 dark:border-purple-800 shrink-0">
+                      {e.studentRegNo || 'N/A'}
+                    </span>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-slate-900/60 p-3 rounded-xl border border-gray-100 dark:border-slate-800 space-y-1.5 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 dark:text-gray-400 text-[10px] font-bold uppercase">Course</span>
+                      <span className="font-extrabold text-purple-950 dark:text-purple-300 text-right">{e.courseTitle}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 dark:text-gray-400 text-[10px] font-bold uppercase">Class / Grade</span>
+                      <span className="bg-purple-100 dark:bg-purple-950/60 text-[#2d1b64] dark:text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold border border-purple-200 dark:border-purple-800">
+                        {e.className}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 dark:text-gray-400 text-[10px] font-bold uppercase">Parent Phone</span>
+                      <span className="font-mono text-gray-700 dark:text-gray-300 text-[11px]">{e.studentPhone || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 dark:text-gray-400 text-[10px] font-bold uppercase">Enrolled Date</span>
+                      <span className="text-gray-600 dark:text-gray-400 text-[11px]">{e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '-'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      onClick={() => handleUnenroll(e.studentId, e.courseId, e.className, e.studentName, e.courseTitle)}
+                      className="w-full py-2 text-red-600 hover:text-red-700 bg-red-50 dark:bg-red-950/40 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border border-red-200 dark:border-red-900/40"
+                    >
+                      <FaTrash className="text-[11px]" />
+                      <span>Unenroll Student</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-200 dark:border-slate-800 text-gray-500 dark:text-gray-400 font-medium text-xs">
+                No enrollments found matching search.
+              </div>
+            )}
+          </div>
+
           {/* Pagination Footer (25 records per page) */}
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-100 dark:border-slate-800">
             <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
@@ -518,285 +935,16 @@ const Enrollments = () => {
             </div>
           </div>
         </>
-      ) : (
-        /* BANK SLIPS MANAGEMENT & HISTORY VIEW */
-        <div className="space-y-6 animate-fadeIn">
-          {/* Header & Status Filter Pills */}
-          <div className="bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 p-4 md:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h3 className="font-extrabold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                <span>🏦</span> Bank Deposit Slips Verification & History
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Review pending slips for verification, or view previously approved and rejected deposit records.</p>
-            </div>
-
-            {/* Filter Pills */}
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setBankSlipStatusFilter('ALL')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
-                  bankSlipStatusFilter === 'ALL'
-                    ? 'bg-purple-900 text-white border-purple-900 shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700'
-                }`}
-              >
-                All ({bankSlips.length})
-              </button>
-              <button
-                onClick={() => setBankSlipStatusFilter('PENDING_APPROVAL')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
-                  bankSlipStatusFilter === 'PENDING_APPROVAL'
-                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-                }`}
-              >
-                <span>Pending ({pendingSlipsCount})</span>
-              </button>
-              <button
-                onClick={() => setBankSlipStatusFilter('COMPLETED')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
-                  bankSlipStatusFilter === 'COMPLETED'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
-                }`}
-              >
-                <span>Approved ({approvedSlipsCount})</span>
-              </button>
-              <button
-                onClick={() => setBankSlipStatusFilter('REJECTED')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${
-                  bankSlipStatusFilter === 'REJECTED'
-                    ? 'bg-red-600 text-white border-red-600 shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950/40'
-                }`}
-              >
-                <span>Rejected ({rejectedSlipsCount})</span>
-              </button>
-            </div>
-          </div>
-
-          {filteredBankSlips.length > 0 ? (
-            <div className="space-y-3">
-              {filteredBankSlips.map((slip) => {
-                const isExpanded = !!expandedSlipIds[slip._id];
-                const isPdf = isPdfFile(slip.slipImage);
-
-                return (
-                  <div 
-                    key={slip._id} 
-                    className={`bg-white dark:bg-slate-800/90 border rounded-2xl transition shadow-xs overflow-hidden ${
-                      isExpanded ? 'border-purple-300 dark:border-purple-500 ring-2 ring-purple-500/10' : 'border-gray-200 dark:border-slate-700 hover:border-purple-200 dark:hover:border-purple-600'
-                    }`}
-                  >
-                    {/* Collapsed Header / Summary Row */}
-                    <div 
-                      onClick={() => toggleExpandSlip(slip._id)}
-                      className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer select-none bg-gray-50/50 dark:bg-slate-800/50 hover:bg-purple-50/20 dark:hover:bg-slate-700/50 transition"
-                    >
-                      <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleExpandSlip(slip._id);
-                          }}
-                          className="p-2 text-gray-400 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl transition cursor-pointer text-xs shrink-0"
-                          title={isExpanded ? "Collapse details" : "Expand details"}
-                        >
-                          {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
-                        </button>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-extrabold text-gray-900 dark:text-white text-sm sm:text-base truncate">
-                              {slip.student?.name || 'Unknown Student'}
-                            </h4>
-                            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 font-mono font-bold text-[10px] rounded-md border border-purple-200 dark:border-purple-800">
-                              {slip.student?.registrationNumber || 'No Reg No'}
-                            </span>
-                          </div>
-                          
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            <span>{slip.student?.email}</span>
-                            <span>•</span>
-                            <span>Course: <strong className="text-purple-900 dark:text-purple-300 font-bold">{slip.course?.title || 'N/A'}</strong></span>
-                            <span>•</span>
-                            <span>Date: {slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : 'N/A'}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-slate-700">
-                        <div className="text-right">
-                          <span className="text-base sm:text-lg font-extrabold text-purple-950 dark:text-purple-300 block">LKR {slip.amount?.toLocaleString()}</span>
-                          {slip.status === 'PENDING_APPROVAL' && (
-                            <span className="text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-amber-200 dark:border-amber-800">
-                              Pending Approval
-                            </span>
-                          )}
-                          {slip.status === 'COMPLETED' && (
-                            <span className="text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center justify-end gap-1 border border-emerald-200 dark:border-emerald-800">
-                              <FaCheckCircle className="text-emerald-600 dark:text-emerald-400 text-[10px]" /> Approved
-                            </span>
-                          )}
-                          {slip.status === 'REJECTED' && (
-                            <span className="text-[10px] font-extrabold bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-red-200 dark:border-red-800">
-                              Rejected
-                            </span>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleExpandSlip(slip._id);
-                          }}
-                          className="px-3 py-1.5 bg-gray-100 hover:bg-purple-100 hover:text-purple-900 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer border-none flex items-center gap-1.5"
-                        >
-                          <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
-                          {isExpanded ? <FaChevronUp className="text-[10px]" /> : <FaChevronDown className="text-[10px]" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Expanded Detailed Section */}
-                    {isExpanded && (
-                      <div className="p-5 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4 animate-fadeIn">
-                        
-                        {/* Meta Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-gray-50 dark:bg-slate-800/80 p-4 rounded-xl text-xs text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-slate-700">
-                          <div>
-                            <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Depositor Name</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{slip.depositorName || slip.student?.name || '-'}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Deposit Date</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{slip.depositDate ? new Date(slip.depositDate).toLocaleDateString() : '-'}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Reference / Tx ID</span>
-                            <span className="font-mono font-bold text-purple-950 dark:text-purple-300">{slip.transactionId || '-'}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-400 block mb-0.5">Student Contact</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{slip.student?.parentsPhoneNumber || slip.student?.phone || 'N/A'}</span>
-                          </div>
-                        </div>
-
-                        {/* Bank Slip Attachment & View/Download options */}
-                        <div className="bg-purple-50/50 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-100 dark:border-purple-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${isPdf ? 'bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-300' : 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'}`}>
-                              {isPdf ? <FaFilePdf /> : <FaImage />}
-                            </div>
-                            <div>
-                              <h5 className="font-extrabold text-xs text-gray-900 dark:text-white">
-                                Uploaded Bank Slip Attachment ({isPdf ? 'PDF Document' : 'Image File'})
-                              </h5>
-                              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                                {slip.slipImage ? (isPdf ? 'PDF document ready to view/download' : 'Image file ready to preview/download') : 'No attachment file uploaded'}
-                              </p>
-                            </div>
-                          </div>
-
-                          {slip.slipImage ? (
-                            <div className="flex items-center gap-2 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleViewSlip(slip)}
-                                className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-slate-700 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-slate-700 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                              >
-                                <FaEye className="text-purple-600 dark:text-purple-400" />
-                                <span>View Slip</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleDownloadSlip(slip)}
-                                className="px-3.5 py-2 bg-[#2d1b64] hover:bg-indigo-950 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-xs border-none"
-                              >
-                                <FaDownload className="text-amber-400 text-xs" />
-                                <span>Download Slip</span>
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs font-semibold text-red-500">No slip file available</span>
-                          )}
-                        </div>
-
-                        {/* Image Preview Thumbnail inside expanded view if it's an image */}
-                        {slip.slipImage && !isPdf && (
-                          <div className="mt-2">
-                            <span className="text-[10px] font-extrabold uppercase text-gray-400 dark:text-gray-400 block mb-1.5">Slip Image Preview</span>
-                            <div 
-                              onClick={() => handleViewSlip(slip)}
-                              className="relative rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden cursor-pointer group max-h-48 max-w-md bg-gray-100 dark:bg-slate-800 flex items-center justify-center"
-                            >
-                              <img src={slip.slipImage} alt="Bank Slip Thumbnail" className="object-contain max-h-48 w-full group-hover:scale-105 transition duration-300" />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-xs">
-                                🔍 Click to View Full Image
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Action Buttons or Processed Status Footer */}
-                        {slip.status === 'PENDING_APPROVAL' ? (
-                          <div className="flex gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
-                            <button
-                              onClick={() => handleOpenRejectModal(slip)}
-                              disabled={actionLoadingId === slip._id}
-                              className="flex-1 py-2.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-700 dark:text-red-300 font-bold text-xs rounded-xl transition border border-red-200 dark:border-red-800 cursor-pointer"
-                            >
-                              ✕ Reject Slip
-                            </button>
-                            <button
-                              onClick={() => handleApproveSlip(slip._id)}
-                              disabled={actionLoadingId === slip._id}
-                              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition border-none cursor-pointer flex items-center justify-center gap-1.5"
-                            >
-                              {actionLoadingId === slip._id ? 'Processing...' : '✓ Approve & Enroll'}
-                            </button>
-                          </div>
-                        ) : slip.status === 'COMPLETED' ? (
-                          <div className="pt-3 border-t border-gray-100">
-                            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-2">
-                              <FaCheckCircle className="text-emerald-600 text-base" /> 
-                              <span>Slip Approved & Student Access Granted {slip.paymentDate ? `on ${new Date(slip.paymentDate).toLocaleString()}` : ''}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="pt-3 border-t border-gray-100">
-                            <div className="p-3.5 bg-red-50 border border-red-200 text-red-800 text-xs rounded-xl space-y-1">
-                              <p className="font-extrabold text-red-900 flex items-center gap-1.5">
-                                <span>✕</span> Bank Slip Rejected
-                              </p>
-                              <p className="text-[11px] text-red-700">
-                                <strong>Reason:</strong> {slip.rejectionReason || 'Deposit slip details could not be verified.'}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="p-12 text-center bg-gray-50 rounded-2xl border border-gray-200">
-              <span className="text-4xl block mb-2">📋</span>
-              <h4 className="font-extrabold text-gray-800 text-base">No Bank Slips Found</h4>
-              <p className="text-xs text-gray-500 mt-1">
-                {bankSlipStatusFilter === 'ALL'
-                  ? 'No bank deposit slips have been submitted yet.'
-                  : `No bank deposit slips with status "${bankSlipStatusFilter}".`}
-              </p>
-            </div>
-          )}
-        </div>
       )}
+
+      {/* 2. APPROVE BANK SLIPS TAB */}
+      {activeTab === 'approve_slips' && renderBankSlipsSection('pending')}
+
+      {/* 3. APPROVED BANK SLIPS TAB */}
+      {activeTab === 'approved_slips' && renderBankSlipsSection('approved')}
+
+      {/* 4. DECLINED SLIPS TAB */}
+      {activeTab === 'declined_slips' && renderBankSlipsSection('declined')}
 
 
 

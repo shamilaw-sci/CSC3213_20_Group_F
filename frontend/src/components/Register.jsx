@@ -257,13 +257,26 @@ const Register = () => {
       </div>
 
       {/* Right Side - Register Panel */}
-      <div className="flex w-full items-center justify-center bg-white dark:bg-slate-900/95 dark:backdrop-blur-xl px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto min-h-screen border-l border-transparent dark:border-slate-800 transition-colors">
-        <div className="w-full max-w-md py-4">
+      <div className="flex w-full items-center justify-center bg-white dark:bg-slate-900/95 dark:backdrop-blur-xl px-4 sm:px-6 py-6 sm:py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto min-h-screen border-l border-transparent dark:border-slate-800 transition-colors">
+        <div className="w-full max-w-md py-2 sm:py-4">
+
+          {/* Mobile Branding Logo */}
+          <div className="lg:hidden flex flex-col items-center mb-5 text-center">
+            <img
+              src="/assets/LuminaLearn_Logo_banner.png"
+              alt="LuminaLearn Logo"
+              className="h-14 sm:h-16 w-auto object-contain mb-1 drop-shadow-sm cursor-pointer"
+              onClick={() => navigate('/')}
+            />
+            <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+              Smart Learning Platform
+            </span>
+          </div>
 
           {/* Header */}
           <div className="mb-5">
-            <h2 className="text-4xl font-black text-[#1e1e38] dark:text-white tracking-tight">Online Student Register</h2>
-            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+            <h2 className="text-2xl sm:text-4xl font-black text-[#1e1e38] dark:text-white tracking-tight">Student Registration</h2>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
               Create your online student account with instant verification
             </p>
 
