@@ -582,18 +582,21 @@ const Enrollments = () => {
                         )}
                       </div>
 
-                      {/* Image Preview Thumbnail inside expanded view if it's an image */}
+                      {/* Image Preview / Attachment Card inside expanded view if it's an image */}
                       {slip.slipImage && !isPdf && (
                         <div className="mt-2">
-                          <span className="text-[10px] font-extrabold uppercase text-gray-400 dark:text-gray-400 block mb-1.5">Slip Image Preview</span>
+                          <span className="text-[10px] font-extrabold uppercase text-gray-400 dark:text-gray-400 block mb-1.5">Slip Image Attachment</span>
                           <div 
                             onClick={() => handleViewSlip(slip)}
-                            className="relative rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden cursor-pointer group max-h-48 max-w-md bg-gray-100 dark:bg-slate-800 flex items-center justify-center"
+                            className="p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 flex items-center justify-between cursor-pointer hover:bg-purple-50 dark:hover:bg-slate-700/60 transition group max-w-md"
                           >
-                            <img src={slip.slipImage} alt="Bank Slip Thumbnail" className="object-contain max-h-48 w-full group-hover:scale-105 transition duration-300" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-xs">
-                              🔍 Click to View Full Image
+                            <div className="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-200 truncate pr-2">
+                              <FaImage className="text-purple-600 dark:text-purple-400 text-sm shrink-0" />
+                              <span className="truncate">{slip.slipImage.startsWith('data:') ? 'Embedded Slip Image' : slip.slipImage}</span>
                             </div>
+                            <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 shrink-0 flex items-center gap-1 group-hover:underline">
+                              <FaEye /> View Slip
+                            </span>
                           </div>
                         </div>
                       )}

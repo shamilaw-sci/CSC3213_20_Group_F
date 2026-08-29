@@ -193,6 +193,7 @@ function streamFile(filePath, req, res, options = {}) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', options.cacheControl || 'private, no-store, max-age=0');
     res.setHeader(
       'Content-Disposition',
       `${disposition}; filename="${downloadName.replace(/"/g, '')}"; filename*=UTF-8''${safeDownloadName}`

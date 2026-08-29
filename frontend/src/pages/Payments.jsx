@@ -4,9 +4,10 @@ import { toast } from 'react-hot-toast';
 import { 
   FaCreditCard, FaSearch, FaCheckCircle, FaBookOpen, FaReceipt, 
   FaGraduationCap, FaPlusCircle, FaBuilding, FaStore, 
-  FaChevronLeft, FaChevronRight, FaEye, FaTimes, FaFilePdf 
+  FaChevronLeft, FaChevronRight, FaEye, FaTimes, FaFilePdf, FaDownload
 } from 'react-icons/fa';
 import RecordPhysicalPaymentModal from '../components/RecordPhysicalPaymentModal';
+import { fetchBlobUrl, downloadProtectedFile, protectedUrls } from '../utils/fileApi';
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
@@ -26,6 +27,10 @@ const Payments = () => {
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all'); // 'all' | 'COMPLETED' | 'PENDING_APPROVAL' | 'REJECTED'
   const [selectedSlipImage, setSelectedSlipImage] = useState(null);
+  const [activeSlipTitle, setActiveSlipTitle] = useState('');
+  const [activeSlipIsPdf, setActiveSlipIsPdf] = useState(false);
+  const [activeSlipRevoke, setActiveSlipRevoke] = useState(null);
+  const [currentSlipItem, setCurrentSlipItem] = useState(null);
 
   useEffect(() => {
     fetchPayments();
@@ -55,6 +60,75 @@ const Payments = () => {
 
   const handlePhysicalPaymentSuccess = (newPayment) => {
     fetchPayments(); // Refresh list
+  };
+
+  const handleCloseSlipModal = () => {
+    if (activeSlipRevoke) {
+      activeSlipRevoke();
+      setActiveSlipRevoke(null);
+    }
+    setSelectedSlipImage(null);
+    setCurrentSlipItem(null);
+  };
+
+  const handleViewSlip = async (item) => {
+    if (!item || !item.slipImage) {
+      toast.error('No bank slip available.');
+      return;
+    }
+
+    if (activeSlipRevoke) {
+      activeSlipRevoke();
+      setActiveSlipRevoke(null);
+    }
+
+    const raw = item.slipImage;
+    const isPdf = raw.toLowerCase().endsWith('.pdf') || raw.startsWith('data:application/pdf');
+    setActiveSlipIsPdf(isPdf);
+    setActiveSlipTitle(`Bank Deposit Slip - ${item.student?.name || item.depositorName || 'Student'} (${item.course?.title || 'Course'})`);
+    setCurrentSlipItem(item);
+
+    if (raw.startsWith('data:')) {
+      setSelectedSlipImage(raw);
+    } else {
+      try {
+        const { blobUrl, revoke } = await fetchBlobUrl(protectedUrls.paymentSlip(item._id));
+        setActiveSlipRevoke(() => revoke);
+        setSelectedSlipImage(blobUrl);
+      } catch (err) {
+        console.error('Error viewing slip:', err);
+        toast.error('Failed to load bank slip.');
+      }
+    }
+  };
+
+  const handleDownloadSlip = async (item) => {
+    if (!item || !item.slipImage) {
+      toast.error('No bank slip available to download.');
+      return;
+    }
+    const isPdf = item.slipImage.toLowerCase().endsWith('.pdf') || item.slipImage.startsWith('data:application/pdf');
+    const ext = isPdf ? 'pdf' : 'jpg';
+    const cleanName = (item.student?.name || item.depositorName || 'student').replace(/[^a-zA-Z0-9]/g, '_');
+    const fileName = `Bank_Slip_${cleanName}_${item.transactionId || item._id}.${ext}`;
+
+    if (item.slipImage.startsWith('data:')) {
+      const a = document.createElement('a');
+      a.href = item.slipImage;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success('Bank slip download started!');
+    } else {
+      try {
+        await downloadProtectedFile(protectedUrls.paymentSlip(item._id, true), fileName);
+        toast.success('Bank slip download started!');
+      } catch (err) {
+        console.error('Download failed:', err);
+        toast.error('Failed to download bank slip.');
+      }
+    }
   };
 
   // Extract unique courses for filtering dropdown
@@ -336,7 +410,7 @@ const Payments = () => {
                                 {item.slipImage && (
                                   <button
                                     type="button"
-                                    onClick={() => setSelectedSlipImage(item.slipImage)}
+                                    onClick={() => handleViewSlip(item)}
                                     className="text-[10px] font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer flex items-center gap-0.5"
                                   >
                                     <FaEye className="text-[9px]" /> View Slip
@@ -521,7 +595,7 @@ const Payments = () => {
                       {item.slipImage && (
                         <button
                           type="button"
-                          onClick={() => setSelectedSlipImage(item.slipImage)}
+                          onClick={() => handleViewSlip(item)}
                           className="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer flex items-center gap-1"
                         >
                           <FaEye className="text-[10px]" /> View Slip
@@ -590,26 +664,38 @@ const Payments = () => {
       {selectedSlipImage && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fadeIn"
-          onClick={() => setSelectedSlipImage(null)}
+          onClick={handleCloseSlipModal}
         >
           <div 
             className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 max-w-2xl w-full shadow-2xl border border-gray-200 dark:border-slate-800 max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3 mb-4">
-              <h3 className="font-extrabold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                <span>🏦</span> Bank Deposit Slip Preview
+              <h3 className="font-extrabold text-sm text-gray-900 dark:text-white flex items-center gap-2 truncate pr-2">
+                <span>🏦</span> <span className="truncate">{activeSlipTitle || 'Bank Deposit Slip Preview'}</span>
               </h3>
-              <button
-                type="button"
-                onClick={() => setSelectedSlipImage(null)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              >
-                <FaTimes />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {currentSlipItem && (
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadSlip(currentSlipItem)}
+                    className="px-3 py-1.5 bg-[#2d1b64] hover:bg-indigo-950 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                  >
+                    <FaDownload className="text-amber-400 text-xs" />
+                    <span>Download</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCloseSlipModal}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <FaTimes />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-auto flex items-center justify-center bg-gray-50 dark:bg-slate-950 rounded-2xl p-2 border border-gray-100 dark:border-slate-800">
-              {selectedSlipImage.toLowerCase().endsWith('.pdf') || selectedSlipImage.startsWith('data:application/pdf') ? (
+              {activeSlipIsPdf ? (
                 <iframe src={selectedSlipImage} title="Bank Slip PDF" className="w-full h-[60vh] rounded-xl" />
               ) : (
                 <img src={selectedSlipImage} alt="Bank Deposit Slip" className="max-h-[65vh] object-contain rounded-xl shadow-xs" />

@@ -16,7 +16,8 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
   const [selectedBatch, setSelectedBatch] = useState(student?.grade ? `${student.grade} - Regular Session` : 'Regular Session');
 
   // Bank Slip Upload State
-  const [slipImage, setSlipImage] = useState('');
+  const [slipFile, setSlipFile] = useState(null);
+  const [slipPreview, setSlipPreview] = useState('');
   const [depositorName, setDepositorName] = useState(student?.name || '');
   const [depositDate, setDepositDate] = useState(new Date().toISOString().split('T')[0]);
   const [slipReference, setSlipReference] = useState('');
@@ -99,31 +100,33 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
     : (course?.price || 2500);
   const courseBankDetails = course?.bankDetails || {};
 
-  // Handle Slip File Upload to Base64
+  // Handle Slip File Upload
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setSlipError('File size exceeds 5MB limit. Please upload a smaller image under 5MB.');
+    if (file.size > 10 * 1024 * 1024) {
+      setSlipError('File size exceeds 10MB limit. Please upload a smaller file under 10MB.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setSlipImage(event.target.result);
-      setSlipError('');
-    };
-    reader.readAsDataURL(file);
+    setSlipFile(file);
+    setSlipError('');
+
+    if (file.type.startsWith('image/')) {
+      setSlipPreview(URL.createObjectURL(file));
+    } else {
+      setSlipPreview('');
+    }
   };
 
-  // Submit Bank Deposit Slip to Backend
+  // Submit Bank Deposit Slip to Backend via FormData
   const handleBankSlipSubmit = async (e) => {
     if (e) e.preventDefault();
     setSlipError('');
 
-    if (!slipImage) {
-      setSlipError('Please upload a photo or image of your bank deposit receipt/slip.');
+    if (!slipFile) {
+      setSlipError('Please upload a photo or image/PDF of your bank deposit receipt/slip.');
       return;
     }
 
@@ -134,15 +137,18 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
 
     setSubmittingSlip(true);
     try {
-      const res = await api.post('/payments/submit-bank-slip', {
-        courseId: course._id,
-        amount: courseFee,
-        grade: selectedGradeOption || student?.grade,
-        slipImage,
-        depositorName: depositorName.trim(),
-        depositDate,
-        transactionId: slipReference ? slipReference.trim() : undefined
-      });
+      const formData = new FormData();
+      formData.append('courseId', course._id);
+      formData.append('amount', courseFee);
+      formData.append('grade', selectedGradeOption || student?.grade || '');
+      formData.append('slip', slipFile);
+      formData.append('depositorName', depositorName.trim());
+      formData.append('depositDate', depositDate);
+      if (slipReference && slipReference.trim()) {
+        formData.append('transactionId', slipReference.trim());
+      }
+
+      const res = await api.post('/payments/submit-bank-slip', formData);
 
       toast.success(res.data.message || 'Bank slip submitted successfully! Pending Admin approval.');
       if (onEnrollSuccess) {
@@ -510,10 +516,16 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
                       className="w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-1.5 border border-purple-200 dark:border-slate-700 rounded-lg text-xs outline-none cursor-pointer file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
                       required
                     />
-                    {slipImage && (
+                    {slipFile && (
                       <div className="mt-2 text-center bg-white dark:bg-slate-900 p-2 rounded-lg border border-purple-200 dark:border-slate-700">
-                        <img src={slipImage} alt="Deposit Slip Preview" className="max-h-24 mx-auto rounded border border-purple-300 object-contain" />
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-1">✓ Slip Loaded Successfully</span>
+                        {slipPreview ? (
+                          <img src={slipPreview} alt="Deposit Slip Preview" className="max-h-24 mx-auto rounded border border-purple-300 object-contain" />
+                        ) : (
+                          <div className="py-2 text-purple-700 dark:text-purple-300 font-semibold text-xs flex items-center justify-center gap-1.5">
+                            📄 <span>{slipFile.name} ({(slipFile.size / 1024).toFixed(0)} KB)</span>
+                          </div>
+                        )}
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-1">✓ File Attached: {slipFile.name}</span>
                       </div>
                     )}
                   </div>

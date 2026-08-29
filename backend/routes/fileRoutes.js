@@ -245,15 +245,34 @@ router.get('/payment/:paymentId/slip', protect, async (req, res) => {
       return res.status(auth.status || 403).json({ error: auth.error });
     }
 
-    const filename = path.basename(auth.payment.slipImage || '');
+    const rawSlip = auth.payment.slipImage || '';
+    const filename = path.basename(rawSlip);
     const filePath = findFilePath('payments', filename);
 
     if (!filePath) {
+      // Legacy Base64 backward compatibility fallback
+      if (rawSlip.startsWith('data:')) {
+        const matches = rawSlip.match(/^data:([A-Za-z0-9\/+-]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const contentType = matches[1];
+          const buffer = Buffer.from(matches[2], 'base64');
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+          return res.send(buffer);
+        }
+      }
       return res.status(404).json({ error: 'Payment slip file not found on disk.' });
     }
 
+    const wantDownload = req.query.download === 'true';
+    const disposition = wantDownload ? 'attachment' : 'inline';
+    const ext = path.extname(filePath) || '.jpg';
+    const downloadName = `Bank_Slip_${(auth.payment.transactionId || auth.payment._id).toString().replace(/[^a-zA-Z0-9_-]/g, '_')}${ext}`;
+
     fileStorage.streamFile(filePath, req, res, {
-      disposition: 'inline'
+      disposition,
+      downloadName
     });
   } catch (error) {
     console.error('Error serving payment slip:', error);

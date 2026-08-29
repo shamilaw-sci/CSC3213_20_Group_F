@@ -80,6 +80,7 @@ async function runTests() {
         assert(res.statusCode === 200, 'Full file returns HTTP 200 OK');
         assert(res.headers['x-content-type-options'] === 'nosniff', 'Header X-Content-Type-Options is nosniff');
         assert(res.headers['accept-ranges'] === 'bytes', 'Header Accept-Ranges is bytes');
+        assert(res.headers['cache-control'] === 'private, no-store, max-age=0', 'Header Cache-Control is private, no-store, max-age=0');
         assert(res.headers['content-type'] === 'application/pdf', 'MIME Content-Type correctly resolved to application/pdf');
         assert(data === dummyContent, 'Transferred content matches original file content');
         resolve();
@@ -96,6 +97,7 @@ async function runTests() {
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
         assert(res.statusCode === 206, 'Range request returns HTTP 206 Partial Content');
+        assert(res.headers['cache-control'] === 'private, no-store, max-age=0', 'Range header Cache-Control is private, no-store, max-age=0');
         assert(res.headers['content-range'] === `bytes 0-9/${dummyContent.length}`, 'Content-Range header matches requested range');
         assert(res.headers['content-length'] === '10', 'Content-Length header matches chunk size (10 bytes)');
         assert(data === dummyContent.substring(0, 10), 'Transferred chunk matches exact byte range (0-9)');

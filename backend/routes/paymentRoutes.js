@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const path = require('path');
+const multer = require('multer');
+const { getCategoryDir } = require('../services/fileStorage');
 const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const Course = require('../models/Course');
@@ -11,6 +14,32 @@ const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authM
 const { sendSMS, maskPhoneNumber, sendPaymentSMS } = require('../services/smsService');
 const { sendPaymentReceiptEmail } = require('../utils/emailService');
 const { notifyParentsOfStudent } = require('../utils/notificationHelper');
+
+// Bank Slip Multer Storage Configuration
+const paymentUploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, getCategoryDir('payments'));
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `payment-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  }
+});
+
+const paymentUpload = multer({
+  storage: paymentUploadStorage,
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allowed.includes(ext)) {
+      return cb(new Error('Only JPG, JPEG, PNG, WebP, and PDF files are allowed for bank slips.'));
+    }
+    cb(null, true);
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB max limit
+  }
+});
 
 const isStaffTeacherOrAdmin = (req, res, next) => {
   if (
@@ -557,16 +586,18 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
 // ==========================================
 // 6. SUBMIT BANK DEPOSIT SLIP (STUDENT)
 // ==========================================
-router.post('/submit-bank-slip', protect, async (req, res) => {
+router.post('/submit-bank-slip', protect, paymentUpload.single('slip'), async (req, res) => {
   try {
-    const { courseId, amount, slipImage, depositorName, depositDate, transactionId, grade } = req.body;
+    const { courseId, amount, depositorName, depositDate, transactionId, grade } = req.body;
     const studentId = req.user._id;
 
     if (!courseId) {
       return res.status(400).json({ error: 'Course ID is required.', message: 'Course ID is required.' });
     }
 
-    if (!slipImage) {
+    // Support both uploaded multipart file and legacy slipImage string
+    const slipFilename = req.file ? req.file.filename : (req.body.slipImage || '');
+    if (!slipFilename) {
       return res.status(400).json({ error: 'Bank deposit slip image/file is required.', message: 'Bank deposit slip image/file is required.' });
     }
 
@@ -613,7 +644,7 @@ router.post('/submit-bank-slip', protect, async (req, res) => {
       paymentMethod: 'BANK_SLIP',
       transactionId: txId,
       status: 'PENDING_APPROVAL',
-      slipImage,
+      slipImage: slipFilename,
       depositorName: depositorName || student.name,
       depositDate: depositDate ? new Date(depositDate) : new Date(),
       paymentDate: new Date(),
