@@ -340,6 +340,8 @@ router.post('/:lessonId/pdf', protect, isTeacherOrAdmin, uploadPdfMiddleware, as
             return res.status(400).json({ error: "Please upload a PDF file." });
         }
 
+        const title = req.body.title || req.file.originalname;
+        const filename = req.file.filename;
         const newPdfId = new mongoose.Types.ObjectId();
         const fileUrl = `/api/files/lesson/${lesson._id}/pdf/${newPdfId}`;
         const fileSize = req.file.size;
