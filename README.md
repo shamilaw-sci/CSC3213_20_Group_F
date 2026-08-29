@@ -120,7 +120,7 @@ LuminaLearn provides dedicated interfaces and tailored permissions across **five
                                               │ REST API / JSON / Multipart
  ┌────────────────────────────────────────────▼─────────────────────────────────────────────┐
  │                                    BACKEND LAYER                                         │
- │  Node.js  •  Express.js 5  •  JWT Auth  •  Multer  •  Bcrypt.js  •  Nodemailer (SMTP)     │
+ │  Node.js  •  Express.js 5  •  JWT Auth  •  Multer  •  Bcrypt.js  •  Brevo (Sendinblue API) │
  └──────────────────────┬─────────────────────────────────────────────┬─────────────────────┘
                         │                                             │
  ┌──────────────────────▼─────────────────────┐ ┌─────────────────────▼─────────────────────┐
@@ -147,7 +147,7 @@ LuminaLearn provides dedicated interfaces and tailored permissions across **five
 - **SMS Gateway**: [Text.lk REST API v3](https://text.lk/)
 - **Security & Cryptography**: [JSON Web Tokens (JWT)](https://jwt.io/), [Bcrypt.js](https://www.npmjs.com/package/bcryptjs), [Crypto](https://nodejs.org/api/crypto.html)
 - **File Uploads**: [Multer](https://github.com/expressjs/multer) (PDF materials, profile pictures, assignment files, voice recordings)
-- **Email Service**: [Nodemailer](https://nodemailer.com/) (SMTP welcome emails, payment receipts, password resets)
+- **Email Service**: [Brevo](https://www.brevo.com/) API (Transactional welcome emails, payment receipts, passcodes, password resets)
 
 ---
 
@@ -199,7 +199,7 @@ CSC3213_20_Group_F/
 │   ├── services/
 │   │   └── smsService.js             # Text.lk v3 client, phone normalizer & dispatchers
 │   ├── utils/
-│   │   ├── emailService.js           # Nodemailer HTML email templates
+│   │   ├── emailService.js           # Brevo API transactional HTML email templates
 │   │   ├── migration.js              # Automatic database migration & schema sync
 │   │   └── notificationHelper.js     # Multi-channel notification helpers
 │   ├── seedAdmin.js                  # Initial administrator account seeder
@@ -338,9 +338,10 @@ cd CSC3213_20_Group_F
    TEXTLK_API_TOKEN=your_textlk_api_token
    TEXTLK_SENDER_ID=Kirula Edu
 
-   # Email Service / SMTP (Optional - for welcome emails & receipts)
-   SMTP_EMAIL=support@luminalearn.edu.lk
-   SMTP_PASSWORD=your_email_app_password
+   # Email Service (Brevo API)
+   BREVO_API_KEY=your_brevo_api_v3_key
+   BREVO_FROM_EMAIL=mail@luminalearn.edu.lk
+   BREVO_FROM_NAME=LuminaLearn
    ```
 4. Seed the initial Administrator Account:
    ```bash

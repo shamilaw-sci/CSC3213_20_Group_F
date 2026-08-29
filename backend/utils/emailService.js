@@ -1,13 +1,88 @@
-const nodemailer = require('nodemailer');
+const SibApiV3Sdk = require('sib-api-v3-sdk');
 
-// Create reusable transporter object using Gmail SMTP service
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.SMTP_EMAIL,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+/**
+ * Resolve Brevo configuration values with sensible fallbacks
+ */
+const getApiKey = () => process.env.BREVO_API_KEY || process.env.SIB_API_KEY || process.env.API_V3_KEY;
+const getDefaultFromEmail = () => process.env.BREVO_FROM_EMAIL || process.env.FROM_EMAIL || process.env.SMTP_EMAIL || 'mail@luminalearn.edu.lk';
+const getDefaultFromName = () => process.env.BREVO_FROM_NAME || process.env.FROM_NAME || 'LuminaLearn';
+
+/**
+ * Initializes and returns a Brevo TransactionalEmailsApi instance
+ */
+const getBrevoApiInstance = () => {
+  const apiKey = getApiKey();
+  if (!apiKey) return null;
+
+  const defaultClient = SibApiV3Sdk.ApiClient.instance;
+  const auth = defaultClient.authentications['api-key'];
+  auth.apiKey = apiKey;
+
+  return new SibApiV3Sdk.TransactionalEmailsApi();
+};
+
+/**
+ * Central helper to send transactional emails via Brevo SDK
+ */
+const sendBrevoEmail = async ({
+  to,
+  bcc,
+  subject,
+  htmlContent,
+  textContent,
+  senderName,
+  senderEmail
+}) => {
+  const apiKey = getApiKey();
+  const fromEmail = senderEmail || getDefaultFromEmail();
+  const fromName = senderName || getDefaultFromName();
+
+  if (!apiKey) {
+    console.warn('⚠️ Brevo API Key missing in environment (BREVO_API_KEY). Skipping email dispatch.');
+    return null;
+  }
+
+  const apiInstance = getBrevoApiInstance();
+  const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+
+  sendSmtpEmail.sender = {
+    email: fromEmail,
+    name: fromName
+  };
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.htmlContent = htmlContent;
+
+  if (textContent) {
+    sendSmtpEmail.textContent = textContent;
+  }
+
+  // Format recipient(s)
+  if (to) {
+    if (Array.isArray(to)) {
+      sendSmtpEmail.to = to.map(item => (typeof item === 'string' ? { email: item } : item));
+    } else if (typeof to === 'string') {
+      sendSmtpEmail.to = [{ email: to }];
+    } else {
+      sendSmtpEmail.to = [to];
+    }
+  }
+
+  // Format BCC recipient(s) if provided
+  if (bcc && Array.isArray(bcc) && bcc.length > 0) {
+    sendSmtpEmail.bcc = bcc.map(item => (typeof item === 'string' ? { email: item } : item));
+  }
+
+  try {
+    const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    const messageId = data?.messageId || (data?.body && data.body.messageId) || JSON.stringify(data);
+    console.log(`✅ [Brevo] Email sent successfully ("${subject}"). Message ID: ${messageId}`);
+    return data;
+  } catch (error) {
+    const errorMsg = error?.response?.body?.message || error?.message || error;
+    console.error(`❌ [Brevo] Failed to send email ("${subject}"):`, errorMsg);
+    return null;
+  }
+};
 
 /**
  * Sends a password reset email to the specified user email.
@@ -16,11 +91,11 @@ const sendResetPasswordEmail = async (toEmail, token, userName) => {
   const frontendUrl = process.env.FRONTEND_URL || 'https://luminalearn.edu.lk';
   const resetLink = `${frontendUrl}/reset-password/${token}`;
 
-  const mailOptions = {
-    from: `"LuminaLearn Support" <${process.env.SMTP_EMAIL}>`,
-    to: toEmail,
+  return await sendBrevoEmail({
+    to: [{ email: toEmail, name: userName || 'Student' }],
+    senderName: 'LuminaLearn Support',
     subject: 'LuminaLearn - Reset Your Password',
-    html: `
+    htmlContent: `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; padding: 40px 20px; text-align: center;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); overflow: hidden; text-align: left;">
           <div style="background: linear-gradient(135deg, #3a1c8a, #5d31b4); padding: 30px; text-align: center; color: #ffffff;">
@@ -28,7 +103,7 @@ const sendResetPasswordEmail = async (toEmail, token, userName) => {
             <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">LuminaLearn Smart Learning Platform</p>
           </div>
           <div style="padding: 40px 35px; color: #333333;">
-            <h2 style="margin-top: 0; font-size: 18px; font-weight: 600; color: #1e1e38;">Hi ${userName},</h2>
+            <h2 style="margin-top: 0; font-size: 18px; font-weight: 600; color: #1e1e38;">Hi ${userName || 'User'},</h2>
             <p style="font-size: 15px; line-height: 1.6; color: #555555;">
               We received a request to reset the password associated with your LuminaLearn account. 
               If you made this request, please click the button below to set up a new password:
@@ -49,34 +124,21 @@ const sendResetPasswordEmail = async (toEmail, token, userName) => {
           </div>
         </div>
       </div>
-    `,
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`Password reset email sent to ${toEmail}. Message ID: ${info.messageId}`);
-    return info;
-  } catch (error) {
-    console.error('Failed to send password reset email:', error.message);
-  }
+    `
+  });
 };
 
 /**
  * Sends detailed Payment Receipt HTML Email
  */
 const sendPaymentReceiptEmail = async (toEmail, userName, { transactionId, courseTitle, amount, date, paymentMethod = 'Card' }) => {
-  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
-    console.warn('⚠️ SMTP Credentials missing in .env. Skipping email dispatch.');
-    return;
-  }
-
   const formattedDate = date ? new Date(date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : new Date().toLocaleString();
 
-  const mailOptions = {
-    from: `"LuminaLearn Finance" <${process.env.SMTP_EMAIL}>`,
-    to: toEmail,
+  return await sendBrevoEmail({
+    to: [{ email: toEmail, name: userName || 'Student' }],
+    senderName: 'LuminaLearn Finance',
     subject: `LuminaLearn - Official Payment Receipt (${transactionId})`,
-    html: `
+    htmlContent: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; padding: 30px 15px;">
         <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
 
@@ -129,28 +191,18 @@ const sendPaymentReceiptEmail = async (toEmail, userName, { transactionId, cours
         </div>
       </div>
     `
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Payment receipt email sent to ${toEmail}. ID: ${info.messageId}`);
-    return info;
-  } catch (error) {
-    console.error('❌ Failed to send payment receipt email:', error.message);
-  }
+  });
 };
 
 /**
  * Sends Course/Lesson Content Update Email to Enrolled Student
  */
 const sendCourseUpdateEmail = async (toEmail, userName, courseTitle, updateTitle, updateDetails) => {
-  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) return;
-
-  const mailOptions = {
-    from: `"LuminaLearn Academics" <${process.env.SMTP_EMAIL}>`,
-    to: toEmail,
+  return await sendBrevoEmail({
+    to: [{ email: toEmail, name: userName || 'Student' }],
+    senderName: 'LuminaLearn Academics',
     subject: `LuminaLearn Update: New Content in ${courseTitle}`,
-    html: `
+    htmlContent: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; padding: 30px 15px;">
         <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
           <div style="background: linear-gradient(135deg, #0284c7, #2563eb); padding: 25px; color: #ffffff; text-align: center;">
@@ -178,28 +230,18 @@ const sendCourseUpdateEmail = async (toEmail, userName, courseTitle, updateTitle
         </div>
       </div>
     `
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Course update email sent to ${toEmail}. ID: ${info.messageId}`);
-    return info;
-  } catch (error) {
-    console.error('❌ Failed to send course update email:', error.message);
-  }
+  });
 };
 
 /**
  * Sends Student Registration Welcome Email
  */
 const sendRegistrationWelcomeEmail = async (toEmail, userName, registrationNumber) => {
-  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) return;
-
-  const mailOptions = {
-    from: `"LuminaLearn Welcome" <${process.env.SMTP_EMAIL}>`,
-    to: toEmail,
+  return await sendBrevoEmail({
+    to: [{ email: toEmail, name: userName || 'Student' }],
+    senderName: 'LuminaLearn Welcome',
     subject: `Welcome to LuminaLearn, ${userName}!`,
-    html: `
+    htmlContent: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; padding: 30px 15px;">
         <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
           <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 25px; color: #ffffff; text-align: center;">
@@ -232,34 +274,29 @@ const sendRegistrationWelcomeEmail = async (toEmail, userName, registrationNumbe
         </div>
       </div>
     `
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Welcome email sent to ${toEmail}. ID: ${info.messageId}`);
-    return info;
-  } catch (error) {
-    console.error('❌ Failed to send welcome email:', error.message);
-  }
+  });
 };
 
+/**
+ * Sends Class Announcement Email in batches
+ */
 const sendClassAnnouncementEmail = async (recipients = [], subject, messageText, classTitle = '') => {
-  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD || !recipients || recipients.length === 0) return;
-
   const validRecipients = [...new Set(recipients.filter(e => Boolean(e && String(e).trim())))];
-  if (validRecipients.length === 0) return;
+  if (validRecipients.length === 0) return [];
 
   const batchSize = 40;
   const results = [];
 
   for (let i = 0; i < validRecipients.length; i += batchSize) {
     const chunk = validRecipients.slice(i, i + batchSize);
+    const bccList = chunk.map(email => ({ email }));
 
-    const mailOptions = {
-      from: `"LuminaLearn Announcements" <${process.env.SMTP_EMAIL}>`,
-      bcc: chunk, // send using bcc for privacy across recipients
+    const res = await sendBrevoEmail({
+      to: [{ email: getDefaultFromEmail(), name: 'LuminaLearn Students' }],
+      bcc: bccList,
+      senderName: 'LuminaLearn Announcements',
       subject: subject || `Important Announcement: ${classTitle}`,
-      html: `
+      htmlContent: `
         <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; padding: 30px 15px;">
           <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
             <div style="background: linear-gradient(135deg, #e11d48, #be123c); padding: 25px; color: #ffffff; text-align: center;">
@@ -284,15 +321,9 @@ const sendClassAnnouncementEmail = async (recipients = [], subject, messageText,
           </div>
         </div>
       `
-    };
+    });
 
-    try {
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`✅ Class announcement email chunk sent to ${chunk.length} recipients. ID: ${info.messageId}`);
-      results.push(info);
-    } catch (error) {
-      console.error('❌ Failed to send announcement email chunk:', error.message);
-    }
+    if (res) results.push(res);
   }
 
   return results;
@@ -303,13 +334,11 @@ const sendClassAnnouncementEmail = async (recipients = [], subject, messageText,
  * Note: Per security & requirements, message content is NOT included in the email.
  */
 const sendMessageNotificationEmail = async (toEmail, recipientName, senderName) => {
-  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) return;
-
-  const mailOptions = {
-    from: `"LuminaLearn Messages" <${process.env.SMTP_EMAIL}>`,
-    to: toEmail,
+  return await sendBrevoEmail({
+    to: [{ email: toEmail, name: recipientName || 'User' }],
+    senderName: 'LuminaLearn Messages',
     subject: `New Message from ${senderName} on LuminaLearn`,
-    html: `
+    htmlContent: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; padding: 30px 15px;">
         <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
           <div style="background: linear-gradient(135deg, #6366f1, #4f46e5); padding: 25px; color: #ffffff; text-align: center;">
@@ -344,15 +373,7 @@ const sendMessageNotificationEmail = async (toEmail, recipientName, senderName) 
         </div>
       </div>
     `
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Message notification email sent to ${toEmail}. ID: ${info.messageId}`);
-    return info;
-  } catch (error) {
-    console.error('❌ Failed to send message notification email:', error.message);
-  }
+  });
 };
 
 /**
@@ -360,16 +381,18 @@ const sendMessageNotificationEmail = async (toEmail, recipientName, senderName) 
  */
 const sendPasscodeEmail = async (toEmail, passcode, userName = 'Student', purpose = 'Account Verification') => {
   if (!toEmail) return;
-  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
+  const apiKey = getApiKey();
+
+  if (!apiKey) {
     console.log(`⚠️ [EMAIL MOCK] Verification passcode for ${toEmail}: [ ${passcode} ] (${purpose})`);
-    return;
+    return null;
   }
 
-  const mailOptions = {
-    from: `"LuminaLearn Security" <${process.env.SMTP_EMAIL}>`,
-    to: toEmail,
+  return await sendBrevoEmail({
+    to: [{ email: toEmail, name: userName }],
+    senderName: 'LuminaLearn Security',
     subject: `LuminaLearn - Your Verification Code is ${passcode}`,
-    html: `
+    htmlContent: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; padding: 30px 15px;">
         <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
           <div style="background: linear-gradient(135deg, #3a1c8a, #5d31b4); padding: 25px; color: #ffffff; text-align: center;">
@@ -404,19 +427,11 @@ const sendPasscodeEmail = async (toEmail, passcode, userName = 'Student', purpos
         </div>
       </div>
     `
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Verification passcode email sent to ${toEmail}. Message ID: ${info.messageId}`);
-    return info;
-  } catch (error) {
-    console.error('❌ Failed to send passcode email:', error.message);
-  }
+  });
 };
 
 module.exports = {
-  transporter,
+  sendBrevoEmail,
   sendResetPasswordEmail,
   sendPaymentReceiptEmail,
   sendCourseUpdateEmail,
@@ -425,5 +440,3 @@ module.exports = {
   sendMessageNotificationEmail,
   sendPasscodeEmail
 };
-
-
