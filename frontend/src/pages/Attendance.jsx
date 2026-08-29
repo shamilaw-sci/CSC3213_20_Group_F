@@ -26,7 +26,8 @@ import {
   FaEdit,
   FaChevronLeft,
   FaChevronRight,
-  FaPlusCircle
+  FaPlusCircle,
+  FaSyncAlt
 } from 'react-icons/fa';
 import RecordPhysicalPaymentModal from '../components/RecordPhysicalPaymentModal';
 
@@ -70,6 +71,10 @@ const Attendance = () => {
   const [recentScans, setRecentScans] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [manualQrCode, setManualQrCode] = useState('');
+  const [facingMode, setFacingMode] = useState('environment'); // 'environment' (backcam) by default
+  const [availableCameras, setAvailableCameras] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
+  const [isCameraStarting, setIsCameraStarting] = useState(false);
 
   // Form State for Manual Marking
   const [schedules, setSchedules] = useState([]);
@@ -288,29 +293,50 @@ const Attendance = () => {
     }
   };
 
+  const handleToggleCamera = () => {
+    if (isCameraStarting) return;
+    setSelectedCameraId('');
+    setFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
+  };
+
   useEffect(() => {
     let html5QrCode;
     let isMounted = true;
     const isQrActive = adminMode === 'qr';
 
     if (isQrActive) {
+      setIsCameraStarting(true);
       const startCamera = async () => {
         try {
           const el = document.getElementById("qr-reader");
-          if (!el) return;
+          if (!el || !isMounted) return;
           el.innerHTML = '';
+
+          try {
+            const cameras = await Html5Qrcode.getCameras();
+            if (cameras && cameras.length > 0 && isMounted) {
+              setAvailableCameras(cameras);
+            }
+          } catch (camErr) {
+            console.warn("Could not enumerate cameras:", camErr);
+          }
 
           html5QrCode = new Html5Qrcode("qr-reader");
           const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
+          const cameraSource = selectedCameraId
+            ? selectedCameraId
+            : { facingMode: facingMode };
+
           try {
             await html5QrCode.start(
-              { facingMode: "user" },
+              cameraSource,
               config,
               (decodedText) => processQrCheckIn(decodedText),
               () => { }
             );
           } catch (e1) {
+            console.warn("Direct camera start failed, falling back to camera enumeration:", e1);
             const cameras = await Html5Qrcode.getCameras();
             if (cameras && cameras.length > 0 && isMounted) {
               await html5QrCode.start(
@@ -323,6 +349,10 @@ const Attendance = () => {
           }
         } catch (err) {
           console.error("Camera direct start error:", err);
+        } finally {
+          if (isMounted) {
+            setIsCameraStarting(false);
+          }
         }
       };
 
@@ -339,7 +369,7 @@ const Attendance = () => {
         }
       };
     }
-  }, [adminMode]);
+  }, [adminMode, facingMode, selectedCameraId]);
 
   // Search students when query changes (with min length check)
   const handleSearchSubmit = async (e) => {
@@ -435,18 +465,50 @@ const Attendance = () => {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-md space-y-4">
-          <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-3">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b border-gray-100 dark:border-slate-800 pb-3">
             <div>
               <h3 className="font-extrabold text-gray-900 dark:text-white text-lg flex items-center gap-2">
                 <FaQrcode className="text-purple-600 dark:text-purple-400" /> Counter QR Code Scanner
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Point student digital ID card at the camera for 1-second auto check-in.</p>
             </div>
-            <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              Camera Active
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleToggleCamera}
+                disabled={isCameraStarting}
+                title="Switch camera (Front / Back)"
+                className="bg-purple-100 hover:bg-purple-200 dark:bg-purple-950/60 dark:hover:bg-purple-900/80 text-purple-800 dark:text-purple-300 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-purple-300 dark:border-purple-800 transition shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                <FaSyncAlt className={`text-xs ${isCameraStarting ? 'animate-spin' : ''}`} />
+                <span>{facingMode === 'environment' ? 'Back Cam' : 'Front Cam'}</span>
+              </button>
+              <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                Camera Active
+              </span>
+            </div>
           </div>
+
+          {availableCameras.length > 1 && (
+            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 text-xs">
+              <span className="text-[11px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                <FaCamera className="text-purple-600 dark:text-purple-400 text-xs" /> Select Camera Device:
+              </span>
+              <select
+                value={selectedCameraId}
+                onChange={(e) => setSelectedCameraId(e.target.value)}
+                className="bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-gray-800 dark:text-gray-200 text-xs rounded-lg px-2 py-1 outline-none font-medium max-w-[220px] truncate"
+              >
+                <option value="">Default ({facingMode === 'environment' ? 'Rear' : 'Front'})</option>
+                {availableCameras.map((cam, idx) => (
+                  <option key={cam.id} value={cam.id}>
+                    {cam.label || `Camera ${idx + 1}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="bg-purple-50 dark:bg-slate-800/80 p-3.5 rounded-2xl border border-purple-200 dark:border-slate-700 space-y-1">
             <label className="block text-[10px] font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300">

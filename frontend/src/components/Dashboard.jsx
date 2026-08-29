@@ -41,6 +41,7 @@ import {
 } from 'react-icons/fa';
 import StudentIdCard from './StudentIdCard';
 import AddScheduleModal from './AddScheduleModal';
+import ConfirmModal from './ConfirmModal';
 
 // Grade options matching registration grade requirements
 const gradeOptions = [
@@ -602,6 +603,7 @@ const AdminDashboard = ({ user }) => {
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
+  const [deleteScheduleModal, setDeleteScheduleModal] = useState(null);
 
   useEffect(() => {
     fetchAdminData();
@@ -653,15 +655,22 @@ const AdminDashboard = ({ user }) => {
     }
   };
 
-  const handleDeleteSchedule = async (id, title) => {
-    if (!window.confirm(`Are you sure you want to remove "${title}" from the calendar?`)) return;
+  const handleDeleteSchedule = (id, title) => {
+    setDeleteScheduleModal({ id, title });
+  };
+
+  const executeDeleteSchedule = async () => {
+    if (!deleteScheduleModal) return;
+    const { id, title } = deleteScheduleModal;
 
     try {
       await api.delete(`/schedule/${id}`);
       toast.success("Schedule entry deleted successfully.");
-      setSchedule(schedule.filter(item => item._id !== id));
+      setSchedule(prev => prev.filter(item => item._id !== id));
     } catch (err) {
       toast.error("Failed to delete schedule entry");
+    } finally {
+      setDeleteScheduleModal(null);
     }
   };
 
@@ -1142,6 +1151,20 @@ const AdminDashboard = ({ user }) => {
         courses={courses}
         teachers={teachers}
         gradeOptions={gradeOptions}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteScheduleModal}
+        onClose={() => setDeleteScheduleModal(null)}
+        onConfirm={executeDeleteSchedule}
+        title="Remove Calendar Schedule"
+        message={
+          deleteScheduleModal
+            ? `Are you sure you want to remove "${deleteScheduleModal.title}" from the calendar?`
+            : ''
+        }
+        confirmText="Remove Entry"
+        type="danger"
       />
     </div>
   );

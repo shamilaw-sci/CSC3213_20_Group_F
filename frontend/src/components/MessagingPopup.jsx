@@ -383,7 +383,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
               }}
               className="bg-white/20 hover:bg-white/30 text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1"
             >
-              + New Chat
+              New Chat
             </button>
           )}
           <button

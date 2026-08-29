@@ -9,6 +9,7 @@ import VideoPlayerModal from '../components/VideoPlayerModal';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import ScheduledLiveHero from '../components/ScheduledLiveHero';
 import LiveThumbnailCropperModal from '../components/LiveThumbnailCropperModal';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube,
   FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt,
@@ -61,6 +62,7 @@ const CourseDetails = () => {
   const [hoverRatingInput, setHoverRatingInput] = useState(0);
   const [reviewInputText, setReviewInputText] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [confirmActionModal, setConfirmActionModal] = useState(null);
 
   // Assignment Modal & Action States
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
@@ -610,15 +612,25 @@ const CourseDetails = () => {
     }
   };
 
-  const handleDeleteQuiz = async (quizId) => {
-    if (!window.confirm("Are you sure you want to delete this quiz?")) return;
-    try {
-      await api.delete(`/quizzes/${quizId}`);
-      toast.success("Quiz deleted successfully!");
-      await fetchQuizzes();
-    } catch (err) {
-      toast.error("Failed to delete quiz.");
-    }
+  const handleDeleteQuiz = (quizId) => {
+    setConfirmActionModal({
+      isOpen: true,
+      title: "Delete Quiz Assessment",
+      message: "Are you sure you want to delete this quiz? This action cannot be undone.",
+      confirmText: "Delete Quiz",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await api.delete(`/quizzes/${quizId}`);
+          toast.success("Quiz deleted successfully!");
+          await fetchQuizzes();
+        } catch (err) {
+          toast.error("Failed to delete quiz.");
+        } finally {
+          setConfirmActionModal(null);
+        }
+      }
+    });
   };
 
   const fetchReviews = async () => {
@@ -1137,18 +1149,27 @@ const CourseDetails = () => {
   const [isEndingStream, setIsEndingStream] = useState(false);
   const [saveLiveAsVideo, setSaveLiveAsVideo] = useState(true);
 
-  const handleDeletePdf = async (pdfId) => {
+  const handleDeletePdf = (pdfId) => {
     const currentLesson = lessons.find(l => l.grade === selectedGrade);
     if (!currentLesson) return;
-    if (!window.confirm("Are you sure you want to delete this PDF?")) return;
-
-    try {
-      await api.delete(`/lessons/${currentLesson._id}/pdf/${pdfId}`);
-      toast.success("PDF material removed!");
-      await fetchCourseDetails();
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to delete PDF.");
-    }
+    setConfirmActionModal({
+      isOpen: true,
+      title: "Delete Study Material PDF",
+      message: "Are you sure you want to delete this PDF document?",
+      confirmText: "Delete PDF",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await api.delete(`/lessons/${currentLesson._id}/pdf/${pdfId}`);
+          toast.success("PDF material removed!");
+          await fetchCourseDetails();
+        } catch (err) {
+          toast.error(err.response?.data?.error || "Failed to delete PDF.");
+        } finally {
+          setConfirmActionModal(null);
+        }
+      }
+    });
   };
 
   // --- Assignment Management Handlers ---
@@ -1235,15 +1256,25 @@ const CourseDetails = () => {
     }
   };
 
-  const handleDeleteAssignment = async (asgnId) => {
-    if (!window.confirm("Are you sure you want to delete this assignment and all student submissions?")) return;
-    try {
-      await api.delete(`/assignments/${asgnId}`);
-      toast.success("Assignment removed!");
-      await fetchAssignments();
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to delete assignment.");
-    }
+  const handleDeleteAssignment = (asgnId) => {
+    setConfirmActionModal({
+      isOpen: true,
+      title: "Delete Assignment",
+      message: "Are you sure you want to delete this assignment and all student submissions? This action cannot be undone.",
+      confirmText: "Delete Assignment",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await api.delete(`/assignments/${asgnId}`);
+          toast.success("Assignment removed!");
+          await fetchAssignments();
+        } catch (err) {
+          toast.error(err.response?.data?.error || "Failed to delete assignment.");
+        } finally {
+          setConfirmActionModal(null);
+        }
+      }
+    });
   };
 
   // Student Submit Solution Handlers
@@ -1345,32 +1376,50 @@ const CourseDetails = () => {
     }
   };
 
-  const handleDeleteDemoVideo = async () => {
+  const handleDeleteDemoVideo = () => {
     const currentLesson = lessons.find(l => l.grade === selectedGrade);
     if (!currentLesson) return;
-    if (!window.confirm("Are you sure you want to remove the default master lecture video?")) return;
-
-    try {
-      await api.put(`/lessons/${currentLesson._id}`, { hideDemoVideo: true });
-      toast.success("Default lecture video removed!");
-      await fetchCourseDetails();
-    } catch (err) {
-      toast.error("Failed to remove default video.");
-    }
+    setConfirmActionModal({
+      isOpen: true,
+      title: "Remove Master Lecture Video",
+      message: "Are you sure you want to remove the default master lecture video for this week?",
+      confirmText: "Remove Video",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await api.put(`/lessons/${currentLesson._id}`, { hideDemoVideo: true });
+          toast.success("Default lecture video removed!");
+          await fetchCourseDetails();
+        } catch (err) {
+          toast.error("Failed to remove default video.");
+        } finally {
+          setConfirmActionModal(null);
+        }
+      }
+    });
   };
 
-  const handleDeleteDemoPdf = async () => {
+  const handleDeleteDemoPdf = () => {
     const currentLesson = lessons.find(l => l.grade === selectedGrade);
     if (!currentLesson) return;
-    if (!window.confirm("Are you sure you want to remove the default study material PDF?")) return;
-
-    try {
-      await api.put(`/lessons/${currentLesson._id}`, { hideDemoPdf: true });
-      toast.success("Default study material PDF removed!");
-      await fetchCourseDetails();
-    } catch (err) {
-      toast.error("Failed to remove default PDF.");
-    }
+    setConfirmActionModal({
+      isOpen: true,
+      title: "Remove Study Material PDF",
+      message: "Are you sure you want to remove the default study material PDF for this week?",
+      confirmText: "Remove PDF",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await api.put(`/lessons/${currentLesson._id}`, { hideDemoPdf: true });
+          toast.success("Default study material PDF removed!");
+          await fetchCourseDetails();
+        } catch (err) {
+          toast.error("Failed to remove default PDF.");
+        } finally {
+          setConfirmActionModal(null);
+        }
+      }
+    });
   };
 
   const handleSelectThumbnailFile = (e) => {
@@ -1488,30 +1537,40 @@ const CourseDetails = () => {
     setShowLiveModal(true);
   };
 
-  const handleCancelScheduledLive = async (lessonId) => {
-    if (!window.confirm("Are you sure you want to cancel this scheduled live class?")) return;
-    try {
-      await api.delete(`/lessons/${lessonId}/live-stream`);
-      setLessons(prev => prev.map(l => {
-        if (l._id === lessonId) {
-          return {
-            ...l,
-            liveStream: {
-              ...(l.liveStream || {}),
-              isLive: false,
-              isScheduled: false,
-              scheduledStartTime: null,
-              youtubeUrl: ''
+  const handleCancelScheduledLive = (lessonId) => {
+    setConfirmActionModal({
+      isOpen: true,
+      title: "Cancel Live Class",
+      message: "Are you sure you want to cancel this scheduled live class session?",
+      confirmText: "Cancel Live Class",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await api.delete(`/lessons/${lessonId}/live-stream`);
+          setLessons(prev => prev.map(l => {
+            if (l._id === lessonId) {
+              return {
+                ...l,
+                liveStream: {
+                  ...(l.liveStream || {}),
+                  isLive: false,
+                  isScheduled: false,
+                  scheduledStartTime: null,
+                  youtubeUrl: ''
+                }
+              };
             }
-          };
+            return l;
+          }));
+          toast.success("Scheduled live class cancelled.");
+          fetchCourseDetails();
+        } catch (err) {
+          toast.error("Failed to cancel scheduled live class.");
+        } finally {
+          setConfirmActionModal(null);
         }
-        return l;
-      }));
-      toast.success("Scheduled live class cancelled.");
-      fetchCourseDetails();
-    } catch (err) {
-      toast.error("Failed to cancel scheduled live class.");
-    }
+      }
+    });
   };
 
   const handleEndLiveStream = () => {
@@ -5866,6 +5925,21 @@ const CourseDetails = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Confirmation UI Modal */}
+      {confirmActionModal && (
+        <ConfirmModal
+          isOpen={confirmActionModal.isOpen}
+          title={confirmActionModal.title}
+          message={confirmActionModal.message}
+          confirmText={confirmActionModal.confirmText}
+          cancelText={confirmActionModal.cancelText}
+          type={confirmActionModal.type || 'danger'}
+          isLoading={confirmActionModal.isLoading}
+          onClose={() => setConfirmActionModal(null)}
+          onConfirm={confirmActionModal.onConfirm}
+        />
       )}
     </div>
   );
