@@ -5,7 +5,6 @@ logs/
 .env.*
 !.env.example
 seedAdmin.js
-
 # Storage uploads (stored on server filesystem outside git)
 storage/public/courses/*
 storage/public/profiles/*
@@ -19,4 +18,4 @@ storage/private/payments/*
 uploads/*
 !storage/**/.gitkeep
 !uploads/.gitkeep
-
+*.env

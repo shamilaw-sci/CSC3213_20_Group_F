@@ -15,6 +15,7 @@ import {
   FaCalendarAlt,
   FaCheckCircle,
   FaMoneyBillWave,
+  FaCreditCard,
   FaInfoCircle
 } from 'react-icons/fa';
 import CourseEnrollmentModal from '../components/CourseEnrollmentModal';
@@ -494,9 +495,10 @@ const Courses = () => {
                 setSelectedCourseForEnrollment(course);
                 setEnrollModalOpen(true);
               }}
-              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-[#2d1b64] hover:from-purple-700 hover:to-purple-900 text-white font-extrabold text-xs rounded-xl shadow-md transition transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-800 text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform active:scale-95 flex items-center gap-2 cursor-pointer shrink-0 whitespace-nowrap border border-purple-400/30"
             >
-              Enroll & Pay Online 💳
+              <FaCreditCard className="text-amber-300 text-sm shrink-0" />
+              <span>Enroll & Pay Online</span>
             </button>
           )}
         </div>

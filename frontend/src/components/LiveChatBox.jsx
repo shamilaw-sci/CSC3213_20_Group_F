@@ -187,8 +187,42 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const togglePlay = () => {
-    globalAudioQueue.requestPlay(effectiveId);
+  const togglePlay = (e) => {
+    if (e) e.stopPropagation();
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+      globalAudioQueue.notifyPaused(effectiveId);
+    } else {
+      globalAudioQueue.requestPlay(effectiveId);
+      audioRef.current.playbackRate = playbackRate;
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setHasAudioError(false);
+          })
+          .catch((err) => {
+            console.warn("Direct play failed, reloading source:", err);
+            if (audioRef.current) {
+              audioRef.current.load();
+              audioRef.current.play()
+                .then(() => {
+                  setIsPlaying(true);
+                  setHasAudioError(false);
+                })
+                .catch((e2) => {
+                  console.error("Audio playback error:", e2);
+                  setIsPlaying(false);
+                  setHasAudioError(true);
+                });
+            }
+          });
+      }
+    }
   };
 
   const handleTimeUpdate = () => {
@@ -236,11 +270,11 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
   const isAdmin = !isBroadcastMsg && role === 'admin';
 
   return (
-    <div className={`relative px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl sm:rounded-3xl flex items-center gap-2.5 sm:gap-3 w-full max-w-[285px] sm:max-w-[325px] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isPlaying ? 'ring-2 ring-white/70 shadow-xl' : ''
+    <div className={`relative px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl sm:rounded-3xl flex items-center gap-2.5 sm:gap-3 w-full max-w-[285px] sm:max-w-[325px] shrink-0 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isPlaying ? 'ring-2 ring-white/70 shadow-xl' : ''
       } ${isBroadcastMsg
         ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-emerald-950/25 border border-emerald-300/60 ring-1 ring-emerald-200/40 font-medium'
         : isTeacher
-          ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-amber-950 shadow-amber-950/20 border border-amber-400/80 font-bold'
+          ? 'bg-gradient-to-r from-yellow-400 via-amber-500 to-amber-700 text-white shadow-amber-950/25 border border-amber-400/60 font-bold'
           : isAdmin
             ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white shadow-purple-950/25 border border-purple-400/30 font-medium'
             : 'bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white shadow-sky-950/25 border border-sky-300/50 font-medium'
@@ -249,7 +283,7 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
       <audio
         ref={audioRef}
         src={resolvedAudioSrc}
-        preload="metadata"
+        preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleTimeUpdate}
         onDurationChange={handleTimeUpdate}
@@ -270,7 +304,7 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
         className={`w-8.5 h-8.5 sm:w-9.5 sm:h-9.5 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-md cursor-pointer shrink-0 active:scale-90 hover:scale-105 ${isBroadcastMsg
             ? 'bg-white text-emerald-700 hover:bg-emerald-50 shadow-emerald-950/30'
             : isTeacher
-              ? 'bg-white text-amber-700 hover:bg-amber-50 shadow-amber-950/30'
+              ? 'bg-white text-amber-800 hover:bg-amber-50 shadow-md'
               : isAdmin
                 ? 'bg-white text-purple-700 hover:bg-purple-50 shadow-purple-950/30'
                 : 'bg-white text-sky-700 hover:bg-sky-50 shadow-sky-950/30'
@@ -279,37 +313,46 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
         {isPlaying ? (
           <FaPause className="text-xs" />
         ) : (
-          <FaPlay className="text-xs pl-0.5" />
+          <FaPlay className="text-xs ml-0.5" />
         )}
       </button>
 
-      {/* Center Waveform Spectrum & Time */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between gap-1.5 select-none">
-        {/* Interactive Soundwave Bars */}
+      {/* Interactive Waveform Seeking Visualizer */}
+      <div className="flex-1 flex flex-col justify-center gap-1 min-w-0">
         <div
           onClick={handleWaveformClick}
-          className="flex items-center gap-[2px] sm:gap-[2.5px] h-6 cursor-pointer py-1 group/wave"
+          className="flex items-center gap-0.5 sm:gap-1 h-5.5 sm:h-6 cursor-pointer group/wave py-0.5"
+          title="Click waveform to jump to position"
         >
-          {WAVEFORM_BARS.map((heightPct, idx) => {
-            const barProgress = (idx / WAVEFORM_BARS.length) * 100;
-            const isPlayed = progressPercent >= barProgress;
+          {[40, 75, 50, 95, 60, 30, 85, 100, 45, 70, 90, 35, 80, 65, 50, 85, 40, 95, 60, 75, 45, 85, 30, 90, 50, 70].map((h, i) => {
+            const barPercent = (i / 26) * 100;
+            const isPlayed = barPercent <= progressPercent;
+
             return (
               <span
-                key={idx}
-                className={`w-[2.5px] sm:w-[3px] rounded-full transition-all duration-75 group-hover/wave:opacity-90 ${isPlayed
-                    ? (isBroadcastMsg ? 'bg-amber-300 shadow-2xs' : isTeacher ? 'bg-amber-600' : 'bg-amber-300 shadow-2xs')
-                    : (isBroadcastMsg ? 'bg-emerald-200/50' : isTeacher ? 'bg-amber-300/60' : isAdmin ? 'bg-purple-300/40' : 'bg-sky-200/40')
+                key={i}
+                style={{ height: `${h}%` }}
+                className={`w-1 rounded-full transition-all duration-150 group-hover/wave:scale-y-110 ${isPlayed
+                    ? isBroadcastMsg
+                      ? 'bg-amber-300 shadow-2xs'
+                      : isTeacher
+                        ? 'bg-white shadow-2xs'
+                        : 'bg-amber-300 shadow-2xs'
+                    : isBroadcastMsg
+                      ? 'bg-emerald-200/50'
+                      : isTeacher
+                        ? 'bg-cyan-200/50'
+                        : isAdmin
+                          ? 'bg-purple-300/40'
+                          : 'bg-sky-200/40'
                   }`}
-                style={{
-                  height: `${Math.max(4, Math.round((heightPct / 100) * 18) + 2)}px`
-                }}
               />
             );
           })}
         </div>
 
         {/* Bottom Metadata: Timer + Voice Note Label + Speed Toggle */}
-        <div className={`flex items-center justify-between text-xs font-sans font-semibold ${isBroadcastMsg ? 'text-emerald-50' : isTeacher ? 'text-amber-950' : 'text-white/95'
+        <div className={`flex items-center justify-between text-xs font-sans font-semibold ${isBroadcastMsg ? 'text-emerald-50' : isTeacher ? 'text-white/95' : 'text-white/95'
           }`}>
           <span className="font-semibold text-xs tracking-tight">
             {formatSec(currentTime > 0 ? currentTime : targetDuration)}
@@ -318,7 +361,7 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
           <div className="flex items-center gap-2">
             <span className={`text-[11px] font-semibold flex items-center gap-1 font-sans ${isBroadcastMsg
                 ? 'text-emerald-100 font-bold'
-                : isTeacher ? 'text-amber-900/90' : 'text-white/90'
+                : isTeacher ? 'text-white/90' : 'text-white/90'
               }`}>
               {isBroadcastMsg ? (
                 <>
@@ -340,7 +383,7 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
               className={`px-2 py-0.5 rounded-full text-[11px] font-bold font-sans transition cursor-pointer active:scale-95 shadow-2xs ${isBroadcastMsg
                   ? 'bg-emerald-900/60 hover:bg-emerald-900/80 text-emerald-100 border border-emerald-300/40'
                   : isTeacher
-                    ? 'bg-amber-200/80 hover:bg-amber-300 text-amber-950 border border-amber-300/80'
+                    ? 'bg-white/25 hover:bg-white/35 text-white border border-white/40'
                     : 'bg-white/25 hover:bg-white/35 text-white ring-1 ring-white/30'
                 }`}
               title="Change audio playback speed"
@@ -357,10 +400,25 @@ const AudioMessagePlayer = ({ src, duration, isFromMe, role = 'student', isBroad
 // Global helper to format complete attachment URLs
 const getFullAttachmentUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
-  if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
-  if (url.startsWith('/assets/') || url.startsWith('assets/')) return url.startsWith('/') ? url : `/${url}`;
-  const backendBase = getBackendBaseUrl();
-  return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  let fullUrl = '';
+
+  if (url.startsWith('/assets/') || url.startsWith('assets/')) {
+    return url.startsWith('/') ? url : `/${url}`;
+  } else if (url.startsWith('http://') || url.startsWith('https://')) {
+    fullUrl = url;
+  } else {
+    const backendBase = getBackendBaseUrl();
+    fullUrl = `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+
+  if (token && (fullUrl.includes('/api/files/') || fullUrl.includes('/files/')) && !fullUrl.includes('token=')) {
+    fullUrl += (fullUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(token)}`;
+  }
+
+  return fullUrl;
 };
 
 // Robust Chat Avatar Component with automatic fallback to instructor photo or initial letter
@@ -434,13 +492,13 @@ const ChatAvatar = ({ avatarSrc, senderName, isSenderAdmin, isSenderTeacher }) =
   const borderClasses = isSenderAdmin
     ? 'border-purple-300 ring-2 ring-purple-100'
     : isSenderTeacher
-      ? 'border-amber-300 ring-2 ring-amber-100'
+      ? 'border-amber-400 ring-2 ring-amber-100'
       : 'border-indigo-300 ring-2 ring-indigo-100';
 
   const gradientClasses = isSenderAdmin
     ? 'bg-gradient-to-tr from-purple-700 to-indigo-700 text-white'
     : isSenderTeacher
-      ? 'bg-gradient-to-tr from-amber-500 to-yellow-500 text-slate-950'
+      ? 'bg-gradient-to-tr from-orange-500 via-amber-500 to-yellow-400 text-white'
       : 'bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white';
 
   return (
@@ -692,6 +750,10 @@ const LiveChatBox = ({
   const [floatingReactions, setFloatingReactions] = useState([]);
   const [heroReaction, setHeroReaction] = useState(null);
   const [studentFeedbackSubmitted, setStudentFeedbackSubmitted] = useState(false);
+  const [selectedStudentReaction, setSelectedStudentReaction] = useState(null);
+  const [postStreamText, setPostStreamText] = useState('');
+  const [postStreamCategory, setPostStreamCategory] = useState('question'); // 'question' | 'recommendation' | 'comment'
+  const [postStreamSubmittedMsg, setPostStreamSubmittedMsg] = useState(null);
   const [unseenCount, setUnseenCount] = useState(0);
   const [readThreadTimestamps, setReadThreadTimestamps] = useState({});
   const lastSeenMsgCountRef = useRef(0);
@@ -1312,11 +1374,9 @@ const LiveChatBox = ({
         });
       }
 
-      // ONLY auto-scroll if user is already at the bottom or initial load — NEVER disrupt reading or typing
+      // ONLY auto-scroll on initial load — NEVER auto-scroll during background polling or periodic updates
       if (isInitial) {
         scrollToBottom(false);
-      } else if (newMsgs.length > messagesLengthRef.current && isMainNearBottomRef.current) {
-        scrollToBottom(true);
       }
     } catch (err) {
       // silent poll fail
@@ -1561,6 +1621,26 @@ const LiveChatBox = ({
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleSendPostStreamFeedback = async (e) => {
+    if (e) e.preventDefault();
+    const textToSend = postStreamText.trim();
+    if (!textToSend || isSending) return;
+
+    const categoryPrefix = postStreamCategory === 'question' 
+      ? '❓ [Question]: ' 
+      : postStreamCategory === 'recommendation' 
+        ? '💡 [Recommendation]: ' 
+        : '💬 [Comment]: ';
+
+    const fullText = `${categoryPrefix}${textToSend}`;
+
+    await handleSendMessage(null, fullText);
+
+    setPostStreamText('');
+    setPostStreamSubmittedMsg(`Your ${postStreamCategory} has been delivered to your instructor!`);
+    setTimeout(() => setPostStreamSubmittedMsg(null), 4000);
   };
 
   const handleSendInlineStaffMessage = async (e, textOverride = null) => {
@@ -1817,7 +1897,37 @@ const LiveChatBox = ({
   const formatMessageTime = (dateStr) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getChatDateLabel = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+
+    const now = new Date();
+    const msgDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const diffTime = todayDate - msgDate;
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+
+    if (d.getFullYear() === now.getFullYear()) {
+      return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const formatFullDateTime = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const selectedThreadStudent = studentThreads.find(t => t.studentId === selectedStudentId);
@@ -2284,7 +2394,7 @@ const LiveChatBox = ({
           <div
             ref={chatContainerRef}
             onScroll={handleMainScroll}
-            className={`relative ${isFullscreen ? 'flex-1 min-h-0' : 'h-80 sm:h-96'} overflow-y-auto overflow-x-hidden p-3.5 sm:p-4 pb-8 space-y-4 sm:space-y-5 bg-gray-50/70 border-b border-gray-100 scroll-smooth overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400`}
+            className={`relative ${isFullscreen ? 'flex-1 min-h-0' : 'h-80 sm:h-96'} overflow-y-auto overflow-x-hidden p-3.5 sm:p-4 pb-8 space-y-4 sm:space-y-5 bg-gray-50/70 border-b border-gray-100 overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400`}
           >
 
             {/* 2. Live Chat-Wide Floating Reaction Particles Overlay */}
@@ -2307,26 +2417,228 @@ const LiveChatBox = ({
               ))}
             </div>
 
-            {/* 3. Post-Stream Lecture Ended Notification Banner */}
+            {/* 3. Interactive Post-Stream Conclusion Card (Differentiated Admin/Teacher vs Student Studio) */}
             {isStreamEnded && (
-              <div className="bg-gradient-to-r from-purple-50 via-indigo-50/80 to-purple-50 border border-purple-200/90 rounded-2xl p-3 sm:p-3.5 shadow-2xs space-y-1 select-none animate-fadeIn">
-                <div className="flex items-center gap-2">
-                  <span className="w-5.5 h-5.5 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs font-black shadow-2xs">
-                    <FaStop className="text-[9px]" />
-                  </span>
-                  <span className="font-black text-xs text-purple-950">
-                    Live Lecture Has Concluded
-                  </span>
-                  <span className="ml-auto px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-extrabold text-[9.5px]">
-                    Feedback & Questions
-                  </span>
+              isStudent ? (
+                /* STUDENT VIEW: Interactive Post-Stream Q&A, Recommendation, Comment & Emoji Studio */
+                <div className="w-full max-w-xl mx-auto my-3 bg-gradient-to-b from-slate-900 via-purple-950 to-slate-950 text-white rounded-3xl p-5 sm:p-6 shadow-xl border-2 border-purple-500/40 relative overflow-hidden select-none animate-in fade-in zoom-in-95 duration-300">
+                  {/* Ambient Glowing Background */}
+                  <div className="absolute -top-12 -right-12 w-36 h-36 bg-purple-500/20 rounded-full blur-2xl pointer-events-none" />
+                  <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
+
+                  <div className="relative z-10 space-y-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-900/90 border border-purple-400/50 text-amber-300 font-black text-xs uppercase tracking-wider shadow-sm">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                        <span>🎓 Session Concluded</span>
+                      </div>
+                      <span className="text-[11px] font-mono text-purple-200/90 bg-white/10 px-2.5 py-0.5 rounded-md border border-white/15">
+                        Post-Stream Q&A & Feedback Studio
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                        Today's Live Session Has Concluded!
+                      </h3>
+                      <p className="text-xs sm:text-[13px] text-purple-100/90 font-medium leading-relaxed mt-1">
+                        Have questions, recommendations, or comments for your instructor? Send instant reactions or submit your detailed feedback below.
+                      </p>
+                    </div>
+
+                    {/* Section A: Instant Emoji Reactions */}
+                    <div className="pt-3 space-y-2.5 border-t border-purple-800/60">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-amber-300 tracking-wide flex items-center gap-1.5">
+                          <span>✨ Send Instant Reaction Emoji</span>
+                        </span>
+                        {selectedStudentReaction && (
+                          <span className="text-[10.5px] font-bold text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-500/40 animate-pulse">
+                            ✓ Delivered!
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 6 Quick Reaction Pills */}
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        {[
+                          { emoji: '❤️', label: 'Loved It' },
+                          { emoji: '👍', label: 'Understood' },
+                          { emoji: '👏', label: 'Great Class' },
+                          { emoji: '💡', label: 'Insightful' },
+                          { emoji: '🔥', label: 'Awesome' },
+                          { emoji: '⭐', label: '5-Star' }
+                        ].map((reactItem, rIdx) => {
+                          const isSelected = selectedStudentReaction === reactItem.emoji;
+                          return (
+                            <button
+                              key={rIdx}
+                              type="button"
+                              onClick={() => {
+                                setSelectedStudentReaction(reactItem.emoji);
+                                setStudentFeedbackSubmitted(true);
+                                handleAutoSendEmoji(reactItem.emoji);
+                              }}
+                              className={`flex flex-col items-center justify-center p-2 rounded-2xl border transition-all duration-200 cursor-pointer group active:scale-95 ${
+                                isSelected
+                                  ? 'bg-gradient-to-b from-amber-400 to-amber-500 text-slate-950 font-black border-amber-300 shadow-md ring-2 ring-amber-300 scale-105'
+                                  : 'bg-white/10 hover:bg-white/20 text-white border-white/15 hover:border-amber-300/60 shadow-2xs hover:scale-105'
+                              }`}
+                              title={`React with ${reactItem.label}`}
+                            >
+                              <span className="text-xl sm:text-2xl group-hover:scale-125 transition-transform duration-150">
+                                {reactItem.emoji}
+                              </span>
+                              <span className="text-[10px] font-bold mt-1 tracking-tight truncate max-w-full">
+                                {reactItem.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Section B: Submit Question, Recommendation, or Comment */}
+                    <div className="pt-3.5 space-y-3 border-t border-purple-800/60">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-purple-200 tracking-wide flex items-center gap-1.5">
+                          <FaComments className="text-amber-300 text-xs" />
+                          <span>Ask Question, Share Recommendation & Comment</span>
+                        </span>
+                      </div>
+
+                      {/* Category Pills Tabs */}
+                      <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-black/40 border border-purple-500/30">
+                        {[
+                          { id: 'question', label: '❓ Question' },
+                          { id: 'recommendation', label: '💡 Recommendation' },
+                          { id: 'comment', label: '💬 Comment' }
+                        ].map(tab => (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setPostStreamCategory(tab.id)}
+                            className={`py-1.5 px-2 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                              postStreamCategory === tab.id
+                                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md ring-1 ring-purple-300'
+                                : 'text-purple-200/80 hover:text-white hover:bg-white/10'
+                            }`}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Input Box & Submit Form */}
+                      <form onSubmit={handleSendPostStreamFeedback} className="space-y-2.5">
+                        <div className="relative">
+                          <textarea
+                            rows={2}
+                            value={postStreamText}
+                            onChange={(e) => setPostStreamText(e.target.value)}
+                            placeholder={
+                              postStreamCategory === 'question'
+                                ? "Type your question about today's lesson..."
+                                : postStreamCategory === 'recommendation'
+                                  ? "Share your suggestions or recommendations for future classes..."
+                                  : "Type your comment or note for your teacher..."
+                            }
+                            className="w-full p-3 rounded-2xl bg-black/50 border border-purple-400/40 text-white placeholder-purple-300/60 text-xs sm:text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 resize-none font-sans font-medium"
+                          />
+
+                          {/* Quick Emoji Bar inside form */}
+                          <div className="absolute right-2.5 bottom-3.5 flex items-center gap-1.5">
+                            {['🙌', '❓', '💡', '💯', '❤️'].map((em, eIdx) => (
+                              <button
+                                key={eIdx}
+                                type="button"
+                                onClick={() => setPostStreamText(prev => prev + em)}
+                                className="text-base hover:scale-120 transition-transform active:scale-95 cursor-pointer"
+                              >
+                                {em}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {postStreamSubmittedMsg && (
+                          <div className="p-2 rounded-xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs font-bold flex items-center gap-2 animate-in zoom-in-95">
+                            <span>✓</span>
+                            <span>{postStreamSubmittedMsg}</span>
+                          </div>
+                        )}
+
+                        <button
+                          type="submit"
+                          disabled={!postStreamText.trim() || isSending}
+                          className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          <FaPaperPlane className="text-xs" />
+                          <span>Submit {postStreamCategory === 'question' ? 'Question' : postStreamCategory === 'recommendation' ? 'Recommendation' : 'Comment'} to Instructor</span>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[11.5px] text-purple-900/90 font-medium pl-7 leading-relaxed">
-                  {isStudent
-                    ? "Provide your feedback, final reactions, or post-stream questions below. Your instructor can review and reply to you directly."
-                    : "The live stream has ended. You can review student questions, feedback reactions, and reply to each student inquiry anytime."}
-                </p>
-              </div>
+              ) : (
+                /* TEACHER / ADMIN VIEW: Instructor Analytics Overview & Quick Q&A Navigation */
+                <div className="w-full max-w-xl mx-auto my-3 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-white rounded-3xl p-5 sm:p-6 shadow-xl border-2 border-indigo-500/40 relative overflow-hidden select-none animate-in fade-in zoom-in-95 duration-300">
+                  {/* Ambient Background */}
+                  <div className="absolute -top-12 -right-12 w-36 h-36 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
+                  <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
+
+                  <div className="relative z-10 space-y-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-900/90 border border-indigo-400/50 text-amber-300 font-black text-xs uppercase tracking-wider shadow-sm">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                        <span>📊 Instructor Session Summary</span>
+                      </div>
+                      <span className="text-[11px] font-mono text-indigo-200/90 bg-white/10 px-2.5 py-0.5 rounded-md border border-white/15">
+                        Stream Ended
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                        Live Session Ended — Instructor Control Hub
+                      </h3>
+                      <p className="text-xs sm:text-[13px] text-indigo-100/90 font-medium leading-relaxed mt-1">
+                        Student reactions, questions, comments, and recommendations submitted after stream conclusion will update below in real-time.
+                      </p>
+                    </div>
+
+                    {/* Live Session Analytics Grid for Instructor/Admin */}
+                    <div className="grid grid-cols-3 gap-2.5 pt-2">
+                      <div className="p-3 rounded-2xl bg-white/10 border border-white/15 text-center space-y-1">
+                        <span className="text-[10.5px] uppercase font-black text-indigo-200 tracking-wider block">Student Threads</span>
+                        <span className="text-lg sm:text-xl font-black text-amber-300 font-mono block">{studentThreads.length}</span>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-white/10 border border-white/15 text-center space-y-1">
+                        <span className="text-[10.5px] uppercase font-black text-indigo-200 tracking-wider block">Messages</span>
+                        <span className="text-lg sm:text-xl font-black text-white font-mono block">{messages.length}</span>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-white/10 border border-white/15 text-center space-y-1">
+                        <span className="text-[10.5px] uppercase font-black text-indigo-200 tracking-wider block">Reactions</span>
+                        <span className="text-lg sm:text-xl font-black text-emerald-300 font-mono block">
+                          {messages.filter(m => isOnlyEmoji(m.text)).length}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Quick Action Button for Instructor to switch to Student Threads */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setChatFilterTab('inquiries')}
+                        className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <FaComments className="text-sm" />
+                        <span>View Student Questions & Private Threads ({studentThreads.length})</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
             )}
 
             {/* 4. Student Feedback Submitted Confirmation Toast Banner */}
@@ -2464,25 +2776,44 @@ const LiveChatBox = ({
                           <span className="tracking-tight">Broadcast to all students</span>
                         </div>
                       </div>
-                      {messages.filter(m => m.isBroadcast).map((msg, index) => {
-                        const isFromMe = getIsFromMe(msg);
-                        const msgRole = getMessageTheme(msg, isFromMe, user?.role, isTeacherOrAdmin);
-                        const isSenderAdmin = msgRole === 'admin';
-                        const isSenderTeacher = msgRole === 'teacher';
+                      {(() => {
+                        let lastDateLabel = null;
+                        return messages.filter(m => m.isBroadcast).map((msg, index) => {
+                          const isFromMe = getIsFromMe(msg);
+                          const msgRole = getMessageTheme(msg, isFromMe, user?.role, isTeacherOrAdmin);
+                          const isSenderAdmin = msgRole === 'admin';
+                          const isSenderTeacher = msgRole === 'teacher';
 
-                        const displaySenderName = isFromMe
-                          ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
-                          : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
-                            ? msg.senderName
-                            : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+                          const currentDateLabel = getChatDateLabel(msg.createdAt);
+                          const showDateDivider = currentDateLabel && currentDateLabel !== lastDateLabel;
+                          if (showDateDivider) {
+                            lastDateLabel = currentDateLabel;
+                          }
 
-                        const senderAvatarUrl = isFromMe
-                          ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
-                          : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
+                          const displaySenderName = isFromMe
+                            ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
+                            : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
+                              ? msg.senderName
+                              : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
 
-                        return (
-                          <div key={msg._id || index} className="w-full max-w-xl mx-auto bg-gradient-to-b from-emerald-50/95 to-emerald-50/90 hover:from-emerald-100/95 hover:to-emerald-100/80 border-2 border-emerald-400/80 hover:border-emerald-500 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-colors duration-200 text-gray-900 space-y-3 box-border min-h-[110px] flex flex-col justify-between cursor-default">
-                            <div className="flex items-center justify-between border-b border-emerald-200/90 pb-2.5">
+                          const senderAvatarUrl = isFromMe
+                            ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
+                            : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
+
+                          return (
+                            <React.Fragment key={msg._id || index}>
+                              {showDateDivider && (
+                                <div className="flex items-center justify-center my-4 sm:my-5 select-none w-full gap-3">
+                                  <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/60 to-emerald-400/40 dark:via-emerald-800/40 flex-1 max-w-[120px] sm:max-w-[160px]" />
+                                  <div className="bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-emerald-500/15 dark:from-emerald-950/80 dark:to-emerald-950/80 border border-emerald-300/90 dark:border-emerald-700 px-4 py-1.5 rounded-full text-[11px] font-black text-emerald-950 dark:text-emerald-200 uppercase tracking-widest shadow-xs backdrop-blur-md flex items-center gap-2 ring-1 ring-emerald-400/20">
+                                    <span className="text-sm">📅</span>
+                                    <span className="font-sans font-black text-[10.5px] sm:text-[11px] tracking-wider">{currentDateLabel}</span>
+                                  </div>
+                                  <div className="h-px bg-gradient-to-r from-emerald-400/40 via-emerald-300/60 to-transparent dark:from-emerald-700/60 flex-1 max-w-[120px] sm:max-w-[160px]" />
+                                </div>
+                              )}
+                              <div className="w-full max-w-xl mx-auto bg-gradient-to-b from-emerald-50/95 to-emerald-50/90 hover:from-emerald-100/95 hover:to-emerald-100/80 border-2 border-emerald-400/80 hover:border-emerald-500 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-colors duration-200 text-gray-900 space-y-3 box-border min-h-[110px] flex flex-col justify-between cursor-default">
+                                <div className="flex items-center justify-between border-b border-emerald-200/90 pb-2.5">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <ChatAvatar
                                   avatarSrc={senderAvatarUrl}
@@ -2499,7 +2830,7 @@ const LiveChatBox = ({
                                       Admin
                                     </span>
                                   ) : (
-                                    <span className="px-2.5 py-0.5 rounded-md bg-amber-400 text-amber-950 text-[10px] font-black border border-amber-500/60 shadow-2xs">
+                                    <span className="px-2.5 py-0.5 rounded-md bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black border border-amber-600/60 shadow-2xs">
                                       Instructor
                                     </span>
                                   )}
@@ -2576,8 +2907,10 @@ const LiveChatBox = ({
                               </div>
                             ))}
                           </div>
+                          </React.Fragment>
                         );
-                      })}
+                      });
+                    })()}
                     </div>
                   ) : chatFilterTab === 'broadcast' ? (
                     <div className="w-full bg-emerald-50/40 rounded-2xl border-2 border-dashed border-emerald-200 p-6 text-center space-y-2">
@@ -2865,37 +3198,55 @@ const LiveChatBox = ({
                   </p>
                 </div>
               ) : (
-                messages.map((msg, index) => {
-                  const isFromMe = getIsFromMe(msg);
-                  const msgRole = getMessageTheme(msg, isFromMe, user?.role, isTeacherOrAdmin);
-                  const isSenderAdmin = msgRole === 'admin';
-                  const isSenderTeacher = msgRole === 'teacher';
-                  const isBroadcast = msg.isBroadcast === true;
-                  const isEmojiOnly = isOnlyEmoji(msg.text) && (!msg.attachments || msg.attachments.length === 0);
+                (() => {
+                  let lastDateLabel = null;
+                  return messages.map((msg, index) => {
+                    const isFromMe = getIsFromMe(msg);
+                    const msgRole = getMessageTheme(msg, isFromMe, user?.role, isTeacherOrAdmin);
+                    const isSenderAdmin = msgRole === 'admin';
+                    const isSenderTeacher = msgRole === 'teacher';
+                    const isBroadcast = msg.isBroadcast === true;
+                    const isEmojiOnly = isOnlyEmoji(msg.text) && (!msg.attachments || msg.attachments.length === 0);
 
-                  const displaySenderName = isFromMe
-                    ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
-                    : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
-                      ? msg.senderName
-                      : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+                    const currentDateLabel = getChatDateLabel(msg.createdAt);
+                    const showDateDivider = currentDateLabel && currentDateLabel !== lastDateLabel;
+                    if (showDateDivider) {
+                      lastDateLabel = currentDateLabel;
+                    }
 
-                  const senderAvatarUrl = isFromMe
-                    ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
-                    : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
+                    const displaySenderName = isFromMe
+                      ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
+                      : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
+                        ? msg.senderName
+                        : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
 
-                  return (
-                    <div
-                      key={msg._id || index}
-                      className={`flex items-start gap-3 sm:gap-3.5 ${isBroadcast
-                          ? 'justify-center my-3.5 sm:my-4'
-                          : isEmojiOnly
-                            ? 'my-1.5 sm:my-2'
-                            : 'my-2.5 sm:my-3'
-                        } ${isFromMe
-                          ? 'justify-end'
-                          : 'justify-start'
-                        } w-full animate-in fade-in slide-in-from-bottom-2 duration-150 group`}
-                    >
+                    const senderAvatarUrl = isFromMe
+                      ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
+                      : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
+
+                    return (
+                      <React.Fragment key={msg._id || index}>
+                        {showDateDivider && (
+                          <div className="flex items-center justify-center my-4 sm:my-5 select-none w-full gap-3">
+                            <div className="h-px bg-gradient-to-r from-transparent via-purple-300/60 to-purple-400/40 dark:via-purple-800/40 flex-1 max-w-[120px] sm:max-w-[160px]" />
+                            <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 dark:from-purple-950/80 dark:to-purple-950/80 border border-purple-300/80 dark:border-purple-700/80 px-4 py-1.5 rounded-full text-[11px] font-black text-purple-950 dark:text-purple-200 uppercase tracking-widest shadow-xs backdrop-blur-md flex items-center gap-2 ring-1 ring-purple-400/20">
+                              <span className="text-sm">📅</span>
+                              <span className="font-sans font-black text-[10.5px] sm:text-[11px] tracking-wider">{currentDateLabel}</span>
+                            </div>
+                            <div className="h-px bg-gradient-to-r from-purple-400/40 via-purple-300/60 to-transparent dark:from-purple-700/60 flex-1 max-w-[120px] sm:max-w-[160px]" />
+                          </div>
+                        )}
+                        <div
+                          className={`flex items-start gap-3 sm:gap-3.5 ${isBroadcast
+                              ? 'justify-center my-3.5 sm:my-4'
+                              : isEmojiOnly
+                                ? 'my-1.5 sm:my-2'
+                                : 'my-2.5 sm:my-3'
+                            } ${isFromMe
+                              ? 'justify-end'
+                              : 'justify-start'
+                            } w-full animate-in fade-in slide-in-from-bottom-2 duration-150 group`}
+                        >
                       {/* 1. WHATSAPP GROUP CHAT STYLE ANNOUNCEMENT BUBBLE (To All Students) */}
                       {isBroadcast ? (
                         <div className="w-full max-w-xl mx-auto bg-gradient-to-b from-emerald-50/95 to-emerald-50/90 hover:from-emerald-100/95 hover:to-emerald-100/80 border-2 border-emerald-400/80 hover:border-emerald-500 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-colors duration-200 text-gray-900 space-y-3 min-h-[110px] flex flex-col justify-between box-border cursor-default">
@@ -2917,7 +3268,7 @@ const LiveChatBox = ({
                                     Admin
                                   </span>
                                 ) : (
-                                  <span className="px-2.5 py-0.5 rounded-md bg-amber-400 text-amber-950 text-[10px] font-black border border-amber-500/60 shadow-2xs">
+                                  <span className="px-2.5 py-0.5 rounded-md bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black border border-amber-600/60 shadow-2xs">
                                     Instructor
                                   </span>
                                 )}
@@ -2998,8 +3349,8 @@ const LiveChatBox = ({
                           ))}
                         </div>
                       ) : (
-                        /* 2. PRIVATE DIRECT MESSAGE BUBBLE (WhatsApp Alignment) */
-                        <div className={`flex items-start gap-3 sm:gap-3.5 max-w-[85%] sm:max-w-[78%] ${isFromMe ? 'flex-row-reverse ml-auto mr-0' : 'flex-row mr-auto ml-0'}`}>
+                        /* 2. PRIVATE DIRECT MESSAGE BUBBLE (WhatsApp Professional Alignment) */
+                        <div className={`flex items-start gap-2.5 sm:gap-3 max-w-[88%] sm:max-w-[78%] md:max-w-[72%] ${isFromMe ? 'flex-row-reverse ml-auto mr-0' : 'flex-row mr-auto ml-0'}`}>
                           {(() => {
                             const msgRole = getMessageTheme(msg, isFromMe, user?.role, isTeacherOrAdmin);
                             const isSenderAdmin = msgRole === 'admin';
@@ -3017,7 +3368,7 @@ const LiveChatBox = ({
 
                             return (
                               <>
-                                {/* Circular Avatar for BOTH Incoming (Left) and Outgoing (Right) Messages */}
+                                {/* Compact Circular Avatar */}
                                 <ChatAvatar
                                   avatarSrc={senderAvatarUrl}
                                   senderName={displaySenderName}
@@ -3025,86 +3376,66 @@ const LiveChatBox = ({
                                   isSenderTeacher={isSenderTeacher}
                                 />
 
-                                {/* Column Container: Header (Name + Time Outside Box) + Message / Voice Bubble */}
-                                <div className={`flex flex-col ${isFromMe ? 'items-end' : 'items-start'} max-w-full`}>
+                                {/* Column Container */}
+                                <div className={`flex flex-col ${isFromMe ? 'items-end' : 'items-start'} max-w-full min-w-0`}>
                                   {/* Sender Identity Header & Time OUTSIDE of the message box */}
-                                  <div className={`flex items-center gap-1.5 mb-1 px-1 text-[11px] ${isFromMe ? 'justify-end' : 'justify-start'}`}>
+                                  <div className={`flex items-center gap-1.5 mb-1 px-1 text-[11px] sm:text-[11.5px] ${isFromMe ? 'justify-end' : 'justify-start'}`}>
                                     {isFromMe ? (
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium">
+                                      <div className="flex items-center gap-1.5 opacity-90">
+                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium" title={formatFullDateTime(msg.createdAt)}>
                                           {formatMessageTime(msg.createdAt)}
                                         </span>
-                                        <span className={`font-extrabold text-xs tracking-tight ${user?.role === 'admin' ? 'text-purple-950' : user?.role === 'teacher' || user?.role === 'instructor' ? 'text-amber-950' : 'text-sky-950'
-                                          }`}>
+                                        <span className="font-extrabold text-[11.5px] text-slate-800 tracking-tight">
                                           You
                                         </span>
                                         {user?.role === 'admin' ? (
-                                          <span className="px-2 py-0.2 rounded-md bg-purple-100 text-purple-900 text-[10px] font-black border border-purple-300 shadow-2xs">
-                                            Admin
-                                          </span>
-                                        ) : user?.role === 'teacher' || user?.role === 'instructor' ? (
-                                          <span className="px-2 py-0.2 rounded-md bg-amber-400 text-amber-950 text-[10px] font-black border border-amber-500/60 shadow-2xs">
-                                            Instructor
-                                          </span>
-                                        ) : (
-                                          <span className="px-2 py-0.2 rounded-md bg-sky-100 text-sky-900 text-[10px] font-black border border-sky-200/90 shadow-2xs">
-                                            Student
-                                          </span>
-                                        )}
+                                           <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-900 text-[9.5px] font-black border border-purple-300 shadow-2xs">
+                                             Admin
+                                           </span>
+                                         ) : user?.role === 'teacher' || user?.role === 'instructor' ? (
+                                           <span className="px-1.5 py-0.2 rounded bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9.5px] font-black border border-amber-600/60 shadow-2xs">
+                                             Instructor
+                                           </span>
+                                         ) : (
+                                           <span className="px-1.5 py-0.2 rounded bg-sky-100 text-sky-900 text-[9.5px] font-black border border-sky-300 shadow-2xs">
+                                             Student
+                                           </span>
+                                         )}
                                       </div>
                                     ) : isSenderAdmin ? (
                                       <div className="flex items-center gap-1.5">
-                                        <span className="font-extrabold text-xs text-purple-950 tracking-tight">
+                                        <span className="font-extrabold text-[12px] text-purple-950 tracking-tight">
                                           {displaySenderName}
                                         </span>
-                                        <span className="px-2 py-0.2 rounded-md bg-purple-100 text-purple-900 text-[10px] font-black border border-purple-300 shadow-2xs">
+                                        <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-900 text-[9.5px] font-black border border-purple-300">
                                           Admin
                                         </span>
-                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
+                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium" title={formatFullDateTime(msg.createdAt)}>• {formatMessageTime(msg.createdAt)}</span>
                                       </div>
                                     ) : isSenderTeacher ? (
                                       <div className="flex items-center gap-1.5">
-                                        <span className="font-extrabold text-xs text-amber-950 tracking-tight">
+                                        <span className="font-extrabold text-[12px] text-slate-900 dark:text-slate-100 tracking-tight">
                                           {displaySenderName}
                                         </span>
-                                        <span className="px-2 py-0.2 rounded-md bg-amber-400 text-amber-950 text-[10px] font-black border border-amber-500/60 shadow-2xs">
+                                        <span className="px-1.5 py-0.2 rounded bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9.5px] font-black border border-amber-600/60 shadow-2xs">
                                           Instructor
                                         </span>
-                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
-                                      </div>
-                                    ) : !isFromMe && isTeacherOrAdmin && msg.sender ? (
-                                      <div className="flex items-center gap-1.5">
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const sid = typeof msg.sender === 'object' ? msg.sender._id : msg.sender;
-                                            setInspectStudentId(sid);
-                                          }}
-                                          className="flex items-center gap-1 font-bold text-slate-800 bg-sky-50/90 hover:bg-sky-100 border border-sky-200/90 px-1.5 py-0.2 rounded-md shadow-2xs cursor-pointer transition-all duration-150 hover:scale-105"
-                                          title="Click to view student profile and assigned courses"
-                                        >
-                                          <span className="font-extrabold text-xs text-slate-900 tracking-tight">{displaySenderName}</span>
-                                          <span className="px-1.5 py-0.2 rounded bg-sky-100 text-sky-900 text-[9.5px] font-black border border-sky-300 shadow-2xs">
-                                            Student
-                                          </span>
-                                          <FaInfoCircle className="text-[9px] text-sky-500 ml-0.5" />
-                                        </button>
-                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
+                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium" title={formatFullDateTime(msg.createdAt)}>• {formatMessageTime(msg.createdAt)}</span>
                                       </div>
                                     ) : (
                                       <div className="flex items-center gap-1.5">
-                                        <span className="font-extrabold text-xs text-slate-900 tracking-tight">
+                                        <span className="font-extrabold text-[12px] text-slate-900 tracking-tight">
                                           {displaySenderName}
                                         </span>
-                                        <span className="px-2 py-0.2 rounded-md bg-sky-100 text-sky-900 text-[10px] font-black border border-sky-300 shadow-2xs">
+                                        <span className="px-1.5 py-0.2 rounded bg-sky-100 text-sky-900 text-[9.5px] font-black border border-sky-300">
                                           Student
                                         </span>
-                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
+                                        <span className="text-[10.5px] text-gray-400 font-mono font-medium" title={formatFullDateTime(msg.createdAt)}>• {formatMessageTime(msg.createdAt)}</span>
                                       </div>
                                     )}
                                   </div>
 
-                                  {/* Message Body: Direct WhatsApp Voice Note or Compact Bubble */}
+                                  {/* Message Body: WhatsApp Compact Professional Bubble */}
                                   {(() => {
                                     const audioAttachment = msg.attachments?.find(a =>
                                       a.category === 'audio' ||
@@ -3118,7 +3449,7 @@ const LiveChatBox = ({
 
                                     if ((audioAttachment || isVoiceText) && audioSrc) {
                                       return (
-                                        <div className="my-1">
+                                        <div className="my-0.5 max-w-full">
                                           <AudioMessagePlayer
                                             src={audioSrc}
                                             duration={audioAttachment?.duration || 10}
@@ -3131,19 +3462,19 @@ const LiveChatBox = ({
                                       );
                                     }
 
-                                    // Proportional Standalone Animated Emoji (Clean Sticker, No Box/Border)
+                                    // Standalone Emoji
                                     const isEmojiOnly = isOnlyEmoji(msg.text) && (!msg.attachments || msg.attachments.length === 0);
 
                                     if (isEmojiOnly) {
                                       const appleCode = getEmojiAppleCode(msg.text);
 
                                       return (
-                                        <div className={`py-1 px-1 select-none transition-all duration-200 transform hover:scale-120 active:scale-95 cursor-pointer flex items-center ${isFromMe ? 'justify-end' : 'justify-start'} ${getEmojiCustomAnimation(msg.text)}`}>
+                                        <div className={`py-1.5 px-1.5 select-none transition-all duration-200 transform hover:scale-120 active:scale-95 cursor-pointer flex items-center ${isFromMe ? 'justify-end' : 'justify-start'} ${getEmojiCustomAnimation(msg.text)}`}>
                                           {appleCode ? (
                                             <img
                                               src={getHighResEmojiUrl(appleCode)}
                                               alt={msg.text}
-                                              className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-md select-none will-change-transform filter"
+                                              className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain drop-shadow-lg select-none will-change-transform filter"
                                               onError={(e) => {
                                                 if (!e.currentTarget.dataset.retried) {
                                                   e.currentTarget.dataset.retried = 'true';
@@ -3157,7 +3488,7 @@ const LiveChatBox = ({
                                               }}
                                             />
                                           ) : null}
-                                          <span className={`${appleCode ? 'hidden' : 'inline'} text-4xl sm:text-5xl md:text-6xl drop-shadow-md select-none leading-none`}>
+                                          <span className={`${appleCode ? 'hidden' : 'inline'} text-4xl sm:text-5xl md:text-6xl drop-shadow-lg select-none leading-none`}>
                                             {msg.text}
                                           </span>
                                         </div>
@@ -3165,13 +3496,13 @@ const LiveChatBox = ({
                                     }
 
                                     return (
-                                      <div className={`${isFullscreen ? 'px-3 py-2 rounded-2xl text-[12.5px] sm:text-[13px]' : 'px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-[13.5px] sm:text-[14px]'} leading-relaxed tracking-normal shadow-md space-y-1.5 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-lg ${msgRole === 'admin'
-                                          ? `bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white font-bold shadow-purple-950/25 border border-purple-400/40 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
+                                      <div className={`px-4 py-2.5 sm:px-4.5 sm:py-3 text-[13.5px] sm:text-sm md:text-[14.5px] leading-relaxed tracking-normal shadow-md transition-all duration-150 break-words ${msgRole === 'admin'
+                                          ? `bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white font-semibold shadow-purple-950/20 border border-purple-400/30 ${isFromMe ? 'rounded-2xl rounded-tr-xs' : 'rounded-2xl rounded-tl-xs'}`
                                           : msgRole === 'teacher'
-                                            ? `bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-amber-950 font-bold shadow-amber-950/20 border border-amber-400/80 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
-                                            : `bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white font-bold shadow-sky-950/25 border border-sky-300/50 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
+                                            ? `bg-gradient-to-r from-yellow-400 via-amber-500 to-amber-700 text-white font-bold shadow-md shadow-amber-950/25 border border-amber-400/60 ${isFromMe ? 'rounded-2xl rounded-tr-xs' : 'rounded-2xl rounded-tl-xs'}`
+                                            : `bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white font-semibold shadow-sky-950/20 border border-sky-400/40 ${isFromMe ? 'rounded-2xl rounded-tr-xs' : 'rounded-2xl rounded-tl-xs'}`
                                         }`}>
-                                        {msg.text && <p className="whitespace-pre-wrap break-words font-sans font-semibold text-inherit">{msg.text}</p>}
+                                        {msg.text && <p className="whitespace-pre-wrap font-sans font-semibold text-inherit leading-relaxed">{msg.text}</p>}
 
                                         {/* Render Other Attachments (Images, Documents) */}
                                         {msg.attachments?.map((att, aIdx) => (
@@ -3203,8 +3534,10 @@ const LiveChatBox = ({
                         </div>
                       )}
                     </div>
-                  );
-                })
+                  </React.Fragment>
+                );
+              });
+            })()
               )
             )}
             <div ref={messagesEndRef} className="h-0.5 shrink-0" />
@@ -3896,7 +4229,7 @@ const LiveChatBox = ({
             <div
               ref={privateChatContainerRef}
               onScroll={handlePrivateScroll}
-              className={`flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 pb-8 sm:px-6 sm:py-5 custom-scrollbar relative scroll-smooth overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 ${selectedStudentId === 'staff'
+              className={`flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 pb-8 sm:px-6 sm:py-5 custom-scrollbar relative overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 ${selectedStudentId === 'staff'
                   ? 'bg-gradient-to-b from-purple-50/40 via-white to-purple-50/20'
                   : 'bg-gradient-to-b from-slate-50 via-sky-50/20 to-slate-50'
                 }`}
@@ -3945,33 +4278,52 @@ const LiveChatBox = ({
                     );
                   }
 
+                  let lastDateLabel = null;
                   return currentMessages.map((msg, mIdx) => {
-                    const isFromMe = getIsFromMe(msg);
-                    const isEmojiOnly = isOnlyEmoji(msg.text) && (!msg.attachments || msg.attachments.length === 0);
-                    const audioAttachment = msg.attachments?.find(a =>
-                      a.category === 'audio' ||
-                      a.fileType?.startsWith('audio/') ||
-                      a.fileType === 'video/webm' ||
-                      a.fileType === 'video/ogg' ||
-                      (a.url && (a.url.endsWith('.webm') || a.url.endsWith('.ogg') || a.url.endsWith('.wav') || a.url.endsWith('.m4a') || a.url.endsWith('.mp3')))
-                    );
-                    const isVoiceText = msg.text && (msg.text.includes('Voice Question') || msg.text.includes('Voice Response') || msg.text.includes('Voice Note'));
-                    const msgRole = getMessageTheme(msg, isFromMe, user?.role, isTeacherOrAdmin);
-                    const isSenderAdmin = msgRole === 'admin';
-                    const isSenderTeacher = msgRole === 'teacher';
+                      const isFromMe = getIsFromMe(msg);
+                      const isEmojiOnly = isOnlyEmoji(msg.text) && (!msg.attachments || msg.attachments.length === 0);
+                      
+                      const currentDateLabel = getChatDateLabel(msg.createdAt);
+                      const showDateDivider = currentDateLabel && currentDateLabel !== lastDateLabel;
+                      if (showDateDivider) {
+                        lastDateLabel = currentDateLabel;
+                      }
 
-                    const displaySenderName = isFromMe
-                      ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
-                      : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
-                        ? msg.senderName
-                        : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
+                      const audioAttachment = msg.attachments?.find(a =>
+                        a.category === 'audio' ||
+                        a.fileType?.startsWith('audio/') ||
+                        a.fileType === 'video/webm' ||
+                        a.fileType === 'video/ogg' ||
+                        (a.url && (a.url.endsWith('.webm') || a.url.endsWith('.ogg') || a.url.endsWith('.wav') || a.url.endsWith('.m4a') || a.url.endsWith('.mp3')))
+                      );
+                      const isVoiceText = msg.text && (msg.text.includes('Voice Question') || msg.text.includes('Voice Response') || msg.text.includes('Voice Note'));
+                      const msgRole = getMessageTheme(msg, isFromMe, user?.role, isTeacherOrAdmin);
+                      const isSenderAdmin = msgRole === 'admin';
+                      const isSenderTeacher = msgRole === 'teacher';
 
-                    const senderAvatarUrl = isFromMe
-                      ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
-                      : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
+                      const displaySenderName = isFromMe
+                        ? (user?.name || msg.senderName || (isSenderAdmin ? 'Admin' : isSenderTeacher ? 'Instructor' : 'User'))
+                        : (msg.senderName && !msg.senderName.toLowerCase().includes('admin')
+                          ? msg.senderName
+                          : (isSenderAdmin ? 'LuminaLearn Admin' : isSenderTeacher ? 'Instructor' : 'User'));
 
-                    return (
-                      <div key={msg._id || mIdx} className={`flex items-start gap-3 sm:gap-3.5 ${isEmojiOnly ? 'my-1.5 sm:my-2' : 'my-2.5 sm:my-3'} max-w-[85%] sm:max-w-[78%] ${isFromMe ? 'flex-row-reverse ml-auto mr-0' : 'flex-row mr-auto ml-0'}`}>
+                      const senderAvatarUrl = isFromMe
+                        ? (user?.profilePicture || user?.avatar || msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : ''))
+                        : (msg.senderAvatar || (typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender.profilePicture || msg.sender.avatar) : '') || (isSenderAdmin ? '/assets/LuminaLearn_Logo_icon.png' : ''));
+
+                      return (
+                        <React.Fragment key={msg._id || mIdx}>
+                          {showDateDivider && (
+                            <div className="flex items-center justify-center my-4 sm:my-5 select-none w-full gap-3">
+                              <div className="h-px bg-gradient-to-r from-transparent via-purple-300/60 to-purple-400/40 dark:via-purple-800/40 flex-1 max-w-[120px] sm:max-w-[160px]" />
+                              <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 dark:from-purple-950/80 dark:to-purple-950/80 border border-purple-300/80 dark:border-purple-700/80 px-4 py-1.5 rounded-full text-[11px] font-black text-purple-950 dark:text-purple-200 uppercase tracking-widest shadow-xs backdrop-blur-md flex items-center gap-2 ring-1 ring-purple-400/20">
+                                <span className="text-sm">📅</span>
+                                <span className="font-sans font-black text-[10.5px] sm:text-[11px] tracking-wider">{currentDateLabel}</span>
+                              </div>
+                              <div className="h-px bg-gradient-to-r from-purple-400/40 via-purple-300/60 to-transparent dark:from-purple-700/60 flex-1 max-w-[120px] sm:max-w-[160px]" />
+                            </div>
+                          )}
+                          <div className={`flex items-start gap-3 sm:gap-3.5 ${isEmojiOnly ? 'my-1.5 sm:my-2' : 'my-2.5 sm:my-3'} max-w-[85%] sm:max-w-[78%] ${isFromMe ? 'flex-row-reverse ml-auto mr-0' : 'flex-row mr-auto ml-0'}`}>
                         <ChatAvatar
                           avatarSrc={senderAvatarUrl}
                           senderName={displaySenderName}
@@ -3979,7 +4331,7 @@ const LiveChatBox = ({
                           isSenderTeacher={isSenderTeacher}
                         />
 
-                        <div className={`flex flex-col ${isFromMe ? 'items-end' : 'items-start'} max-w-full overflow-hidden`}>
+                        <div className={`flex flex-col ${isFromMe ? 'items-end' : 'items-start'} max-w-full min-w-0`}>
                           <div className={`flex items-center gap-1.5 mb-1 px-1 text-[11px] ${isFromMe ? 'justify-end' : 'justify-start'}`}>
                             {isFromMe ? (
                               <div className="flex items-center gap-1.5">
@@ -3995,7 +4347,7 @@ const LiveChatBox = ({
                                     Admin
                                   </span>
                                 ) : user?.role === 'teacher' || user?.role === 'instructor' ? (
-                                  <span className="px-2 py-0.2 rounded-md bg-amber-400 text-amber-950 text-[10px] font-black border border-amber-500/60 shadow-2xs">
+                                  <span className="px-2 py-0.2 rounded-md bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black border border-amber-600/60 shadow-2xs">
                                     Instructor
                                   </span>
                                 ) : (
@@ -4016,10 +4368,10 @@ const LiveChatBox = ({
                               </div>
                             ) : isSenderTeacher ? (
                               <div className="flex items-center gap-1.5">
-                                <span className="font-extrabold text-xs sm:text-[13px] text-amber-950 tracking-tight">
+                                <span className="font-extrabold text-xs sm:text-[13px] text-slate-900 dark:text-slate-100 tracking-tight">
                                   {displaySenderName}
                                 </span>
-                                <span className="px-2 py-0.2 rounded-md bg-amber-400 text-amber-950 text-[10px] font-black border border-amber-500/60 shadow-2xs">
+                                <span className="px-2 py-0.2 rounded-md bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black border border-amber-600/60 shadow-2xs">
                                   Instructor
                                 </span>
                                 <span className="text-[10.5px] text-gray-400 font-mono font-medium">• {formatMessageTime(msg.createdAt)}</span>
@@ -4058,7 +4410,7 @@ const LiveChatBox = ({
                                 <img
                                   src={getHighResEmojiUrl(getEmojiAppleCode(msg.text))}
                                   alt={msg.text}
-                                  className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-md select-none will-change-transform filter"
+                                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain drop-shadow-lg select-none will-change-transform filter"
                                   onError={(e) => {
                                     if (!e.currentTarget.dataset.retried) {
                                       e.currentTarget.dataset.retried = 'true';
@@ -4080,7 +4432,7 @@ const LiveChatBox = ({
                             <div className={`${isFullscreen ? 'px-3 py-2 rounded-2xl text-[12.5px] sm:text-[13px]' : 'px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-[13.5px] sm:text-[14px]'} leading-relaxed tracking-normal shadow-md space-y-1.5 max-w-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-lg cursor-default ${msgRole === 'admin'
                                 ? `bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white font-bold shadow-purple-950/25 border border-purple-400/40 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
                                 : msgRole === 'teacher'
-                                  ? `bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-amber-950 font-bold shadow-amber-950/20 border border-amber-400/80 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
+                                  ? `bg-gradient-to-r from-yellow-400 via-amber-500 to-amber-700 text-white font-bold shadow-md shadow-amber-950/25 border border-amber-400/60 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
                                   : `bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white font-bold shadow-sky-950/25 border border-sky-300/50 ${isFromMe ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
                               }`}>
                               {msg.text && <p className="whitespace-pre-wrap break-words tracking-wide leading-relaxed font-sans font-semibold text-inherit">{msg.text}</p>}
@@ -4109,9 +4461,10 @@ const LiveChatBox = ({
                           )}
                         </div>
                       </div>
-                    );
-                  });
-                })()}
+                    </React.Fragment>
+                  );
+                });
+              })()}
                 <div ref={privateMessagesEndRef} className="h-0.5 shrink-0" />
               </div>
             </div>

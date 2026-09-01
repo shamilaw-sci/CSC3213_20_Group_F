@@ -6,12 +6,14 @@ const protect = async (req, res, next) => {
   try {
     let token;
 
-    // 1. Check if token exists in header
+    // 1. Check if token exists in header or query string
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith('Bearer')
     ) {
       token = req.headers.authorization.split(' ')[1];
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
     }
 
     // 2. If no token found
@@ -47,6 +49,8 @@ const optionalProtect = async (req, res, next) => {
       req.headers.authorization.startsWith('Bearer')
     ) {
       token = req.headers.authorization.split(' ')[1];
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
     }
 
     if (token && token !== 'null' && token !== 'undefined') {

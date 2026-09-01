@@ -17,7 +17,7 @@ import {
   FaExclamationTriangle, FaCommentDots, FaEdit, FaTrashAlt, FaStar,
   FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheck, FaCheckCircle, FaTimesCircle, FaPaperPlane,
   FaDownload, FaHourglassHalf, FaCog, FaPlayCircle, FaPlay, FaBroadcastTower,
-  FaCalendarCheck, FaCrop, FaImage, FaTrash
+  FaCalendarCheck, FaCrop, FaImage, FaTrash, FaCreditCard
 } from 'react-icons/fa';
 import { getMediaUrl } from '../utils/mediaUrl';
 import { downloadProtectedFile } from '../utils/fileApi';
@@ -1590,17 +1590,22 @@ const CourseDetails = () => {
     setShowEndStreamConfirmModal(false);
     setShowLiveModal(false);
 
-    // Optimistically clear liveStream state across ALL lessons so UI updates immediately
-    setLessons(prevLessons => prevLessons.map(l => ({
-      ...l,
-      liveStream: {
-        ...(l.liveStream || {}),
-        isLive: false,
-        isScheduled: false,
-        scheduledStartTime: null,
-        youtubeUrl: ''
+    // Optimistically update liveStream state to concluded/ended so Post-Stream Studio displays
+    setLessons(prevLessons => prevLessons.map(l => {
+      if (l._id === targetLesson?._id) {
+        return {
+          ...l,
+          liveStream: {
+            ...(l.liveStream || {}),
+            isLive: false,
+            isScheduled: false,
+            isEnded: true,
+            endedAt: new Date().toISOString()
+          }
+        };
       }
-    })));
+      return l;
+    }));
 
     setEndedStreamSummary({
       title: targetLesson?.liveStream?.title || 'Live Broadcast',
@@ -1737,7 +1742,10 @@ const CourseDetails = () => {
                       src={getImageUrl(course.instructor.profilePicture)}
                       alt={course.instructor.name || 'Instructor'}
                       className="w-18 h-18 sm:w-32 sm:h-32 rounded-full object-cover ring-3 sm:ring-4 ring-white dark:ring-slate-900 shadow-2xl bg-white dark:bg-slate-800 border-2 border-purple-100 dark:border-purple-800 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all duration-300"
-                      onError={(e) => { e.target.style.display = 'none'; }}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/assets/default_instructor_icon.png';
+                      }}
                     />
                   ) : (
                     <div className="w-18 h-18 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-600 to-[#2d1b64] text-white rounded-full flex items-center justify-center font-black text-2xl sm:text-5xl ring-3 sm:ring-4 ring-white dark:ring-slate-900 shadow-2xl border-2 border-purple-100 dark:border-purple-800 group-hover/teacher:ring-purple-600 group-hover/teacher:scale-105 transition-all">
@@ -1758,11 +1766,12 @@ const CourseDetails = () => {
                         e.stopPropagation();
                         setShowReviewsModal(true);
                       }}
-                      className="inline-flex items-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 dark:text-amber-300 border border-amber-400/40 px-3 py-1 rounded-full text-xs font-black transition cursor-pointer backdrop-blur-xs shadow-xs"
+                      className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-3.5 py-1 rounded-full text-xs border border-amber-300 shadow-md hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+                      title="Click to view course reviews & feedback"
                     >
-                      <FaStar className="text-amber-400" />
-                      <span>{Number(avgRating) > 0 ? `${avgRating} / 5.0` : 'New'}</span>
-                      <span className="opacity-80">({totalReviews} review{totalReviews !== 1 ? 's' : ''})</span>
+                      <FaStar className="text-amber-950 text-xs" />
+                      <span className="font-extrabold tracking-tight">{Number(avgRating) > 0 ? `${avgRating} / 5.0` : 'New'}</span>
+                      <span className="text-slate-900/80 font-bold">({totalReviews} review{totalReviews !== 1 ? 's' : ''})</span>
                     </button>
                   </div>
                   <h4 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight group-hover/teacher:text-purple-800 dark:group-hover/teacher:text-purple-400 transition-colors">
@@ -1834,12 +1843,10 @@ const CourseDetails = () => {
                     <button
                       type="button"
                       onClick={() => setShowEnrollModal(true)}
-                      className="rounded-2xl bg-gradient-to-r from-purple-600 to-[#2d1b64] text-white px-7 py-3 text-sm font-extrabold hover:from-purple-700 hover:to-purple-900 transition-all shadow-md hover:shadow-xl cursor-pointer flex items-center gap-2"
+                      className="px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-800 text-white text-sm font-black transition-all duration-200 shadow-md hover:shadow-xl cursor-pointer flex items-center gap-2.5 shrink-0 whitespace-nowrap active:scale-95 border border-purple-400/30"
                     >
-                      <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      <span>Enroll & Pay Online 💳</span>
+                      <FaCreditCard className="text-amber-300 text-base shrink-0" />
+                      <span>Enroll & Pay Online</span>
                     </button>
                   ) : (
                     <span className="inline-flex items-center gap-2 bg-green-50 dark:bg-emerald-950/70 text-green-700 dark:text-emerald-300 border border-green-200 dark:border-emerald-800/80 px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-sm">
@@ -2259,8 +2266,8 @@ const CourseDetails = () => {
       {selectedGrade !== null && (
         <div className="space-y-6">
 
-          {/* Active YouTube Live Stream Player (Positioned at TOP of Workspace) */}
-          {currentLesson?.liveStream?.isLive && (
+          {/* Active or Concluded YouTube Live Stream Player & Post-Stream Studio */}
+          {currentLesson?.liveStream && !currentLesson?.liveStream?.isScheduled && (
             <LiveStreamPlayer
               liveStream={currentLesson.liveStream}
               lessonId={currentLesson._id}
@@ -4616,9 +4623,6 @@ const CourseDetails = () => {
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-purple-800/90 dark:text-purple-300/90 font-medium">
-                    ⏱️ <strong>15-Minute Pre-Live Feature:</strong> The player unlocks automatically 15 minutes before this time with a countdown ticker, letting students test their audio & video.
-                  </p>
                 </div>
               )}
 

@@ -12,26 +12,43 @@ export function getMediaUrl(url, fallback = '') {
     return fallback;
   }
 
+  const trimmed = url.trim();
+
   // Already a complete HTTP/HTTPS URL or Data URI or Blob
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
-    return url;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+    return trimmed;
+  }
+
+  // Frontend static assets (e.g. /assets/foo.png or assets/foo.png)
+  if (trimmed.startsWith('/assets/') || trimmed.startsWith('assets/')) {
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
   }
 
   const backendBase = getBackendBaseUrl();
 
   // If already prefixed with /media/ or /api/files/
-  if (url.startsWith('/media/') || url.startsWith('/api/files/')) {
-    return `${backendBase}${url}`;
+  if (trimmed.startsWith('/media/') || trimmed.startsWith('/api/files/')) {
+    return `${backendBase}${trimmed}`;
   }
 
   // Legacy fallback: If prefixed with /uploads/
-  if (url.includes('/uploads/')) {
-    const filename = url.split('/uploads/').pop();
+  if (trimmed.includes('/uploads/')) {
+    const filename = trimmed.split('/uploads/').pop();
     return `${backendBase}/uploads/${filename}`;
   }
 
-  // Relative path or plain filename
-  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  // Plain filename or relative path
+  const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+
+  // Automatically prefix plain image filenames (e.g., profile-xxx.png or banner-xxx.jpg)
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith('profile-') || lower.startsWith('avatar-') || lower.startsWith('cover-')) {
+    return `${backendBase}/media/profiles/${trimmed.replace(/^\/+/, '')}`;
+  }
+  if (lower.startsWith('banner-') || lower.startsWith('cardimage-') || lower.startsWith('course-')) {
+    return `${backendBase}/media/courses/${trimmed.replace(/^\/+/, '')}`;
+  }
+
   return `${backendBase}${cleanPath}`;
 }
 

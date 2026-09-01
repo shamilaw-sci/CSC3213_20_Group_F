@@ -1227,7 +1227,7 @@ router.get('/:lessonId/live-stream/messages', protect, async (req, res) => {
             // Fast filter for student: active broadcasts (during live) + student's own private questions & replies
             const myMessages = allMessages.filter(m => {
                 if (m.isStaffOnly) return false;
-                if (m.isBroadcast === true) return isStreamLive;
+                if (m.isBroadcast === true) return true;
                 const ctxId = m.studentContext ? (typeof m.studentContext === 'object' ? m.studentContext._id?.toString() : m.studentContext.toString()) : null;
                 const senderId = m.sender ? (typeof m.sender === 'object' ? m.sender._id?.toString() : m.sender.toString()) : null;
                 const recipientId = m.recipient ? (typeof m.recipient === 'object' ? m.recipient._id?.toString() : m.recipient.toString()) : null;

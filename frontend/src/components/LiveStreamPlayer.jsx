@@ -28,7 +28,6 @@ const LiveStreamPlayer = ({
   isTeacherOrAdmin, 
   onEndStream, 
   onGoLiveNow,
-  isPreLive = false,
   lessonId, 
   grade,
   courseTitle 
@@ -45,28 +44,6 @@ const LiveStreamPlayer = ({
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [isStreamEnded, setIsStreamEnded] = useState(liveStream?.isLive === false);
   const [activeViewerCount, setActiveViewerCount] = useState(1);
-  const [preLiveCountdown, setPreLiveCountdown] = useState('');
-
-  useEffect(() => {
-    if (!isPreLive || !liveStream?.scheduledStartTime) return;
-
-    const tick = () => {
-      const target = new Date(liveStream.scheduledStartTime).getTime();
-      const now = Date.now();
-      const diff = target - now;
-      if (diff <= 0) {
-        setPreLiveCountdown('00:00');
-        return;
-      }
-      const mins = Math.floor(diff / 60000);
-      const secs = Math.floor((diff % 60000) / 1000);
-      setPreLiveCountdown(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
-    };
-
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [isPreLive, liveStream?.scheduledStartTime]);
   const [showViewersModal, setShowViewersModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showChatBox, setShowChatBox] = useState(true);
@@ -673,23 +650,19 @@ const LiveStreamPlayer = ({
         <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
           {/* Pulsing Beacon */}
           <span className={`relative shrink-0 flex items-center justify-center ${isFullscreen ? 'h-4 w-4 sm:h-5 sm:w-5' : 'h-3.5 w-3.5 sm:h-4 sm:w-4'}`}>
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isPreLive ? 'bg-amber-400' : 'bg-red-400'} opacity-85`}></span>
-            <span className={`relative inline-flex rounded-full h-full w-full ${isPreLive ? 'bg-amber-500 shadow-amber-500/70' : 'bg-red-500 shadow-red-500/70'} shadow-lg`}></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-85"></span>
+            <span className="relative inline-flex rounded-full h-full w-full bg-red-500 shadow-red-500/70 shadow-lg"></span>
           </span>
 
-          {/* LIVE / PRE-LIVE Badge */}
+          {/* LIVE CLASS Badge */}
           <div 
-            className={`${
-              isPreLive
-                ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 border-amber-400/90 shadow-amber-950/70'
-                : 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 border-red-400/90 shadow-red-950/60'
-            } text-white font-black uppercase border-2 shadow-xl flex items-center shrink-0 cursor-default select-none transition-all duration-200 transform hover:scale-105 ${
+            className={`bg-gradient-to-r from-red-600 via-rose-600 to-red-700 border-red-400/90 shadow-red-950/60 text-white font-black uppercase border-2 shadow-xl flex items-center shrink-0 cursor-default select-none transition-all duration-200 transform hover:scale-105 ${
               isFullscreen 
                 ? 'tracking-wider text-sm sm:text-base px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl' 
                 : 'tracking-wider text-xs sm:text-sm px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl'
             }`}
           >
-            <span>{isPreLive ? `PRE-LIVE (${preLiveCountdown || '15m'})` : 'LIVE CLASS'}</span>
+            <span>LIVE CLASS</span>
           </div>
 
           {/* Stream Title (Large, Bold & Prominent Header in Vibrant Yellow) */}
@@ -702,20 +675,8 @@ const LiveStreamPlayer = ({
           </h3>
         </div>
 
-        {/* Right Side: Active Viewers Badge + Go Live Now + Chat Toggle + End Stream Button / Secure Badge */}
+        {/* Right Side: Active Viewers Badge + Chat Toggle + End Stream Button / Secure Badge */}
         <div className="flex items-center justify-end gap-2 shrink-0">
-          {/* Pre-Live Go Live Button for Instructors / Admins */}
-          {isPreLive && isTeacherOrAdmin && onGoLiveNow && (
-            <button
-              type="button"
-              onClick={onGoLiveNow}
-              className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white font-black px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs shadow-lg shadow-red-600/30 transition transform hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 border border-red-400/40"
-              title="End countdown and go live immediately"
-            >
-              <FaPlay className="text-[10px]" />
-              <span>Go Live Now</span>
-            </button>
-          )}
 
           {/* Active Lively Watching Badge (Teachers & Admins Only) */}
           {isTeacherOrAdmin && lessonId && (
