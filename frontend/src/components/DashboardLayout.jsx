@@ -27,7 +27,8 @@ import {
   FaClipboardCheck,
   FaSun,
   FaMoon,
-  FaBars
+  FaBars,
+  FaSignOutAlt
 } from 'react-icons/fa';
 import api from '../utils/api';
 import { useTheme } from '../context/ThemeContext';
@@ -58,12 +59,21 @@ const DashboardLayout = () => {
   const notifRef = useRef(null);
   const profileRef = useRef(null);
 
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
+  const getStoredUser = () => {
+    try {
+      const item = localStorage.getItem('user');
+      return item && item !== 'undefined' ? JSON.parse(item) : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const [user, setUser] = useState(getStoredUser());
 
   // Listen for storage and userUpdated changes
   useEffect(() => {
     const handleStorageChange = () => {
-      const updatedUser = JSON.parse(localStorage.getItem('user'));
+      const updatedUser = getStoredUser();
       if (updatedUser) setUser(updatedUser);
     };
     window.addEventListener('storage', handleStorageChange);
@@ -388,7 +398,7 @@ const DashboardLayout = () => {
                     ) : (
                       <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-xs font-medium">
                         <FaBell className="text-3xl mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                        You're all caught up! No notifications.
+                        {"You're all caught up! No notifications."}
                       </div>
                     )}
                   </div>
@@ -396,14 +406,23 @@ const DashboardLayout = () => {
               )}
             </div>
 
-            {/* --- USER PROFILE SYSTEM --- */}
-            <div className="relative" ref={profileRef}>
+            {/* Direct Instant Theme Toggle Switch */}
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDark ? (
+                <FaSun className="text-xl text-amber-400 hover:rotate-45 transition-transform duration-300" />
+              ) : (
+                <FaMoon className="text-xl text-indigo-600 hover:-rotate-12 transition-transform duration-300" />
+              )}
+            </button>
+
+            {/* Profile Avatar & Dropdown Menu */}
+            <div className="relative ml-1" ref={profileRef}>
               <button
-                onClick={() => {
-                  setShowProfileMenu(!showProfileMenu);
-                  setShowNotifications(false);
-                  setIsMessagingOpen(false);
-                }}
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-2 p-1 text-gray-500 dark:text-gray-300 hover:text-lumina-purple rounded-full transition-all outline-none cursor-pointer relative"
               >
                 <div className="relative">
@@ -478,7 +497,6 @@ const DashboardLayout = () => {
           <Outlet />
         </main>
       </div>
-
       {/* --- BROADCAST ANNOUNCEMENT MODAL --- */}
       <BroadcastModal
         isOpen={isBroadcastOpen}

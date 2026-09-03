@@ -95,61 +95,61 @@ const ScheduledLiveHero = ({
   const thumbnailSrc = liveStream?.thumbnail ? getMediaUrl(liveStream.thumbnail) : null;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-slate-950 text-white shadow-2xl border border-slate-800 animate-fadeIn">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0c0a1a] via-[#120f2b] to-[#0a0816] text-white shadow-2xl border border-purple-900/40 animate-fadeIn backdrop-blur-2xl ring-1 ring-purple-500/20">
       {/* Blurred Thumbnail Backdrop */}
       {thumbnailSrc && (
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-25 filter blur-xl scale-110 pointer-events-none transition-all duration-700"
+          className="absolute inset-0 bg-cover bg-center opacity-30 filter blur-xl scale-110 pointer-events-none transition-all duration-700"
           style={{ backgroundImage: `url(${thumbnailSrc})` }}
         />
       )}
 
       {/* Radiant Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-red-950/40 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0c0a1a] via-[#0c0a1a]/95 to-purple-950/40 pointer-events-none" />
 
       <div className="relative z-10 p-6 sm:p-8 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-8">
         {/* Left Side: Class & Stream Info */}
         <div className="flex-1 space-y-5 sm:space-y-6 text-center lg:text-left">
           {/* Badges Row */}
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
-            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-500/15 border border-red-500/35 text-red-400 text-xs font-black tracking-wide uppercase shadow-xs">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600/25 via-rose-600/25 to-red-600/25 border border-red-500/50 text-red-400 text-xs font-black tracking-wide uppercase shadow-md shadow-red-950/50">
               <FaBroadcastTower className="animate-pulse text-red-500 text-xs" />
               <span>Upcoming Scheduled Live</span>
             </span>
 
-            <span className="px-3.5 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/35 text-purple-300 text-xs font-black tracking-wide">
+            <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-600/25 to-indigo-600/25 border border-purple-400/40 text-purple-200 text-xs font-black tracking-wide shadow-md shadow-purple-950/50">
               {grade ? (String(grade).toLowerCase().startsWith('grade') ? grade : `Grade ${grade}`) : 'All Grades'}
             </span>
           </div>
 
           {/* Stream Title & Subject Subheading */}
-          <div className="space-y-1.5">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
+          <div className="space-y-2">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-md">
               {liveStream?.title || `${grade ? (String(grade).toLowerCase().startsWith('grade') ? grade : `Grade ${grade}`) : 'Live'} Session`}
             </h2>
             {courseTitle && (
-              <p className="text-xs sm:text-sm text-slate-400 font-semibold tracking-wide">
+              <p className="text-xs sm:text-sm text-purple-300/90 font-extrabold tracking-wider uppercase">
                 {courseTitle}
               </p>
             )}
           </div>
 
           {/* Scheduled Date & Time Pill */}
-          <div className="inline-flex flex-wrap items-center justify-center lg:justify-start gap-3.5 bg-slate-900/90 border border-slate-800/90 rounded-2xl px-4.5 py-3 text-xs sm:text-sm text-slate-300 shadow-md backdrop-blur-md">
-            <span className="flex items-center gap-2 text-rose-400 font-extrabold tracking-wide">
-              <FaCalendarAlt className="text-xs" />
+          <div className="inline-flex flex-wrap items-center justify-center lg:justify-start gap-4 bg-slate-900/95 border border-purple-500/35 rounded-2xl px-5 py-3.5 text-xs sm:text-sm text-white shadow-xl backdrop-blur-xl ring-1 ring-white/10">
+            <span className="flex items-center gap-2 text-rose-400 font-black tracking-wide">
+              <FaCalendarAlt className="text-xs text-rose-400 shrink-0" />
               <span>{formattedScheduleDate}</span>
             </span>
-            <span className="text-slate-700 hidden sm:inline">•</span>
-            <span className="flex items-center gap-2 text-indigo-300 font-extrabold tracking-wide">
-              <FaClock className="text-xs" />
+            <span className="text-slate-600 hidden sm:inline">•</span>
+            <span className="flex items-center gap-2 text-indigo-300 font-black tracking-wide">
+              <FaClock className="text-xs text-indigo-400 shrink-0" />
               <span>{formattedScheduleTime}</span>
             </span>
           </div>
 
           {/* Glassmorphic Informational Notice Box */}
-          <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-md flex items-center justify-center lg:justify-start gap-2.5 text-xs text-slate-300 shadow-xs max-w-xl mx-auto lg:mx-0">
-            <FaInfoCircle className={timeLeft.isStarted ? "text-amber-400 text-sm shrink-0" : "text-purple-400 text-sm shrink-0"} />
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900/90 via-purple-950/40 to-slate-900/90 border border-purple-500/30 backdrop-blur-md flex items-center justify-center lg:justify-start gap-3 text-xs text-purple-100 shadow-md max-w-xl mx-auto lg:mx-0 font-medium">
+            <FaInfoCircle className={timeLeft.isStarted ? "text-amber-400 text-base shrink-0 animate-bounce" : "text-purple-400 text-base shrink-0"} />
             {timeLeft.isStarted ? (
               isTeacherOrAdmin ? (
                 <span className="text-amber-300 font-extrabold flex items-center gap-1.5 animate-pulse leading-relaxed">
@@ -161,9 +161,15 @@ const ScheduledLiveHero = ({
                 </span>
               )
             ) : (
-              <span className="font-medium leading-relaxed">
-                The live stream will begin automatically at the scheduled start time.
-              </span>
+              isTeacherOrAdmin ? (
+                <span className="font-semibold leading-relaxed">
+                  Click "Go Live Immediately" to start now, or wait for the scheduled time.
+                </span>
+              ) : (
+                <span className="font-semibold leading-relaxed">
+                  The live stream will begin at the scheduled start time.
+                </span>
+              )
             )}
           </div>
 
@@ -270,9 +276,9 @@ const ScheduledLiveHero = ({
                     <button
                       type="button"
                       onClick={() => setShowQuickMsgSelector(!showQuickMsgSelector)}
-                      className="text-[10.5px] font-bold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-0.5 rounded-lg border border-white/15 transition cursor-pointer flex items-center gap-1"
+                      className="px-3 py-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black text-xs rounded-xl border border-amber-300 shadow-md shadow-amber-500/30 transition-all duration-200 cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0"
                     >
-                      <FaEdit className="text-[9px]" />
+                      <FaEdit className="text-xs text-slate-950" />
                       <span>{showQuickMsgSelector ? "Close Options" : "Select / Add Status"}</span>
                     </button>
                   </div>
@@ -377,39 +383,42 @@ const ScheduledLiveHero = ({
               </div>
             </div>
           ) : (
-            <div className="w-full bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800 p-4 shadow-xl">
-              <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 text-center flex items-center justify-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+            <div className="w-full bg-gradient-to-b from-slate-900/90 via-[#130f2d]/90 to-slate-950/90 backdrop-blur-xl rounded-2xl border border-purple-500/35 p-4 sm:p-5 shadow-2xl ring-1 ring-purple-500/20">
+              <div className="text-[11px] font-black uppercase tracking-widest text-purple-300 mb-3 text-center flex items-center justify-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-80" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_8px_#f43f5e]" />
+                </span>
                 <span>Time Remaining to Broadcast</span>
               </div>
 
-              <div className="grid grid-cols-4 gap-2 text-center">
-                <div className="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2">
-                  <span className="block text-xl sm:text-2xl font-black text-white font-mono">
+              <div className="grid grid-cols-4 gap-2 sm:gap-2.5 text-center">
+                <div className="bg-slate-950/90 border border-purple-500/30 rounded-xl p-2.5 shadow-inner">
+                  <span className="block text-2xl sm:text-3xl font-black text-white font-mono drop-shadow-sm">
                     {String(timeLeft.days).padStart(2, '0')}
                   </span>
-                  <span className="text-[9.5px] font-bold uppercase text-slate-500 tracking-wider">Days</span>
+                  <span className="text-[9.5px] font-black uppercase text-purple-300/80 tracking-wider">Days</span>
                 </div>
 
-                <div className="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2">
-                  <span className="block text-xl sm:text-2xl font-black text-white font-mono">
+                <div className="bg-slate-950/90 border border-purple-500/30 rounded-xl p-2.5 shadow-inner">
+                  <span className="block text-2xl sm:text-3xl font-black text-indigo-300 font-mono drop-shadow-sm">
                     {String(timeLeft.hours).padStart(2, '0')}
                   </span>
-                  <span className="text-[9.5px] font-bold uppercase text-slate-500 tracking-wider">Hours</span>
+                  <span className="text-[9.5px] font-black uppercase text-indigo-300/80 tracking-wider">Hours</span>
                 </div>
 
-                <div className="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2">
-                  <span className="block text-xl sm:text-2xl font-black text-white font-mono">
+                <div className="bg-slate-950/90 border border-purple-500/30 rounded-xl p-2.5 shadow-inner">
+                  <span className="block text-2xl sm:text-3xl font-black text-purple-300 font-mono drop-shadow-sm">
                     {String(timeLeft.minutes).padStart(2, '0')}
                   </span>
-                  <span className="text-[9.5px] font-bold uppercase text-slate-500 tracking-wider">Mins</span>
+                  <span className="text-[9.5px] font-black uppercase text-purple-300/80 tracking-wider">Mins</span>
                 </div>
 
-                <div className="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2 bg-gradient-to-b from-slate-950 to-red-950/30">
-                  <span className="block text-xl sm:text-2xl font-black text-red-400 font-mono">
+                <div className="bg-slate-950/90 border border-rose-500/40 rounded-xl p-2.5 bg-gradient-to-b from-slate-950 to-rose-950/40 shadow-inner">
+                  <span className="block text-2xl sm:text-3xl font-black text-rose-400 font-mono drop-shadow-sm animate-pulse">
                     {String(timeLeft.seconds).padStart(2, '0')}
                   </span>
-                  <span className="text-[9.5px] font-bold uppercase text-red-400/80 tracking-wider">Secs</span>
+                  <span className="text-[9.5px] font-black uppercase text-rose-400/90 tracking-wider">Secs</span>
                 </div>
               </div>
             </div>

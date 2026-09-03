@@ -26,3 +26,4 @@ Thumbs.db
 *.backup
 *.bak
 *.tmp
+scratch/

@@ -148,14 +148,30 @@ const Courses = () => {
     const { courseId, title, isDeactive } = confirmObj;
     const newStatus = isDeactive ? 'active' : 'deactive';
 
+    // 1. Immediately close modal
+    setConfirmFullCourseModal(null);
+
+    // 2. IMMEDIATELY show success toast with zero delay
+    toast.success(`Course "${title}" status set to ${newStatus}`);
+
+    // 3. Optimistic UI update
+    setCourses(prev => prev.map(c => {
+      if (c._id === courseId || c.id === courseId) {
+        return {
+          ...c,
+          status: newStatus,
+          isActive: newStatus === 'active'
+        };
+      }
+      return c;
+    }));
+
+    // 4. Background API sync
     try {
       await api.put(`/courses/${courseId}/full-status`, { status: newStatus });
-      toast.success(`Course "${title}" status set to ${newStatus}`);
-      fetchCourses();
     } catch (err) {
       toast.error("Failed to update course status");
-    } finally {
-      setConfirmFullCourseModal(null);
+      fetchCourses();
     }
   };
 
@@ -260,12 +276,22 @@ const Courses = () => {
     const isDeactive = course.status === 'deactive' || course.isActive === false;
     const newStatus = isDeactive ? 'active' : 'deactive';
 
+    // IMMEDIATELY show success toast with zero delay
+    toast.success(`Full course "${course.title}" set to ${newStatus}`);
+
+    // Optimistic UI update
+    setCourses(prev => prev.map(c => {
+      if (c._id === course._id) {
+        return { ...c, status: newStatus, isActive: newStatus === 'active' };
+      }
+      return c;
+    }));
+
     try {
       await api.put(`/courses/${course._id}/full-status`, { status: newStatus });
-      toast.success(`Full course "${course.title}" set to ${newStatus}`);
-      fetchCourses();
     } catch (err) {
       toast.error("Failed to update course status");
+      fetchCourses();
     }
   };
 

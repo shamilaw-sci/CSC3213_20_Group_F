@@ -728,18 +728,42 @@ const handleEndLiveStreamHelper = async (req, res) => {
         const existingFeedbacks = lesson.liveStream?.feedbacks || [];
         const existingViewers = lesson.liveStream?.viewers || [];
 
+        const endedTime = new Date();
+        const existingPastStreams = Array.isArray(lesson.liveStream?.pastLiveStreams) 
+            ? lesson.liveStream.pastLiveStreams 
+            : (Array.isArray(lesson.pastLiveStreams) ? lesson.pastLiveStreams : []);
+
+        const concludedEntry = {
+            title: lesson.liveStream?.title || `Live Session - Grade ${lesson.grade}`,
+            youtubeUrl: lesson.liveStream?.youtubeUrl || '',
+            thumbnail: lesson.liveStream?.thumbnail || '',
+            startedAt: lesson.liveStream?.startedAt || lesson.createdAt,
+            endedAt: endedTime,
+            createdAt: endedTime
+        };
+
+        // Prepend to past live streams if not duplicate
+        const isDuplicatePast = existingPastStreams.some(s => 
+            s.startedAt && lesson.liveStream?.startedAt &&
+            new Date(s.startedAt).getTime() === new Date(lesson.liveStream.startedAt).getTime()
+        );
+        const updatedPastStreams = isDuplicatePast 
+            ? existingPastStreams 
+            : [concludedEntry, ...existingPastStreams];
+
         lesson.liveStream = {
             isLive: false,
             isScheduled: false,
             scheduledStartTime: null,
-            thumbnail: '',
+            thumbnail: lesson.liveStream?.thumbnail || '',
             title: lesson.liveStream?.title || '',
-            youtubeUrl: '',
+            youtubeUrl: lesson.liveStream?.youtubeUrl || '',
             startedAt: lesson.liveStream?.startedAt,
-            endedAt: new Date(),
+            endedAt: endedTime,
             liveMessages: nonBroadcastMessages,
             feedbacks: existingFeedbacks,
-            viewers: existingViewers
+            viewers: existingViewers,
+            pastLiveStreams: updatedPastStreams
         };
 
         await lesson.save();
@@ -898,22 +922,91 @@ router.post('/:lessonId/live-stream/viewer-leave', protect, async (req, res) => 
 // @desc    Get live viewing stats and list of lively watching students
 router.get('/:lessonId/live-stream/viewers', protect, async (req, res) => {
     try {
-        const lesson = await Lesson.findById(req.params.lessonId);
+        const lesson = await Lesson.findById(req.params.lessonId).populate({
+            path: 'liveStream.viewers.student',
+            select: 'name email profilePicture avatar grade registrationNumber phoneNumber studentType'
+        });
         if (!lesson) {
             return res.status(404).json({ error: "Class not found." });
         }
 
         const isLive = Boolean(lesson.liveStream?.isLive);
-        const viewers = lesson.liveStream?.viewers || [];
+        const rawViewers = lesson.liveStream?.viewers || [];
         const feedbacks = lesson.liveStream?.feedbacks || [];
 
         const activeCutoff = new Date(Date.now() - 25 * 1000);
+
+        // Normalize viewers with populated student fields
+        const viewers = rawViewers.map(v => {
+            const vObj = v.toObject ? v.toObject() : v;
+            const studentObj = (vObj.student && typeof vObj.student === 'object') ? vObj.student : null;
+            const resolvedPic = studentObj?.profilePicture || studentObj?.avatar || vObj.avatar || vObj.profilePicture || '';
+            return {
+                ...vObj,
+                studentId: studentObj?._id ? studentObj._id.toString() : (vObj.student ? vObj.student.toString() : ''),
+                name: studentObj?.name || vObj.name || 'Student',
+                email: studentObj?.email || vObj.email || '',
+                profilePicture: resolvedPic,
+                avatar: resolvedPic,
+                grade: studentObj?.grade || vObj.grade || '',
+                registrationNumber: studentObj?.registrationNumber || vObj.registrationNumber || '',
+                phoneNumber: studentObj?.phoneNumber || vObj.phoneNumber || '',
+                studentType: studentObj?.studentType || vObj.studentType || '',
+                watchedSeconds: vObj.watchedSeconds || 0,
+                joinedAt: vObj.joinedAt,
+                lastPing: vObj.lastPing
+            };
+        });
+
+        // Fallback: If any viewer has student ID or email but missing name or profile picture, query User model
+        const missingUserIds = viewers
+            .filter(v => (!v.name || v.name === 'Student' || !v.profilePicture) && v.studentId)
+            .map(v => v.studentId);
+        
+        if (missingUserIds.length > 0) {
+            const User = require('../models/User');
+            const foundUsers = await User.find({ _id: { $in: missingUserIds } })
+                .select('name email profilePicture avatar grade registrationNumber phoneNumber studentType');
+            const userMap = new Map(foundUsers.map(u => [u._id.toString(), u]));
+            viewers.forEach(v => {
+                if (v.studentId && userMap.has(v.studentId)) {
+                    const u = userMap.get(v.studentId);
+                    if (!v.name || v.name === 'Student') v.name = u.name;
+                    if (!v.email) v.email = u.email;
+                    const uPic = u.profilePicture || u.avatar || '';
+                    if (!v.profilePicture && uPic) {
+                        v.profilePicture = uPic;
+                        v.avatar = uPic;
+                    }
+                    if (!v.grade) v.grade = u.grade;
+                    if (!v.registrationNumber) v.registrationNumber = u.registrationNumber;
+                    if (!v.phoneNumber) v.phoneNumber = u.phoneNumber;
+                    if (!v.studentType) v.studentType = u.studentType;
+                }
+            });
+        }
+
         const activeViewers = viewers
             .filter(v => v.lastPing && new Date(v.lastPing) >= activeCutoff)
             .map(v => ({
-                ...v.toObject ? v.toObject() : v,
+                ...v,
                 isLivelyWatching: true
             }));
+
+        // Compute total and average watch metrics
+        const totalWatchedSeconds = viewers.reduce((acc, v) => acc + (v.watchedSeconds || 0), 0);
+        const averageWatchedSeconds = viewers.length > 0 ? Math.round(totalWatchedSeconds / viewers.length) : 0;
+        const totalWatchedHours = Number((totalWatchedSeconds / 3600).toFixed(2));
+
+        // Calculate stream session duration if available
+        let streamDurationSeconds = 0;
+        if (lesson.liveStream?.startedAt) {
+            const startMs = new Date(lesson.liveStream.startedAt).getTime();
+            const endMs = lesson.liveStream.endedAt ? new Date(lesson.liveStream.endedAt).getTime() : Date.now();
+            if (endMs > startMs) {
+                streamDurationSeconds = Math.round((endMs - startMs) / 1000);
+            }
+        }
 
         // Reactions count summary
         const reactionsSummary = {};
@@ -927,6 +1020,12 @@ router.get('/:lessonId/live-stream/viewers', protect, async (req, res) => {
             isLive,
             activeViewerCount: activeViewers.length,
             totalViewersCount: viewers.length,
+            totalWatchedSeconds,
+            totalWatchedHours,
+            averageWatchedSeconds,
+            streamDurationSeconds,
+            startedAt: lesson.liveStream?.startedAt,
+            endedAt: lesson.liveStream?.endedAt,
             activeViewers,
             allViewers: viewers,
             feedbacksCount: feedbacks.length,
@@ -1543,8 +1642,8 @@ router.post('/:lessonId/live-stream/voice-chunk', protect, async (req, res) => {
 });
 
 // @route   GET /api/lessons/student-profile/:studentId
-// @desc    Get detailed student profile and all enrolled/assigned courses for teachers/admins
-router.get('/student-profile/:studentId', protect, isTeacherOrAdmin, async (req, res) => {
+// @desc    Get detailed student profile and all enrolled/assigned courses for users
+router.get('/student-profile/:studentId', protect, async (req, res) => {
     try {
         const student = await User.findById(req.params.studentId).select(
             'name email registrationNumber phoneNumber parentsPhoneNumber profilePicture grade studentType address dateOfBirth createdAt'
@@ -1673,12 +1772,101 @@ router.post('/:lessonId/live-stream/feedback', protect, async (req, res) => {
 // @desc    Get all post-live feedbacks and questions for this class
 router.get('/:lessonId/live-stream/feedbacks', protect, async (req, res) => {
     try {
-        const lesson = await Lesson.findById(req.params.lessonId);
+        const lesson = await Lesson.findById(req.params.lessonId)
+            .populate({
+                path: 'liveStream.feedbacks.student',
+                select: 'name email profilePicture grade registrationNumber phoneNumber'
+            })
+            .populate({
+                path: 'liveStream.feedbacks.reply.repliedBy',
+                select: 'name email role profilePicture avatar'
+            });
         if (!lesson) {
             return res.status(404).json({ error: "Class not found." });
         }
 
-        const feedbacks = lesson.liveStream?.feedbacks || [];
+        const rawFeedbacks = lesson.liveStream?.feedbacks || [];
+
+        // When teacher or admin opens the feedbacks, mark any unseen feedbacks as seen
+        if (req.user.role === 'teacher' || req.user.role === 'admin') {
+            let hasUnseen = false;
+            rawFeedbacks.forEach(f => {
+                if (!f.seen) {
+                    f.seen = true;
+                    f.seenAt = f.seenAt || new Date();
+                    f.seenBy = req.user._id;
+                    f.seenByName = req.user.name || (req.user.role === 'admin' ? 'Admin' : 'Teacher');
+                    hasUnseen = true;
+                }
+            });
+            if (hasUnseen) {
+                await lesson.save().catch(e => console.error("Error saving seen feedbacks:", e));
+            }
+        }
+
+        const liveMessages = lesson.liveStream?.liveMessages || [];
+        const teacherRepliedStudentIds = new Set();
+        liveMessages.forEach(m => {
+            if (m.senderRole !== 'student' && (m.studentContext || m.recipient)) {
+                const target = (m.studentContext || m.recipient).toString();
+                teacherRepliedStudentIds.add(target);
+            }
+        });
+
+        const feedbacks = rawFeedbacks.map(f => {
+            const fObj = f.toObject ? f.toObject() : { ...f };
+            const studentUser = fObj.student && typeof fObj.student === 'object' && fObj.student._id ? fObj.student : null;
+            const studentId = studentUser ? studentUser._id.toString() : (fObj.student ? fObj.student.toString() : '');
+            const isReplied = Boolean(fObj.reply?.repliedAt || fObj.reply?.text || (studentId && teacherRepliedStudentIds.has(studentId)));
+            const resolvedPic = studentUser?.profilePicture || fObj.avatar || fObj.profilePicture || '';
+
+            const replier = fObj.reply?.repliedBy;
+            const replierRole = fObj.reply?.role || fObj.reply?.repliedByRole || (typeof replier === 'object' ? replier?.role : null);
+            const resolvedReply = fObj.reply ? {
+                ...fObj.reply,
+                role: replierRole || (fObj.reply.repliedByName?.toLowerCase().includes('admin') ? 'admin' : 'teacher'),
+                repliedByRole: replierRole || (fObj.reply.repliedByName?.toLowerCase().includes('admin') ? 'admin' : 'teacher'),
+                repliedByName: fObj.reply.repliedByName || (typeof replier === 'object' ? replier?.name : null)
+            } : null;
+
+            return {
+                ...fObj,
+                studentId,
+                studentName: studentUser?.name || fObj.name || 'Student',
+                studentEmail: studentUser?.email || fObj.email || '',
+                studentProfilePicture: resolvedPic,
+                avatar: resolvedPic,
+                profilePicture: resolvedPic,
+                grade: studentUser?.grade || fObj.grade || '',
+                isReplied,
+                reply: resolvedReply
+            };
+        });
+
+        // Fallback: If any feedback is missing student details or photo, query User model
+        const missingFeedbackStudentIds = feedbacks
+            .filter(f => (!f.studentProfilePicture || !f.avatar) && f.studentId)
+            .map(f => f.studentId);
+
+        if (missingFeedbackStudentIds.length > 0) {
+            const User = require('../models/User');
+            const foundUsers = await User.find({ _id: { $in: missingFeedbackStudentIds } })
+                .select('name email profilePicture avatar grade registrationNumber phoneNumber studentType');
+            const userMap = new Map(foundUsers.map(u => [u._id.toString(), u]));
+            feedbacks.forEach(f => {
+                if (f.studentId && userMap.has(f.studentId)) {
+                    const u = userMap.get(f.studentId);
+                    if (!f.studentName || f.studentName === 'Student') f.studentName = u.name;
+                    if (!f.studentEmail) f.studentEmail = u.email;
+                    const pic = u.profilePicture || u.avatar || '';
+                    if (pic) {
+                        f.studentProfilePicture = pic;
+                        f.avatar = pic;
+                        f.profilePicture = pic;
+                    }
+                }
+            });
+        }
 
         // Summary metrics
         const reactionsSummary = {};
@@ -1688,13 +1876,379 @@ router.get('/:lessonId/live-stream/feedbacks', protect, async (req, res) => {
             }
         });
 
+        // Sort: 1. Unreplied / Unread first ("unread in up"), 2. Latest timestamp first ("latest in up")
+        feedbacks.sort((a, b) => {
+            if (!a.isReplied && b.isReplied) return -1;
+            if (a.isReplied && !b.isReplied) return 1;
+            const aTime = new Date(a.submittedAt || a.createdAt || (a._id ? parseInt(a._id.toString().substring(0, 8), 16) * 1000 : 0)).getTime();
+            const bTime = new Date(b.submittedAt || b.createdAt || (b._id ? parseInt(b._id.toString().substring(0, 8), 16) * 1000 : 0)).getTime();
+            return bTime - aTime;
+        });
+
+        const unrepliedCount = feedbacks.filter(f => !f.isReplied).length;
+        const repliedCount = feedbacks.filter(f => f.isReplied).length;
+
         res.json({
             feedbacks,
             totalFeedbacks: feedbacks.length,
+            unrepliedCount,
+            repliedCount,
             reactionsSummary
         });
     } catch (err) {
         res.status(500).json({ error: "Failed to get feedbacks: " + err.message });
+    }
+});
+
+// @route   GET /api/lessons/:lessonId/student-live-status
+// @desc    Get student's live stream attendance, reaction, and teacher reply
+router.get('/:lessonId/student-live-status', protect, async (req, res) => {
+    try {
+        const studentId = req.user._id.toString();
+        const studentEmail = req.user.email ? req.user.email.toLowerCase() : '';
+
+        const lesson = await Lesson.findById(req.params.lessonId)
+            .select('grade course createdAt liveStream.title liveStream.startedAt liveStream.endedAt liveStream.isLive liveStream.isScheduled liveStream.isEnded liveStream.viewers liveStream.feedbacks liveStream.liveMessages')
+            .populate({
+                path: 'liveStream.feedbacks.reply.repliedBy',
+                select: 'name email profilePicture avatar role'
+            })
+            .populate({
+                path: 'liveStream.liveMessages.sender',
+                select: 'name email profilePicture avatar role'
+            })
+            .lean();
+
+        if (!lesson) {
+            return res.status(404).json({ error: "Class not found." });
+        }
+
+        const liveStream = lesson.liveStream || {};
+
+        // Only concluded/ended live streams can have review and feedback checked
+        if (liveStream.isLive || liveStream.isScheduled || (!liveStream.endedAt && !liveStream.isEnded)) {
+            return res.status(400).json({
+                error: "This live class has not ended yet. Student feedback and attendance review are only available after the live broadcast concludes."
+            });
+        }
+
+        const sessionInfo = {
+            lessonId: lesson._id,
+            title: liveStream.title || `Grade ${lesson.grade} Live Class`,
+            startedAt: liveStream.startedAt || lesson.createdAt,
+            endedAt: liveStream.endedAt || null,
+            isLive: liveStream.isLive || false,
+            grade: lesson.grade,
+            courseId: lesson.course
+        };
+
+        // 1. Check viewers array for attendance
+        const viewers = liveStream.viewers || [];
+        const viewerEntry = viewers.find(v => {
+            const vStudent = v.student?.toString();
+            const vEmail = v.email ? v.email.toLowerCase() : '';
+            return (vStudent && vStudent === studentId) || (vEmail && studentEmail && vEmail === studentEmail);
+        });
+
+        // 2. Check feedbacks array for student's submission
+        const feedbacks = liveStream.feedbacks || [];
+        const feedbackEntry = feedbacks.find(f => {
+            const fStudent = f.student?._id ? f.student._id.toString() : (f.student ? f.student.toString() : '');
+            const fEmail = f.email ? f.email.toLowerCase() : '';
+            return (fStudent && fStudent === studentId) || (fEmail && studentEmail && fEmail === studentEmail);
+        });
+
+        // If not in viewers and not in feedbacks, student is absent
+        const isAttended = Boolean(viewerEntry || feedbackEntry);
+
+        if (!isAttended) {
+            return res.json({
+                isAbsent: true,
+                attended: false,
+                session: sessionInfo,
+                message: "You did not attend this live session."
+            });
+        }
+
+        // Student attended!
+        const watchedSeconds = viewerEntry?.watchedSeconds || 0;
+        const joinedAt = viewerEntry?.joinedAt || null;
+
+        // Extract student's reaction & feedback
+        let studentReaction = null;
+        if (feedbackEntry) {
+            studentReaction = {
+                id: feedbackEntry._id,
+                reaction: feedbackEntry.reaction,
+                reactionLabel: feedbackEntry.reactionLabel,
+                reactionEmoji: feedbackEntry.reactionEmoji,
+                message: feedbackEntry.message || '',
+                question: feedbackEntry.question || '',
+                submittedAt: feedbackEntry.submittedAt || null,
+                seen: Boolean(feedbackEntry.seen),
+                seenAt: feedbackEntry.seenAt || null,
+                seenByName: feedbackEntry.seenByName || null
+            };
+        }
+
+        // Extract teacher's reply
+        let teacherReply = null;
+        if (feedbackEntry?.reply && (feedbackEntry.reply.text || feedbackEntry.reply.repliedAt)) {
+            const replier = feedbackEntry.reply.repliedBy;
+            teacherReply = {
+                text: feedbackEntry.reply.text,
+                repliedAt: feedbackEntry.reply.repliedAt,
+                teacherName: replier?.name || 'Teacher',
+                teacherAvatar: replier?.profilePicture || replier?.avatar || '',
+                teacherRole: replier?.role || 'teacher'
+            };
+        }
+
+        // Also check if there are direct live messages from teacher to this student
+        const liveMessages = liveStream.liveMessages || [];
+        const teacherDirectMessages = liveMessages
+            .filter(m => {
+                const targetStudent = m.studentContext?.toString() || m.recipient?.toString();
+                return targetStudent === studentId && m.senderRole !== 'student' && !m.isBroadcast;
+            })
+            .map(m => ({
+                id: m._id,
+                text: m.text,
+                senderName: m.senderName || m.sender?.name || 'Teacher',
+                senderAvatar: m.senderAvatar || m.sender?.profilePicture || m.sender?.avatar || '',
+                senderRole: m.senderRole,
+                createdAt: m.createdAt
+            }));
+
+        // If no reply on feedbackEntry, but teacher sent direct messages, use the latest teacher message
+        if (!teacherReply && teacherDirectMessages.length > 0) {
+            const latestMsg = teacherDirectMessages[teacherDirectMessages.length - 1];
+            teacherReply = {
+                text: latestMsg.text,
+                repliedAt: latestMsg.createdAt,
+                teacherName: latestMsg.senderName,
+                teacherAvatar: latestMsg.senderAvatar,
+                teacherRole: latestMsg.senderRole
+            };
+        }
+
+        const hasTeacherReacted = Boolean(teacherReply?.text);
+        const hasTeacherSeen = Boolean(feedbackEntry?.seen || hasTeacherReacted);
+        const seenAt = feedbackEntry?.seenAt || null;
+        const seenByName = feedbackEntry?.seenByName || null;
+        const studentSeenReply = Boolean(feedbackEntry?.reply?.studentSeen);
+        const hasUnseenReply = Boolean(hasTeacherReacted && !studentSeenReply);
+
+        return res.json({
+            isAbsent: false,
+            attended: true,
+            watchedSeconds,
+            joinedAt,
+            session: sessionInfo,
+            studentReaction,
+            teacherReply,
+            teacherDirectMessages,
+            hasTeacherSeen,
+            hasTeacherReacted,
+            seenAt,
+            seenByName,
+            studentSeenReply,
+            hasUnseenReply
+        });
+    } catch (err) {
+        console.error("GET /lessons/:lessonId/student-live-status error:", err);
+        res.status(500).json({ error: "Failed to fetch student live status: " + err.message });
+    }
+});
+
+// @route   POST /api/lessons/:lessonId/live-stream/feedbacks/reply/student-seen
+// @desc    Mark teacher's reply as seen by the student
+router.post('/:lessonId/live-stream/feedbacks/reply/student-seen', protect, async (req, res) => {
+    try {
+        const studentId = req.user._id ? req.user._id.toString() : '';
+        const studentEmail = req.user.email ? req.user.email.toLowerCase() : '';
+
+        // Ultra-fast atomic update
+        const result = await Lesson.updateOne(
+            {
+                _id: req.params.lessonId,
+                $or: [
+                    { 'liveStream.feedbacks.student': req.user._id },
+                    { 'liveStream.feedbacks.email': studentEmail }
+                ]
+            },
+            {
+                $set: {
+                    'liveStream.feedbacks.$[elem].reply.studentSeen': true,
+                    'liveStream.feedbacks.$[elem].reply.studentSeenAt': new Date()
+                }
+            },
+            {
+                arrayFilters: [
+                    {
+                        $and: [
+                            {
+                                $or: [
+                                    { 'elem.student': req.user._id },
+                                    { 'elem.email': studentEmail }
+                                ]
+                            },
+                            { 'elem.reply.studentSeen': { $ne: true } }
+                        ]
+                    }
+                ]
+            }
+        );
+
+        if (result.matchedCount > 0) {
+            return res.json({ message: "Reply marked as seen by student.", updated: result.modifiedCount > 0 });
+        }
+
+        // Fallback if string ID matching was needed
+        const lesson = await Lesson.findById(req.params.lessonId);
+        if (!lesson || !lesson.liveStream?.feedbacks) {
+            return res.status(404).json({ error: "Class or feedbacks not found." });
+        }
+
+        let updated = false;
+        lesson.liveStream.feedbacks.forEach(f => {
+            const fStudent = (f.student?._id || f.student || '').toString();
+            const fEmail = (f.email || '').toLowerCase();
+            if ((fStudent && fStudent === studentId) || (fEmail && studentEmail && fEmail === studentEmail)) {
+                if (f.reply && !f.reply.studentSeen) {
+                    f.reply.studentSeen = true;
+                    f.reply.studentSeenAt = new Date();
+                    updated = true;
+                }
+            }
+        });
+
+        if (updated) {
+            await lesson.save();
+        }
+
+        res.json({ message: "Reply marked as seen by student.", updated });
+    } catch (err) {
+        console.error("Error marking reply as seen by student:", err);
+        res.status(500).json({ error: "Failed to mark reply as seen: " + err.message });
+    }
+});
+
+// @route   GET /api/lessons/course/:courseId/student-unseen-replies
+// @desc    Get all lesson IDs that have unseen teacher replies for this student
+router.get('/course/:courseId/student-unseen-replies', protect, async (req, res) => {
+    try {
+        const studentId = req.user._id ? req.user._id.toString() : '';
+        const studentEmail = req.user.email ? req.user.email.toLowerCase() : '';
+
+        const lessons = await Lesson.find({ 
+            course: req.params.courseId,
+            'liveStream.feedbacks': { $exists: true, $not: { $size: 0 } }
+        }).select('_id grade liveStream.feedbacks.student liveStream.feedbacks.email liveStream.feedbacks.reply').lean();
+
+        const unseenLessonIds = [];
+        lessons.forEach(l => {
+            const feedbacks = l.liveStream?.feedbacks || [];
+            const hasUnseen = feedbacks.some(f => {
+                const fStudent = (f.student?._id || f.student || '').toString();
+                const fEmail = (f.email || '').toLowerCase();
+                const matches = (fStudent && fStudent === studentId) || (fEmail && studentEmail && fEmail === studentEmail);
+                return matches && f.reply && f.reply.text && !f.reply.studentSeen;
+            });
+            if (hasUnseen) {
+                unseenLessonIds.push(l._id.toString());
+            }
+        });
+
+        res.json({
+            hasUnseenReplies: unseenLessonIds.length > 0,
+            unseenLessonIds,
+            unseenCount: unseenLessonIds.length
+        });
+    } catch (err) {
+        console.error("GET /student-unseen-replies error:", err);
+        res.status(500).json({ hasUnseenReplies: false, unseenLessonIds: [] });
+    }
+});
+
+// @route   POST /api/lessons/:lessonId/live-stream/feedbacks/reply
+// @desc    Mark a student live stream feedback as replied by teacher/admin
+router.post('/:lessonId/live-stream/feedbacks/reply', protect, async (req, res) => {
+    try {
+        const { feedbackId, studentId, text } = req.body;
+        const userRole = (req.user.role === 'admin' || req.user.role === 'superadmin') ? 'admin' : 'teacher';
+        const replyObj = {
+            text: text ? String(text).trim() : 'Replied',
+            repliedBy: req.user._id,
+            repliedAt: new Date(),
+            role: userRole,
+            repliedByRole: userRole,
+            repliedByName: req.user.name || (userRole === 'admin' ? 'Admin' : 'Teacher'),
+            studentSeen: false,
+            studentSeenAt: null
+        };
+
+        // Attempt direct fast positional atomic update
+        let updated = false;
+        if (feedbackId) {
+            const upRes = await Lesson.updateOne(
+                { _id: req.params.lessonId, 'liveStream.feedbacks._id': feedbackId },
+                {
+                    $set: {
+                        'liveStream.feedbacks.$.reply': replyObj,
+                        'liveStream.feedbacks.$.seen': true,
+                        'liveStream.feedbacks.$.seenAt': new Date(),
+                        'liveStream.feedbacks.$.seenBy': req.user._id,
+                        'liveStream.feedbacks.$.seenByName': req.user.name || (userRole === 'admin' ? 'Admin' : 'Teacher')
+                    }
+                }
+            );
+            if (upRes.matchedCount > 0) updated = true;
+        }
+
+        if (!updated && studentId) {
+            const upRes = await Lesson.updateOne(
+                { _id: req.params.lessonId, 'liveStream.feedbacks.student': studentId },
+                {
+                    $set: {
+                        'liveStream.feedbacks.$.reply': replyObj,
+                        'liveStream.feedbacks.$.seen': true,
+                        'liveStream.feedbacks.$.seenAt': new Date(),
+                        'liveStream.feedbacks.$.seenBy': req.user._id,
+                        'liveStream.feedbacks.$.seenByName': req.user.name || (userRole === 'admin' ? 'Admin' : 'Teacher')
+                    }
+                }
+            );
+            if (upRes.matchedCount > 0) updated = true;
+        }
+
+        if (!updated) {
+            // Document fallback
+            const lesson = await Lesson.findById(req.params.lessonId);
+            if (!lesson) {
+                return res.status(404).json({ error: "Class not found." });
+            }
+            if (lesson.liveStream?.feedbacks) {
+                const fb = lesson.liveStream.feedbacks.find(f => 
+                    (feedbackId && f._id && f._id.toString() === feedbackId.toString()) ||
+                    (studentId && (f.student?._id || f.student || '').toString() === studentId.toString())
+                );
+                if (fb) {
+                    fb.reply = replyObj;
+                    fb.seen = true;
+                    fb.seenAt = new Date();
+                    fb.seenBy = req.user._id;
+                    fb.seenByName = req.user.name || (userRole === 'admin' ? 'Admin' : 'Teacher');
+                    await lesson.save();
+                    updated = true;
+                }
+            }
+        }
+
+        res.json({ message: "Feedback marked as replied successfully!", reply: replyObj });
+    } catch (err) {
+        console.error("Failed to mark feedback as replied:", err);
+        res.status(500).json({ error: "Failed to mark feedback as replied: " + err.message });
     }
 });
 

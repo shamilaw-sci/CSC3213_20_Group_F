@@ -1000,7 +1000,7 @@ router.put('/:courseId/grades/:gradeId/status', protect, async (req, res) => {
         const { courseId, gradeId } = req.params;
         const { status, deactivatedBy } = req.body;
 
-        const course = await Course.findById(courseId);
+        const course = await Course.findById(courseId, 'status isActive enrolledGrades').lean();
         if (!course) {
             return res.status(404).json({ error: "Course not found" });
         }
@@ -1014,34 +1014,46 @@ router.put('/:courseId/grades/:gradeId/status', protect, async (req, res) => {
         const updatedByRole = req.user.role === 'admin' ? 'admin' : 'teacher';
 
         // Locate target grade in course.enrolledGrades
-        let gradeItem = course.enrolledGrades.find(g => 
+        const enrolledGrades = course.enrolledGrades || [];
+        let gradeItem = enrolledGrades.find(g => 
             String(g._id) === String(gradeId) || 
             String(g.id) === String(gradeId) || 
             String(g.gradeNumber).toLowerCase() === String(gradeId).toLowerCase()
         );
 
         if (!gradeItem) {
-            gradeItem = course.enrolledGrades.find(g => 
+            gradeItem = enrolledGrades.find(g => 
                 String(g.gradeNumber).replace(/\D/g, '') === String(gradeId).replace(/\D/g, '')
             );
         }
 
         if (gradeItem) {
-            gradeItem.status = newStatus;
-            gradeItem.isActive = !isDeactive;
-            gradeItem.deactivatedBy = isDeactive ? (deactivatedBy || updatedByRole) : null;
+            await Course.updateOne(
+                { _id: courseId, "enrolledGrades._id": gradeItem._id },
+                {
+                    $set: {
+                        "enrolledGrades.$.status": newStatus,
+                        "enrolledGrades.$.isActive": !isDeactive,
+                        "enrolledGrades.$.deactivatedBy": isDeactive ? (deactivatedBy || updatedByRole) : null
+                    }
+                }
+            );
         } else {
-            course.enrolledGrades.push({
-                gradeNumber: gradeId,
-                title: `Grade ${gradeId}`,
-                status: newStatus,
-                isActive: !isDeactive,
-                deactivatedBy: isDeactive ? (deactivatedBy || updatedByRole) : null
-            });
+            await Course.updateOne(
+                { _id: courseId },
+                {
+                    $push: {
+                        enrolledGrades: {
+                            gradeNumber: gradeId,
+                            title: `Grade ${gradeId}`,
+                            status: newStatus,
+                            isActive: !isDeactive,
+                            deactivatedBy: isDeactive ? (deactivatedBy || updatedByRole) : null
+                        }
+                    }
+                }
+            );
         }
-
-        course.markModified('enrolledGrades');
-        await course.save();
 
         res.json({ 
             message: `Grade status updated to ${newStatus} successfully`, 
@@ -1108,7 +1120,7 @@ router.put('/:courseId/grades/:gradeId/details', protect, isTeacherOrAdmin, asyn
 router.put('/:id/full-status', protect, isAdmin, async (req, res) => {
     try {
         const { status } = req.body;
-        const course = await Course.findById(req.params.id);
+        const course = await Course.findById(req.params.id, 'title status isActive enrolledGrades').lean();
         if (!course) {
             return res.status(404).json({ error: "Course not found" });
         }
@@ -1116,9 +1128,11 @@ router.put('/:id/full-status', protect, isAdmin, async (req, res) => {
         const isDeactive = status === 'deactive';
         const newStatus = isDeactive ? 'deactive' : 'active';
 
-        course.status = newStatus;
-        course.isActive = !isDeactive;
-        course.deactivatedBy = isDeactive ? 'admin' : null;
+        const updateFields = {
+            status: newStatus,
+            isActive: !isDeactive,
+            deactivatedBy: isDeactive ? 'admin' : null
+        };
 
         if (isDeactive) {
             // Deactivating full course: store previous status of each grade before setting to deactive
@@ -1131,7 +1145,7 @@ router.put('/:id/full-status', protect, isAdmin, async (req, res) => {
                     g.isActive = false;
                     g.deactivatedBy = 'admin';
                 });
-                course.markModified('enrolledGrades');
+                updateFields.enrolledGrades = course.enrolledGrades;
             }
         } else {
             // Reactivating full course: restore each grade back to its previous status as before full course deactivation
@@ -1143,15 +1157,17 @@ router.put('/:id/full-status', protect, isAdmin, async (req, res) => {
                     g.deactivatedBy = restoredStatus === 'deactive' ? (g.deactivatedBy || 'admin') : null;
                     g.previousStatus = null;
                 });
-                course.markModified('enrolledGrades');
+                updateFields.enrolledGrades = course.enrolledGrades;
             }
         }
 
-        await course.save();
+        await Course.updateOne({ _id: req.params.id }, { $set: updateFields });
 
         res.json({
-            message: `Course "${course.title}" status updated to ${newStatus} successfully`,
-            course
+            message: `Course "${course.title || 'Course'}" status updated to ${newStatus} successfully`,
+            courseId: course._id,
+            status: newStatus,
+            isActive: !isDeactive
         });
     } catch (err) {
         console.error("Failed to update full course status:", err.message);

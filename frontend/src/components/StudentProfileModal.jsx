@@ -28,7 +28,7 @@ const formatGrade = (grade) => {
   return `Grade ${gStr}`;
 };
 
-const StudentProfileModal = ({ isOpen, onClose, studentId, onSelectPrivateChat, containerScoped = false }) => {
+const StudentProfileModal = ({ isOpen, onClose, studentId, initialStudent = null, onSelectPrivateChat, containerScoped = false }) => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -55,7 +55,7 @@ const StudentProfileModal = ({ isOpen, onClose, studentId, onSelectPrivateChat, 
 
   if (!isOpen) return null;
 
-  const student = profileData?.student;
+  const student = profileData?.student || initialStudent;
   const enrolledCourses = profileData?.enrolledCourses || [];
 
   const handleCopy = (text) => {
@@ -94,12 +94,12 @@ const StudentProfileModal = ({ isOpen, onClose, studentId, onSelectPrivateChat, 
           <FaTimes className="text-xs sm:text-sm" />
         </button>
 
-        {loading ? (
+        {loading && !student ? (
           <div className="py-16 flex flex-col items-center justify-center text-center space-y-3.5">
             <div className="animate-spin rounded-full h-10 w-10 border-4 border-purple-600 border-t-transparent shadow-md"></div>
             <p className="text-xs sm:text-sm font-extrabold text-slate-600 tracking-wide">Loading student profile...</p>
           </div>
-        ) : error ? (
+        ) : error && !student ? (
           <div className="py-12 text-center space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl mx-auto border border-rose-200 shadow-xs">
               ⚠️
@@ -115,10 +115,12 @@ const StudentProfileModal = ({ isOpen, onClose, studentId, onSelectPrivateChat, 
               {/* Avatar with Status Ring */}
               <div className="relative shrink-0">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-purple-700 via-indigo-600 to-purple-800 text-white flex items-center justify-center text-2xl sm:text-3xl font-black shadow-md shadow-purple-900/20 border-2 border-white ring-2 ring-purple-400/40 overflow-hidden">
-                  {student.profilePicture ? (
+                  {(student.profilePicture || student.avatar) ? (
                     <img 
-                      src={getImageUrl(student.profilePicture)} 
+                      src={getImageUrl(student.profilePicture || student.avatar)} 
                       alt={student.name} 
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
                       className="w-full h-full object-cover" 
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
@@ -291,7 +293,7 @@ const StudentProfileModal = ({ isOpen, onClose, studentId, onSelectPrivateChat, 
                             </h5>
                             <p className="text-[11px] sm:text-xs text-slate-500 font-semibold truncate mt-0.5">
                               {course.instructor?.name ? (
-                                <span>👨‍🏫 {course.instructor.name}</span>
+                                <span>{course.instructor.name}</span>
                               ) : course.subject && course.subject !== course.title ? (
                                 <span>{course.subject}</span>
                               ) : course.grade && course.grade !== 'All Grades' ? (

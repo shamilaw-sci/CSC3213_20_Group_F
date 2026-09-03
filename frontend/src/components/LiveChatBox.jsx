@@ -702,10 +702,24 @@ const LiveChatBox = ({
   classTitle,
   isLiveMicActive = false,
   isStreamEnded = false,
+  endedAt = null,
   onVoiceRecordingChange,
   onStudentSubmittedFeedback,
   onUnreadChange
 }) => {
+  const formattedEndedDate = useMemo(() => {
+    if (!endedAt) {
+      const now = new Date();
+      return now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+    try {
+      const d = new Date(endedAt);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  }, [endedAt]);
+
   const [messages, setMessages] = useState(() => {
     try {
       const cached = sessionStorage.getItem(`lumina_chat_msgs_${lessonId}`);
@@ -2289,7 +2303,7 @@ const LiveChatBox = ({
       {!isFullscreen && (
         <div
           onClick={() => setIsExpanded(!isExpanded)}
-          className="px-4 py-3 sm:px-5 sm:py-3.5 bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/70 border-b border-purple-100 flex items-center justify-between cursor-pointer select-none shrink-0 transition-colors"
+          className="px-4 py-3 sm:px-5 sm:py-3.5 bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/70 border-b border-purple-100 flex items-center justify-between cursor-pointer select-none shrink-0 transition-colors touch-manipulation"
         >
           {/* Main Hub / Broadcast / Student View Header */}
           <div className="flex items-center justify-between w-full pr-1 gap-3 min-w-0">
@@ -2593,8 +2607,9 @@ const LiveChatBox = ({
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                         <span>📊 Instructor Session Summary</span>
                       </div>
-                      <span className="text-[11px] font-mono text-indigo-200/90 bg-white/10 px-2.5 py-0.5 rounded-md border border-white/15">
-                        Stream Ended
+                      <span className="text-[11px] font-mono text-amber-200 bg-amber-950/80 px-3 py-1 rounded-xl border border-amber-400/50 flex items-center gap-1.5 shadow-sm">
+                        <FaClock className="text-amber-400 text-xs shrink-0" />
+                        <span>Stream Ended • {formattedEndedDate}</span>
                       </span>
                     </div>
 
@@ -2602,6 +2617,9 @@ const LiveChatBox = ({
                       <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
                         Live Session Ended — Instructor Control Hub
                       </h3>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-amber-300/90 font-bold">
+                        <span>📅 Concluded: {formattedEndedDate}</span>
+                      </div>
                       <p className="text-xs sm:text-[13px] text-indigo-100/90 font-medium leading-relaxed mt-1">
                         Student reactions, questions, comments, and recommendations submitted after stream conclusion will update below in real-time.
                       </p>

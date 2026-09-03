@@ -10,6 +10,9 @@ import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import ScheduledLiveHero from '../components/ScheduledLiveHero';
 import LiveThumbnailCropperModal from '../components/LiveThumbnailCropperModal';
 import ConfirmModal from '../components/ConfirmModal';
+import StudentLiveFeedbackWindow from '../components/StudentLiveFeedbackWindow';
+import CourseAnnouncementsWindow from '../components/CourseAnnouncementsWindow';
+import { useTheme } from '../context/ThemeContext';
 import {
   FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube,
   FaCalendarAlt, FaChevronDown, FaChevronUp, FaClock, FaMapMarkerAlt,
@@ -17,7 +20,7 @@ import {
   FaExclamationTriangle, FaCommentDots, FaEdit, FaTrashAlt, FaStar,
   FaAward, FaEye, FaSave, FaTimes, FaPlus, FaCheck, FaCheckCircle, FaTimesCircle, FaPaperPlane,
   FaDownload, FaHourglassHalf, FaCog, FaPlayCircle, FaPlay, FaBroadcastTower,
-  FaCalendarCheck, FaCrop, FaImage, FaTrash, FaCreditCard
+  FaCalendarCheck, FaCrop, FaImage, FaTrash, FaCreditCard, FaBullhorn
 } from 'react-icons/fa';
 import { getMediaUrl } from '../utils/mediaUrl';
 import { downloadProtectedFile } from '../utils/fileApi';
@@ -36,7 +39,10 @@ const getYouTubeThumbnail = (url) => {
 
 const getImageUrl = (url) => getMediaUrl(url);
 
+const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
+
 const CourseDetails = () => {
+  const { isDark } = useTheme();
   const { courseId } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState(null);
@@ -197,13 +203,30 @@ const CourseDetails = () => {
   const [videoDownloadType, setVideoDownloadType] = useState('immediate');
   const [videoCustomUnlockDate, setVideoCustomUnlockDate] = useState('');
 
-  // Expandable Workspace Sections State
+  // Live ticking clock for title banner metadata
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Expandable Workspace Sections State (All start collapsed by default)
   const [expandedSections, setExpandedSections] = useState({
-    announcement: true,
-    videos: true,
-    pdfs: true,
-    assignments: true,
-    quizzes: true,
+    announcement: false,
+    liveReview: false,
+    videos: false,
+    pdfs: false,
+    assignments: false,
+    quizzes: false,
+  });
+
+  const [seenSections, setSeenSections] = useState({
+    announcement: false,
+    liveReview: false,
+    videos: false,
+    pdfs: false,
+    assignments: false,
+    quizzes: false,
   });
 
   const toggleSection = (key) => {
@@ -211,11 +234,45 @@ const CourseDetails = () => {
       ...prev,
       [key]: !prev[key],
     }));
+    setSeenSections((prev) => ({
+      ...prev,
+      [key]: true,
+    }));
+  };
+
+  const markSectionSeen = (key) => {
+    setSeenSections((prev) => ({
+      ...prev,
+      [key]: true,
+    }));
+  };
+
+  // Persistent Student Item Done Status Map (Keyed by User ID and Course ID)
+  const [doneItemsMap, setDoneItemsMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`lumina_user_done_${user?._id || 'guest'}_${id}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleItemDone = (itemId) => {
+    if (!itemId) return;
+    const strId = String(itemId);
+    setDoneItemsMap((prev) => {
+      const updated = { ...prev, [strId]: !prev[strId] };
+      try {
+        localStorage.setItem(`lumina_user_done_${user?._id || 'guest'}_${id}`, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
   const expandAllSections = () => {
     setExpandedSections({
       announcement: true,
+      liveReview: true,
       videos: true,
       pdfs: true,
       assignments: true,
@@ -226,12 +283,15 @@ const CourseDetails = () => {
   const collapseAllSections = () => {
     setExpandedSections({
       announcement: false,
+      liveReview: false,
       videos: false,
       pdfs: false,
       assignments: false,
       quizzes: false,
     });
   };
+
+  const allExpanded = expandedSections.announcement && expandedSections.liveReview && expandedSections.videos && expandedSections.pdfs && expandedSections.assignments && expandedSections.quizzes;
 
   // Creation Modals States (Teacher / Admin)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
@@ -429,6 +489,77 @@ const CourseDetails = () => {
   const currentMonthSessions = useMemo(() => {
     return getMonthSessionDates(selectedMonth, activeSchedule);
   }, [selectedMonth, activeSchedule]);
+
+  // For students: aggregate ALL course content across lessons for the selected/enrolled grade with dates (latest on top)
+  const allCourseVideos = useMemo(() => {
+    const targetLessons = lessons.filter(l => 
+      !selectedGrade || normalizeGrade(l.grade) === normalizeGrade(selectedGrade)
+    );
+    const vids = [];
+    targetLessons.forEach(l => {
+      (l.videoLessons || []).forEach(v => {
+        vids.push({
+          ...v,
+          lessonId: l._id,
+          grade: l.grade,
+          date: v.createdAt || v.date || l.updatedAt || l.createdAt
+        });
+      });
+    });
+    return vids.sort((a, b) => {
+      const timeA = new Date(a.date || a.createdAt || 0).getTime() || 
+        (a._id && String(a._id).length >= 8 ? parseInt(String(a._id).substring(0, 8), 16) * 1000 : 0);
+      const timeB = new Date(b.date || b.createdAt || 0).getTime() || 
+        (b._id && String(b._id).length >= 8 ? parseInt(String(b._id).substring(0, 8), 16) * 1000 : 0);
+      return timeB - timeA;
+    });
+  }, [lessons, selectedGrade]);
+
+  const allCoursePdfs = useMemo(() => {
+    const targetLessons = lessons.filter(l => 
+      !selectedGrade || normalizeGrade(l.grade) === normalizeGrade(selectedGrade)
+    );
+    const pdfs = [];
+    targetLessons.forEach(l => {
+      (l.pdfMaterials || []).forEach(p => {
+        pdfs.push({
+          ...p,
+          lessonId: l._id,
+          grade: l.grade,
+          date: p.uploadedAt || p.date || l.updatedAt || l.createdAt
+        });
+      });
+    });
+    return pdfs.sort((a, b) => {
+      const timeA = new Date(a.date || a.uploadedAt || 0).getTime() || 
+        (a._id && String(a._id).length >= 8 ? parseInt(String(a._id).substring(0, 8), 16) * 1000 : 0);
+      const timeB = new Date(b.date || b.uploadedAt || 0).getTime() || 
+        (b._id && String(b._id).length >= 8 ? parseInt(String(b._id).substring(0, 8), 16) * 1000 : 0);
+      return timeB - timeA;
+    });
+  }, [lessons, selectedGrade]);
+
+  const allCourseAssignments = useMemo(() => {
+    const asgns = assignments.filter(asgn => 
+      !selectedGrade || !asgn.grade || normalizeGrade(asgn.grade) === normalizeGrade(selectedGrade)
+    );
+    return asgns.sort((a, b) => {
+      const timeA = new Date(a.createdAt || a.dueDate || 0).getTime();
+      const timeB = new Date(b.createdAt || b.dueDate || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [assignments, selectedGrade]);
+
+  const allCourseQuizzes = useMemo(() => {
+    const qzs = quizzes.filter(q => 
+      !selectedGrade || !q.grade || normalizeGrade(q.grade) === normalizeGrade(selectedGrade)
+    );
+    return qzs.sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [quizzes, selectedGrade]);
 
   const hasAutoNavigatedRef = useRef(false);
 
@@ -863,16 +994,14 @@ const CourseDetails = () => {
     const newStatus = isDeactive ? 'active' : 'deactive';
     const deactivatedByRole = isUserAdmin ? 'admin' : 'teacher';
 
-    try {
-      await api.put(`/courses/${courseId}/grades/${gradeId || gradeNumber}/status`, {
-        status: newStatus,
-        deactivatedBy: newStatus === 'deactive' ? deactivatedByRole : null
-      });
-      toast.success(`Grade "${gradeNumber}" has been ${newStatus === 'deactive' ? 'deactivated' : 'activated'} by ${isUserAdmin ? 'Admin' : 'Teacher'}.`);
-    } catch {
-      toast.success(`Grade "${gradeNumber}" has been ${newStatus === 'deactive' ? 'deactivated' : 'activated'}.`);
-    }
+    // 1. Immediately close confirmation dialog for zero-latency response
+    setDeactivateConfirmGrade(null);
 
+    // 2. IMMEDIATELY show success message with zero delay
+    toast.success(`Grade "${gradeNumber}" has been ${newStatus === 'deactive' ? 'deactivated' : 'activated'} by ${isUserAdmin ? 'Admin' : 'Teacher'}.`);
+
+    // 3. Optimistically update local course state immediately
+    const previousCourse = course;
     setCourse((prev) => {
       if (!prev) return prev;
       return {
@@ -891,7 +1020,17 @@ const CourseDetails = () => {
       };
     });
 
-    setDeactivateConfirmGrade(null);
+    // 4. Fire API in background without blocking UI
+    try {
+      await api.put(`/courses/${courseId}/grades/${gradeId || gradeNumber}/status`, {
+        status: newStatus,
+        deactivatedBy: newStatus === 'deactive' ? deactivatedByRole : null
+      });
+    } catch (err) {
+      // Revert optimistic update on failure
+      setCourse(previousCourse);
+      toast.error(err.response?.data?.error || `Failed to update status for Grade "${gradeNumber}".`);
+    }
   };
 
   const handleEnroll = async () => {
@@ -1045,9 +1184,9 @@ const CourseDetails = () => {
     const newVideoItem = {
       title: videoTitle.trim() || 'Video Lecture',
       url: videoUrl.trim(),
-      allowDownload: videoDownloadType !== 'disabled',
-      downloadDelayType: videoDownloadType,
-      downloadUnlockDate: videoDownloadType === 'custom_date' && videoCustomUnlockDate ? new Date(videoCustomUnlockDate) : null,
+      allowDownload: false,
+      downloadDelayType: 'disabled',
+      downloadUnlockDate: null,
       uploadedAt: new Date()
     };
     const updatedVideos = [...(currentLesson.videoLessons || []), newVideoItem];
@@ -1581,10 +1720,12 @@ const CourseDetails = () => {
   };
 
   const confirmEndLiveStream = async (shouldSaveVideo = saveLiveAsVideo) => {
-    // Prioritize finding the lesson that actually has an active live or scheduled stream
-    const targetLesson = (lessons || []).find(l => l.liveStream?.isLive || l.liveStream?.isScheduled) 
-      || (lessons || []).find(l => String(l.grade).toLowerCase() === String(selectedGrade).toLowerCase()) 
-      || (lessons || [])[0];
+    const currentGradeLesson = (lessons || []).find(l => normalizeGrade(l.grade) === normalizeGrade(selectedGrade));
+    const targetLesson = (currentGradeLesson && (currentGradeLesson.liveStream?.isLive || currentGradeLesson.liveStream?.isScheduled))
+      ? currentGradeLesson
+      : (lessons || []).find(l => l.liveStream?.isLive || l.liveStream?.isScheduled) 
+        || currentGradeLesson 
+        || (lessons || [])[0];
 
     setIsEndingStream(true);
     setShowEndStreamConfirmModal(false);
@@ -1654,8 +1795,22 @@ const CourseDetails = () => {
     );
   }
 
-  const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
-  const currentLesson = lessons.find(l => normalizeGrade(l.grade) === normalizeGrade(selectedGrade)) 
+  // Find all lessons for the selected grade and select the one with the latest live session
+  const gradeLessons = lessons.filter(l => normalizeGrade(l.grade) === normalizeGrade(selectedGrade));
+  const latestLiveLessonForGrade = gradeLessons.length > 0 ? [...gradeLessons].sort((a, b) => {
+    // 1. Live stream currently active has highest priority
+    if (a.liveStream?.isLive && !b.liveStream?.isLive) return -1;
+    if (!a.liveStream?.isLive && b.liveStream?.isLive) return 1;
+    // 2. Scheduled live stream has second priority
+    if (a.liveStream?.isScheduled && !b.liveStream?.isScheduled) return -1;
+    if (!a.liveStream?.isScheduled && b.liveStream?.isScheduled) return 1;
+    // 3. Newest liveStream endedAt / startedAt
+    const timeA = new Date(a.liveStream?.endedAt || a.liveStream?.startedAt || a.updatedAt || a.createdAt || 0).getTime();
+    const timeB = new Date(b.liveStream?.endedAt || b.liveStream?.startedAt || b.updatedAt || b.createdAt || 0).getTime();
+    return timeB - timeA;
+  })[0] : null;
+
+  const currentLesson = latestLiveLessonForGrade 
     || lessons.find(l => l.liveStream?.isLive || l.liveStream?.isScheduled) 
     || lessons[0];
   const studentGrade = user?.grade;
@@ -1942,9 +2097,74 @@ const CourseDetails = () => {
             </div>
           </div>
 
-          {/* Centered Course Title */}
-          <div className="text-center space-y-2 py-1">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight max-w-5xl mx-auto drop-shadow-2xs">{course?.title}</h1>
+          {/* Styled Course Title Banner */}
+          <div className={`relative overflow-hidden rounded-3xl p-5 sm:p-6 text-center transition-all duration-300 border shadow-lg ${
+            isDark 
+              ? 'bg-slate-900/95 border-purple-900/50 shadow-slate-950/60' 
+              : 'bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/80 border-purple-200/90 shadow-purple-900/5'
+          }`}>
+            <div className="relative z-10 max-w-4xl mx-auto space-y-3">
+              <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight ${
+                isDark 
+                  ? 'text-white' 
+                  : 'bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 bg-clip-text text-transparent'
+              }`}>
+                {course?.title}
+              </h1>
+
+              {/* Metadata Pills: Academic Term, Week Module, Today's Date, Live Time */}
+              <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1 select-none">
+                {/* Academic Month & Year */}
+                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${
+                  isDark 
+                    ? 'bg-purple-950/60 border-purple-800/80 text-purple-300' 
+                    : 'bg-purple-50/90 border-purple-200/90 text-purple-950'
+                }`}>
+                  <FaCalendarAlt className="text-purple-600 dark:text-purple-400 text-xs" />
+                  <span>{selectedMonth ? (selectedMonth.includes(currentTime.getFullYear().toString()) ? selectedMonth : `${selectedMonth} ${currentTime.getFullYear()}`) : currentTime.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                </span>
+
+                {/* Session / Week Module */}
+                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${
+                  isDark 
+                    ? 'bg-indigo-950/60 border-indigo-800/80 text-indigo-300' 
+                    : 'bg-indigo-50/90 border-indigo-200/90 text-indigo-950'
+                }`}>
+                  <FaBookOpen className="text-indigo-600 dark:text-indigo-400 text-xs" />
+                  <span>Week {activeWeek}</span>
+                </span>
+
+                {/* Today's Day Name */}
+                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${
+                  isDark 
+                    ? 'bg-emerald-950/60 border-emerald-800/80 text-emerald-300' 
+                    : 'bg-emerald-50/90 border-emerald-200/90 text-emerald-950'
+                }`}>
+                  <FaCalendarCheck className="text-emerald-600 dark:text-emerald-400 text-xs" />
+                  <span>{currentTime.toLocaleDateString('en-US', { weekday: 'long' })}</span>
+                </span>
+
+                {/* Today's Date */}
+                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${
+                  isDark 
+                    ? 'bg-teal-950/60 border-teal-800/80 text-teal-300' 
+                    : 'bg-teal-50/90 border-teal-200/90 text-teal-950'
+                }`}>
+                  <FaCalendarAlt className="text-teal-600 dark:text-teal-400 text-xs" />
+                  <span>{currentTime.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</span>
+                </span>
+
+                {/* Live Clock Time */}
+                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${
+                  isDark 
+                    ? 'bg-amber-950/60 border-amber-800/80 text-amber-300' 
+                    : 'bg-amber-50/90 border-amber-200/90 text-amber-950'
+                }`}>
+                  <FaClock className="text-amber-500 text-xs animate-pulse" />
+                  <span>{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -2266,12 +2486,14 @@ const CourseDetails = () => {
       {selectedGrade !== null && (
         <div className="space-y-6">
 
-          {/* Active or Concluded YouTube Live Stream Player & Post-Stream Studio */}
-          {currentLesson?.liveStream && !currentLesson?.liveStream?.isScheduled && (
+          {/* Active Live Stream Player (Shows while live stream is actively broadcasting at TOP) */}
+          {currentLesson?.liveStream?.isLive && (
             <LiveStreamPlayer
               liveStream={currentLesson.liveStream}
               lessonId={currentLesson._id}
               grade={selectedGrade}
+              allLessons={lessons}
+              onSelectGrade={(g) => setSelectedGrade(g)}
               isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
               onEndStream={() => handleEndLiveStream(saveLiveAsVideo)}
             />
@@ -2419,8 +2641,61 @@ const CourseDetails = () => {
             </div>
           )}
 
-          {/* Academic Month Selector */}
-          <div className="bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-5 transition-all duration-300">
+          {/* TEACHER & ADMIN CONCLUDED BROADCAST STUDIO & REVIEWS INTEGRATION (Placed Under Content Creator Box) */}
+          {isTeacherOrAdmin && !currentLesson?.liveStream?.isLive && currentLesson?.liveStream && !currentLesson?.liveStream?.isScheduled && (
+            <LiveStreamPlayer
+              liveStream={currentLesson.liveStream}
+              lessonId={currentLesson._id}
+              grade={selectedGrade}
+              allLessons={lessons}
+              onSelectGrade={(g) => setSelectedGrade(g)}
+              isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
+              onEndStream={() => handleEndLiveStream(saveLiveAsVideo)}
+            />
+          )}
+
+          {/* EXPAND ALL / COLLAPSE ALL TOGGLE (Positioned directly above Course Announcements) */}
+          <div className="flex items-center justify-end px-1 select-none">
+            <button
+              type="button"
+              onClick={allExpanded ? collapseAllSections : expandAllSections}
+              className="px-4 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all duration-200 cursor-pointer active:scale-95 shadow-2xs bg-white hover:bg-purple-50 border-purple-200 text-purple-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-purple-500/50 dark:text-purple-300"
+            >
+              {allExpanded ? (
+                <><FaChevronUp className="text-[10px]" /> Collapse All</>
+              ) : (
+                <><FaChevronDown className="text-[10px]" /> Expand All</>
+              )}
+            </button>
+          </div>
+
+          {/* COURSE ANNOUNCEMENTS WINDOW (Visible Only To Students) */}
+          {!isTeacherOrAdmin && (
+            <CourseAnnouncementsWindow
+              course={course}
+              lessons={lessons}
+              selectedGrade={selectedGrade}
+              isTeacherOrAdmin={isTeacherOrAdmin}
+              isExpanded={expandedSections.announcement}
+              onToggle={() => toggleSection('announcement')}
+            />
+          )}
+
+          {/* STUDENT LIVE CLASS FEEDBACK & TEACHER REACTION WINDOW (Visible Only To Students) */}
+          {!isTeacherOrAdmin && (
+            <StudentLiveFeedbackWindow
+              currentLesson={currentLesson}
+              lessons={lessons}
+              selectedGrade={selectedGrade}
+              user={user}
+              isExpanded={expandedSections.liveReview}
+              onToggle={() => toggleSection('liveReview')}
+            />
+          )}
+
+          {/* Academic Month Selector (Visible only to Teachers & Admins) */}
+          {isTeacherOrAdmin && (
+            <div className="bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-5 transition-all duration-300">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 dark:from-purple-500/20 dark:to-indigo-500/20 border border-purple-200/50 dark:border-purple-800/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl shadow-xs shrink-0 font-black">
@@ -2493,9 +2768,11 @@ const CourseDetails = () => {
               })}
             </div>
           </div>
+          )}
 
-          {/* Class Workspace Navigation Tabs */}
-          <div className="bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-5 transition-all duration-300">
+          {/* Class Sessions & Workspace (Visible only to Teachers & Admins) */}
+          {isTeacherOrAdmin && (
+            <div className="bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-5 transition-all duration-300">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 border border-indigo-200/50 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl shadow-xs shrink-0 font-black">
@@ -2568,9 +2845,10 @@ const CourseDetails = () => {
               })}
             </div>
           </div>
+          )}
 
-          {/* Physical Student Notice Banner */}
-          {user?.role === 'student' && alreadyEnrolled && user?.studentType === 'physical' && (
+          {/* Physical Student Notice Banner & Online Student Weekly Attendance (Visible only to Teachers & Admins) */}
+          {isTeacherOrAdmin && user?.role === 'student' && alreadyEnrolled && user?.studentType === 'physical' && (
             <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 p-5 rounded-2xl flex items-start gap-3 shadow-xs">
               <span className="text-2xl shrink-0">🏫</span>
               <div>
@@ -2582,8 +2860,8 @@ const CourseDetails = () => {
             </div>
           )}
 
-          {/* Online Student Weekly Gated Attendance Action Banner */}
-          {user?.role === 'student' && alreadyEnrolled && user?.studentType !== 'physical' && (
+          {/* Online Student Weekly Gated Attendance Action Banner (Visible only to Teachers & Admins) */}
+          {isTeacherOrAdmin && user?.role === 'student' && alreadyEnrolled && user?.studentType !== 'physical' && (
             <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-1">
@@ -2654,80 +2932,59 @@ const CourseDetails = () => {
             </div>
           )}
 
-          {/* ========================================================================= */}
-          {/* WORKSPACE SECTIONS CONTROLS BAR */}
-          {/* ========================================================================= */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-gray-500 dark:text-gray-400">Learning Materials & Content</span>
-              <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
-                Week {activeWeek} • {selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`}
-              </span>
-            </div>
-            <div className="flex items-center gap-3 text-xs font-bold self-end sm:self-auto">
-              <button
-                type="button"
-                onClick={expandAllSections}
-                className="text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 hover:underline cursor-pointer flex items-center gap-1.5 transition"
-              >
-                <FaChevronDown className="text-[10px]" /> Expand All
-              </button>
-              <span className="text-gray-300 dark:text-slate-700">|</span>
-              <button
-                type="button"
-                onClick={collapseAllSections}
-                className="text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 hover:underline cursor-pointer flex items-center gap-1.5 transition"
-              >
-                <FaChevronUp className="text-[10px]" /> Collapse All
-              </button>
-            </div>
-          </div>
 
           {/* ========================================================================= */}
-          {/* SECTION 1: TEACHER'S ANNOUNCEMENT (Expandable) */}
+          {/* SECTION 1: TEACHER'S ANNOUNCEMENT (Visible only to Teachers & Admins) */}
           {/* ========================================================================= */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
-            <div
-              onClick={() => toggleSection('announcement')}
-              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
-            >
-              <div className="flex items-start sm:items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
-                <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
-                  <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 flex items-center justify-center text-base sm:text-lg font-black shrink-0 shadow-inner">
-                    📢
+          {isTeacherOrAdmin && (
+            <div className={`rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${
+              isDark 
+                ? 'bg-slate-900/95 border-amber-900/40 shadow-slate-950/60' 
+                : 'bg-gradient-to-br from-[#fffdf7] via-white to-[#fff9ee] border-amber-300/80 shadow-amber-900/5'
+            }`}>
+              <div
+                onClick={() => toggleSection('announcement')}
+                className={`w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors text-left cursor-pointer select-none ${
+                  isDark ? 'hover:bg-slate-800/60' : 'hover:bg-amber-50/50'
+                }`}
+              >
+                <div className="flex items-start sm:items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
+                  <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center text-base sm:text-lg font-black shrink-0 shadow-md shadow-amber-500/30 border border-amber-300/40">
+                      <FaBullhorn className="transform -rotate-12 drop-shadow-xs" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white leading-tight">
+                        Teacher's Announcement (Week {activeWeek})
+                      </h4>
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium line-clamp-1">
+                        {currentLesson?.teacherMessage
+                          ? 'Important guidelines, schedule reminders, and teacher notes for this class.'
+                          : 'No announcement published for this class session yet.'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white leading-tight">
-                      Teacher's Announcement (Week {activeWeek})
-                    </h4>
-                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium line-clamp-1">
-                      {currentLesson?.teacherMessage
-                        ? 'Important guidelines, schedule reminders, and teacher notes for this class.'
-                        : 'No announcement published for this class session yet.'}
-                    </p>
+
+                  {/* Mobile-only toggle chevron */}
+                  <div className="sm:hidden w-7 h-7 rounded-lg bg-amber-50 dark:bg-slate-800 flex items-center justify-center text-amber-600 dark:text-amber-400 text-xs shrink-0 self-center">
+                    {expandedSections.announcement ? <FaChevronUp /> : <FaChevronDown />}
                   </div>
                 </div>
 
-                {/* Mobile-only toggle chevron */}
-                <div className="sm:hidden w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs shrink-0 self-center">
-                  {expandedSections.announcement ? <FaChevronUp /> : <FaChevronDown />}
-                </div>
-              </div>
+                {/* Badges & action controls */}
+                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-amber-100 dark:border-slate-800/60 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {currentLesson?.teacherMessage ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-800 dark:text-amber-300 border border-amber-400/40 dark:border-amber-700/50 shadow-2xs whitespace-nowrap">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                        Active Message
+                      </span>
+                    ) : (
+                      <span className="bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-xl border border-transparent dark:border-slate-700 whitespace-nowrap">
+                        Empty
+                      </span>
+                    )}
 
-              {/* Badges & action controls */}
-              <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800/60 w-full sm:w-auto">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {currentLesson?.teacherMessage ? (
-                    <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border border-purple-200 dark:border-purple-800 whitespace-nowrap">
-                      Active Message
-                    </span>
-                  ) : (
-                    <span className="bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-xl border border-transparent dark:border-slate-700 whitespace-nowrap">
-                      Empty
-                    </span>
-                  )}
-
-                  {isTeacherOrAdmin && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -2735,53 +2992,65 @@ const CourseDetails = () => {
                         setEditingMessage(currentLesson?.teacherMessage || '');
                         setShowAnnouncementModal(true);
                       }}
-                      className="px-3 py-1 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                      className="px-3 py-1 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-2xs"
                     >
                       <FaEdit className="text-xs" /> Edit
                     </button>
-                  )}
-                </div>
+                  </div>
 
-                {/* Desktop-only toggle chevron */}
-                <div className="hidden sm:flex w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
-                  {expandedSections.announcement ? <FaChevronUp /> : <FaChevronDown />}
+                  {/* Desktop-only toggle button */}
+                  <div className="hidden sm:flex items-center shrink-0">
+                    <div className="px-3.5 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all duration-200 shadow-2xs bg-white hover:bg-amber-50 border-amber-200 text-amber-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-amber-700/50 dark:text-amber-300">
+                      {expandedSections.announcement ? <><FaChevronUp className="text-[10px]" /> Collapse</> : <><FaChevronDown className="text-[10px]" /> Expand</>}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {expandedSections.announcement && (
-              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900 animate-fadeIn">
-                {currentLesson?.teacherMessage ? (
-                  <div className="bg-purple-50/50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-800/60 p-4 rounded-2xl text-gray-800 dark:text-purple-100 text-sm leading-relaxed whitespace-pre-line font-medium">
-                    {currentLesson.teacherMessage}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-gray-400 dark:text-gray-500 text-xs italic bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
-                    No announcement or teacher message posted for Week {activeWeek} yet.
-                    {isTeacherOrAdmin && (
+              {expandedSections.announcement && (
+                <div className="p-5 pt-0 border-t border-amber-100 dark:border-amber-900/40 space-y-3 bg-transparent animate-fadeIn">
+                  {currentLesson?.teacherMessage ? (
+                    <div className="bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 p-4 rounded-2xl text-amber-950 dark:text-amber-100 text-sm leading-relaxed whitespace-pre-line font-medium shadow-2xs">
+                      {currentLesson.teacherMessage}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-amber-800/70 dark:text-amber-400/70 text-xs italic bg-amber-50/40 dark:bg-slate-800/40 rounded-2xl border border-dashed border-amber-200 dark:border-amber-800/60">
+                      No announcement or teacher message posted for Week {activeWeek} yet.
                       <span
                         onClick={() => {
                           setEditingMessage('');
                           setShowAnnouncementModal(true);
                         }}
-                        className="block text-purple-600 dark:text-purple-400 font-bold not-italic mt-1.5 cursor-pointer hover:underline"
+                        className="block text-amber-700 dark:text-amber-300 font-bold not-italic mt-1.5 cursor-pointer hover:underline"
                       >
                         + Click here to write an announcement
                       </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ========================================================================= */}
           {/* SECTION 2: VIDEO LESSONS (Expandable) */}
           {/* ========================================================================= */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300 hover:border-purple-200 dark:hover:border-purple-900/50">
+          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${
+            isDark 
+              ? 'bg-slate-900/95 border-indigo-900/40 shadow-slate-950/60' 
+              : 'bg-gradient-to-br from-[#f8f7ff] via-white to-[#f3f0ff] border-indigo-300/80 shadow-indigo-900/5'
+          } ${!isTeacherOrAdmin && !seenSections.videos && !isVideoWatched && allCourseVideos.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
+            
+            {!isTeacherOrAdmin && !seenSections.videos && !isVideoWatched && allCourseVideos.length > 0 && (
+              <span className="absolute -top-1 -left-1 flex h-3.5 w-3.5 z-20 pointer-events-none" title="New / Unseen video content">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs shadow-emerald-500/50"></span>
+              </span>
+            )}
+
             <div
               onClick={() => toggleSection('videos')}
-              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-purple-50/20 via-white to-purple-50/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 hover:from-purple-50/50 transition-all duration-300 text-left cursor-pointer select-none"
+              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors text-left cursor-pointer select-none hover:bg-indigo-50/50 dark:hover:bg-slate-800/60"
             >
               <div className="flex items-start sm:items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
                 <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
@@ -2793,9 +3062,11 @@ const CourseDetails = () => {
                       <h4 className="font-black text-sm sm:text-lg text-slate-900 dark:text-white leading-tight">
                         Video Lessons
                       </h4>
-                      <span className="text-[10px] sm:text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/80 px-2 py-0.5 rounded-lg border border-purple-200/80 dark:border-purple-800/80 whitespace-nowrap shrink-0">
-                        Week {activeWeek} • {selectedMonth}
-                      </span>
+                      {isTeacherOrAdmin && (
+                        <span className="text-[10px] sm:text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/80 px-2 py-0.5 rounded-lg border border-purple-200/80 dark:border-purple-800/80 whitespace-nowrap shrink-0">
+                          Week {activeWeek} • {selectedMonth}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-semibold line-clamp-1">
                       Recorded lecture streams & walkthrough explanations.
@@ -2803,9 +3074,18 @@ const CourseDetails = () => {
                   </div>
                 </div>
 
-                {/* Mobile-only toggle chevron */}
-                <div className="sm:hidden w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 dark:text-purple-300 text-xs shrink-0 self-center">
-                  {expandedSections.videos ? <FaChevronUp /> : <FaChevronDown />}
+                {/* Mobile-only toggle button */}
+                <div className="sm:hidden flex items-center shrink-0 self-center">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSection('videos');
+                    }}
+                    className="px-3 py-1 rounded-xl border text-[11px] font-black flex items-center gap-1 transition-all duration-200 shadow-2xs active:scale-95 bg-white hover:bg-indigo-50 border-indigo-200 text-indigo-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-indigo-500/50 dark:text-indigo-300"
+                  >
+                    {expandedSections.videos ? <><FaChevronUp className="text-[9px]" /> Collapse</> : <><FaChevronDown className="text-[9px]" /> Expand</>}
+                  </button>
                 </div>
               </div>
 
@@ -2813,16 +3093,18 @@ const CourseDetails = () => {
               <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800/60 w-full sm:w-auto">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80 text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-xl shadow-2xs whitespace-nowrap">
-                    {currentLesson?.videoLessons?.length || 0} {currentLesson?.videoLessons?.length === 1 ? 'Video' : 'Videos'}
+                    {(isTeacherOrAdmin ? (currentLesson?.videoLessons?.length || 0) : allCourseVideos.length)} {(isTeacherOrAdmin ? (currentLesson?.videoLessons?.length || 0) : allCourseVideos.length) === 1 ? 'Video' : 'Videos'}
                   </span>
 
-                  {!isTeacherOrAdmin && currentLesson?.videoLessons && currentLesson.videoLessons.length > 0 && (
+                  {!isTeacherOrAdmin && allCourseVideos.length > 0 && (
                     <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${
-                      isVideoWatched
-                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                      allCourseVideos.filter(v => doneItemsMap[String(v._id || v.url)]).length === allCourseVideos.length
+                        ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
+                        : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                     }`}>
-                      {isVideoWatched ? '✓ Watched' : 'Pending View'}
+                      {allCourseVideos.filter(v => doneItemsMap[String(v._id || v.url)]).length === allCourseVideos.length
+                        ? '✓ Done'
+                        : `Remaining: ${allCourseVideos.length - allCourseVideos.filter(v => doneItemsMap[String(v._id || v.url)]).length}`}
                     </span>
                   )}
 
@@ -2844,18 +3126,30 @@ const CourseDetails = () => {
                   )}
                 </div>
 
-                {/* Desktop-only toggle chevron */}
-                <div className="hidden sm:flex w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-purple-100/50 dark:hover:bg-purple-950/60 items-center justify-center text-gray-500 dark:text-purple-300 text-xs transition">
-                  {expandedSections.videos ? <FaChevronUp /> : <FaChevronDown />}
+                {/* Desktop-only toggle button */}
+                <div className="hidden sm:flex items-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSection('videos');
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 bg-white hover:bg-indigo-50 border-indigo-200 text-indigo-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-indigo-500/50 dark:text-indigo-300"
+                  >
+                    <FaChevronDown className={`text-[10px] text-indigo-500 transition-transform ${expandedSections.videos ? 'rotate-180' : ''}`} />
+                    <span>{expandedSections.videos ? 'Collapse' : 'Expand'}</span>
+                  </button>
                 </div>
               </div>
             </div>
 
             {expandedSections.videos && (
-              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900 animate-fadeIn">
-                {!currentLesson?.videoLessons || currentLesson.videoLessons.length === 0 ? (
+              <div className="p-5 pt-0 border-t border-indigo-100 dark:border-indigo-900/40 space-y-3 bg-transparent animate-fadeIn">
+                {(isTeacherOrAdmin ? (!currentLesson?.videoLessons || currentLesson.videoLessons.length === 0) : allCourseVideos.length === 0) ? (
                   <div className="py-8 text-center text-gray-400 dark:text-gray-500 space-y-1 bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
-                    <p className="text-sm font-semibold">No video lessons uploaded for Week {activeWeek} yet.</p>
+                    <p className="text-sm font-semibold">
+                      {isTeacherOrAdmin ? `No video lessons uploaded for Week ${activeWeek} yet.` : `No video lessons available in this course yet.`}
+                    </p>
                     {isTeacherOrAdmin && (
                       <p
                         className="text-xs text-emerald-700 dark:text-emerald-400 font-bold cursor-pointer hover:underline mt-1"
@@ -2872,19 +3166,22 @@ const CourseDetails = () => {
                     )}
                   </div>
                 ) : (
-                  [...(currentLesson.videoLessons || [])]
-                    .sort((a, b) => {
-                      const timeA = a.createdAt || a.date 
-                        ? new Date(a.createdAt || a.date).getTime() 
-                        : (a._id && String(a._id).length >= 8 ? parseInt(String(a._id).substring(0, 8), 16) * 1000 : 0);
-                      const timeB = b.createdAt || b.date 
-                        ? new Date(b.createdAt || b.date).getTime() 
-                        : (b._id && String(b._id).length >= 8 ? parseInt(String(b._id).substring(0, 8), 16) * 1000 : 0);
-                      return timeB - timeA; // Latest video on top
-                    })
+                  (isTeacherOrAdmin 
+                    ? [...(currentLesson?.videoLessons || [])].sort((a, b) => {
+                        const timeA = a.createdAt || a.date 
+                          ? new Date(a.createdAt || a.date).getTime() 
+                          : (a._id && String(a._id).length >= 8 ? parseInt(String(a._id).substring(0, 8), 16) * 1000 : 0);
+                        const timeB = b.createdAt || b.date 
+                          ? new Date(b.createdAt || b.date).getTime() 
+                          : (b._id && String(b._id).length >= 8 ? parseInt(String(b._id).substring(0, 8), 16) * 1000 : 0);
+                        return timeB - timeA;
+                      })
+                    : allCourseVideos
+                  )
                     .map((vid) => {
                       const dlStatus = getMaterialDownloadStatus(vid);
                       const thumbnail = getYouTubeThumbnail(vid.url);
+                      const isItemDone = Boolean(doneItemsMap[String(vid._id || vid.url)]);
                       const formattedDate = vid.createdAt || vid.date 
                         ? new Date(vid.createdAt || vid.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                         : (vid._id && String(vid._id).length >= 8 ? new Date(parseInt(String(vid._id).substring(0, 8), 16) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null);
@@ -2939,70 +3236,50 @@ const CourseDetails = () => {
                                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-lg border border-purple-200/60 dark:border-purple-800/50">
                                   🎬 Video Lesson
                                 </span>
-                              {isTeacherOrAdmin && (
-                                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                                  dlStatus.status === 'immediate'
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                                    : dlStatus.status === 'scheduled'
-                                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-slate-700'
-                                }`}>
-                                  {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
-                                </span>
-                              )}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap shrink-0">
-                          {/* Watch Video Button for Students & Teachers */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              markMaterialCompleted('video');
-                              setActiveVideoModal(vid);
-                            }}
-                            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-purple-900/30 hover:shadow-lg cursor-pointer flex items-center gap-1.5 active:scale-95"
-                          >
-                            <FaPlayCircle className="text-sm text-white" /> Watch Video
-                          </button>
+                          <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap shrink-0">
+                            {/* Watch Video Button for Students & Teachers */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                markMaterialCompleted('video');
+                                setActiveVideoModal(vid);
+                              }}
+                              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-purple-900/30 hover:shadow-lg cursor-pointer flex items-center gap-1.5 active:scale-95"
+                            >
+                              <FaPlayCircle className="text-sm text-white" /> Watch Video
+                            </button>
 
-                          {!isTeacherOrAdmin && (
-                            <>
-                              {dlStatus.isAvailable && (
-                                <a
-                                  href={vid.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  download
-                                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-purple-200 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-slate-200 dark:border-slate-700 hover:border-purple-400"
-                                  title="Download Video File"
-                                >
-                                  <FaDownload className="text-[10px]" /> Download
-                                </a>
-                              )}
-
-                              {dlStatus.status === 'scheduled' && (
-                                <span
-                                  className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-3 py-2 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5"
-                                  title={`Download unlocks on ${dlStatus.formattedDate}`}
-                                >
-                                  <FaHourglassHalf className="text-amber-600 dark:text-amber-400 text-xs" /> Unlocks {dlStatus.formattedDate} ({dlStatus.daysRemaining}d left)
-                                </span>
-                              )}
-                            </>
-                          )}
-
-                          {isTeacherOrAdmin && (
-                            <>
+                            {/* Student Mark as Done Button (Right Aligned) */}
+                            {!isTeacherOrAdmin && (
                               <button
                                 type="button"
-                                onClick={() => handleOpenDownloadSettingsModal('video', vid, currentLesson?._id)}
-                                className="text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-slate-800 px-3 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1 cursor-pointer border border-purple-100 dark:border-slate-700"
-                                title="Configure Download Access"
+                                onClick={() => toggleItemDone(vid._id || vid.url)}
+                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${
+                                  isItemDone
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
+                                    : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                                }`}
+                                title={isItemDone ? "Marked as done" : "Click to mark as done"}
                               >
-                                <FaCog className="text-xs" /> Download Settings
+                                {isItemDone ? (
+                                  <>
+                                    <FaCheck className="text-xs text-white" />
+                                    <span>Done</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                    <span>Mark as Done</span>
+                                  </>
+                                )}
                               </button>
+                            )}
+
+                            {isTeacherOrAdmin && (
                               <button
                                 type="button"
                                 onClick={() => handleDeleteVideo(vid._id)}
@@ -3010,9 +3287,8 @@ const CourseDetails = () => {
                               >
                                 Remove
                               </button>
-                            </>
-                          )}
-                        </div>
+                            )}
+                          </div>
                       </div>
                     );
                   })
@@ -3024,24 +3300,38 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 3: STUDY MATERIALS — PDF NOTES (Expandable) */}
           {/* ========================================================================= */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
+          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${
+            isDark 
+              ? 'bg-slate-900/95 border-rose-900/40 shadow-slate-950/60' 
+              : 'bg-gradient-to-br from-[#fff7f9] via-white to-[#fff0f3] border-rose-300/80 shadow-rose-900/5'
+          } ${!isTeacherOrAdmin && !seenSections.pdfs && !isPdfDownloaded && allCoursePdfs.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
+
+            {!isTeacherOrAdmin && !seenSections.pdfs && !isPdfDownloaded && allCoursePdfs.length > 0 && (
+              <span className="absolute -top-1 -left-1 flex h-3.5 w-3.5 z-20 pointer-events-none" title="New / Unseen study materials">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs shadow-emerald-500/50"></span>
+              </span>
+            )}
+
             <div
               onClick={() => toggleSection('pdfs')}
-              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors text-left cursor-pointer select-none hover:bg-rose-50/50 dark:hover:bg-slate-800/60"
             >
               <div className="flex items-start sm:items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
                 <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
-                  <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 flex items-center justify-center text-base sm:text-lg font-black shrink-0 shadow-inner">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-rose-500 via-pink-500 to-rose-600 text-white flex items-center justify-center text-base sm:text-lg font-black shrink-0 shadow-md shadow-rose-500/25 border border-rose-400/30">
                     📕
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <h4 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white leading-tight">
+                      <h4 className="font-black text-sm sm:text-lg text-slate-900 dark:text-white leading-tight">
                         Study Materials — PDF Notes
                       </h4>
-                      <span className="text-[10px] sm:text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/80 px-2 py-0.5 rounded-lg border border-purple-200/80 dark:border-purple-800/80 whitespace-nowrap shrink-0">
-                        Week {activeWeek} • {selectedMonth}
-                      </span>
+                      {isTeacherOrAdmin && (
+                        <span className="text-[10px] sm:text-[11px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-100/80 dark:bg-rose-950/80 px-2 py-0.5 rounded-lg border border-rose-200/80 dark:border-rose-800/80 whitespace-nowrap shrink-0">
+                          Week {activeWeek} • {selectedMonth}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium line-clamp-1">
                       Read lecture slides, revision summaries, and structured study booklets.
@@ -3049,26 +3339,37 @@ const CourseDetails = () => {
                   </div>
                 </div>
 
-                {/* Mobile-only toggle chevron */}
-                <div className="sm:hidden w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs shrink-0 self-center">
-                  {expandedSections.pdfs ? <FaChevronUp /> : <FaChevronDown />}
+                {/* Mobile-only toggle button */}
+                <div className="sm:hidden flex items-center shrink-0 self-center">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSection('pdfs');
+                    }}
+                    className="px-3 py-1 rounded-xl border text-[11px] font-black flex items-center gap-1 transition-all duration-200 shadow-2xs active:scale-95 bg-white hover:bg-rose-50 border-rose-200 text-rose-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-rose-500/50 dark:text-rose-300"
+                  >
+                    {expandedSections.pdfs ? <><FaChevronUp className="text-[9px]" /> Collapse</> : <><FaChevronDown className="text-[9px]" /> Expand</>}
+                  </button>
                 </div>
               </div>
 
               {/* Badges & action controls */}
               <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800/60 w-full sm:w-auto">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-xl shadow-2xs whitespace-nowrap">
-                    {currentLesson?.pdfMaterials?.length || 0} {currentLesson?.pdfMaterials?.length === 1 ? 'PDF' : 'PDFs'}
+                  <span className="bg-rose-50 dark:bg-rose-950/60 text-rose-900 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-xl shadow-2xs whitespace-nowrap">
+                    {(isTeacherOrAdmin ? (currentLesson?.pdfMaterials?.length || 0) : allCoursePdfs.length)} {(isTeacherOrAdmin ? (currentLesson?.pdfMaterials?.length || 0) : allCoursePdfs.length) === 1 ? 'PDF' : 'PDFs'}
                   </span>
 
-                  {!isTeacherOrAdmin && currentLesson?.pdfMaterials && currentLesson.pdfMaterials.length > 0 && (
+                  {!isTeacherOrAdmin && allCoursePdfs.length > 0 && (
                     <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${
-                      isPdfDownloaded
-                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                      allCoursePdfs.filter(p => doneItemsMap[String(p._id || p.title || p.filename)]).length === allCoursePdfs.length
+                        ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
+                        : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                     }`}>
-                      {isPdfDownloaded ? '✓ Completed' : 'Pending View'}
+                      {allCoursePdfs.filter(p => doneItemsMap[String(p._id || p.title || p.filename)]).length === allCoursePdfs.length
+                        ? '✓ Done'
+                        : `Remaining: ${allCoursePdfs.length - allCoursePdfs.filter(p => doneItemsMap[String(p._id || p.title || p.filename)]).length}`}
                     </span>
                   )}
 
@@ -3090,18 +3391,30 @@ const CourseDetails = () => {
                   )}
                 </div>
 
-                {/* Desktop-only toggle chevron */}
-                <div className="hidden sm:flex w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
-                  {expandedSections.pdfs ? <FaChevronUp /> : <FaChevronDown />}
+                {/* Desktop-only toggle button */}
+                <div className="hidden sm:flex items-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSection('pdfs');
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 bg-white hover:bg-rose-50 border-rose-200 text-rose-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-rose-500/50 dark:text-rose-300"
+                  >
+                    <FaChevronDown className={`text-[10px] text-rose-500 transition-transform ${expandedSections.pdfs ? 'rotate-180' : ''}`} />
+                    <span>{expandedSections.pdfs ? 'Collapse' : 'Expand'}</span>
+                  </button>
                 </div>
               </div>
             </div>
 
             {expandedSections.pdfs && (
-              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900 animate-fadeIn">
-                {!currentLesson?.pdfMaterials || currentLesson.pdfMaterials.length === 0 ? (
+              <div className="p-5 pt-0 border-t border-rose-100 dark:border-rose-900/40 space-y-3 bg-transparent animate-fadeIn">
+                {(isTeacherOrAdmin ? (!currentLesson?.pdfMaterials || currentLesson.pdfMaterials.length === 0) : allCoursePdfs.length === 0) ? (
                   <div className="py-8 text-center text-gray-400 dark:text-gray-500 space-y-1 bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
-                    <p className="text-sm font-semibold">No PDF study materials uploaded for Week {activeWeek} yet.</p>
+                    <p className="text-sm font-semibold">
+                      {isTeacherOrAdmin ? `No PDF study materials uploaded for Week ${activeWeek} yet.` : `No PDF study materials available in this course yet.`}
+                    </p>
                     {isTeacherOrAdmin && (
                       <p
                         className="text-xs text-purple-700 dark:text-purple-400 font-bold cursor-pointer hover:underline mt-1"
@@ -3118,14 +3431,18 @@ const CourseDetails = () => {
                     )}
                   </div>
                 ) : (
-                  currentLesson.pdfMaterials.map((pdf) => {
+                  (isTeacherOrAdmin ? (currentLesson?.pdfMaterials || []) : allCoursePdfs).map((pdf) => {
                     const pId = pdf._id ? String(pdf._id) : (pdf.filename || pdf.title);
+                    const isPdfItemDone = Boolean(doneItemsMap[String(pdf._id || pdf.title || pdf.filename)]);
                     const pProg = pdfProgressMap[pId] || pdfProgressMap[pdf.title] || pdfProgressMap[pdf.filename];
                     const pPercent = pProg?.progressPercentage || 0;
                     const pMaxRead = pProg?.maxPageRead || 0;
                     const pTotal = pProg?.totalPages || 0;
                     const pNextPage = pProg?.nextPageToRead || (pMaxRead > 0 ? Math.min(pTotal, pMaxRead + 1) : 1);
                     const dlStatus = getMaterialDownloadStatus(pdf);
+                    const formattedPdfDate = pdf.uploadedAt || pdf.date 
+                      ? new Date(pdf.uploadedAt || pdf.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : (pdf._id && String(pdf._id).length >= 8 ? new Date(parseInt(String(pdf._id).substring(0, 8), 16) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null);
 
                     return (
                       <div key={pdf._id || pdf.title} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-purple-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-800/80 hover:bg-purple-50/20 dark:hover:bg-slate-800 transition-all gap-3 shadow-2xs">
@@ -3136,6 +3453,11 @@ const CourseDetails = () => {
                           <div className="min-w-0">
                             <p className="font-extrabold text-gray-900 dark:text-white text-sm truncate">{pdf.title}</p>
                             <div className="flex flex-wrap items-center gap-2 mt-1">
+                              {formattedPdfDate && (
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/90 px-2.5 py-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                                  🗓️ {formattedPdfDate}
+                                </span>
+                              )}
                               <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                                 Size: {pdf.fileSize ? (pdf.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '0.99 MB'}
                               </span>
@@ -3181,12 +3503,38 @@ const CourseDetails = () => {
                             type="button"
                             onClick={() => setActivePdfModal({
                               pdf: { ...pdf, _id: pdf._id ? String(pdf._id) : pdf.filename },
-                              lessonId: currentLesson?._id
+                              lessonId: pdf.lessonId || currentLesson?._id
                             })}
                             className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer flex items-center gap-1.5"
                           >
                             <span>📖</span> {pPercent >= 100 ? 'Review PDF Notes ▶' : pPercent > 0 ? `Continue (Pg ${pNextPage}) ▶` : 'Start Reading PDF ▶'}
                           </button>
+
+                          {/* Student Mark as Done Button (Right Aligned) */}
+                          {!isTeacherOrAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => toggleItemDone(pdf._id || pdf.title || pdf.filename)}
+                              className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${
+                                isPdfItemDone
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
+                                  : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                              }`}
+                              title={isPdfItemDone ? "Marked as done" : "Click to mark as done"}
+                            >
+                              {isPdfItemDone ? (
+                                <>
+                                  <FaCheck className="text-xs text-white" />
+                                  <span>Done</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                  <span>Mark as Done</span>
+                                </>
+                              )}
+                            </button>
+                          )}
 
                           {!isTeacherOrAdmin && (
                             dlStatus.isAvailable ? (
@@ -3251,24 +3599,38 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 4: ASSIGNMENTS & HOMEWORK (Expandable) */}
           {/* ========================================================================= */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
+          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${
+            isDark 
+              ? 'bg-slate-900/95 border-orange-900/40 shadow-slate-950/60' 
+              : 'bg-gradient-to-br from-[#fff7f2] via-white to-[#ffede5] border-orange-300/80 shadow-orange-900/5'
+          } ${!isTeacherOrAdmin && !seenSections.assignments && allCourseAssignments.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
+
+            {!isTeacherOrAdmin && !seenSections.assignments && allCourseAssignments.length > 0 && (
+              <span className="absolute -top-1 -left-1 flex h-3.5 w-3.5 z-20 pointer-events-none" title="New / Pending assignments">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs shadow-emerald-500/50"></span>
+              </span>
+            )}
+
             <div
               onClick={() => toggleSection('assignments')}
-              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors text-left cursor-pointer select-none hover:bg-orange-50/50 dark:hover:bg-slate-800/60"
             >
               <div className="flex items-start sm:items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
                 <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 flex items-center justify-center text-base sm:text-lg font-black shrink-0 shadow-inner">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-orange-600 text-white flex items-center justify-center text-base sm:text-lg font-black shrink-0 shadow-md shadow-orange-500/25 border border-orange-400/30">
                     📑
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <h4 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white leading-tight">
+                      <h4 className="font-black text-sm sm:text-lg text-slate-900 dark:text-white leading-tight">
                         Assignments & Homework
                       </h4>
-                      <span className="text-[10px] sm:text-[11px] font-extrabold text-amber-800 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-200/80 dark:border-amber-800/80 whitespace-nowrap shrink-0">
-                        {selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth}
-                      </span>
+                      {isTeacherOrAdmin && (
+                        <span className="text-[10px] sm:text-[11px] font-extrabold text-orange-800 dark:text-orange-300 bg-orange-100/80 dark:bg-orange-950/80 px-2 py-0.5 rounded-lg border border-orange-200/80 dark:border-orange-800/80 whitespace-nowrap shrink-0">
+                          {selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium line-clamp-1">
                       Submit homework solutions, question sheets, and review instructor grading.
@@ -3276,26 +3638,36 @@ const CourseDetails = () => {
                   </div>
                 </div>
 
-                {/* Mobile-only toggle chevron */}
-                <div className="sm:hidden w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs shrink-0 self-center">
-                  {expandedSections.assignments ? <FaChevronUp /> : <FaChevronDown />}
+                {/* Mobile-only toggle button */}
+                <div className="sm:hidden flex items-center shrink-0 self-center">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSection('assignments');
+                    }}
+                    className="px-3 py-1 rounded-xl border text-[11px] font-black flex items-center gap-1 transition-all duration-200 shadow-2xs active:scale-95 bg-white hover:bg-orange-50 border-orange-200 text-orange-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-orange-500/50 dark:text-orange-300"
+                  >
+                    <FaChevronDown className={`text-[9px] text-orange-500 transition-transform ${expandedSections.assignments ? 'rotate-180' : ''}`} />
+                    <span>{expandedSections.assignments ? 'Collapse' : 'Expand'}</span>
+                  </button>
                 </div>
               </div>
 
               {/* Badges & action controls */}
               <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800/60 w-full sm:w-auto">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-xl shadow-2xs whitespace-nowrap">
-                    {assignments.filter(asgn => {
-                      const matchesGrade = asgn.grade === selectedGrade;
-                      const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
-                      return matchesGrade && matchesMonth;
-                    }).length} {assignments.filter(asgn => {
-                      const matchesGrade = asgn.grade === selectedGrade;
-                      const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
-                      return matchesGrade && matchesMonth;
-                    }).length === 1 ? 'Assignment' : 'Assignments'}
-                  </span>
+                  {!isTeacherOrAdmin && allCourseAssignments.length > 0 && (
+                    <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${
+                      allCourseAssignments.filter(a => doneItemsMap[String(a._id || a.title)]).length === allCourseAssignments.length
+                        ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
+                        : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                    }`}>
+                      {allCourseAssignments.filter(a => doneItemsMap[String(a._id || a.title)]).length === allCourseAssignments.length
+                        ? '✓ Done'
+                        : `Remaining: ${allCourseAssignments.length - allCourseAssignments.filter(a => doneItemsMap[String(a._id || a.title)]).length}`}
+                    </span>
+                  )}
 
                   {isTeacherOrAdmin && (
                     <button
@@ -3304,29 +3676,41 @@ const CourseDetails = () => {
                         e.stopPropagation();
                         handleOpenCreateAssignment();
                       }}
-                      className="px-3 py-1 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                      className="px-3 py-1 bg-orange-50 dark:bg-orange-950/60 hover:bg-orange-100 dark:hover:bg-orange-900/60 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
                     >
                       <FaPlus className="text-[10px]" /> Create Asgn
                     </button>
                   )}
                 </div>
 
-                {/* Desktop-only toggle chevron */}
-                <div className="hidden sm:flex w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
-                  {expandedSections.assignments ? <FaChevronUp /> : <FaChevronDown />}
+                {/* Desktop-only toggle button */}
+                <div className="hidden sm:flex items-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSection('assignments');
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 bg-white hover:bg-orange-50 border-orange-200 text-orange-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-orange-500/50 dark:text-orange-300"
+                  >
+                    <FaChevronDown className={`text-[10px] text-orange-500 transition-transform ${expandedSections.assignments ? 'rotate-180' : ''}`} />
+                    <span>{expandedSections.assignments ? 'Collapse' : 'Expand'}</span>
+                  </button>
                 </div>
               </div>
             </div>
 
             {expandedSections.assignments && (
-              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-4 bg-white dark:bg-slate-900 animate-fadeIn">
-                {assignments.filter(asgn => {
+              <div className="p-5 pt-0 border-t border-orange-100 dark:border-orange-900/40 space-y-4 bg-transparent animate-fadeIn">
+                {(isTeacherOrAdmin ? assignments.filter(asgn => {
                   const matchesGrade = asgn.grade === selectedGrade;
                   const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
                   return matchesGrade && matchesMonth;
-                }).length === 0 ? (
+                }).length === 0 : allCourseAssignments.length === 0) ? (
                   <div className="py-8 text-center text-gray-400 dark:text-gray-500 space-y-1 bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
-                    <p className="text-sm font-semibold">No assignments posted for {selectedGrade} ({selectedMonth}) yet.</p>
+                    <p className="text-sm font-semibold">
+                      {isTeacherOrAdmin ? `No assignments posted for ${selectedGrade} (${selectedMonth}) yet.` : `No assignments available in this course yet.`}
+                    </p>
                     {isTeacherOrAdmin && (
                       <p className="text-xs text-amber-700 dark:text-amber-400 font-bold cursor-pointer hover:underline mt-1" onClick={handleOpenCreateAssignment}>
                         + Click here to create the first assignment
@@ -3334,16 +3718,17 @@ const CourseDetails = () => {
                     )}
                   </div>
                 ) : (
-                  assignments.filter(asgn => {
+                  (isTeacherOrAdmin ? assignments.filter(asgn => {
                     const matchesGrade = asgn.grade === selectedGrade;
                     const matchesMonth = !asgn.month || selectedMonth.toLowerCase().includes(asgn.month.toLowerCase()) || asgn.month.toLowerCase() === 'all';
                     return matchesGrade && matchesMonth;
-                  }).map((asgn) => {
+                  }) : allCourseAssignments).map((asgn) => {
                     const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
                     const mySub = asgn.mySubmission;
                     const isGraded = mySub?.status === 'graded' && mySub?.marks !== null;
                     const isSubmitted = !!mySub;
                     const isOverdue = asgn.dueDate ? new Date() > new Date(asgn.dueDate) : false;
+                    const isAsgnDone = Boolean(doneItemsMap[String(asgn._id || asgn.title)]);
 
                     return (
                       <div key={asgn._id} className="p-5 border border-purple-100/80 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-800/80 hover:bg-purple-50/20 dark:hover:bg-slate-800 transition-all space-y-4 shadow-xs">
@@ -3467,6 +3852,32 @@ const CourseDetails = () => {
                                 </button>
                               </>
                             )}
+
+                            {/* Student Mark as Done Button (Right Aligned) */}
+                            {!isTeacherOrAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => toggleItemDone(asgn._id || asgn.title)}
+                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${
+                                  isAsgnDone
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
+                                    : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                                }`}
+                                title={isAsgnDone ? "Marked as done" : "Click to mark as done"}
+                              >
+                                {isAsgnDone ? (
+                                  <>
+                                    <FaCheck className="text-xs text-white" />
+                                    <span>Done</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                    <span>Mark as Done</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -3480,35 +3891,47 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 5: QUIZZES & ASSESSMENTS (Expandable) */}
           {/* ========================================================================= */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-200">
+          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${
+            isDark 
+              ? 'bg-slate-900/95 border-teal-900/40 shadow-slate-950/60' 
+              : 'bg-gradient-to-br from-[#f0fdfa] via-white to-[#e6faf5] border-teal-300/80 shadow-teal-900/5'
+          } ${!isTeacherOrAdmin && !seenSections.quizzes && allCourseQuizzes.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
+
+            {!isTeacherOrAdmin && !seenSections.quizzes && allCourseQuizzes.length > 0 && (
+              <span className="absolute -top-1 -left-1 flex h-3.5 w-3.5 z-20 pointer-events-none" title="New / Unattempted quizzes">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs shadow-emerald-500/50"></span>
+              </span>
+            )}
+
             <div
               onClick={() => toggleSection('quizzes')}
-              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white dark:bg-slate-900 hover:bg-gray-50/80 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer select-none"
+              className="w-full p-4 sm:p-5 flex items-center justify-between transition-colors text-left cursor-pointer select-none hover:bg-teal-50/50 dark:hover:bg-slate-800/60"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-teal-500 via-cyan-500 to-teal-600 text-white flex items-center justify-center text-lg font-black shrink-0 shadow-md shadow-teal-500/25 border border-teal-400/30">
                   📝
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-extrabold text-base text-gray-900 dark:text-white leading-tight">
-                    Quizzes & Assessments ({selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — {selectedMonth})
+                  <h4 className="font-black text-sm sm:text-lg text-slate-900 dark:text-white leading-tight">
+                    Quizzes & Assessments{isTeacherOrAdmin ? ` (${selectedGrade?.toLowerCase().startsWith('grade') ? selectedGrade : `Grade ${selectedGrade}`} — ${selectedMonth})` : ''}
                   </h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Test your knowledge by attempting weekly interactive quiz assessments.</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-semibold truncate">Test your knowledge by attempting weekly interactive quiz assessments.</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
-                <span className="bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-black px-2.5 py-1 rounded-xl">
-                  {quizzes.filter(q => {
-                    const matchesGrade = q.grade === selectedGrade;
-                    const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
-                    return matchesGrade && matchesMonth;
-                  }).length} {quizzes.filter(q => {
-                    const matchesGrade = q.grade === selectedGrade;
-                    const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
-                    return matchesGrade && matchesMonth;
-                  }).length === 1 ? 'Quiz' : 'Quizzes'}
-                </span>
+                {!isTeacherOrAdmin && allCourseQuizzes.length > 0 && (
+                  <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${
+                    allCourseQuizzes.filter(q => doneItemsMap[String(q._id || q.title)]).length === allCourseQuizzes.length
+                      ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
+                      : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                  }`}>
+                    {allCourseQuizzes.filter(q => doneItemsMap[String(q._id || q.title)]).length === allCourseQuizzes.length
+                      ? '✓ Done'
+                      : `Remaining: ${allCourseQuizzes.length - allCourseQuizzes.filter(q => doneItemsMap[String(q._id || q.title)]).length}`}
+                  </span>
+                )}
 
                 {isTeacherOrAdmin && (
                   <button
@@ -3517,27 +3940,37 @@ const CourseDetails = () => {
                       e.stopPropagation();
                       navigate(`/course/${courseId}/create-quiz`);
                     }}
-                    className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-1.5 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                   >
                     <FaPlus className="text-[10px]" /> Create Quiz
                   </button>
                 )}
 
-                <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs transition">
-                  {expandedSections.quizzes ? <FaChevronUp /> : <FaChevronDown />}
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSection('quizzes');
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 bg-white hover:bg-teal-50 border-teal-200 text-teal-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-teal-500/50 dark:text-teal-300"
+                >
+                  <FaChevronDown className={`text-[10px] text-teal-500 transition-transform ${expandedSections.quizzes ? 'rotate-180' : ''}`} />
+                  <span>{expandedSections.quizzes ? 'Collapse' : 'Expand'}</span>
+                </button>
               </div>
             </div>
 
             {expandedSections.quizzes && (
-              <div className="p-5 pt-0 border-t border-gray-100 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900 animate-fadeIn">
-                {quizzes.filter(q => {
+              <div className="p-5 pt-0 border-t border-teal-100 dark:border-teal-900/40 space-y-3 bg-transparent animate-fadeIn">
+                {(isTeacherOrAdmin ? quizzes.filter(q => {
                   const matchesGrade = q.grade === selectedGrade;
                   const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
                   return matchesGrade && matchesMonth;
-                }).length === 0 ? (
+                }).length === 0 : allCourseQuizzes.length === 0) ? (
                   <div className="py-8 text-center text-gray-400 dark:text-gray-500 space-y-1 bg-gray-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
-                    <p className="text-sm font-semibold">No quizzes available for {selectedGrade} ({selectedMonth}) yet.</p>
+                    <p className="text-sm font-semibold">
+                      {isTeacherOrAdmin ? `No quizzes available for ${selectedGrade} (${selectedMonth}) yet.` : `No quizzes available in this course yet.`}
+                    </p>
                     {isTeacherOrAdmin && (
                       <p
                         className="text-xs text-blue-600 dark:text-blue-400 font-bold cursor-pointer hover:underline mt-1"
@@ -3548,12 +3981,16 @@ const CourseDetails = () => {
                     )}
                   </div>
                 ) : (
-                  quizzes.filter(q => {
+                  (isTeacherOrAdmin ? quizzes.filter(q => {
                     const matchesGrade = q.grade === selectedGrade;
                     const matchesMonth = !q.month || selectedMonth.toLowerCase().includes(q.month.toLowerCase()) || q.month.toLowerCase() === 'all';
                     return matchesGrade && matchesMonth;
-                  }).map((quiz) => {
+                  }) : [...allCourseQuizzes].sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0))).map((quiz) => {
                     const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+                    const isQuizDone = Boolean(doneItemsMap[String(quiz._id || quiz.title)]);
+                    const formattedQuizDate = quiz.createdAt || quiz.date 
+                      ? new Date(quiz.createdAt || quiz.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : null;
                     return (
                       <div key={quiz._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-200/90 dark:border-slate-800 rounded-2xl hover:bg-gray-50/70 dark:hover:bg-slate-800/70 transition-all gap-4 bg-white dark:bg-slate-800/80 shadow-2xs">
                         <div className="flex items-center gap-3 min-w-0">
@@ -3563,6 +4000,11 @@ const CourseDetails = () => {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-extrabold text-gray-900 dark:text-white text-sm truncate">{quiz.title}</p>
+                              {formattedQuizDate && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/90 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                                  🗓️ {formattedQuizDate}
+                                </span>
+                              )}
                               {quiz.weekNumber !== undefined && quiz.weekNumber > 0 && (
                                 <span className="bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
                                   Week {quiz.weekNumber}
@@ -3634,6 +4076,32 @@ const CourseDetails = () => {
                                 </button>
                               )}
                             </>
+                          )}
+
+                          {/* Student Mark as Done Button (Right Aligned) */}
+                          {!isTeacherOrAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => toggleItemDone(quiz._id || quiz.title)}
+                              className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${
+                                isQuizDone
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
+                                  : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                              }`}
+                              title={isQuizDone ? "Marked as done" : "Click to mark as done"}
+                            >
+                              {isQuizDone ? (
+                                <>
+                                  <FaCheck className="text-xs text-white" />
+                                  <span>Done</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                  <span>Mark as Done</span>
+                                </>
+                              )}
+                            </button>
                           )}
                         </div>
                       </div>
@@ -4979,32 +5447,6 @@ const CourseDetails = () => {
                 />
               </div>
 
-              <div className="bg-purple-50/60 dark:bg-slate-800/80 p-3.5 rounded-2xl border border-purple-100 dark:border-slate-700 space-y-2">
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                  <FaDownload className="text-purple-600 dark:text-purple-400" /> Student Download Policy:
-                </label>
-                <select
-                  value={videoDownloadType}
-                  onChange={(e) => setVideoDownloadType(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-800 dark:text-white rounded-xl p-2.5 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
-                >
-                  <option value="immediate">🟢 Immediate Download (Available Now)</option>
-                  <option value="one_month">⏳ After 1 Month (30 Days)</option>
-                  <option value="custom_date">📅 Custom Unlock Date</option>
-                  <option value="disabled">🚫 View Online Only (Download Disabled)</option>
-                </select>
-                {videoDownloadType === 'custom_date' && (
-                  <input
-                    type="date"
-                    value={videoCustomUnlockDate}
-                    onChange={(e) => setVideoCustomUnlockDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full bg-white dark:bg-slate-900 border border-purple-200 dark:border-slate-700 text-xs font-bold rounded-xl p-2.5 outline-none text-gray-800 dark:text-white"
-                    required
-                  />
-                )}
-              </div>
-
               <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
@@ -5795,7 +6237,7 @@ const CourseDetails = () => {
               <div>
                 <h3 className="text-xl font-black text-slate-800 dark:text-white">Course & Instructor Reviews</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  {course?.title} {course?.instructor?.name ? `• 👨‍🏫 ${course.instructor.name}` : ''}
+                  {course?.title} {course?.instructor?.name ? `• ${course.instructor.name}` : ''}
                 </p>
               </div>
             </div>
@@ -5885,48 +6327,50 @@ const CourseDetails = () => {
               </form>
             )}
 
-            {/* Reviews Stream */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">
-                All Student Reviews ({courseReviews.length})
-              </h4>
+            {/* Reviews Stream (Visible only to Teachers & Admins) */}
+            {isTeacherOrAdmin && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                  All Student Reviews ({courseReviews.length})
+                </h4>
 
-              {courseReviews.length > 0 ? (
-                courseReviews.map((rev) => (
-                  <div
-                    key={rev._id}
-                    className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/40 space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center justify-center font-black text-xs shrink-0">
-                          {(rev.student?.name || 'S').charAt(0).toUpperCase()}
+                {courseReviews.length > 0 ? (
+                  courseReviews.map((rev) => (
+                    <div
+                      key={rev._id}
+                      className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/40 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center justify-center font-black text-xs shrink-0">
+                            {(rev.student?.name || 'S').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h5 className="text-xs font-black text-slate-800 dark:text-white">{rev.student?.name || rev.studentName || 'Student'}</h5>
+                            <span className="text-[10px] text-slate-400">{rev.student?.grade || 'Enrolled Student'}</span>
+                          </div>
                         </div>
-                        <div>
-                          <h5 className="text-xs font-black text-slate-800 dark:text-white">{rev.student?.name || rev.studentName || 'Student'}</h5>
-                          <span className="text-[10px] text-slate-400">{rev.student?.grade || 'Enrolled Student'}</span>
+                        <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-lg border border-amber-100 dark:border-amber-800/50 text-[11px] font-extrabold">
+                          <FaStar /> {rev.rating}.0
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-lg border border-amber-100 dark:border-amber-800/50 text-[11px] font-extrabold">
-                        <FaStar /> {rev.rating}.0
-                      </div>
+                      {rev.review && (
+                        <p className="text-xs text-slate-600 dark:text-slate-300 font-medium italic pl-1 border-l-2 border-purple-300 dark:border-purple-700">
+                          "{rev.review}"
+                        </p>
+                      )}
+                      <span className="text-[9px] text-slate-400 font-semibold block text-right">
+                        {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                      </span>
                     </div>
-                    {rev.review && (
-                      <p className="text-xs text-slate-600 dark:text-slate-300 font-medium italic pl-1 border-l-2 border-purple-300 dark:border-purple-700">
-                        "{rev.review}"
-                      </p>
-                    )}
-                    <span className="text-[9px] text-slate-400 font-semibold block text-right">
-                      {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
-                    </span>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-slate-400 italic text-xs bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                    No student reviews posted yet.
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-slate-400 italic text-xs bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
-                  No student reviews posted yet. Be the first to share feedback!
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

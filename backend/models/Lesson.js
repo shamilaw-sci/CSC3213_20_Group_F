@@ -90,11 +90,25 @@ const lessonSchema = new mongoose.Schema({
       reactionLabel: { type: String, default: 'Superb Class' },
       reactionEmoji: { type: String, default: '⭐' },
       submittedAt: { type: Date, default: Date.now },
+      seen: { type: Boolean, default: false },
+      seenAt: { type: Date, default: null },
+      seenBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      seenByName: { type: String, default: '' },
       reply: {
         text: { type: String },
         repliedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        repliedAt: { type: Date }
+        repliedAt: { type: Date },
+        studentSeen: { type: Boolean, default: false },
+        studentSeenAt: { type: Date }
       }
+    }],
+    pastLiveStreams: [{
+      title: { type: String, default: '' },
+      youtubeUrl: { type: String, default: '' },
+      thumbnail: { type: String, default: '' },
+      startedAt: { type: Date },
+      endedAt: { type: Date },
+      createdAt: { type: Date, default: Date.now }
     }]
   },
   videoLessons: [{
@@ -138,5 +152,8 @@ lessonSchema.index({ course: 1, grade: 1 });
 lessonSchema.index({ course: 1 });
 lessonSchema.index({ 'liveStream.isLive': 1 });
 lessonSchema.index({ 'liveStream.isScheduled': 1 });
+lessonSchema.index({ 'liveStream.feedbacks.student': 1 });
+lessonSchema.index({ 'liveStream.feedbacks.reply.studentSeen': 1 });
+lessonSchema.index({ 'liveStream.viewers.student': 1 });
 
 module.exports = mongoose.model('Lesson', lessonSchema);

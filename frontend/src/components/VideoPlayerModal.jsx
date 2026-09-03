@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaTimes, FaPlay, FaPause, FaExpand, FaCompress, FaSlidersH, FaShieldAlt } from 'react-icons/fa';
+import { FaTimes, FaPlay, FaPause, FaExpand, FaCompress, FaSlidersH, FaShieldAlt, FaCheck, FaChevronUp } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 
 const getYouTubeVideoId = (url) => {
   if (!url) return null;
@@ -8,14 +9,27 @@ const getYouTubeVideoId = (url) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+const QUALITY_OPTIONS = [
+  { id: 'auto', ytCode: 'default', label: 'Auto Quality (Recommended)' },
+  { id: '1080p', ytCode: 'hd1080', label: '1080p (Full HD)' },
+  { id: '720p', ytCode: 'hd720', label: '720p (HD)' },
+  { id: '480p', ytCode: 'large', label: '480p (SD)' },
+  { id: '360p', ytCode: 'medium', label: '360p (Data Saver)' }
+];
+
 const VideoPlayerModal = ({ video, onClose }) => {
   if (!video) return null;
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedQuality, setSelectedQuality] = useState('auto');
+  const [selectedQualityLabel, setSelectedQualityLabel] = useState('Auto Quality (Recommended)');
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  
   const iframeRef = useRef(null);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
+  const qualityMenuRef = useRef(null);
 
   const videoId = getYouTubeVideoId(video.url);
   const isYouTube = Boolean(videoId);
@@ -31,6 +45,17 @@ const VideoPlayerModal = ({ video, onClose }) => {
     };
     document.addEventListener('fullscreenchange', handleFsChange);
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  // Close quality menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (qualityMenuRef.current && !qualityMenuRef.current.contains(e.target)) {
+        setShowQualityMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleTogglePlay = () => {
@@ -54,6 +79,32 @@ const VideoPlayerModal = ({ video, onClose }) => {
         setIsPlaying(true);
       }
     }
+  };
+
+  const handleSelectQuality = (opt) => {
+    setSelectedQuality(opt.id);
+    setSelectedQualityLabel(opt.label);
+    setShowQualityMenu(false);
+
+    if (isYouTube) {
+      const iframe = iframeRef.current;
+      if (iframe && iframe.contentWindow) {
+        try {
+          iframe.contentWindow.postMessage(JSON.stringify({
+            event: 'command',
+            func: 'setPlaybackQuality',
+            args: [opt.ytCode]
+          }), '*');
+          iframe.contentWindow.postMessage(JSON.stringify({
+            event: 'command',
+            func: 'setSuggestedQuality',
+            args: [opt.ytCode]
+          }), '*');
+        } catch (e) {}
+      }
+    }
+
+    toast.success(`⚡ Video quality set to ${opt.label}`);
   };
 
   const handleToggleFullscreen = () => {
@@ -117,6 +168,7 @@ const VideoPlayerModal = ({ video, onClose }) => {
               ref={videoRef}
               src={video.url}
               autoPlay
+              controlsList="nodownload noplaybackrate nopictureinpicture"
               className="w-full h-full object-contain"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
@@ -141,7 +193,7 @@ const VideoPlayerModal = ({ video, onClose }) => {
         {/* Restricted Platform Control Bar */}
         <div className="flex items-center justify-between px-5 py-3.5 bg-[#121626] border-t border-[#1f2640] text-xs text-slate-300 shrink-0 flex-wrap gap-3">
           
-          {/* Left: Pause / Resume Button & Auto Quality */}
+          {/* Left: Pause / Resume Button & Interactive Auto Quality */}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -161,11 +213,46 @@ const VideoPlayerModal = ({ video, onClose }) => {
               )}
             </button>
 
-            {/* Auto Quality (Recommended) Badge */}
-            <span className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#1c223c]/80 border border-[#293154] text-purple-200 font-bold text-xs">
-              <FaSlidersH className="text-purple-400 text-xs" />
-              <span>Auto Quality (Recommended)</span>
-            </span>
+            {/* Interactive Auto Quality Dropdown */}
+            <div className="relative" ref={qualityMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowQualityMenu(!showQualityMenu)}
+                className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#1c223c]/90 hover:bg-[#272f50] border border-[#293154] hover:border-purple-500/50 text-purple-200 hover:text-white font-bold text-xs transition cursor-pointer active:scale-95 shadow-sm"
+                title="Change Video Quality"
+              >
+                <FaSlidersH className="text-purple-400 text-xs" />
+                <span>{selectedQualityLabel}</span>
+                <FaChevronUp className={`text-[10px] text-purple-300 transition-transform ${showQualityMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Quality Dropdown Popover */}
+              {showQualityMenu && (
+                <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#161b2e] border border-[#2a3356] rounded-2xl p-2 shadow-2xl z-50 animate-fadeIn space-y-1">
+                  <div className="px-3 py-1.5 text-[10px] font-black uppercase text-purple-400 tracking-wider border-b border-[#232a48]">
+                    Select Playback Quality
+                  </div>
+                  {QUALITY_OPTIONS.map(opt => {
+                    const isSelected = selectedQuality === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleSelectQuality(opt)}
+                        className={`w-full px-3 py-2 rounded-xl text-left text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                          isSelected
+                            ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40'
+                            : 'text-slate-300 hover:bg-[#202744] hover:text-white'
+                        }`}
+                      >
+                        <span className="truncate">{opt.label}</span>
+                        {isSelected && <FaCheck className="text-purple-400 text-xs shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right: Fullscreen Button & Status */}
@@ -177,7 +264,7 @@ const VideoPlayerModal = ({ video, onClose }) => {
             <button
               type="button"
               onClick={handleToggleFullscreen}
-              className="px-4 py-2 rounded-2xl bg-[#1c223c] hover:bg-[#272f50] text-white font-extrabold text-xs transition cursor-pointer flex items-center gap-2 border border-[#293154] active:scale-95 shadow-xs"
+              className="px-4 py-2.5 rounded-2xl bg-[#1c223c] hover:bg-[#272f50] text-white font-extrabold text-xs transition cursor-pointer flex items-center gap-2 border border-[#293154] active:scale-95 shadow-xs"
               title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
             >
               {isFullscreen ? (
@@ -201,7 +288,7 @@ const VideoPlayerModal = ({ video, onClose }) => {
                 }
                 onClose();
               }}
-              className="px-4 py-2 rounded-2xl bg-[#1c223c] hover:bg-[#272f50] text-slate-200 hover:text-white font-bold text-xs transition cursor-pointer"
+              className="px-4 py-2.5 rounded-2xl bg-[#1c223c] hover:bg-[#272f50] text-slate-200 hover:text-white font-bold text-xs transition cursor-pointer"
             >
               Close
             </button>
@@ -213,3 +300,4 @@ const VideoPlayerModal = ({ video, onClose }) => {
 };
 
 export default VideoPlayerModal;
+
