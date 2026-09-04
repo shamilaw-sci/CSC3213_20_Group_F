@@ -35,6 +35,18 @@ const {
 } = require('../services/smsService');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+// Helper to issue JWT token with single-session tracking specifically for students
+const generateUserToken = async (user) => {
+  const payload = { id: user._id, role: user.role };
+  if (user.role === 'student') {
+    const sessionId = crypto.randomUUID();
+    user.activeSessionId = sessionId;
+    await user.save();
+    payload.sessionId = sessionId;
+  }
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+};
+
 // Helper to parse time strings (24h '14:30' or 12h '02:30 PM') to minutes
 const parseTimeToMinutes = (timeStr) => {
   if (!timeStr) return 0;
@@ -244,12 +256,8 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Create Token
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    // Create Token (with single-session tracking for students)
+    const token = await generateUserToken(user);
 
     // Return user info and mustChangePassword flag
     res.json({
@@ -313,11 +321,7 @@ router.post('/parent-login', authLimiter, async (req, res) => {
       return res.status(400).json({ message: "Incorrect password. If this is your first login, please use the temporary password sent via SMS." });
     }
 
-    const token = jwt.sign(
-      { id: parent._id, role: parent.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = await generateUserToken(parent);
 
     res.json({
       token,
@@ -589,11 +593,7 @@ router.post('/register-verify', otpLimiter, async (req, res) => {
       console.error('Registration notification trigger error:', notifErr.message);
     }
 
-    const token = jwt.sign(
-      { id: newUser._id, role: newUser.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = await generateUserToken(newUser);
 
     res.status(201).json({
       token,
@@ -662,11 +662,7 @@ router.post('/register', async (req, res) => {
         mustChangePassword: false
       });
 
-      const token = jwt.sign(
-        { id: newParent._id, role: newParent.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '1d' }
-      );
+      const token = await generateUserToken(newParent);
 
       return res.status(201).json({
         token,
@@ -748,11 +744,7 @@ router.post('/register', async (req, res) => {
       console.error('Registration notification trigger error:', notifErr.message);
     }
 
-    const token = jwt.sign(
-      { id: newUser._id, role: newUser.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = await generateUserToken(newUser);
 
     res.status(201).json({
       token,
@@ -850,11 +842,7 @@ router.post('/google-register', async (req, res) => {
       console.error('Google Registration notification error:', notifErr.message);
     }
 
-    const token = jwt.sign(
-      { id: newUser._id, role: newUser.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = await generateUserToken(newUser);
 
     res.status(201).json({
       token,
@@ -915,11 +903,7 @@ router.post('/google', async (req, res) => {
       await user.save();
     }
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = await generateUserToken(user);
 
     res.json({
       token,
@@ -3436,6 +3420,20 @@ router.post('/link-child', protect, async (req, res) => {
   } catch (err) {
     console.error("Link Child Error:", err);
     res.status(500).json({ message: "Failed to link child account: " + err.message });
+  }
+});
+
+// --- LOGOUT ROUTE ---
+router.post('/logout', protect, async (req, res) => {
+  try {
+    if (req.user && req.user.role === 'student') {
+      req.user.activeSessionId = null;
+      await req.user.save();
+    }
+    res.json({ success: true, message: "Logged out successfully." });
+  } catch (err) {
+    console.error("Logout Error:", err);
+    res.status(500).json({ message: "Error during logout: " + err.message });
   }
 });
 

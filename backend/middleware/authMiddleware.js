@@ -31,6 +31,16 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ message: "User not found" });
     }
 
+    // 4.1 Check single active session strictly for students
+    if (user.role === 'student') {
+      if (!decoded.sessionId || decoded.sessionId !== user.activeSessionId) {
+        return res.status(401).json({
+          code: 'CONCURRENT_LOGIN_DETECTED',
+          message: 'Your account was logged in from another device or browser. Only one active session is permitted for students.'
+        });
+      }
+    }
+
     // 5. Attach user to request
     req.user = user;
     next();
@@ -57,7 +67,11 @@ const optionalProtect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded.id).select('-password');
       if (user) {
-        req.user = user;
+        if (user.role === 'student' && (!decoded.sessionId || decoded.sessionId !== user.activeSessionId)) {
+          req.user = null;
+        } else {
+          req.user = user;
+        }
       }
     }
   } catch (error) {

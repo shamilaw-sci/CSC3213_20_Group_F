@@ -46,4 +46,24 @@ api.interceptors.request.use(
   }
 );
 
+// Intercept responses to handle single-session invalidation
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      error.response.data?.code === 'CONCURRENT_LOGIN_DETECTED'
+    ) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('userUpdated'));
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login?reason=concurrent_session';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

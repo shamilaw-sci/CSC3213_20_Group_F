@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import api from '../utils/api';
-import { useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaArrowRight, FaPhone, FaUserGraduate, FaUserFriends, FaEye, FaEyeSlash, FaSun, FaMoon } from 'react-icons/fa';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { FaEnvelope, FaLock, FaArrowRight, FaPhone, FaUserGraduate, FaUserFriends, FaEye, FaEyeSlash, FaSun, FaMoon, FaShieldAlt } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
 import { useTheme } from '../context/ThemeContext';
@@ -14,8 +14,11 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const isConcurrentSession = new URLSearchParams(location.search).get('reason') === 'concurrent_session';
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -193,6 +196,19 @@ const Login = () => {
               </button>
             </div>
           </div>
+
+          {/* Concurrent Session Termination Alert Banner */}
+          {isConcurrentSession && (
+            <div className="mb-5 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-3 text-amber-700 dark:text-amber-300 text-xs sm:text-sm animate-fade-in shadow-sm">
+              <FaShieldAlt className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-900 dark:text-amber-200">Security Notice: Previous Session Ended</p>
+                <p className="mt-0.5 text-xs opacity-90 leading-relaxed">
+                  Your session was automatically logged out because this student account was logged in from another browser or device. LuminaLearn enforces single active session policy for students to protect account integrity.
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-4 mt-6">
 
