@@ -645,7 +645,8 @@ router.post('/:lessonId/live-stream', protect, isTeacherOrAdmin, async (req, res
             'liveStream.title': streamTitle,
             'liveStream.youtubeUrl': String(youtubeUrl).trim(),
             'liveStream.thumbnail': thumbnailPath,
-            'liveStream.startedAt': isScheduledMode ? null : (prevLiveStream.startedAt || new Date())
+            'liveStream.startedAt': isScheduledMode ? null : (prevLiveStream.startedAt || new Date()),
+            'liveStream.endedAt': null
         };
 
         const updatedLesson = await Lesson.findByIdAndUpdate(
@@ -787,13 +788,14 @@ router.post('/:lessonId/live-stream/end', protect, isTeacherOrAdmin, handleEndLi
 // @desc    Fast real-time live status check for student & teacher UI sync
 router.get('/:lessonId/live-stream/status', protect, async (req, res) => {
     try {
-        const lesson = await Lesson.findById(req.params.lessonId).select('liveStream.isLive liveStream.isScheduled liveStream.title').lean();
+        const lesson = await Lesson.findById(req.params.lessonId).select('liveStream.isLive liveStream.isScheduled liveStream.endedAt liveStream.title').lean();
         if (!lesson) {
             return res.json({ isLive: false, isScheduled: false });
         }
+        const isEnded = Boolean(lesson.liveStream?.endedAt);
         res.json({
-            isLive: Boolean(lesson.liveStream?.isLive),
-            isScheduled: Boolean(lesson.liveStream?.isScheduled),
+            isLive: Boolean(lesson.liveStream?.isLive) && !isEnded,
+            isScheduled: Boolean(lesson.liveStream?.isScheduled) && !isEnded,
             title: lesson.liveStream?.title || ''
         });
     } catch (err) {

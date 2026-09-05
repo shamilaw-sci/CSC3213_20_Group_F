@@ -69,6 +69,16 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Do not let protected routes queue MongoDB operations while Atlas is unavailable.
+app.use('/api', (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+            error: 'Database temporarily unavailable. Please try again shortly.'
+        });
+    }
+    next();
+});
+
 // --- ROUTES ---
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);

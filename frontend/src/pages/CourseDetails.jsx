@@ -2284,8 +2284,9 @@ const CourseDetails = () => {
                     const canToggleStatus = user?.role === 'admin' || (user?.role === 'teacher' && (deactivatedByRole === 'teacher' || !isDeactive));
 
                     const gradeLesson = (lessons || []).find(l => normalizeGrade(l.grade) === normalizeGrade(eg.gradeNumber));
-                    const isGradeLive = Boolean(gradeLesson?.liveStream?.isLive);
-                    const isGradeScheduled = Boolean(gradeLesson?.liveStream?.isScheduled && !isGradeLive);
+                    const isGradeEnded = Boolean(gradeLesson?.liveStream?.endedAt);
+                    const isGradeLive = Boolean(gradeLesson?.liveStream?.isLive && !isGradeEnded);
+                    const isGradeScheduled = Boolean(gradeLesson?.liveStream?.isScheduled && !isGradeEnded && !isGradeLive);
 
                     return (
                     <div
