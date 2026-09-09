@@ -51,6 +51,7 @@ const LiveStreamPlayer = ({
   isTeacherOrAdmin, 
   onEndStream, 
   onGoLiveNow,
+  onStreamEnded,
   lessonId, 
   grade,
   courseTitle,
@@ -523,6 +524,13 @@ const LiveStreamPlayer = ({
             setIsStreamEnded(true);
             setIsPlaying(false);
             setShowFeedbackModal(true);
+            if (typeof onStreamEnded === 'function') {
+              onStreamEnded({
+                lessonId,
+                streamTitle: res.data.streamTitle || liveStream?.title,
+                grade
+              });
+            }
           }
         } else {
           const res = await api.get(`/lessons/${lessonId}/live-stream/viewers`);
@@ -551,7 +559,7 @@ const LiveStreamPlayer = ({
         api.post(`/lessons/${lessonId}/live-stream/viewer-leave`).catch(() => {});
       }
     };
-  }, [lessonId, liveStream?.isLive, isPlaying, isStudent, isStreamEnded]);
+  }, [lessonId, liveStream?.isLive, isPlaying, isStudent, isStreamEnded, onStreamEnded, grade, liveStream?.title]);
 
   useEffect(() => {
     if (!lessonId || !isStudent) return;
@@ -569,8 +577,18 @@ const LiveStreamPlayer = ({
     if (liveStream && (liveStream.isLive === false || liveStream.isEnded === true || liveStream.endedAt)) {
       setIsStreamEnded(true);
       setIsPlaying(false);
+      if (isStudent) {
+        setShowFeedbackModal(true);
+        if (typeof onStreamEnded === 'function') {
+          onStreamEnded({
+            lessonId,
+            streamTitle: liveStream?.title,
+            grade
+          });
+        }
+      }
     }
-  }, [liveStream?.isLive, liveStream?.isEnded, liveStream?.endedAt]);
+  }, [liveStream?.isLive, liveStream?.isEnded, liveStream?.endedAt, isStudent, lessonId, grade, onStreamEnded, liveStream?.title]);
 
   const containerRef = useRef(null);
   const playerRef = useRef(null);
@@ -885,47 +903,47 @@ const LiveStreamPlayer = ({
           <div className={`space-y-3.5 border-b pb-4 ${
             isDark ? 'border-slate-800' : 'border-purple-200/80'
           }`}>
-            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-              <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-800 text-white flex items-center justify-center text-2xl shadow-md shadow-purple-900/20 border border-purple-300 shrink-0 mt-0.5">
+            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3.5 sm:gap-4 w-full">
+              <div className="flex items-start gap-3 sm:gap-3.5 min-w-0 w-full lg:flex-1">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-800 text-white flex items-center justify-center text-xl sm:text-2xl shadow-md shadow-purple-900/20 border border-purple-300 shrink-0 mt-0.5">
                   <FaGraduationCap />
                 </div>
-                <div className="min-w-0 flex-1">
-                  {/* Session Title (Clean, NO TOPIC pill) */}
-                  <h3 className={`text-xl sm:text-2xl md:text-3xl font-black truncate tracking-tight leading-snug ${
+                <div className="min-w-0 flex-1 space-y-2">
+                  {/* Session Title */}
+                  <h3 className={`text-lg sm:text-2xl md:text-3xl font-black tracking-tight leading-snug break-words ${
                     isDark ? 'text-white' : 'text-slate-900'
                   }`}>
                     {currentSessionTitle}
                   </h3>
 
                   {/* Sleek, Modern, Unified Status & Metrics Bar */}
-                  <div className="space-y-2 mt-2.5">
+                  <div className="space-y-2 pt-0.5">
                     <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
                       {/* Status: Concluded Live */}
-                      <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs ${
+                      <span className={`px-2.5 py-1 rounded-xl border text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs shrink-0 whitespace-nowrap ${
                         isDark 
                           ? 'bg-rose-950/40 border-rose-800/60 text-rose-300' 
                           : 'bg-rose-50 border-rose-200 text-rose-700'
                       }`}>
-                        <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_#f43f5e]" />
+                        <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_#f43f5e] shrink-0" />
                         <span>Concluded Live</span>
                       </span>
 
                       {/* Unified Live Summary Metrics Segmented Capsule */}
-                      <div className={`flex items-center rounded-xl border shadow-2xs divide-x overflow-hidden text-xs font-bold transition-all ${
+                      <div className={`flex items-center rounded-xl border shadow-2xs divide-x text-[11px] sm:text-xs font-bold transition-all shrink-0 max-w-full overflow-x-auto ${
                         isDark 
                           ? 'bg-slate-800/90 border-slate-700 divide-slate-700 text-slate-200' 
                           : 'bg-white border-slate-200/90 divide-slate-200 text-slate-700'
                       }`}>
                         {/* Students Watched (Non-clickable) */}
-                        <div className="px-3 py-1.5 flex items-center gap-1.5 select-none">
-                          <FaUsers className="text-emerald-600 dark:text-emerald-400 text-xs" />
+                        <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1.5 select-none whitespace-nowrap shrink-0">
+                          <FaUsers className="text-emerald-600 dark:text-emerald-400 text-xs shrink-0" />
                           <span>{viewersSummaryStats.totalViewersCount} Watched</span>
                         </div>
 
                         {/* Total Watched Duration (Non-clickable) */}
-                        <div className="px-3 py-1.5 flex items-center gap-1.5 select-none">
-                          <FaClock className="text-amber-500 text-xs" />
+                        <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1.5 select-none whitespace-nowrap shrink-0">
+                          <FaClock className="text-amber-500 text-xs shrink-0" />
                           <span>
                             {viewersSummaryStats.totalWatchedSeconds >= 3600
                               ? `${(viewersSummaryStats.totalWatchedSeconds / 3600).toFixed(1)}h`
@@ -936,55 +954,57 @@ const LiveStreamPlayer = ({
                         </div>
 
                         {/* Student Submissions */}
-                        <div className="px-3 py-1.5 flex items-center gap-1.5 text-purple-700 dark:text-purple-300 select-none">
-                          <FaCommentDots className="text-purple-500 text-xs" />
+                        <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1.5 text-purple-700 dark:text-purple-300 select-none whitespace-nowrap shrink-0">
+                          <FaCommentDots className="text-purple-500 text-xs shrink-0" />
                           <span>{feedbacksData.totalFeedbacks} Submissions</span>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Concluded Date Badge */}
-                    {formattedEndedDate && (
-                      <div className="flex items-center">
-                        <div className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 shadow-2xs select-none ${
-                          isDark 
-                            ? 'bg-slate-800/80 border-slate-700/80 text-slate-300' 
-                            : 'bg-slate-50/90 border-slate-200/90 text-slate-700'
-                        }`}>
-                          <FaCalendarAlt className="text-purple-500 dark:text-purple-400 text-xs shrink-0" />
-                          <span className="text-[10px] sm:text-[10.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">
-                            Concluded:
-                          </span>
-                          <span className="font-extrabold text-slate-800 dark:text-slate-100">
-                            {formattedEndedDate}
-                          </span>
+                      {/* Concluded Date Badge */}
+                      {formattedEndedDate && (
+                        <div className="flex items-center shrink-0">
+                          <div className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 shadow-2xs select-none shrink-0 whitespace-nowrap ${
+                            isDark 
+                              ? 'bg-slate-800/80 border-slate-700/80 text-slate-300' 
+                              : 'bg-slate-50/90 border-slate-200/90 text-slate-700'
+                          }`}>
+                            <FaCalendarAlt className="text-purple-500 dark:text-purple-400 text-xs shrink-0" />
+                            <span className="text-[10px] sm:text-[10.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 shrink-0">
+                              Concluded:
+                            </span>
+                            <span className="font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                              {formattedEndedDate}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
-                  {/* TOP RIGHT CORNER CONTROLS */}
-              <div className="flex flex-col items-end gap-2.5 shrink-0 lg:self-start">
-                <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap justify-end">
+              </div>
+
+              {/* TOP RIGHT CORNER CONTROLS */}
+              <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between lg:justify-start gap-2.5 shrink-0 w-full lg:w-auto pt-1 lg:pt-0">
+                <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap w-full sm:w-auto">
                   {/* 1. Switch Live Session Dropdown Selector */}
-                  <div className="relative" ref={sessionSelectorRef1}>
+                  <div className="relative flex-1 sm:flex-none" ref={sessionSelectorRef1}>
                     <button
                       type="button"
                       onClick={() => setShowLiveSessionSelector(!showLiveSessionSelector)}
-                      className={`px-4 py-2 rounded-full text-xs font-extrabold flex items-center gap-2 transition cursor-pointer shadow-xs active:scale-95 border ${
+                      className={`w-full sm:w-auto px-3.5 sm:px-4 py-2 rounded-full text-xs font-extrabold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-95 border whitespace-nowrap ${
                         isDark 
                           ? 'bg-slate-800 hover:bg-slate-700 border-purple-500/60 text-purple-300' 
                           : 'bg-white hover:bg-purple-50/80 border-purple-300 text-purple-900'
                       }`}
                       title="Select a concluded live session to inspect reactions and reviews"
                     >
-                      <FaVideo className="text-purple-600 dark:text-purple-400 text-xs" />
+                      <FaVideo className="text-purple-600 dark:text-purple-400 text-xs shrink-0" />
                       <span>Switch Live Session</span>
-                      <FaChevronDown className={`text-[10px] text-purple-600 dark:text-purple-400 transition-transform ${showLiveSessionSelector ? 'rotate-180' : ''}`} />
+                      <FaChevronDown className={`text-[10px] text-purple-600 dark:text-purple-400 transition-transform shrink-0 ${showLiveSessionSelector ? 'rotate-180' : ''}`} />
                     </button>
 
                     {showLiveSessionSelector && (
-                      <div className={`absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-2xl p-2.5 shadow-2xl z-50 animate-fadeIn space-y-1.5 border ${
+                      <div className={`absolute left-0 sm:left-auto right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-2xl p-2.5 shadow-2xl z-50 animate-fadeIn space-y-1.5 border ${
                         isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-purple-200 text-slate-900'
                       }`}>
                         <div className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider border-b flex items-center justify-between ${
@@ -1096,14 +1116,14 @@ const LiveStreamPlayer = ({
                     type="button"
                     onClick={() => fetchPostStreamFeedbacks()}
                     disabled={isLoadingFeedbacks}
-                    className={`px-4 py-2 rounded-full text-xs font-extrabold flex items-center gap-2 transition active:scale-95 cursor-pointer shadow-xs border ${
+                    className={`flex-1 sm:flex-none px-3.5 sm:px-4 py-2 rounded-full text-xs font-extrabold flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer shadow-xs border whitespace-nowrap ${
                       isDark 
                         ? 'bg-slate-800 hover:bg-slate-700 border-indigo-500/60 text-indigo-300' 
                         : 'bg-white hover:bg-indigo-50/80 border-indigo-300 text-indigo-900'
                     }`}
                     title="Refresh reviews and doubts"
                   >
-                    <FaSync className={`text-xs text-indigo-600 dark:text-indigo-400 ${isLoadingFeedbacks ? 'animate-spin' : ''}`} />
+                    <FaSync className={`text-xs text-indigo-600 dark:text-indigo-400 shrink-0 ${isLoadingFeedbacks ? 'animate-spin' : ''}`} />
                     <span>{isLoadingFeedbacks ? 'Syncing...' : 'Refresh Reviews'}</span>
                   </button>
 
@@ -1111,16 +1131,16 @@ const LiveStreamPlayer = ({
                   <button
                     type="button"
                     onClick={() => setIsStudioCollapsed(!isStudioCollapsed)}
-                    className={`px-4 py-2 rounded-full text-xs font-extrabold flex items-center gap-2 transition cursor-pointer shadow-xs active:scale-95 border ${
+                    className={`flex-1 sm:flex-none px-3.5 sm:px-4 py-2 rounded-full text-xs font-extrabold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-95 border whitespace-nowrap ${
                       isDark 
                         ? 'bg-slate-800 hover:bg-slate-700 border-purple-500/60 text-purple-300' 
                         : 'bg-white hover:bg-purple-50/80 border-purple-300 text-purple-900'
                     }`}
                     title={isStudioCollapsed ? "Expand reviews & student feedback" : "Collapse reviews & student feedback"}
                   >
-                    {isStudioCollapsed ? <FaChevronDown className="text-xs text-purple-500" /> : <FaChevronUp className="text-xs text-purple-500" />}
+                    {isStudioCollapsed ? <FaChevronDown className="text-xs text-purple-500 shrink-0" /> : <FaChevronUp className="text-xs text-purple-500 shrink-0" />}
                     {hasUnrepliedFeedbacks && (
-                      <span className="relative flex h-2.5 w-2.5">
+                      <span className="relative flex h-2.5 w-2.5 shrink-0">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80" />
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_6px_#10b981]" />
                       </span>
@@ -1129,10 +1149,10 @@ const LiveStreamPlayer = ({
                   </button>
                 </div>
 
-                {/* Increased Size Unread Messages Button (Positioned Directly Under Expand) */}
-                <div className="flex justify-end pt-1">
+                {/* Increased Size Unread Messages Button (Positioned Directly Under Expand or Inline on Mobile) */}
+                <div className="flex justify-start sm:justify-end w-full sm:w-auto pt-1 sm:pt-0">
                   {hasUnrepliedFeedbacks ? (
-                    <span className={`px-4 py-2 sm:px-5 sm:py-2 rounded-2xl border-2 text-xs sm:text-sm font-black flex items-center gap-2.5 shadow-md animate-pulse ${
+                    <span className={`px-4 py-2 sm:px-5 sm:py-2 rounded-2xl border-2 text-xs sm:text-sm font-black flex items-center gap-2.5 shadow-md animate-pulse whitespace-nowrap shrink-0 ${
                       isDark 
                         ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-emerald-950/60' 
                         : 'bg-emerald-50 border-emerald-400 text-emerald-900 shadow-emerald-900/10'
@@ -1144,7 +1164,7 @@ const LiveStreamPlayer = ({
                       <span>{unrepliedFeedbacksCount} Unread {unrepliedFeedbacksCount === 1 ? 'Message' : 'Messages'}</span>
                     </span>
                   ) : (
-                    <span className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl border text-xs sm:text-sm font-extrabold flex items-center gap-2 shadow-2xs select-none ${
+                    <span className={`px-4 py-2 sm:px-5 sm:py-2 rounded-2xl border text-xs sm:text-sm font-extrabold flex items-center gap-2 shadow-2xs select-none whitespace-nowrap shrink-0 ${
                       isDark 
                         ? 'bg-emerald-950/60 border-emerald-800/80 text-emerald-300' 
                         : 'bg-emerald-50 border-emerald-300/80 text-emerald-800'
@@ -1679,7 +1699,6 @@ const LiveStreamPlayer = ({
             </div>
           </div>
         )}
-      </div>
 
         {/* STUDENT PROFILE & DETAILS MODAL */}
         <StudentProfileModal
@@ -2162,241 +2181,277 @@ const LiveStreamPlayer = ({
                 <div className="absolute inset-0 z-35 backdrop-blur-xl p-4 sm:p-6 overflow-y-auto animate-fadeIn select-none transition-colors duration-300 space-y-5 border bg-gradient-to-br from-[#faf9fe] via-white to-[#f5f2ff] border-purple-200 text-slate-900 shadow-2xl">
                   {/* Top Bar Header */}
                   <div className="space-y-3.5 border-b border-purple-200/80 pb-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-800 text-white flex items-center justify-center text-2xl shadow-md shadow-purple-900/20 border border-purple-300 shrink-0">
-                        <FaGraduationCap />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className={`text-xl sm:text-2xl md:text-3xl font-black truncate tracking-tight leading-snug ${
-                          isDark ? 'text-white' : 'text-slate-900'
-                        }`}>
-                          {currentSessionTitle}
-                        </h3>
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3.5 sm:gap-4 w-full">
+                      <div className="flex items-start gap-3 sm:gap-3.5 min-w-0 w-full lg:flex-1">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-800 text-white flex items-center justify-center text-xl sm:text-2xl shadow-md shadow-purple-900/20 border border-purple-300 shrink-0 mt-0.5">
+                          <FaGraduationCap />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <h3 className={`text-lg sm:text-2xl md:text-3xl font-black tracking-tight leading-snug break-words ${
+                            isDark ? 'text-white' : 'text-slate-900'
+                          }`}>
+                            {currentSessionTitle}
+                          </h3>
 
-                        {/* Sleek, Modern, Unified Status & Metrics Bar */}
-                        <div className="space-y-2 mt-2.5">
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                            {/* Status: Concluded Live */}
-                            <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs ${
-                              isDark 
-                                ? 'bg-rose-950/40 border-rose-800/60 text-rose-300' 
-                                : 'bg-rose-50 border-rose-200 text-rose-700'
-                            }`}>
-                              <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_#f43f5e]" />
-                              <span>Concluded Live</span>
-                            </span>
+                          {/* Sleek, Modern, Unified Status & Metrics Bar */}
+                          <div className="space-y-2 pt-0.5">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                              {/* Status: Concluded Live */}
+                              <span className={`px-2.5 py-1 rounded-xl border text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs shrink-0 whitespace-nowrap ${
+                                isDark 
+                                  ? 'bg-rose-950/40 border-rose-800/60 text-rose-300' 
+                                  : 'bg-rose-50 border-rose-200 text-rose-700'
+                              }`}>
+                                <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_#f43f5e] shrink-0" />
+                                <span>Concluded Live</span>
+                              </span>
 
-                            {/* Unified Live Summary Metrics Segmented Capsule */}
-                            <div className={`flex items-center rounded-xl border shadow-2xs divide-x overflow-hidden text-xs font-bold transition-all ${
-                              isDark 
-                                ? 'bg-slate-800/90 border-slate-700 divide-slate-700 text-slate-200' 
-                                : 'bg-white border-slate-200/90 divide-slate-200 text-slate-700'
-                            }`}>
-                              {/* Students Watched (Non-clickable) */}
-                              <div className="px-3 py-1.5 flex items-center gap-1.5 select-none">
-                                <FaUsers className="text-emerald-600 dark:text-emerald-400 text-xs" />
-                                <span>{viewersSummaryStats.totalViewersCount} Watched</span>
+                              {/* Unified Live Summary Metrics Segmented Capsule */}
+                              <div className={`flex items-center rounded-xl border shadow-2xs divide-x text-[11px] sm:text-xs font-bold transition-all shrink-0 max-w-full overflow-x-auto ${
+                                isDark 
+                                  ? 'bg-slate-800/90 border-slate-700 divide-slate-700 text-slate-200' 
+                                  : 'bg-white border-slate-200/90 divide-slate-200 text-slate-700'
+                              }`}>
+                                {/* Students Watched (Non-clickable) */}
+                                <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1.5 select-none whitespace-nowrap shrink-0">
+                                  <FaUsers className="text-emerald-600 dark:text-emerald-400 text-xs shrink-0" />
+                                  <span>{viewersSummaryStats.totalViewersCount} Watched</span>
+                                </div>
+
+                                {/* Total Watched Duration (Non-clickable) */}
+                                <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1.5 select-none whitespace-nowrap shrink-0">
+                                  <FaClock className="text-amber-500 text-xs shrink-0" />
+                                  <span>
+                                    {viewersSummaryStats.totalWatchedSeconds >= 3600
+                                      ? `${(viewersSummaryStats.totalWatchedSeconds / 3600).toFixed(1)}h`
+                                      : (viewersSummaryStats.totalWatchedSeconds > 0
+                                          ? `${Math.round(viewersSummaryStats.totalWatchedSeconds / 60)}m`
+                                          : (viewersSummaryStats.totalWatchedHours > 0 ? `${viewersSummaryStats.totalWatchedHours}h` : '0m'))}
+                                  </span>
+                                </div>
+
+                                {/* Student Submissions */}
+                                <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1.5 text-purple-700 dark:text-purple-300 select-none whitespace-nowrap shrink-0">
+                                  <FaCommentDots className="text-purple-500 text-xs shrink-0" />
+                                  <span>{feedbacksData.totalFeedbacks} Submissions</span>
+                                </div>
                               </div>
 
-                              {/* Total Watched Duration (Non-clickable) */}
-                              <div className="px-3 py-1.5 flex items-center gap-1.5 select-none">
-                                <FaClock className="text-amber-500 text-xs" />
-                                <span>
-                                  {viewersSummaryStats.totalWatchedSeconds >= 3600
-                                    ? `${(viewersSummaryStats.totalWatchedSeconds / 3600).toFixed(1)}h`
-                                    : (viewersSummaryStats.totalWatchedSeconds > 0
-                                        ? `${Math.round(viewersSummaryStats.totalWatchedSeconds / 60)}m`
-                                        : (viewersSummaryStats.totalWatchedHours > 0 ? `${viewersSummaryStats.totalWatchedHours}h` : '0m'))}
-                                </span>
-                              </div>
-
-                              {/* Student Submissions */}
-                              <div className="px-3 py-1.5 flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
-                                <FaCommentDots className="text-purple-500 text-xs" />
-                                <span>{feedbacksData.totalFeedbacks} Submissions</span>
-                              </div>
+                              {/* Concluded Date Badge */}
+                              {formattedEndedDate && (
+                                <div className="flex items-center shrink-0">
+                                  <div className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 shadow-2xs select-none shrink-0 whitespace-nowrap ${
+                                    isDark 
+                                      ? 'bg-slate-800/80 border-slate-700/80 text-slate-300' 
+                                      : 'bg-slate-50/90 border-slate-200/90 text-slate-700'
+                                  }`}>
+                                    <FaCalendarAlt className="text-purple-500 dark:text-purple-400 text-xs shrink-0" />
+                                    <span className="text-[10px] sm:text-[10.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 shrink-0">
+                                      Concluded:
+                                    </span>
+                                    <span className="font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                                      {formattedEndedDate}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
-
-                          {/* Concluded Date Badge */}
-                          {formattedEndedDate && (
-                            <div className="flex items-center">
-                              <div className="px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 shadow-2xs select-none bg-slate-50/90 border-slate-200/90 text-slate-700">
-                                <FaCalendarAlt className="text-purple-500 text-xs shrink-0" />
-                                <span className="text-[10px] sm:text-[10.5px] font-black uppercase tracking-wider text-slate-400">
-                                  Concluded:
-                                </span>
-                                <span className="font-extrabold text-slate-800">
-                                  {formattedEndedDate}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
                         </div>
                       </div>
-                    </div>
 
-                    {/* TOP RIGHT CORNER CONTROLS */}
-                    <div className="flex flex-col items-end gap-2.5 shrink-0 lg:self-start">
-                      <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap justify-end">
-                        {/* Change Live Session Dropdown Selector */}
-                        <div className="relative" ref={sessionSelectorRef2}>
+                      {/* TOP RIGHT CORNER CONTROLS */}
+                      <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between lg:justify-start gap-2.5 shrink-0 w-full lg:w-auto pt-1 lg:pt-0">
+                        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap w-full sm:w-auto">
+                          {/* Change Live Session Dropdown Selector */}
+                          <div className="relative flex-1 sm:flex-none" ref={sessionSelectorRef2}>
+                            <button
+                              type="button"
+                              onClick={() => setShowLiveSessionSelector(!showLiveSessionSelector)}
+                              className={`w-full sm:w-auto px-3.5 sm:px-4 py-2 rounded-full text-xs font-extrabold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-95 border whitespace-nowrap ${
+                                isDark 
+                                  ? 'bg-slate-800 hover:bg-slate-700 border-purple-500/60 text-purple-300' 
+                                  : 'bg-white hover:bg-purple-50/80 border-purple-300 text-purple-900'
+                              }`}
+                              title="Select a concluded live session to inspect reactions and reviews"
+                            >
+                              <FaVideo className="text-purple-600 dark:text-purple-400 text-xs shrink-0" />
+                              <span>Switch Live Session</span>
+                              <FaChevronDown className={`text-[10px] text-purple-600 dark:text-purple-400 transition-transform shrink-0 ${showLiveSessionSelector ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {showLiveSessionSelector && (
+                              <div className={`absolute left-0 sm:left-auto right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-2xl p-2.5 shadow-2xl z-50 animate-fadeIn space-y-1.5 border ${
+                                isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-purple-200 text-slate-900'
+                              }`}>
+                                <div className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider border-b flex items-center justify-between ${
+                                  isDark ? 'text-purple-300 border-slate-800' : 'text-purple-800 border-purple-100'
+                                }`}>
+                                  <span>Concluded Live Sessions</span>
+                                  <span className="text-[9.5px] text-purple-400 font-bold">{grade || 'This Grade'}</span>
+                                </div>
+
+                                <div className="max-h-72 overflow-y-auto space-y-1.5 custom-scrollbar">
+                                  {thisGradeConcludedSessions.length === 0 ? (
+                                    <div className="p-3.5 text-center text-slate-400 text-xs font-medium">
+                                      No previous live sessions found for {grade || 'this grade'}.
+                                    </div>
+                                  ) : (
+                                    thisGradeConcludedSessions.map((s, idx) => {
+                                      const isCurrent = s.isCurrent || (s.lessonId === (activeFeedbackLessonId || lessonId));
+
+                                      // Format Date
+                                      let dateStr = '';
+                                      const dVal = s.endedAt || s.startedAt;
+                                      if (dVal) {
+                                        try {
+                                          dateStr = new Date(dVal).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                        } catch {}
+                                      }
+                                      if (!dateStr && formattedEndedDate) {
+                                        dateStr = formattedEndedDate.split('•')[0].trim();
+                                      }
+
+                                      // Format Start & End Time
+                                      let startStr = '';
+                                      let endStr = '';
+                                      if (s.startedAt) {
+                                        try {
+                                          startStr = new Date(s.startedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                                        } catch {}
+                                      }
+                                      if (s.endedAt) {
+                                        try {
+                                          endStr = new Date(s.endedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                                        } catch {}
+                                      } else if (!endStr && formattedEndedDate && formattedEndedDate.includes('•')) {
+                                        endStr = formattedEndedDate.split('•')[1]?.trim() || '';
+                                      }
+
+                                      return (
+                                        <button
+                                          key={s.id || idx}
+                                          type="button"
+                                          onClick={() => {
+                                            if (s.lessonId) {
+                                              setActiveFeedbackLessonId(s.lessonId);
+                                              fetchPostStreamFeedbacks(s.lessonId);
+                                            }
+                                            setShowLiveSessionSelector(false);
+                                          }}
+                                          className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
+                                            isCurrent
+                                              ? isDark
+                                                ? 'bg-purple-950/60 border-purple-500/80 text-white shadow-xs font-bold ring-1 ring-purple-500/40'
+                                                : 'bg-purple-100 border-purple-400 text-purple-950 shadow-xs font-bold ring-1 ring-purple-400/40'
+                                              : isDark
+                                                ? 'bg-slate-800/80 border-slate-700 hover:bg-purple-950/40 text-slate-300'
+                                                : 'bg-slate-50 border-slate-200 hover:bg-purple-50 text-slate-800'
+                                          }`}
+                                        >
+                                          <div className="flex items-center justify-between gap-1.5">
+                                            <p className={`font-extrabold text-xs truncate flex-1 ${isDark ? 'text-purple-200' : 'text-slate-900'}`}>
+                                              {s.title}
+                                            </p>
+                                            {isCurrent && (
+                                              <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_#a855f7] shrink-0" />
+                                            )}
+                                          </div>
+
+                                          <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                                            {dateStr && (
+                                              <span className={`px-2 py-0.5 rounded-md border font-bold flex items-center gap-1 shadow-2xs ${
+                                                isDark ? 'bg-purple-950/60 border-purple-800/60 text-purple-300' : 'bg-purple-100/90 border-purple-200 text-purple-900'
+                                              }`}>
+                                                <FaCalendarAlt className="text-[8.5px] text-purple-400" />
+                                                <span>{dateStr}</span>
+                                              </span>
+                                            )}
+
+                                            {(startStr || endStr) && (
+                                              <span className={`px-2 py-0.5 rounded-md border font-bold flex items-center gap-1 shadow-2xs ${
+                                                isDark ? 'bg-amber-950/60 border-amber-800/60 text-amber-300' : 'bg-amber-100/90 border-amber-200 text-amber-900'
+                                              }`}>
+                                                <FaClock className="text-[8.5px] text-amber-500" />
+                                                <span>
+                                                  {startStr && endStr 
+                                                    ? `${startStr} – ${endStr}` 
+                                                    : (startStr ? `Start: ${startStr}` : `End: ${endStr}`)}
+                                                </span>
+                                              </span>
+                                            )}
+                                          </div>
+                                        </button>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
                           <button
                             type="button"
-                            onClick={() => setShowLiveSessionSelector(!showLiveSessionSelector)}
-                            className="px-4 py-2 rounded-full text-xs font-extrabold flex items-center gap-2 transition cursor-pointer shadow-xs active:scale-95 border bg-white hover:bg-purple-50/80 border-purple-300 text-purple-900"
-                            title="Select a concluded live session to inspect reactions and reviews"
+                            onClick={() => fetchPostStreamFeedbacks()}
+                            disabled={isLoadingFeedbacks}
+                            className={`flex-1 sm:flex-none px-3.5 sm:px-4 py-2 rounded-full text-xs font-extrabold flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer shadow-xs border whitespace-nowrap ${
+                              isDark 
+                                ? 'bg-slate-800 hover:bg-slate-700 border-indigo-500/60 text-indigo-300' 
+                                : 'bg-white hover:bg-indigo-50/80 border-indigo-300 text-indigo-900'
+                            }`}
+                            title="Refresh reviews and doubts"
                           >
-                            <FaVideo className="text-purple-600 text-xs" />
-                            <span>Switch Live Session</span>
-                            <FaChevronDown className={`text-[10px] text-purple-600 transition-transform ${showLiveSessionSelector ? 'rotate-180' : ''}`} />
+                            <FaSync className={`text-xs text-indigo-600 dark:text-indigo-400 shrink-0 ${isLoadingFeedbacks ? 'animate-spin' : ''}`} />
+                            <span>{isLoadingFeedbacks ? 'Syncing...' : 'Refresh Reviews'}</span>
                           </button>
 
-                          {showLiveSessionSelector && (
-                            <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-2xl p-2.5 shadow-2xl z-50 animate-fadeIn space-y-1.5 border bg-white border-purple-200 text-slate-900">
-                              <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider border-b flex items-center justify-between text-purple-800 border-purple-100">
-                                <span>Concluded Live Sessions</span>
-                                <span className="text-[9.5px] text-purple-600 font-bold">{grade || 'This Grade'}</span>
-                              </div>
-
-                              <div className="max-h-72 overflow-y-auto space-y-1.5 custom-scrollbar">
-                                {thisGradeConcludedSessions.length === 0 ? (
-                                  <div className="p-3.5 text-center text-slate-400 text-xs font-medium">
-                                    No previous live sessions found for {grade || 'this grade'}.
-                                  </div>
-                                ) : (
-                                  thisGradeConcludedSessions.map((s, idx) => {
-                                    const isCurrent = s.isCurrent || (s.lessonId === (activeFeedbackLessonId || lessonId));
-
-                                    // Format Date
-                                    let dateStr = '';
-                                    const dVal = s.endedAt || s.startedAt;
-                                    if (dVal) {
-                                      try {
-                                        dateStr = new Date(dVal).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                                      } catch {}
-                                    }
-                                    if (!dateStr && formattedEndedDate) {
-                                      dateStr = formattedEndedDate.split('•')[0].trim();
-                                    }
-
-                                    // Format Start & End Time
-                                    let startStr = '';
-                                    let endStr = '';
-                                    if (s.startedAt) {
-                                      try {
-                                        startStr = new Date(s.startedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                                      } catch {}
-                                    }
-                                    if (s.endedAt) {
-                                      try {
-                                        endStr = new Date(s.endedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                                      } catch {}
-                                    } else if (!endStr && formattedEndedDate && formattedEndedDate.includes('•')) {
-                                      endStr = formattedEndedDate.split('•')[1]?.trim() || '';
-                                    }
-
-                                    return (
-                                      <button
-                                        key={s.id || idx}
-                                        type="button"
-                                        onClick={() => {
-                                          if (s.lessonId) {
-                                            setActiveFeedbackLessonId(s.lessonId);
-                                            fetchPostStreamFeedbacks(s.lessonId);
-                                          }
-                                          setShowLiveSessionSelector(false);
-                                        }}
-                                        className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
-                                          isCurrent
-                                            ? 'bg-purple-100 border-purple-400 text-purple-950 shadow-xs font-bold ring-1 ring-purple-400/40'
-                                            : 'bg-slate-50 border-slate-200 hover:bg-purple-50 text-slate-800'
-                                        }`}
-                                      >
-                                        <div className="flex items-center justify-between gap-1.5">
-                                          <p className="font-extrabold text-xs truncate flex-1 text-slate-900">
-                                            {s.title}
-                                          </p>
-                                          {isCurrent && (
-                                            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_#a855f7] shrink-0" />
-                                          )}
-                                        </div>
-
-                                        <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-                                          {dateStr && (
-                                            <span className="px-2 py-0.5 rounded-md border font-bold flex items-center gap-1 shadow-2xs bg-purple-100/90 border-purple-200 text-purple-900">
-                                              <FaCalendarAlt className="text-[8.5px] text-purple-400" />
-                                              <span>{dateStr}</span>
-                                            </span>
-                                          )}
-
-                                          {(startStr || endStr) && (
-                                            <span className="px-2 py-0.5 rounded-md border font-bold flex items-center gap-1 shadow-2xs bg-amber-100/90 border-amber-200 text-amber-900">
-                                              <FaClock className="text-[8.5px] text-amber-500" />
-                                              <span>
-                                                {startStr && endStr 
-                                                  ? `${startStr} – ${endStr}` 
-                                                  : (startStr ? `Start: ${startStr}` : `End: ${endStr}`)}
-                                              </span>
-                                            </span>
-                                          )}
-                                        </div>
-                                      </button>
-                                    );
-                                  })
-                                )}
-                              </div>
-                            </div>
-                          )}
+                          {/* Expand / Collapse Button (Top-Most Right Corner) */}
+                          <button
+                            type="button"
+                            onClick={() => setIsStudioCollapsed(!isStudioCollapsed)}
+                            className={`flex-1 sm:flex-none px-3.5 sm:px-4 py-2 rounded-full text-xs font-extrabold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-95 border whitespace-nowrap ${
+                              isDark 
+                                ? 'bg-slate-800 hover:bg-slate-700 border-purple-500/60 text-purple-300' 
+                                : 'bg-white hover:bg-purple-50/80 border-purple-300 text-purple-900'
+                            }`}
+                            title={isStudioCollapsed ? "Expand reviews & student feedback" : "Collapse reviews & student feedback"}
+                          >
+                            {isStudioCollapsed ? <FaChevronDown className="text-xs text-purple-500 shrink-0" /> : <FaChevronUp className="text-xs text-purple-500 shrink-0" />}
+                            {hasUnrepliedFeedbacks && (
+                              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80" />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_6px_#10b981]" />
+                              </span>
+                            )}
+                            <span>{isStudioCollapsed ? 'Expand' : 'Collapse'}</span>
+                          </button>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => fetchPostStreamFeedbacks()}
-                          disabled={isLoadingFeedbacks}
-                          className="px-4 py-2 rounded-full text-xs font-extrabold flex items-center gap-2 transition active:scale-95 cursor-pointer shadow-xs border bg-white hover:bg-indigo-50/80 border-indigo-300 text-indigo-900"
-                          title="Refresh reviews and doubts"
-                        >
-                          <FaSync className={`text-xs text-indigo-600 ${isLoadingFeedbacks ? 'animate-spin' : ''}`} />
-                          <span>{isLoadingFeedbacks ? 'Syncing...' : 'Refresh Reviews'}</span>
-                        </button>
-
-                        {/* Expand / Collapse Button (Top-Most Right Corner) */}
-                        <button
-                          type="button"
-                          onClick={() => setIsStudioCollapsed(!isStudioCollapsed)}
-                          className="px-4 py-2 rounded-full text-xs font-extrabold flex items-center gap-2 transition cursor-pointer shadow-xs active:scale-95 border bg-white hover:bg-purple-50 border-purple-300 text-purple-900 shadow-2xs"
-                          title={isStudioCollapsed ? "Expand reviews & student feedback" : "Collapse reviews & student feedback"}
-                        >
-                          {isStudioCollapsed ? <FaChevronDown className="text-xs text-purple-500" /> : <FaChevronUp className="text-xs text-purple-500" />}
-                          {hasUnrepliedFeedbacks && (
-                            <span className="relative flex h-2.5 w-2.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80" />
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_6px_#10b981]" />
+                        {/* Increased Size Unread Messages Button (Positioned Directly Under Expand or Inline on Mobile) */}
+                        <div className="flex justify-start sm:justify-end w-full sm:w-auto pt-1 sm:pt-0">
+                          {hasUnrepliedFeedbacks ? (
+                            <span className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl border-2 text-xs sm:text-sm font-black flex items-center gap-2.5 shadow-md animate-pulse whitespace-nowrap shrink-0 ${
+                              isDark 
+                                ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-emerald-950/60' 
+                                : 'bg-emerald-50 border-emerald-400 text-emerald-900 shadow-emerald-900/10'
+                            }`}>
+                              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80" />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+                              </span>
+                              <span>{unrepliedFeedbacksCount} Unread {unrepliedFeedbacksCount === 1 ? 'Message' : 'Messages'}</span>
+                            </span>
+                          ) : (
+                            <span className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl border text-xs sm:text-sm font-extrabold flex items-center gap-2 shadow-2xs select-none whitespace-nowrap shrink-0 ${
+                              isDark 
+                                ? 'bg-emerald-950/60 border-emerald-800/80 text-emerald-300' 
+                                : 'bg-emerald-50 border-emerald-300/80 text-emerald-800'
+                            }`}>
+                              <FaCheck className="text-xs text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              <span>0 Unread Messages</span>
                             </span>
                           )}
-                          <span>{isStudioCollapsed ? 'Expand' : 'Collapse'}</span>
-                        </button>
-                      </div>
-
-                      {/* Increased Size Unread Messages Button (Positioned Directly Under Expand) */}
-                      <div className="flex justify-end pt-1">
-                        {hasUnrepliedFeedbacks ? (
-                          <span className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl border-2 text-xs sm:text-sm font-black flex items-center gap-2.5 shadow-md animate-pulse bg-emerald-50 border-emerald-400 text-emerald-900 shadow-emerald-900/10">
-                            <span className="relative flex h-2.5 w-2.5 shrink-0">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80" />
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-                            </span>
-                            <span>{unrepliedFeedbacksCount} Unread {unrepliedFeedbacksCount === 1 ? 'Message' : 'Messages'}</span>
-                          </span>
-                        ) : (
-                          <span className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl border text-xs sm:text-sm font-extrabold flex items-center gap-2 shadow-2xs select-none bg-emerald-50 border-emerald-300/80 text-emerald-800">
-                            <FaCheck className="text-xs text-emerald-600 shrink-0" />
-                            <span>0 Unread Messages</span>
-                          </span>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2866,7 +2921,6 @@ const LiveStreamPlayer = ({
                     }}
                   />
                 </div>
-              </div>
             ) : (
                 /* STUDENT POST-STREAM CONCLUDED CARD */
                 <div className="absolute inset-0 z-35 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 sm:p-6 text-center animate-fadeIn select-none">

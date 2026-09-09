@@ -784,11 +784,84 @@ router.delete('/:lessonId/live-stream', protect, isTeacherOrAdmin, handleEndLive
 // @desc    End YouTube Live Stream POST fallback (Admin / Teacher)
 router.post('/:lessonId/live-stream/end', protect, isTeacherOrAdmin, handleEndLiveStreamHelper);
 
+// @route   PATCH /api/lessons/:lessonId/live-stream/status-notice
+// @desc    Update Quick Teacher Status Notice for scheduled/starting live stream (Teacher / Admin)
+router.patch('/:lessonId/live-stream/status-notice', protect, isTeacherOrAdmin, async (req, res) => {
+    try {
+        const { icon, title, text } = req.body;
+        if (!title && !text) {
+            return res.status(400).json({ error: "Status notice title or text is required." });
+        }
+
+        const noticeObj = {
+            icon: icon || '📡',
+            title: String(title || 'Instructor Live Notice').trim(),
+            text: String(text || '').trim(),
+            updatedAt: new Date()
+        };
+
+        const lesson = await Lesson.findByIdAndUpdate(
+            req.params.lessonId,
+            { $set: { 'liveStream.statusNotice': noticeObj } },
+            { returnDocument: 'after' }
+        );
+
+        if (!lesson) {
+            return res.status(404).json({ error: "Class not found." });
+        }
+
+        res.json({
+            message: "Status notice updated successfully.",
+            statusNotice: lesson.liveStream?.statusNotice || noticeObj
+        });
+    } catch (err) {
+        console.error("Error updating live stream status notice:", err);
+        res.status(500).json({ error: "Failed to update status notice." });
+    }
+});
+
+// @route   POST /api/lessons/:lessonId/live-stream/status-notice (fallback)
+router.post('/:lessonId/live-stream/status-notice', protect, isTeacherOrAdmin, async (req, res) => {
+    try {
+        const { icon, title, text } = req.body;
+        if (!title && !text) {
+            return res.status(400).json({ error: "Status notice title or text is required." });
+        }
+
+        const noticeObj = {
+            icon: icon || '📡',
+            title: String(title || 'Instructor Live Notice').trim(),
+            text: String(text || '').trim(),
+            updatedAt: new Date()
+        };
+
+        const lesson = await Lesson.findByIdAndUpdate(
+            req.params.lessonId,
+            { $set: { 'liveStream.statusNotice': noticeObj } },
+            { returnDocument: 'after' }
+        );
+
+        if (!lesson) {
+            return res.status(404).json({ error: "Class not found." });
+        }
+
+        res.json({
+            message: "Status notice updated successfully.",
+            statusNotice: lesson.liveStream?.statusNotice || noticeObj
+        });
+    } catch (err) {
+        console.error("Error updating live stream status notice:", err);
+        res.status(500).json({ error: "Failed to update status notice." });
+    }
+});
+
 // @route   GET /api/lessons/:lessonId/live-stream/status
 // @desc    Fast real-time live status check for student & teacher UI sync
 router.get('/:lessonId/live-stream/status', protect, async (req, res) => {
     try {
-        const lesson = await Lesson.findById(req.params.lessonId).select('liveStream.isLive liveStream.isScheduled liveStream.endedAt liveStream.title').lean();
+        const lesson = await Lesson.findById(req.params.lessonId)
+            .select('liveStream.isLive liveStream.isScheduled liveStream.endedAt liveStream.title liveStream.statusNotice')
+            .lean();
         if (!lesson) {
             return res.json({ isLive: false, isScheduled: false });
         }
@@ -796,7 +869,8 @@ router.get('/:lessonId/live-stream/status', protect, async (req, res) => {
         res.json({
             isLive: Boolean(lesson.liveStream?.isLive) && !isEnded,
             isScheduled: Boolean(lesson.liveStream?.isScheduled) && !isEnded,
-            title: lesson.liveStream?.title || ''
+            title: lesson.liveStream?.title || '',
+            statusNotice: lesson.liveStream?.statusNotice || null
         });
     } catch (err) {
         res.json({ isLive: false, isScheduled: false });

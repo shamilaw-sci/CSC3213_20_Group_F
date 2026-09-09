@@ -20,6 +20,7 @@ import {
 import api from '../utils/api';
 import { getMediaUrl } from '../utils/mediaUrl';
 import { useTheme } from '../context/ThemeContext';
+import LiveEndFeedbackModal from './LiveEndFeedbackModal';
 
 const getImageUrl = (url) => getMediaUrl(url);
 
@@ -116,6 +117,7 @@ const StudentLiveFeedbackWindow = ({
   // Selected session state
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [showSessionDropdown, setShowSessionDropdown] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [statusData, setStatusData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -701,7 +703,7 @@ const StudentLiveFeedbackWindow = ({
 
                   {/* Student Message / Reaction Box */}
                   {statusData?.studentReaction?.reactionEmoji || statusData?.studentReaction?.reactionLabel || statusData?.studentReaction?.question || statusData?.studentReaction?.message ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       <div className={`p-3 sm:p-3.5 min-h-[52px] sm:min-h-[56px] rounded-2xl rounded-tr-xs border border-r-4 text-xs sm:text-[13px] leading-relaxed font-semibold shadow-xs flex flex-col justify-center ${
                         isDark 
                           ? 'bg-purple-950/80 border-purple-700 border-r-purple-400 text-white' 
@@ -733,7 +735,7 @@ const StudentLiveFeedbackWindow = ({
                         )}
                       </div>
 
-                      {/* Submission Timestamp aligned symmetrically with teacher card */}
+                      {/* Submission Timestamp */}
                       {statusData?.studentReaction?.submittedAt && (
                         <div className="flex items-center justify-end text-[11px] text-slate-400 font-semibold pt-0.5">
                           <span>{formatDate(statusData.studentReaction.submittedAt)}</span>
@@ -741,10 +743,24 @@ const StudentLiveFeedbackWindow = ({
                       )}
                     </div>
                   ) : (
-                    <div className={`p-3.5 rounded-2xl border text-xs text-slate-500 dark:text-slate-400 italic ${
-                      isDark ? 'bg-slate-950/30 border-slate-800' : 'bg-slate-50 border-slate-200'
+                    <div className={`p-4 rounded-2xl border text-center space-y-3 ${
+                      isDark ? 'bg-slate-950/40 border-slate-800 text-slate-300' : 'bg-purple-50/50 border-purple-200 text-purple-950'
                     }`}>
-                      No reaction rating submitted for this session.
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        You attended this session but haven't submitted your live reaction or question yet.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowFeedbackModal(true)}
+                        className={`px-4 py-2 rounded-xl text-white font-black text-xs transition cursor-pointer active:scale-95 shadow-md inline-flex items-center gap-2 ${
+                          isDark
+                            ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-950/40'
+                            : 'bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800'
+                        }`}
+                      >
+                        <span>⭐</span>
+                        <span>Give Feedback & Reaction</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -876,6 +892,27 @@ const StudentLiveFeedbackWindow = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* Post-Live End Stream Feedback Modal */}
+      {showFeedbackModal && (
+        <LiveEndFeedbackModal
+          isOpen={showFeedbackModal}
+          onClose={() => setShowFeedbackModal(false)}
+          lessonId={selectedSessionId}
+          streamTitle={activeTitle}
+          grade={activeSession?.grade || selectedGrade}
+          onSuccess={async () => {
+            if (selectedSessionId) {
+              delete statusCacheRef.current[selectedSessionId];
+              try {
+                const res = await api.get(`/lessons/${selectedSessionId}/student-live-status`);
+                statusCacheRef.current[selectedSessionId] = res.data;
+                setStatusData(res.data);
+              } catch (e) {}
+            }
+          }}
+        />
       )}
     </div>
   );

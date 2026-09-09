@@ -12,6 +12,7 @@ import LiveThumbnailCropperModal from '../components/LiveThumbnailCropperModal';
 import ConfirmModal from '../components/ConfirmModal';
 import StudentLiveFeedbackWindow from '../components/StudentLiveFeedbackWindow';
 import CourseAnnouncementsWindow from '../components/CourseAnnouncementsWindow';
+import LiveEndFeedbackModal from '../components/LiveEndFeedbackModal';
 import { useTheme } from '../context/ThemeContext';
 import {
   FaChalkboardTeacher, FaBookOpen, FaLock, FaLockOpen, FaVideo, FaYoutube,
@@ -94,9 +95,17 @@ const CourseDetails = () => {
   const [studentNote, setStudentNote] = useState('');
   const [isSubmittingSolution, setIsSubmittingSolution] = useState(false);
 
-  // Student Feedback Modal States
+  // Student Assignment Feedback Modal States
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [selectedSubmissionForFeedback, setSelectedSubmissionForFeedback] = useState(null);
+
+  // Student Post-Live Stream Feedback & Review Modal State
+  const [studentLiveFeedbackModal, setStudentLiveFeedbackModal] = useState({
+    isOpen: false,
+    lessonId: null,
+    streamTitle: '',
+    grade: ''
+  });
 
   // Teacher Submissions Drawer / Modal States
   const [showTeacherSubmissionsDrawer, setShowTeacherSubmissionsDrawer] = useState(false);
@@ -681,7 +690,7 @@ const CourseDetails = () => {
     fetchCourseDetails(true);
   }, [courseId]);
 
-  // Real-time live status sync: automatically ends stream on student side when teacher concluding live class
+  // Real-time live status sync: automatically syncs live status & status notices across student and teacher sides
   useEffect(() => {
     const activeLiveLesson = (lessons || []).find(l => l.liveStream?.isLive || l.liveStream?.isScheduled);
     if (!activeLiveLesson?._id) return;
@@ -690,7 +699,31 @@ const CourseDetails = () => {
       try {
         const res = await api.get(`/lessons/${activeLiveLesson._id}/live-stream/status`);
         if (res.data && typeof res.data.isLive === 'boolean') {
-          if (activeLiveLesson.liveStream?.isLive !== res.data.isLive || activeLiveLesson.liveStream?.isScheduled !== res.data.isScheduled) {
+          const statusNoticeChanged = res.data.statusNotice && (
+            JSON.stringify(activeLiveLesson.liveStream?.statusNotice || {}) !== JSON.stringify(res.data.statusNotice)
+          );
+
+          if (
+            activeLiveLesson.liveStream?.isLive !== res.data.isLive || 
+            activeLiveLesson.liveStream?.isScheduled !== res.data.isScheduled ||
+            statusNoticeChanged
+          ) {
+            // If live stream just ended and current user is a student actively watching this live class, automatically show the feedback & reactions modal
+            if (
+              activeLiveLesson.liveStream?.isLive && 
+              res.data.isLive === false && 
+              user?.role === 'student' &&
+              selectedGrade === activeLiveLesson.grade &&
+              currentLesson?._id === activeLiveLesson._id
+            ) {
+              setStudentLiveFeedbackModal({
+                isOpen: true,
+                lessonId: activeLiveLesson._id,
+                streamTitle: res.data.title || activeLiveLesson.liveStream?.title || 'Live Class',
+                grade: activeLiveLesson.grade || selectedGrade
+              });
+            }
+
             setLessons(prev => prev.map(l => {
               if (l._id === activeLiveLesson._id) {
                 return {
@@ -698,7 +731,8 @@ const CourseDetails = () => {
                   liveStream: {
                     ...(l.liveStream || {}),
                     isLive: res.data.isLive,
-                    isScheduled: res.data.isScheduled
+                    isScheduled: res.data.isScheduled,
+                    statusNotice: res.data.statusNotice || l.liveStream?.statusNotice
                   }
                 };
               }
@@ -707,10 +741,10 @@ const CourseDetails = () => {
           }
         }
       } catch (err) {}
-    }, 4500);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [lessons]);
+  }, [lessons, user?.role, selectedGrade]);
 
   const fetchQuizzes = async () => {
     try {
@@ -2497,6 +2531,16 @@ const CourseDetails = () => {
               onSelectGrade={(g) => setSelectedGrade(g)}
               isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
               onEndStream={() => handleEndLiveStream(saveLiveAsVideo)}
+              onStreamEnded={(info) => {
+                if (user?.role === 'student') {
+                  setStudentLiveFeedbackModal({
+                    isOpen: true,
+                    lessonId: info?.lessonId || currentLesson._id,
+                    streamTitle: info?.streamTitle || currentLesson.liveStream?.title || 'Live Class',
+                    grade: info?.grade || selectedGrade
+                  });
+                }
+              }}
             />
           )}
 
@@ -2504,10 +2548,25 @@ const CourseDetails = () => {
           {!currentLesson?.liveStream?.isLive && currentLesson?.liveStream?.isScheduled && (
             <ScheduledLiveHero
               liveStream={currentLesson.liveStream}
+              lessonId={currentLesson._id}
               isTeacherOrAdmin={user?.role === 'admin' || user?.role === 'teacher'}
               onGoLiveNow={() => handleGoLiveImmediately(currentLesson._id)}
               onEditSchedule={() => handleOpenEditScheduledLive(currentLesson)}
               onCancelSchedule={() => handleCancelScheduledLive(currentLesson._id)}
+              onUpdateStatusNotice={(notice) => {
+                setLessons(prev => prev.map(l => {
+                  if (l._id === currentLesson._id) {
+                    return {
+                      ...l,
+                      liveStream: {
+                        ...(l.liveStream || {}),
+                        statusNotice: notice
+                      }
+                    };
+                  }
+                  return l;
+                }));
+              }}
               grade={selectedGrade}
               courseTitle={course?.title}
             />
@@ -6388,6 +6447,20 @@ const CourseDetails = () => {
           isLoading={confirmActionModal.isLoading}
           onClose={() => setConfirmActionModal(null)}
           onConfirm={confirmActionModal.onConfirm}
+        />
+      )}
+
+      {/* Student Post-Live Stream Feedback & Reactions Modal */}
+      {studentLiveFeedbackModal.isOpen && (
+        <LiveEndFeedbackModal
+          isOpen={studentLiveFeedbackModal.isOpen}
+          onClose={() => setStudentLiveFeedbackModal(prev => ({ ...prev, isOpen: false }))}
+          lessonId={studentLiveFeedbackModal.lessonId}
+          streamTitle={studentLiveFeedbackModal.streamTitle}
+          grade={studentLiveFeedbackModal.grade}
+          onSuccess={() => {
+            setExpandedSections(prev => ({ ...prev, liveReview: true }));
+          }}
         />
       )}
     </div>

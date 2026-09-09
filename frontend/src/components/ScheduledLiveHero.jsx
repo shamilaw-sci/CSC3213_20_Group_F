@@ -11,20 +11,50 @@ import {
   FaCheckCircle,
   FaInfoCircle
 } from 'react-icons/fa';
+import api from '../utils/api';
+import { toast } from 'react-hot-toast';
 import { getMediaUrl } from '../utils/mediaUrl';
 
 const ScheduledLiveHero = ({
   liveStream,
+  lessonId,
   isTeacherOrAdmin,
   onGoLiveNow,
   onEditSchedule,
   onCancelSchedule,
   grade,
-  courseTitle
+  courseTitle,
+  onUpdateStatusNotice
 }) => {
-  const [activeQuickMessage, setActiveQuickMessage] = useState(null);
+  const [activeQuickMessage, setActiveQuickMessage] = useState(liveStream?.statusNotice || null);
   const [showQuickMsgSelector, setShowQuickMsgSelector] = useState(false);
   const [customMsgInput, setCustomMsgInput] = useState('');
+  const [isSavingNotice, setIsSavingNotice] = useState(false);
+
+  // Sync activeQuickMessage whenever parent liveStream updates
+  useEffect(() => {
+    if (liveStream?.statusNotice) {
+      setActiveQuickMessage(liveStream.statusNotice);
+    }
+  }, [liveStream?.statusNotice]);
+
+  // Fast real-time polling to catch teacher status updates immediately on student devices
+  useEffect(() => {
+    if (!lessonId) return;
+
+    const syncLiveStatus = async () => {
+      try {
+        const res = await api.get(`/lessons/${lessonId}/live-stream/status`);
+        if (res.data?.statusNotice) {
+          setActiveQuickMessage(res.data.statusNotice);
+        }
+      } catch (err) {}
+    };
+
+    syncLiveStatus();
+    const timer = setInterval(syncLiveStatus, 3000);
+    return () => clearInterval(timer);
+  }, [lessonId]);
 
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -75,6 +105,34 @@ const ScheduledLiveHero = ({
     const interval = setInterval(calculateTime, 1000);
     return () => clearInterval(interval);
   }, [liveStream?.scheduledStartTime]);
+
+  const handleSelectStatusNotice = async (noticeObj) => {
+    setActiveQuickMessage(noticeObj);
+    setShowQuickMsgSelector(false);
+    if (!lessonId) return;
+
+    try {
+      setIsSavingNotice(true);
+      const res = await api.patch(`/lessons/${lessonId}/live-stream/status-notice`, noticeObj);
+      toast.success("⚡ Status notice broadcasted to all students!");
+      if (onUpdateStatusNotice) {
+        onUpdateStatusNotice(res.data?.statusNotice || noticeObj);
+      }
+    } catch (err) {
+      console.warn("Error updating status notice via PATCH, trying fallback:", err);
+      try {
+        const res = await api.post(`/lessons/${lessonId}/live-stream/status-notice`, noticeObj);
+        toast.success("⚡ Status notice broadcasted to all students!");
+        if (onUpdateStatusNotice) {
+          onUpdateStatusNotice(res.data?.statusNotice || noticeObj);
+        }
+      } catch (fallbackErr) {
+        toast.error("Failed to sync status notice to students.");
+      }
+    } finally {
+      setIsSavingNotice(false);
+    }
+  };
 
   const formattedScheduleDate = liveStream?.scheduledStartTime
     ? new Date(liveStream.scheduledStartTime).toLocaleDateString('en-US', {
@@ -307,10 +365,8 @@ const ScheduledLiveHero = ({
                             <button
                               key={idx}
                               type="button"
-                              onClick={() => {
-                                setActiveQuickMessage(item);
-                                setShowQuickMsgSelector(false);
-                              }}
+                              onClick={() => handleSelectStatusNotice(item)}
+                              disabled={isSavingNotice}
                               className={`w-full text-left p-3 rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 active:scale-[0.99] group ${
                                 isSelected
                                   ? 'bg-gradient-to-r from-red-950/90 via-purple-950/60 to-slate-900 border-red-500/80 shadow-md ring-1 ring-red-400/40 text-white'
@@ -349,26 +405,35 @@ const ScheduledLiveHero = ({
                             type="text"
                             value={customMsgInput}
                             onChange={(e) => setCustomMsgInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && customMsgInput.trim() && !isSavingNotice) {
+                                handleSelectStatusNotice({
+                                  icon: '📢',
+                                  title: 'Instructor Live Notice',
+                                  text: customMsgInput.trim()
+                                });
+                                setCustomMsgInput('');
+                              }
+                            }}
                             placeholder="Type custom note (e.g. Starting in 3 minutes)..."
                             className="flex-1 bg-black/80 border border-slate-700 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400/40 font-sans font-medium"
                           />
                           <button
                             type="button"
                             onClick={() => {
-                              if (customMsgInput.trim()) {
-                                setActiveQuickMessage({
+                              if (customMsgInput.trim() && !isSavingNotice) {
+                                handleSelectStatusNotice({
                                   icon: '📢',
                                   title: 'Instructor Live Notice',
                                   text: customMsgInput.trim()
                                 });
                                 setCustomMsgInput('');
-                                setShowQuickMsgSelector(false);
                               }
                             }}
-                            disabled={!customMsgInput.trim()}
+                            disabled={!customMsgInput.trim() || isSavingNotice}
                             className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs rounded-xl disabled:opacity-40 cursor-pointer shadow-sm transition active:scale-95 shrink-0"
                           >
-                            Apply Status
+                            {isSavingNotice ? 'Saving...' : 'Apply Status'}
                           </button>
                         </div>
                       </div>

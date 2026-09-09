@@ -84,7 +84,7 @@ const formatGrade = (grade) => {
   return `Grade ${gStr}`;
 };
 
-const LiveEndFeedbackModal = ({ isOpen, onClose, lessonId, streamTitle, grade }) => {
+const LiveEndFeedbackModal = ({ isOpen, onClose, lessonId, streamTitle, grade, onSuccess }) => {
   const [selectedReaction, setSelectedReaction] = useState('superb');
   const [message, setMessage] = useState('');
   const [question, setQuestion] = useState('');
@@ -99,6 +99,23 @@ const LiveEndFeedbackModal = ({ isOpen, onClose, lessonId, streamTitle, grade })
   } catch (e) {
     isDark = document.documentElement.classList.contains('dark');
   }
+
+  // Pre-fill existing student reaction/feedback when modal opens for a lesson
+  React.useEffect(() => {
+    if (isOpen && lessonId) {
+      setIsSubmitted(false);
+      api.get(`/lessons/${lessonId}/student-live-status`)
+        .then(res => {
+          if (res.data?.studentReaction) {
+            const sr = res.data.studentReaction;
+            if (sr.reaction) setSelectedReaction(sr.reaction);
+            if (sr.message) setMessage(sr.message);
+            if (sr.question) setQuestion(sr.question);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, lessonId]);
 
   // Lock body scroll when modal is open to prevent page background scrolling
   React.useEffect(() => {
@@ -133,6 +150,15 @@ const LiveEndFeedbackModal = ({ isOpen, onClose, lessonId, streamTitle, grade })
 
       setIsSubmitted(true);
       toast.success("Thank you! Feedback and questions sent to instructor.");
+      if (typeof onSuccess === 'function') {
+        onSuccess({
+          reaction: currentReactionObj.id,
+          reactionLabel: currentReactionObj.label,
+          reactionEmoji: currentReactionObj.emoji,
+          message: message.trim(),
+          question: question.trim()
+        });
+      }
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to submit feedback.");
     } finally {

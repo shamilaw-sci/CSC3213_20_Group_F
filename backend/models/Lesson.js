@@ -27,6 +27,12 @@ const lessonSchema = new mongoose.Schema({
     thumbnail: { type: String, default: '' },
     startedAt: { type: Date },
     endedAt: { type: Date },
+    statusNotice: {
+      icon: { type: String, default: '📡' },
+      title: { type: String, default: 'Connecting Live Broadcast...' },
+      text: { type: String, default: 'Please stand by. The video stream will initialize automatically in a few seconds!' },
+      updatedAt: { type: Date, default: Date.now }
+    },
     viewers: [{
       student: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       name: { type: String },
