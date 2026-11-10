@@ -3,6 +3,8 @@ const router = express.Router();
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Course = require('../models/Course');
+const Enrollment = require('../models/Enrollment');
+const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
 const { protect } = require('../middleware/authMiddleware');
 const { sendBulkSMS } = require('../services/smsService');
 const { sendClassAnnouncementEmail } = require('../utils/emailService');
@@ -197,8 +199,6 @@ router.post('/broadcast', protect, async (req, res) => {
   }
 
   try {
-    let studentQuery = { role: 'student' };
-
     // Teacher Permission & Scope Check
     if (role === 'teacher') {
       if (courseId) {
@@ -215,27 +215,54 @@ router.post('/broadcast', protect, async (req, res) => {
       }
     }
 
-    // Filter by course enrollment if specified
-    if (courseId) {
-      const course = await Course.findById(courseId);
+    // Comprehensive resolution of target students across Enrollment collection, Course.classes, Course.enrolledStudents, and Grade
+    const targetStudentIdSet = new Set();
+
+    if (courseId && targetGrade) {
+      const classStudents = await getClassEnrolledStudents(courseId, targetGrade);
+      classStudents.forEach(s => s._id && targetStudentIdSet.add(s._id.toString()));
+    } else if (courseId) {
+      const course = await Course.findById(courseId).lean();
       if (!course) {
         return res.status(404).json({ error: 'Course not found.' });
       }
-      const enrolledStudentIds = course.enrolledStudents || [];
-      studentQuery._id = { $in: enrolledStudentIds };
+      // 1. Direct course.enrolledStudents
+      if (Array.isArray(course.enrolledStudents)) {
+        course.enrolledStudents.forEach(id => id && targetStudentIdSet.add(id.toString()));
+      }
+      // 2. Embedded course.classes enrolledStudents
+      if (Array.isArray(course.classes)) {
+        course.classes.forEach(cls => {
+          if (Array.isArray(cls.enrolledStudents)) {
+            cls.enrolledStudents.forEach(id => id && targetStudentIdSet.add(id.toString()));
+          }
+        });
+      }
+      // 3. Enrollment collection for this course
+      const enrollments = await Enrollment.find({ course: courseId }).select('student').lean();
+      enrollments.forEach(e => e.student && targetStudentIdSet.add(e.student.toString()));
+    } else if (targetGrade) {
+      const rawGrade = String(targetGrade).trim();
+      const gradeNumberOnly = rawGrade.replace(/\D/g, '');
+      const gradePattern = gradeNumberOnly ? `(^|\\b|Grade\\s*)${gradeNumberOnly}(\\b|$)` : `^${rawGrade}$`;
+      const gradeRegex = new RegExp(gradePattern, 'i');
+
+      const gradeStudents = await User.find({ role: 'student', grade: { $regex: gradeRegex } }).select('_id').lean();
+      gradeStudents.forEach(s => s._id && targetStudentIdSet.add(s._id.toString()));
+    } else {
+      // Global broadcast (all active students)
+      const allStudents = await User.find({ role: 'student' }).select('_id').lean();
+      allStudents.forEach(s => s._id && targetStudentIdSet.add(s._id.toString()));
     }
 
-    // Filter by targeted grade if specified
-    if (targetGrade) {
-      studentQuery.grade = new RegExp(targetGrade.trim(), 'i');
-    }
-
-    const targetStudents = await User.find(studentQuery).select('name email parentsPhoneNumber grade');
+    const uniqueTargetIds = Array.from(targetStudentIdSet);
+    const targetStudents = await User.find({ _id: { $in: uniqueTargetIds }, role: 'student' })
+      .select('name email parentsPhoneNumber grade')
+      .lean();
 
     // 1. In-App Notification Creation
     if (channels.includes('in_app')) {
-      if (courseId || targetGrade) {
-        // Send to each targeted student individually
+      if (targetStudents.length > 0) {
         const notifDocs = targetStudents.map(student => ({
           recipient: student._id,
           sender: req.user._id,
@@ -245,11 +272,11 @@ router.post('/broadcast', protect, async (req, res) => {
           channels,
           link: courseId ? `/courses` : '/dashboard'
         }));
-        if (notifDocs.length > 0) {
-          await Notification.insertMany(notifDocs);
-        }
-      } else {
-        // Global student broadcast (Admin only)
+        await Notification.insertMany(notifDocs);
+      }
+      
+      // If global broadcast or role-wide notification requested (or no specific target matched), create role broadcast
+      if (!courseId && !targetGrade) {
         await Notification.create({
           recipientRole: 'student',
           sender: req.user._id,

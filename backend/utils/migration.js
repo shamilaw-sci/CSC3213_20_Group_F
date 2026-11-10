@@ -1,228 +1,278 @@
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
+const mongoose = require('mongoose');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
+const fileStorage = require('../services/fileStorage');
 const Course = require('../models/Course');
-const Enrollment = require('../models/Enrollment');
 const User = require('../models/User');
+const Lesson = require('../models/Lesson');
+const Assignment = require('../models/Assignment');
+const AssignmentSubmission = require('../models/AssignmentSubmission');
+const DirectMessage = require('../models/DirectMessage');
+const Quiz = require('../models/Quiz');
+const Payment = require('../models/Payment');
 
-const getClassNameFromGrade = (grade) => {
-    if (!grade) return "Grade General";
-    const gradeStr = String(grade).trim();
-    if (gradeStr.toLowerCase().startsWith('grade')) {
-        return gradeStr;
+/**
+ * Categorize a legacy filename from backend/uploads
+ */
+function detectCategory(filename, parentSubdir = '') {
+  if (parentSubdir === 'live_chat' || parentSubdir === 'live-chat') return 'live-chat';
+  if (parentSubdir === 'messages') return 'messages';
+
+  const lower = filename.toLowerCase();
+  if (lower.startsWith('asgn-')) return 'assignments';
+  if (lower.startsWith('sub-')) return 'submissions';
+  if (lower.startsWith('quiz-')) return 'quizzes';
+  if (lower.startsWith('pdf-') || lower.startsWith('lesson-')) return 'lessons';
+  if (lower.startsWith('banner-') || lower.startsWith('cardimage-') || lower.startsWith('course-')) return 'courses';
+  if (lower.startsWith('avatar-') || lower.startsWith('profile-') || lower.startsWith('cover-')) return 'profiles';
+  if (lower.startsWith('slip-') || lower.startsWith('payment-')) return 'payments';
+
+  // Fallback by extension
+  if (lower.endsWith('.pdf')) return 'lessons';
+  return 'courses';
+}
+
+/**
+ * Safely copy or move physical files to new storage structure
+ */
+async function migratePhysicalFiles() {
+  console.log('📦 Starting physical file migration...');
+  fileStorage.initStorage();
+
+  const legacyUploadsDir = path.resolve(__dirname, '../uploads');
+  if (!fs.existsSync(legacyUploadsDir)) {
+    console.log('ℹ️ Legacy uploads directory does not exist. Skipping file copy.');
+    return;
+  }
+
+  let copiedCount = 0;
+
+  function scanAndMigrateDir(dirPath, relativeParent = '') {
+    const items = fs.readdirSync(dirPath, { withFileTypes: true });
+
+    for (const item of items) {
+      const fullPath = path.join(dirPath, item.name);
+
+      if (item.isDirectory()) {
+        scanAndMigrateDir(fullPath, item.name);
+      } else if (item.isFile()) {
+        const category = detectCategory(item.name, relativeParent);
+        const targetDir = fileStorage.getCategoryDir(category);
+        const targetPath = path.join(targetDir, item.name);
+
+        if (!fs.existsSync(targetPath)) {
+          try {
+            fs.copyFileSync(fullPath, targetPath);
+            copiedCount++;
+          } catch (err) {
+            console.error(`❌ Failed to copy ${item.name} to ${category}:`, err.message);
+          }
+        }
+      }
     }
-    return `Grade ${gradeStr}`;
-};
+  }
 
-const migrateData = async () => {
-    try {
-        const Payment = require('../models/Payment');
-        try {
-            await Payment.collection.dropIndex('studentId_1_courseId_1_month_1');
-            console.log("🧹 Dropped legacy payments index [studentId_1_courseId_1_month_1]");
-        } catch (idxErr) {
-            // Index didn't exist or already dropped
-        }
+  scanAndMigrateDir(legacyUploadsDir);
+  console.log(`✅ Physical file migration complete: ${copiedCount} files organized into storage directories.`);
+}
 
-        const courses = await Course.find({});
-        const uploadsDir = path.join(__dirname, '..', 'uploads');
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
+/**
+ * Normalize database references to protected/public route conventions
+ */
+async function migrateDatabaseRecords() {
+  console.log('🗄️ Starting database metadata migration...');
 
-        // Fetch all students to have quick lookup for grades
-        const students = await User.find({ role: 'student' });
-        const studentMap = new Map();
-        students.forEach(s => {
-            studentMap.set(s._id.toString(), s);
-        });
-
-        for (let course of courses) {
-            let updated = false;
-
-            // --- 1. Image Migration (Base64 -> Disk File) ---
-            const processBase64Image = (fieldValue, prefix) => {
-                if (fieldValue && fieldValue.startsWith('data:')) {
-                    const matches = fieldValue.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-                    if (matches && matches.length === 3) {
-                        const mimeType = matches[1];
-                        let ext = mimeType.split('/')[1] || 'jpg';
-                        if (ext === 'jpeg') ext = 'jpg';
-                        const base64Data = matches[2];
-                        const filename = `${prefix}-${course._id}-${Date.now()}.${ext}`;
-                        const filepath = path.join(uploadsDir, filename);
-                        
-                        fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
-                        console.log(`📸 Migrated ${prefix} for course [${course.title}] to disk: ${filename}`);
-                        return `/uploads/${filename}`;
-                    }
-                }
-                return null;
-            };
-
-            const newBanner = processBase64Image(course.banner, 'banner');
-            if (newBanner) {
-                course.banner = newBanner;
-                updated = true;
-            }
-
-            const newCardImage = processBase64Image(course.cardImage, 'cardImage');
-            if (newCardImage) {
-                course.cardImage = newCardImage;
-                updated = true;
-            }
-
-            // --- 2. Enrollment Migration & Consolidation ---
-            console.log(`🔍 Checking enrollments for course: [${course.title}]`);
-            
-            // Set of student IDs that are enrolled in this course (from any source)
-            const allEnrolledStudentIds = new Set();
-            // Map student ID -> Set of class names they are in
-            const studentClassesMap = new Map();
-
-            // Source A: Add students from course.classes
-            if (course.classes && course.classes.length > 0) {
-                course.classes.forEach(cls => {
-                    if (cls.enrolledStudents && cls.enrolledStudents.length > 0) {
-                        cls.enrolledStudents.forEach(studentId => {
-                            if (studentId) {
-                                const idStr = studentId.toString();
-                                allEnrolledStudentIds.add(idStr);
-                                if (!studentClassesMap.has(idStr)) {
-                                    studentClassesMap.set(idStr, new Set());
-                                }
-                                studentClassesMap.get(idStr).add(cls.className.trim());
-                            }
-                        });
-                    }
-                });
-            }
-
-            // Source B: Add students from course.enrolledStudents
-            if (course.enrolledStudents && course.enrolledStudents.length > 0) {
-                course.enrolledStudents.forEach(studentId => {
-                    if (studentId) {
-                        const idStr = studentId.toString();
-                        allEnrolledStudentIds.add(idStr);
-                    }
-                });
-            }
-
-            // Resolve proper class name for each student and save/upsert Enrollment documents
-            for (let studentIdStr of allEnrolledStudentIds) {
-                const student = studentMap.get(studentIdStr);
-                const defaultClassName = student ? getClassNameFromGrade(student.grade) : "Grade General";
-
-                let classesForStudent = studentClassesMap.get(studentIdStr);
-                if (!classesForStudent || classesForStudent.size === 0) {
-                    // Student was course-level enrolled but not in any class. Put them in their grade's class.
-                    classesForStudent = new Set([defaultClassName]);
-                }
-
-                // Write enrollment records to new collection
-                for (let className of classesForStudent) {
-                    try {
-                        await Enrollment.findOneAndUpdate(
-                            { student: studentIdStr, course: course._id, className: className },
-                            { student: studentIdStr, course: course._id, className: className },
-                            { upsert: true, returnDocument: 'after' }
-                        );
-                    } catch (e) {
-                        console.error(`Failed to upsert enrollment record:`, e.message);
-                    }
-                }
-            }
-
-            // Re-sync Course embedded arrays from the source of truth (Enrollment collection)
-            const activeEnrollments = await Enrollment.find({ course: course._id });
-            
-            // Build the clean arrays
-            const newEnrolledStudents = [...new Set(activeEnrollments.map(e => e.student.toString()))];
-            
-            // Rebuild class arrays
-            const classMap = new Map(); // className -> Set of student IDs
-            activeEnrollments.forEach(e => {
-                if (!classMap.has(e.className)) {
-                    classMap.set(e.className, new Set());
-                }
-                classMap.get(e.className).add(e.student.toString());
-            });
-
-            const newClasses = [];
-            classMap.forEach((studentsSet, className) => {
-                newClasses.push({
-                    className,
-                    enrolledStudents: [...studentsSet]
-                });
-            });
-
-            // Detect if changes were made to enrollment structure
-            const currentEnrolledStr = course.enrolledStudents.map(id => id.toString()).sort().join(',');
-            const newEnrolledStr = newEnrolledStudents.sort().join(',');
-            
-            // Basic structural check
-            if (currentEnrolledStr !== newEnrolledStr || course.classes.length !== newClasses.length) {
-                course.enrolledStudents = newEnrolledStudents;
-                course.classes = newClasses;
-                updated = true;
-                console.log(`✅ Synced embedded arrays for course: [${course.title}]`);
-            }
-
-            if (updated) {
-                await course.save();
-                console.log(`💾 Course [${course.title}] updated and saved.`);
-            }
-        }
-
-        // --- 3. Legacy Lesson Assignments Migration ---
-        try {
-            const Lesson = require('../models/Lesson');
-            const Assignment = require('../models/Assignment');
-            const lessons = await Lesson.find({ 'assignments.0': { $exists: true } });
-            
-            for (let lesson of lessons) {
-                if (lesson.assignments && lesson.assignments.length > 0) {
-                    for (let oldAsgn of lesson.assignments) {
-                        const existing = await Assignment.findOne({
-                            course: lesson.course,
-                            grade: lesson.grade,
-                            title: oldAsgn.title
-                        });
-
-                        if (!existing) {
-                            const courseDoc = await Course.findById(lesson.course);
-                            const instructorId = courseDoc?.instructor || (await User.findOne({ role: 'teacher' }))?._id;
-
-                            if (instructorId) {
-                                await Assignment.create({
-                                    title: oldAsgn.title,
-                                    description: 'Legacy class homework assignment document.',
-                                    course: lesson.course,
-                                    grade: lesson.grade,
-                                    weekNumber: oldAsgn.weekNumber || 1,
-                                    instructor: instructorId,
-                                    attachmentUrl: oldAsgn.fileUrl || (oldAsgn.filename ? `/uploads/${oldAsgn.filename}` : ''),
-                                    attachmentName: oldAsgn.title || oldAsgn.filename || 'Assignment.pdf',
-                                    attachmentSize: oldAsgn.fileSize || 0,
-                                    maxMarks: 100,
-                                    passingMarks: 50,
-                                    createdAt: oldAsgn.uploadedAt || new Date()
-                                });
-                                console.log(`📑 Migrated legacy assignment [${oldAsgn.title}] for Grade ${lesson.grade}`);
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (asgnMigrateErr) {
-            console.warn("Legacy assignment migration notice:", asgnMigrateErr.message);
-        }
-
-        console.log("--------------------------------------------------");
-        console.log("🎉 LuminaLearn Migration completed successfully!");
-        console.log("--------------------------------------------------");
-    } catch (err) {
-        console.error("❌ Migration error occurred:", err);
+  // 1. Courses (Banners & Card Images -> /media/courses/...)
+  const courses = await Course.find({});
+  let courseCount = 0;
+  for (const course of courses) {
+    let modified = false;
+    if (course.banner && course.banner.includes('/uploads/')) {
+      const filename = path.basename(course.banner);
+      course.banner = `/media/courses/${filename}`;
+      modified = true;
     }
-};
+    if (course.cardImage && course.cardImage.includes('/uploads/')) {
+      const filename = path.basename(course.cardImage);
+      course.cardImage = `/media/courses/${filename}`;
+      modified = true;
+    }
+    if (modified) {
+      await course.save();
+      courseCount++;
+    }
+  }
+  console.log(`  ✓ Updated ${courseCount} Course media records.`);
 
-module.exports = { migrateData, getClassNameFromGrade };
+  // 2. Users (Avatars & Covers -> /media/profiles/...)
+  const users = await User.find({});
+  let userCount = 0;
+  for (const user of users) {
+    let modified = false;
+    if (user.avatar && user.avatar.includes('/uploads/')) {
+      const filename = path.basename(user.avatar);
+      user.avatar = `/media/profiles/${filename}`;
+      modified = true;
+    }
+    if (user.coverPhoto && user.coverPhoto.includes('/uploads/')) {
+      const filename = path.basename(user.coverPhoto);
+      user.coverPhoto = `/media/profiles/${filename}`;
+      modified = true;
+    }
+    if (modified) {
+      await user.save();
+      userCount++;
+    }
+  }
+  console.log(`  ✓ Updated ${userCount} User avatar/cover records.`);
+
+  // 3. Lessons (PDF Materials -> /api/files/lesson/:lessonId/pdf/:pdfId)
+  const lessons = await Lesson.find({});
+  let lessonPdfCount = 0;
+  for (const lesson of lessons) {
+    let modified = false;
+    if (Array.isArray(lesson.pdfMaterials)) {
+      for (const pdf of lesson.pdfMaterials) {
+        if (pdf.fileUrl && !pdf.fileUrl.startsWith('/api/files/')) {
+          pdf.fileUrl = `/api/files/lesson/${lesson._id}/pdf/${pdf._id}`;
+          modified = true;
+          lessonPdfCount++;
+        }
+      }
+    }
+    if (modified) {
+      await lesson.save();
+    }
+  }
+  console.log(`  ✓ Updated ${lessonPdfCount} Lesson PDF URLs.`);
+
+  // 4. Assignments (Question Sheets -> /api/files/assignment/:assignmentId)
+  const assignments = await Assignment.find({});
+  let asgnCount = 0;
+  for (const asgn of assignments) {
+    if (asgn.attachmentUrl && !asgn.attachmentUrl.startsWith('/api/files/')) {
+      asgn.attachmentUrl = `/api/files/assignment/${asgn._id}`;
+      await asgn.save();
+      asgnCount++;
+    }
+  }
+  console.log(`  ✓ Updated ${asgnCount} Assignment question sheet URLs.`);
+
+  // 5. Assignment Submissions (Student work -> /api/files/submission/:submissionId)
+  const submissions = await AssignmentSubmission.find({});
+  let subCount = 0;
+  for (const sub of submissions) {
+    if (sub.fileUrl && !sub.fileUrl.startsWith('/api/files/')) {
+      sub.fileUrl = `/api/files/submission/${sub._id}`;
+      await sub.save();
+      subCount++;
+    }
+  }
+  console.log(`  ✓ Updated ${subCount} Assignment Submission URLs.`);
+
+  // 6. Direct Messages (Attachments -> /api/files/message/:messageId/:index)
+  const messages = await DirectMessage.find({ 'attachments.0': { $exists: true } });
+  let msgCount = 0;
+  for (const msg of messages) {
+    let modified = false;
+    if (Array.isArray(msg.attachments)) {
+      msg.attachments.forEach((att, idx) => {
+        if (att.url && !att.url.startsWith('/api/files/')) {
+          att.url = `/api/files/message/${msg._id}/${idx}`;
+          modified = true;
+        }
+      });
+    }
+    if (modified) {
+      await msg.save();
+      msgCount++;
+    }
+  }
+  console.log(`  ✓ Updated ${msgCount} Direct Message attachments.`);
+
+  // 7. Payments (Bank Slips -> /api/files/payment/:paymentId/slip)
+  const payments = await Payment.find({ slipImage: { $exists: true, $ne: '' } });
+  let paymentCount = 0;
+  for (const payment of payments) {
+    if (payment.slipImage && !payment.slipImage.startsWith('data:') && !payment.slipImage.startsWith('/api/files/')) {
+      payment.slipImage = `/api/files/payment/${payment._id}/slip`;
+      await payment.save();
+      paymentCount++;
+    }
+  }
+  console.log(`  ✓ Updated ${paymentCount} Payment slip URLs.`);
+}
+
+/**
+ * Run full idempotent migration
+ */
+async function runFullMigration() {
+  console.log('\n=============================================');
+  console.log('🚀 LUMINALEARN STORAGE & DATA MIGRATION');
+  console.log('=============================================\n');
+
+  try {
+    // 1. Move physical files
+    await migratePhysicalFiles();
+
+    // 2. Connect to database if not connected
+    const dbURI = process.env.MONGO_URI;
+
+    if (!dbURI) {
+      throw new Error("MONGO_URI environment variable is missing.");
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      console.log('Connecting to MongoDB...');
+      await mongoose.connect(dbURI, {
+        serverSelectionTimeoutMS: 15000,
+        socketTimeoutMS: 45000,
+        tls: true,
+        retryWrites: true
+      });
+      console.log('Connected to MongoDB! 🚀');
+    }
+
+    // 3. Update database paths
+    await migrateDatabaseRecords();
+
+    console.log('\n=============================================');
+    console.log('🎉 MIGRATION COMPLETED SUCCESSFULLY');
+    console.log('=============================================\n');
+  } catch (err) {
+    console.error('❌ Migration Error:', err);
+    throw err;
+  }
+}
+
+/**
+ * Startup migration function invoked on server start
+ */
+async function migrateData() {
+  await migratePhysicalFiles();
+  if (mongoose.connection.readyState === 1) {
+    await migrateDatabaseRecords();
+  }
+}
+
+// Allow direct CLI execution: node backend/utils/migration.js
+if (require.main === module) {
+  runFullMigration()
+    .then(() => {
+      mongoose.disconnect();
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}
+
+module.exports = {
+  migrateData,
+  migratePhysicalFiles,
+  migrateDatabaseRecords,
+  runFullMigration
+};

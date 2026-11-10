@@ -14,43 +14,37 @@ const { protect, isAdmin, isTeacherOrAdmin } = require('../middleware/authMiddle
 const upload = require('../middleware/upload');
 const { getClassNameFromGrade } = require('../utils/migration');
 const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
+const { getCategoryDir, deleteFile } = require('../services/fileStorage');
 
-// Extract the raw filename if a full path is stored, and build a dynamic URL based on the request host
-// Also verifies the file actually exists on disk so images work across team members' machines
+// Extract the raw filename if a full path is stored, and build a dynamic URL or canonical media path
 const getFullUrl = (req, filenameOrUrl) => {
     if (!filenameOrUrl) return "";
     // If it is a Base64 string or an absolute URL (http/https), return it directly
     if (filenameOrUrl.startsWith('data:') || filenameOrUrl.startsWith('http://') || filenameOrUrl.startsWith('https://')) {
         return filenameOrUrl;
     }
-    let filename = filenameOrUrl;
-    if (filenameOrUrl.includes('/uploads/')) {
-        filename = filenameOrUrl.split('/uploads/').pop();
+    const filename = path.basename(filenameOrUrl.replace(/\\/g, '/'));
+    const targetDir = getCategoryDir('courses');
+    const targetPath = path.join(targetDir, filename);
+    const legacyPath = path.join(__dirname, '..', 'uploads', filename);
+
+    if (fs.existsSync(targetPath)) {
+        return `/media/courses/${filename}`;
     }
-    // Check if the file actually exists on this machine's disk
-    const filePath = path.join(__dirname, '..', 'uploads', filename);
-    if (!fs.existsSync(filePath)) {
-        // Fallback: if filename starts with / or looks like a static asset, return as-is
-        return filenameOrUrl.startsWith('/') ? filenameOrUrl : "";
+    if (fs.existsSync(legacyPath)) {
+        return `/uploads/${filename}`;
     }
-    return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+    return filenameOrUrl.startsWith('/') ? filenameOrUrl : `/media/courses/${filename}`;
 };
 
 // Extract filename to locate the file in the filesystem
 const getFilename = (filenameOrUrl) => {
-    if (!filenameOrUrl) return null;
-    // Base64 strings are stored in database, no local file to delete
-    if (filenameOrUrl.startsWith('data:')) {
-        return null;
-    }
-    if (filenameOrUrl.includes('/uploads/')) {
-        return filenameOrUrl.split('/uploads/').pop();
-    }
-    return filenameOrUrl;
+    if (!filenameOrUrl || filenameOrUrl.startsWith('data:')) return null;
+    return path.basename(filenameOrUrl.replace(/\\/g, '/'));
 };
 
-// Helper function to convert base64 data URIs to static files in /uploads to prevent database bloating and ensure super-fast image loading
-const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
+// Helper function to convert base64 data URIs to static files in /media/courses/
+const convertBase64ToStaticFile = (base64OrPath, prefix = 'course') => {
     if (!base64OrPath) return "";
     if (!base64OrPath.startsWith('data:')) {
         return base64OrPath;
@@ -63,16 +57,12 @@ const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
         const base64Data = matches[2];
         const ext = mimeType.split('/')[1] || 'jpeg';
         const filename = `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
-        const uploadsDir = path.join(__dirname, '..', 'uploads');
-        
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
+        const coursesDir = getCategoryDir('courses');
 
-        const filePath = path.join(uploadsDir, filename);
+        const filePath = path.join(coursesDir, filename);
         fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
 
-        return `/uploads/${filename}`;
+        return `/media/courses/${filename}`;
     } catch (err) {
         console.error("Failed to convert Base64 to static file:", err.message);
         return base64OrPath;
@@ -361,14 +351,14 @@ router.post(
 
             let bannerPath = "";
             if (req.files?.banner?.[0]) {
-                bannerPath = `/uploads/${req.files.banner[0].filename}`;
+                bannerPath = `/media/courses/${req.files.banner[0].filename}`;
             } else if (req.body.banner) {
                 bannerPath = convertBase64ToStaticFile(req.body.banner, 'banner');
             }
 
             let cardImagePath = "";
             if (req.files?.cardImage?.[0]) {
-                cardImagePath = `/uploads/${req.files.cardImage[0].filename}`;
+                cardImagePath = `/media/courses/${req.files.cardImage[0].filename}`;
             } else if (req.body.cardImage) {
                 cardImagePath = convertBase64ToStaticFile(req.body.cardImage, 'cardImage');
             }
@@ -526,20 +516,22 @@ router.delete('/:id', protect, isAdmin, async (req, res) => {
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ error: "Course not found" });
 
-        // Delete physical files from filesystem
+        // Delete physical files from filesystem (storage/public/courses and legacy uploads)
         const bannerFile = getFilename(course.banner);
         const cardImageFile = getFilename(course.cardImage);
 
         if (bannerFile) {
-            const bannerFilePath = path.join(__dirname, '..', 'uploads', bannerFile);
-            if (fs.existsSync(bannerFilePath)) {
-                fs.unlinkSync(bannerFilePath);
+            deleteFile('courses', bannerFile);
+            const bannerLegacyPath = path.join(__dirname, '..', 'uploads', bannerFile);
+            if (fs.existsSync(bannerLegacyPath)) {
+                try { fs.unlinkSync(bannerLegacyPath); } catch (e) {}
             }
         }
         if (cardImageFile) {
-            const cardImageFilePath = path.join(__dirname, '..', 'uploads', cardImageFile);
-            if (fs.existsSync(cardImageFilePath)) {
-                fs.unlinkSync(cardImageFilePath);
+            deleteFile('courses', cardImageFile);
+            const cardImageLegacyPath = path.join(__dirname, '..', 'uploads', cardImageFile);
+            if (fs.existsSync(cardImageLegacyPath)) {
+                try { fs.unlinkSync(cardImageLegacyPath); } catch (e) {}
             }
         }
 
@@ -858,9 +850,13 @@ router.post('/:id/toggle-grade', protect, isAdmin, async (req, res) => {
             // නැත්නම් ඇඩ් කරන්න
             const isCourseDeactive = course.status === 'deactive' || course.isActive === false;
             const titleVal = req.body.title || (gradeNumber.toLowerCase().startsWith('grade') ? gradeNumber : `Grade ${gradeNumber}`);
+            const feeVal = (req.body.fee !== undefined && req.body.fee !== null && !isNaN(Number(req.body.fee)) && Number(req.body.fee) >= 0)
+                ? Number(req.body.fee)
+                : (course.price || 2500);
             course.enrolledGrades.push({ 
                 gradeNumber, 
                 title: titleVal,
+                fee: feeVal,
                 messages: [],
                 status: isCourseDeactive ? 'deactive' : 'active',
                 isActive: !isCourseDeactive,
@@ -1004,7 +1000,7 @@ router.put('/:courseId/grades/:gradeId/status', protect, async (req, res) => {
         const { courseId, gradeId } = req.params;
         const { status, deactivatedBy } = req.body;
 
-        const course = await Course.findById(courseId);
+        const course = await Course.findById(courseId, 'status isActive enrolledGrades').lean();
         if (!course) {
             return res.status(404).json({ error: "Course not found" });
         }
@@ -1016,6 +1012,71 @@ router.put('/:courseId/grades/:gradeId/status', protect, async (req, res) => {
         const isDeactive = status === 'deactive';
         const newStatus = isDeactive ? 'deactive' : 'active';
         const updatedByRole = req.user.role === 'admin' ? 'admin' : 'teacher';
+
+        // Locate target grade in course.enrolledGrades
+        const enrolledGrades = course.enrolledGrades || [];
+        let gradeItem = enrolledGrades.find(g => 
+            String(g._id) === String(gradeId) || 
+            String(g.id) === String(gradeId) || 
+            String(g.gradeNumber).toLowerCase() === String(gradeId).toLowerCase()
+        );
+
+        if (!gradeItem) {
+            gradeItem = enrolledGrades.find(g => 
+                String(g.gradeNumber).replace(/\D/g, '') === String(gradeId).replace(/\D/g, '')
+            );
+        }
+
+        if (gradeItem) {
+            await Course.updateOne(
+                { _id: courseId, "enrolledGrades._id": gradeItem._id },
+                {
+                    $set: {
+                        "enrolledGrades.$.status": newStatus,
+                        "enrolledGrades.$.isActive": !isDeactive,
+                        "enrolledGrades.$.deactivatedBy": isDeactive ? (deactivatedBy || updatedByRole) : null
+                    }
+                }
+            );
+        } else {
+            await Course.updateOne(
+                { _id: courseId },
+                {
+                    $push: {
+                        enrolledGrades: {
+                            gradeNumber: gradeId,
+                            title: `Grade ${gradeId}`,
+                            status: newStatus,
+                            isActive: !isDeactive,
+                            deactivatedBy: isDeactive ? (deactivatedBy || updatedByRole) : null
+                        }
+                    }
+                }
+            );
+        }
+
+        res.json({ 
+            message: `Grade status updated to ${newStatus} successfully`, 
+            status: newStatus,
+            deactivatedBy: isDeactive ? (deactivatedBy || updatedByRole) : null
+        });
+    } catch (err) {
+        console.error("Failed to update grade status:", err.message);
+        res.status(500).json({ error: "Failed to update grade status: " + err.message });
+    }
+});
+
+// @route   PUT /api/courses/:courseId/grades/:gradeId/details
+// @desc    Admin / Teacher update grade fee and title
+router.put('/:courseId/grades/:gradeId/details', protect, isTeacherOrAdmin, async (req, res) => {
+    try {
+        const { courseId, gradeId } = req.params;
+        const { fee, title } = req.body;
+
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ error: "Course not found" });
+        }
 
         // Locate target grade in course.enrolledGrades
         let gradeItem = course.enrolledGrades.find(g => 
@@ -1030,31 +1091,27 @@ router.put('/:courseId/grades/:gradeId/status', protect, async (req, res) => {
             );
         }
 
-        if (gradeItem) {
-            gradeItem.status = newStatus;
-            gradeItem.isActive = !isDeactive;
-            gradeItem.deactivatedBy = isDeactive ? (deactivatedBy || updatedByRole) : null;
-        } else {
-            course.enrolledGrades.push({
-                gradeNumber: gradeId,
-                title: `Grade ${gradeId}`,
-                status: newStatus,
-                isActive: !isDeactive,
-                deactivatedBy: isDeactive ? (deactivatedBy || updatedByRole) : null
-            });
+        if (!gradeItem) {
+            return res.status(404).json({ error: "Grade not found in this course" });
+        }
+
+        if (fee !== undefined && fee !== null && !isNaN(Number(fee)) && Number(fee) >= 0) {
+            gradeItem.fee = Number(fee);
+        }
+        if (title && String(title).trim()) {
+            gradeItem.title = String(title).trim();
         }
 
         course.markModified('enrolledGrades');
         await course.save();
 
         res.json({ 
-            message: `Grade status updated to ${newStatus} successfully`, 
-            status: newStatus,
-            deactivatedBy: isDeactive ? (deactivatedBy || updatedByRole) : null
+            message: "Grade details updated successfully", 
+            grade: gradeItem 
         });
     } catch (err) {
-        console.error("Failed to update grade status:", err.message);
-        res.status(500).json({ error: "Failed to update grade status: " + err.message });
+        console.error("Failed to update grade details:", err.message);
+        res.status(500).json({ error: "Failed to update grade details: " + err.message });
     }
 });
 
@@ -1063,7 +1120,7 @@ router.put('/:courseId/grades/:gradeId/status', protect, async (req, res) => {
 router.put('/:id/full-status', protect, isAdmin, async (req, res) => {
     try {
         const { status } = req.body;
-        const course = await Course.findById(req.params.id);
+        const course = await Course.findById(req.params.id, 'title status isActive enrolledGrades').lean();
         if (!course) {
             return res.status(404).json({ error: "Course not found" });
         }
@@ -1071,9 +1128,11 @@ router.put('/:id/full-status', protect, isAdmin, async (req, res) => {
         const isDeactive = status === 'deactive';
         const newStatus = isDeactive ? 'deactive' : 'active';
 
-        course.status = newStatus;
-        course.isActive = !isDeactive;
-        course.deactivatedBy = isDeactive ? 'admin' : null;
+        const updateFields = {
+            status: newStatus,
+            isActive: !isDeactive,
+            deactivatedBy: isDeactive ? 'admin' : null
+        };
 
         if (isDeactive) {
             // Deactivating full course: store previous status of each grade before setting to deactive
@@ -1086,7 +1145,7 @@ router.put('/:id/full-status', protect, isAdmin, async (req, res) => {
                     g.isActive = false;
                     g.deactivatedBy = 'admin';
                 });
-                course.markModified('enrolledGrades');
+                updateFields.enrolledGrades = course.enrolledGrades;
             }
         } else {
             // Reactivating full course: restore each grade back to its previous status as before full course deactivation
@@ -1098,15 +1157,17 @@ router.put('/:id/full-status', protect, isAdmin, async (req, res) => {
                     g.deactivatedBy = restoredStatus === 'deactive' ? (g.deactivatedBy || 'admin') : null;
                     g.previousStatus = null;
                 });
-                course.markModified('enrolledGrades');
+                updateFields.enrolledGrades = course.enrolledGrades;
             }
         }
 
-        await course.save();
+        await Course.updateOne({ _id: req.params.id }, { $set: updateFields });
 
         res.json({
-            message: `Course "${course.title}" status updated to ${newStatus} successfully`,
-            course
+            message: `Course "${course.title || 'Course'}" status updated to ${newStatus} successfully`,
+            courseId: course._id,
+            status: newStatus,
+            isActive: !isDeactive
         });
     } catch (err) {
         console.error("Failed to update full course status:", err.message);

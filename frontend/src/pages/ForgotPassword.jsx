@@ -124,13 +124,26 @@ const ForgotPassword = () => {
       </div>
 
       {/* Right Side - Form Panel */}
-      <div className="flex w-full items-center justify-center bg-white dark:bg-slate-900/95 dark:backdrop-blur-xl px-6 py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto border-l border-transparent dark:border-slate-800 transition-colors">
-        <div className="w-full max-w-md py-4">
+      <div className="flex w-full items-center justify-center bg-white dark:bg-slate-900/95 dark:backdrop-blur-xl px-4 sm:px-6 py-8 sm:py-12 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto border-l border-transparent dark:border-slate-800 transition-colors">
+        <div className="w-full max-w-md py-2 sm:py-4">
+
+          {/* Mobile Branding Logo */}
+          <div className="lg:hidden flex flex-col items-center mb-6 text-center">
+            <img
+              src="/assets/LuminaLearn_Logo_banner.png"
+              alt="LuminaLearn Logo"
+              className="h-14 sm:h-16 w-auto object-contain mb-1 drop-shadow-sm cursor-pointer"
+              onClick={() => navigate('/')}
+            />
+            <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+              Smart Learning Platform
+            </span>
+          </div>
 
           {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-4xl font-black text-[#1e1e38] dark:text-white tracking-tight">Forgot Password</h2>
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-4xl font-black text-[#1e1e38] dark:text-white tracking-tight">Forgot Password</h2>
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
               {step === 1
                 ? "Enter your credentials to receive a verification passcode"
                 : `Enter the 6-digit code sent to ${maskedDestination}`}

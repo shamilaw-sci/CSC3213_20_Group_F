@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import API from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { 
@@ -57,8 +58,7 @@ const Analytics = () => {
   const fetchAnalytics = async (typeFilter = 'all', childOrStudentId = '', courseId = 'all', adminTeacherId = 'all') => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      let url = `http://localhost:5000/api/auth/analytics-summary?studentType=${typeFilter}`;
+      let url = `/auth/analytics-summary?studentType=${typeFilter}`;
       if (childOrStudentId) {
         url += `&studentId=${childOrStudentId}`;
       }
@@ -68,9 +68,7 @@ const Analytics = () => {
       if (adminTeacherId && adminTeacherId !== 'all') {
         url += `&teacherId=${adminTeacherId}`;
       }
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await API.get(url);
       setData(res.data);
       if (res.data?.selectedStudentId && !selectedChildId && isParent) {
         setSelectedChildId(res.data.selectedStudentId);
@@ -758,57 +756,62 @@ const Analytics = () => {
         <div className="max-w-7xl mx-auto space-y-8">
 
           {/* Teacher Header Banner */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-8 rounded-[30px] text-white shadow-xl">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-5 sm:p-8 rounded-[28px] text-white shadow-xl">
             <div>
               <div className="flex items-center gap-3">
-                <span className="p-3 bg-white/10 rounded-2xl text-amber-400 text-2xl">👨‍🏫</span>
+                <span className="p-2.5 sm:p-3 bg-white/10 rounded-2xl text-amber-400 text-xl sm:text-2xl shrink-0">👨‍🏫</span>
                 <div>
-                  <h2 className="text-3xl font-extrabold tracking-tight">Teacher Analytics & Class Insights</h2>
-                  <p className="text-indigo-200 text-sm mt-1">
+                  <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Teacher Analytics & Class Insights</h2>
+                  <p className="text-indigo-200 text-xs sm:text-sm mt-1">
                     Monitor enrolled students, class attendance compliance, and fee settlements for your assigned courses.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Student Mode Filter Control */}
-            <div className="bg-white/10 backdrop-blur-md p-1.5 rounded-2xl border border-white/20 flex items-center gap-1">
-              <span className="text-xs text-indigo-200 px-3 font-semibold flex items-center gap-1">
-                <FaFilter className="text-amber-400" /> Mode:
+            {/* Student Mode Filter Control - Responsive on mobile without overflow */}
+            <div className="w-full lg:w-auto bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 max-w-full overflow-hidden">
+              <span className="text-xs text-indigo-200 px-1 font-semibold flex items-center gap-1 shrink-0">
+                <FaFilter className="text-amber-400 text-xs" /> Mode:
               </span>
-              <button
-                type="button"
-                onClick={() => setStudentTypeFilter('all')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                  studentTypeFilter === 'all' 
-                    ? 'bg-amber-400 text-purple-950 shadow-md scale-105' 
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                🌐 All
-              </button>
-              <button
-                type="button"
-                onClick={() => setStudentTypeFilter('online')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                  studentTypeFilter === 'online' 
-                    ? 'bg-red-500 text-white shadow-md scale-105' 
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                💻 Online
-              </button>
-              <button
-                type="button"
-                onClick={() => setStudentTypeFilter('physical')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                  studentTypeFilter === 'physical' 
-                    ? 'bg-blue-600 text-white shadow-md scale-105' 
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                🏫 Physical
-              </button>
+              <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setStudentTypeFilter('all')}
+                  className={`px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs font-bold rounded-xl transition cursor-pointer text-center truncate ${
+                    studentTypeFilter === 'all' 
+                      ? 'bg-amber-400 text-purple-950 shadow-md font-extrabold' 
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
+                  title="All Students"
+                >
+                  🌐 <span className="sm:hidden">All</span><span className="hidden sm:inline">All Students</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStudentTypeFilter('online')}
+                  className={`px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs font-bold rounded-xl transition cursor-pointer text-center truncate ${
+                    studentTypeFilter === 'online' 
+                      ? 'bg-red-500 text-white shadow-md font-extrabold' 
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
+                  title="Online Students"
+                >
+                  💻 <span className="sm:hidden">Online</span><span className="hidden sm:inline">Online Only</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStudentTypeFilter('physical')}
+                  className={`px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs font-bold rounded-xl transition cursor-pointer text-center truncate ${
+                    studentTypeFilter === 'physical' 
+                      ? 'bg-blue-600 text-white shadow-md font-extrabold' 
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
+                  title="Physical Students"
+                >
+                  🏫 <span className="sm:hidden">Physical</span><span className="hidden sm:inline">Physical Only</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1381,54 +1384,62 @@ const Analytics = () => {
       <div className="max-w-7xl mx-auto space-y-10">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-8 rounded-[30px] text-white shadow-xl">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-gradient-to-r from-[#2d1b64] via-indigo-900 to-[#2d1b64] p-5 sm:p-8 rounded-[28px] text-white shadow-xl">
           <div>
             <div className="flex items-center gap-3">
-              <span className="p-3 bg-white/10 rounded-2xl text-amber-400 text-2xl">📊</span>
+              <span className="p-2.5 sm:p-3 bg-white/10 rounded-2xl text-amber-400 text-xl sm:text-2xl shrink-0">📊</span>
               <div>
-                <h2 className="text-3xl font-extrabold tracking-tight">Analytics & Platform Insights</h2>
-                <p className="text-indigo-200 text-sm mt-1">
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Analytics & Platform Insights</h2>
+                <p className="text-indigo-200 text-xs sm:text-sm mt-1">
                   Real-time visual operational analytics on weekly student growth, teacher performance, course workloads, and revenues.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Student Mode Filter Control */}
-          <div className="bg-white/10 backdrop-blur-md p-1.5 rounded-2xl border border-white/20 flex items-center gap-1">
-            <span className="text-xs text-indigo-200 px-3 font-semibold flex items-center gap-1">
-              <FaFilter className="text-amber-400" /> Filter Mode:
+          {/* Student Mode Filter Control - Responsive on mobile without overflow */}
+          <div className="w-full lg:w-auto bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 max-w-full overflow-hidden">
+            <span className="text-xs text-indigo-200 px-1 font-semibold flex items-center gap-1 shrink-0">
+              <FaFilter className="text-amber-400 text-xs" /> Filter Mode:
             </span>
-            <button
-              onClick={() => setStudentTypeFilter('all')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-                studentTypeFilter === 'all' 
-                  ? 'bg-amber-400 text-purple-950 shadow-md scale-105' 
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              🌐 All Students
-            </button>
-            <button
-              onClick={() => setStudentTypeFilter('online')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-                studentTypeFilter === 'online' 
-                  ? 'bg-red-500 text-white shadow-md scale-105' 
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              💻 Online Only
-            </button>
-            <button
-              onClick={() => setStudentTypeFilter('physical')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-                studentTypeFilter === 'physical' 
-                  ? 'bg-blue-600 text-white shadow-md scale-105' 
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              🏫 Physical Only
-            </button>
+            <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setStudentTypeFilter('all')}
+                className={`px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs font-bold rounded-xl transition cursor-pointer text-center truncate ${
+                  studentTypeFilter === 'all' 
+                    ? 'bg-amber-400 text-purple-950 shadow-md font-extrabold' 
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+                title="All Students"
+              >
+                🌐 <span className="sm:hidden">All</span><span className="hidden sm:inline">All Students</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStudentTypeFilter('online')}
+                className={`px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs font-bold rounded-xl transition cursor-pointer text-center truncate ${
+                  studentTypeFilter === 'online' 
+                    ? 'bg-red-500 text-white shadow-md font-extrabold' 
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+                title="Online Students"
+              >
+                💻 <span className="sm:hidden">Online</span><span className="hidden sm:inline">Online Only</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStudentTypeFilter('physical')}
+                className={`px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs font-bold rounded-xl transition cursor-pointer text-center truncate ${
+                  studentTypeFilter === 'physical' 
+                    ? 'bg-blue-600 text-white shadow-md font-extrabold' 
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+                title="Physical Students"
+              >
+                🏫 <span className="sm:hidden">Physical</span><span className="hidden sm:inline">Physical Only</span>
+              </button>
+            </div>
           </div>
         </div>
 

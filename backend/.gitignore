@@ -1,3 +1,20 @@
 node_modules/
 logs/
 *.log
+.env
+.env.*
+!.env.example
+# Storage uploads (stored on server filesystem outside git)
+storage/public/courses/*
+storage/public/profiles/*
+storage/private/lessons/*
+storage/private/assignments/*
+storage/private/submissions/*
+storage/private/quizzes/*
+storage/private/messages/*
+storage/private/live-chat/*
+storage/private/payments/*
+uploads/*
+!storage/**/.gitkeep
+!uploads/.gitkeep
+*.env

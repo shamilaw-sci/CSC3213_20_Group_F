@@ -6,12 +6,14 @@ const protect = async (req, res, next) => {
   try {
     let token;
 
-    // 1. Check if token exists in header
+    // 1. Check if token exists in header or query string
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith('Bearer')
     ) {
       token = req.headers.authorization.split(' ')[1];
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
     }
 
     // 2. If no token found
@@ -27,6 +29,16 @@ const protect = async (req, res, next) => {
 
     if (!user) {
       return res.status(401).json({ message: "User not found" });
+    }
+
+    // 4.1 Check single active session strictly for students
+    if (user.role === 'student') {
+      if (!decoded.sessionId || decoded.sessionId !== user.activeSessionId) {
+        return res.status(401).json({
+          code: 'CONCURRENT_LOGIN_DETECTED',
+          message: 'Your account was logged in from another device or browser. Only one active session is permitted for students.'
+        });
+      }
     }
 
     // 5. Attach user to request
@@ -47,13 +59,19 @@ const optionalProtect = async (req, res, next) => {
       req.headers.authorization.startsWith('Bearer')
     ) {
       token = req.headers.authorization.split(' ')[1];
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
     }
 
     if (token && token !== 'null' && token !== 'undefined') {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded.id).select('-password');
       if (user) {
-        req.user = user;
+        if (user.role === 'student' && (!decoded.sessionId || decoded.sessionId !== user.activeSessionId)) {
+          req.user = null;
+        } else {
+          req.user = user;
+        }
       }
     }
   } catch (error) {

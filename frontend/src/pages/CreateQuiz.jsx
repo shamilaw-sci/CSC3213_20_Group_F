@@ -7,6 +7,7 @@ import {
   FaClipboardList, FaImage, FaCheckCircle, FaCalendarAlt,
   FaCheckSquare, FaDotCircle, FaToggleOn, FaLightbulb, FaPercentage
 } from 'react-icons/fa';
+import { getMediaUrl } from '../utils/mediaUrl';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -601,7 +602,7 @@ const CreateQuiz = () => {
                     {question.questionImage ? (
                       <div className="relative inline-block border-2 border-purple-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm max-w-sm">
                         <img 
-                          src={question.questionImage.startsWith('http') ? question.questionImage : `http://localhost:5000${question.questionImage}`} 
+                          src={getMediaUrl(question.questionImage)} 
                           alt="Question diagram"
                           className="max-h-48 object-contain bg-gray-50 dark:bg-slate-800 p-2"
                         />

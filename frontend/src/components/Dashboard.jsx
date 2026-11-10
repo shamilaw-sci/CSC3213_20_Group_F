@@ -41,6 +41,7 @@ import {
 } from 'react-icons/fa';
 import StudentIdCard from './StudentIdCard';
 import AddScheduleModal from './AddScheduleModal';
+import ConfirmModal from './ConfirmModal';
 
 // Grade options matching registration grade requirements
 const gradeOptions = [
@@ -256,15 +257,15 @@ const AttendanceRing = ({ percentage = 100 }) => {
 
   return (
     <div className="flex flex-col items-center justify-center p-3">
-      <div className="relative w-28 h-28 flex items-center justify-center">
+      <div className="relative w-32 h-32 flex items-center justify-center">
         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="8" fill="transparent" className="dark:stroke-slate-800" />
-          <circle cx="50" cy="50" r="40" stroke="#6366f1" strokeWidth="8" fill="transparent"
+          <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="7" fill="transparent" className="dark:stroke-slate-800" />
+          <circle cx="50" cy="50" r="40" stroke="#6366f1" strokeWidth="7" fill="transparent"
             strokeDasharray="251.2" strokeDashoffset={strokeDashoffset} strokeLinecap="round" className="transition-all duration-1000" />
         </svg>
-        <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-2xl font-extrabold text-slate-800 dark:text-white">{safePct}%</span>
-          <span className="text-4xs text-slate-400 dark:text-slate-400 font-bold uppercase tracking-wider">Avg Rate</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <span className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none tracking-tight">{safePct}%</span>
+          <span className="text-[10px] text-slate-400 dark:text-slate-400 font-extrabold uppercase tracking-widest leading-none mt-1.5">Avg Rate</span>
         </div>
       </div>
       <span className={`mt-3 text-3xs font-extrabold border px-3 py-1 rounded-full ${statusInfo.color}`}>
@@ -602,6 +603,7 @@ const AdminDashboard = ({ user }) => {
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
+  const [deleteScheduleModal, setDeleteScheduleModal] = useState(null);
 
   useEffect(() => {
     fetchAdminData();
@@ -653,15 +655,22 @@ const AdminDashboard = ({ user }) => {
     }
   };
 
-  const handleDeleteSchedule = async (id, title) => {
-    if (!window.confirm(`Are you sure you want to remove "${title}" from the calendar?`)) return;
+  const handleDeleteSchedule = (id, title) => {
+    setDeleteScheduleModal({ id, title });
+  };
+
+  const executeDeleteSchedule = async () => {
+    if (!deleteScheduleModal) return;
+    const { id, title } = deleteScheduleModal;
 
     try {
       await api.delete(`/schedule/${id}`);
       toast.success("Schedule entry deleted successfully.");
-      setSchedule(schedule.filter(item => item._id !== id));
+      setSchedule(prev => prev.filter(item => item._id !== id));
     } catch (err) {
       toast.error("Failed to delete schedule entry");
+    } finally {
+      setDeleteScheduleModal(null);
     }
   };
 
@@ -1142,6 +1151,20 @@ const AdminDashboard = ({ user }) => {
         courses={courses}
         teachers={teachers}
         gradeOptions={gradeOptions}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteScheduleModal}
+        onClose={() => setDeleteScheduleModal(null)}
+        onConfirm={executeDeleteSchedule}
+        title="Remove Calendar Schedule"
+        message={
+          deleteScheduleModal
+            ? `Are you sure you want to remove "${deleteScheduleModal.title}" from the calendar?`
+            : ''
+        }
+        confirmText="Remove Entry"
+        type="danger"
       />
     </div>
   );

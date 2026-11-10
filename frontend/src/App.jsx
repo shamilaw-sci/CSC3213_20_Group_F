@@ -68,9 +68,29 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
+// --- AUTO SCROLL TO TOP ON ROUTE CHANGE ---
+const ScrollToTop = () => {
+  const { pathname, search } = useLocation();
+
+  React.useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant'
+    });
+    const mainContainer = document.querySelector('main');
+    if (mainContainer) {
+      mainContainer.scrollTop = 0;
+    }
+  }, [pathname, search]);
+
+  return null;
+};
+
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Toaster position="top-center" />
       <Routes>
         {/* === PUBLIC ROUTES === */}

@@ -1,12 +1,8 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const { getCategoryDir } = require('../services/fileStorage');
 
-// Ensure the uploads directory exists
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+const uploadDir = getCategoryDir('courses');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -14,20 +10,20 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     // e.g. banner-1720340000000.jpg
-    const prefix = file.fieldname; // 'banner' or 'cardImage'
+    const prefix = file.fieldname || 'course';
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${prefix}-${Date.now()}${ext}`);
+    cb(null, `${prefix}-${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`);
   }
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = /jpeg|jpg|png|webp|gif/;
+  const allowed = /jpeg|jpg|png|webp|gif|svg/;
   const ext = allowed.test(path.extname(file.originalname).toLowerCase());
   const mime = allowed.test(file.mimetype);
   if (ext && mime) {
     cb(null, true);
   } else {
-    cb(new Error('Only image files (jpeg, png, webp, gif) are allowed.'));
+    cb(new Error('Only image files (JPEG, PNG, WebP, GIF, SVG) are allowed.'));
   }
 };
 
