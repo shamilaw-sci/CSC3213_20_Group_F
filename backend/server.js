@@ -19,15 +19,43 @@ const assignmentRoutes = require('./routes/assignmentRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 const searchRoutes = require('./routes/searchRoutes');
+const fileRoutes = require('./routes/fileRoutes');
+const fileStorage = require('./services/fileStorage');
 
 const app = express();
 
+// Initialize physical storage folders
+fileStorage.initStorage();
+
+// --- CORS CONFIGURATION ---
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'https://luminalearn.edu.lk',
+    'https://www.luminalearn.edu.lk',
+    'http://localhost:5173',
+    'http://localhost:3000'
+].filter(Boolean);
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`Origin ${origin} not allowed by CORS policy.`));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
 
 // --- MIDDLEWARE ---
 app.use(express.json({ limit: '50mb' })); // Parses incoming JSON requests
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(cors());         // Enables Cross-Origin Resource Sharing
-app.use('/uploads', cors(), express.static(path.join(__dirname, 'uploads'))); // Serve uploaded images & PDF materials with CORS
+app.use(cors(corsOptions)); // Enables Cross-Origin Resource Sharing
+app.use('/media', cors(corsOptions), express.static(path.join(__dirname, 'storage/public'))); // Public media (courses/profiles)
+app.use('/uploads', cors(corsOptions), express.static(path.join(__dirname, 'uploads'))); // Legacy uploads compatibility
 
 // --- ROOT HEALTH CHECK ---
 app.get('/', (req, res) => {
@@ -39,6 +67,16 @@ app.get('/health', (req, res) => {
         status: 'ok',
         database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
     });
+});
+
+// Do not let protected routes queue MongoDB operations while Atlas is unavailable.
+app.use('/api', (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+            error: 'Database temporarily unavailable. Please try again shortly.'
+        });
+    }
+    next();
 });
 
 // --- ROUTES ---
@@ -57,6 +95,7 @@ app.use('/api/assignments', assignmentRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/files', fileRoutes);
 
 
 // --- GLOBAL ERROR HANDLER ---
@@ -68,11 +107,10 @@ app.use((err, req, res, next) => {
 });
 
 // --- DATABASE CONNECTION ---
-const fallbackDbURI = 'mongodb://developer:dev1234@ac-zqvmyqq-shard-00-00.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-01.br5bcum.mongodb.net:27017,ac-zqvmyqq-shard-00-02.br5bcum.mongodb.net:27017/?ssl=true&replicaSet=atlas-l6y6kk-shard-0&authSource=admin&appName=LuminaLearnCluster';
-const dbURI = process.env.MONGO_URI || fallbackDbURI;
+const dbURI = process.env.MONGO_URI;
 
 if (!dbURI) {
-    console.error("FATAL ERROR: MONGO_URI is not defined in .env file.");
+    console.error("FATAL ERROR: MONGO_URI is not defined in environment variables. Please provide a valid MongoDB connection string.");
     process.exit(1);
 }
 
@@ -107,12 +145,15 @@ const startServer = async () => {
             console.warn("Index check note:", indexSyncErr.message);
         }
 
-        // Run data migration (Base64 images to disk & Enrollments collection)
-        try {
-            const { migrateData } = require('./utils/migration');
-            await migrateData();
-        } catch (migrationErr) {
-            console.error("Failed to run startup migration:", migrationErr);
+        // Run data migration only if explicitly requested via environment variable
+        if (process.env.RUN_STARTUP_MIGRATION === 'true') {
+            try {
+                const { migrateData } = require('./utils/migration');
+                console.log("🔄 RUN_STARTUP_MIGRATION is enabled. Running migration...");
+                await migrateData();
+            } catch (migrationErr) {
+                console.error("Failed to run startup migration:", migrationErr);
+            }
         }
     } catch (err) {
         console.error("Database connection error:", err.message);

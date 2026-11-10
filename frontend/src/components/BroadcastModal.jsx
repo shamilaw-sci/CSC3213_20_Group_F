@@ -122,18 +122,18 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-2xl shadow-2xl border border-purple-100 dark:border-slate-800 overflow-hidden transform transition-all text-gray-800 dark:text-gray-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 animate-fadeIn">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-purple-100 dark:border-slate-800 overflow-hidden transform transition-all text-gray-800 dark:text-gray-100">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-700 via-purple-800 to-indigo-900 p-6 text-white flex justify-between items-center">
+        <div className="bg-gradient-to-r from-purple-700 via-purple-800 to-indigo-900 p-4 sm:p-6 text-white flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-white/15 rounded-xl backdrop-blur-md">
-              <FaBullhorn className="text-2xl text-purple-200" />
+            <div className="p-2.5 sm:p-3 bg-white/15 rounded-xl backdrop-blur-md">
+              <FaBullhorn className="text-xl sm:text-2xl text-purple-200" />
             </div>
             <div>
-              <h3 className="text-xl font-bold">Broadcast Announcement</h3>
-              <p className="text-xs text-purple-200 font-medium mt-0.5">Send updates to students & parents via In-App, SMS & Email</p>
+              <h3 className="text-lg sm:text-xl font-bold">Broadcast Announcement</h3>
+              <p className="text-[11px] sm:text-xs text-purple-200 font-medium mt-0.5">Send updates to students & parents via In-App, SMS & Email</p>
             </div>
           </div>
           <button 
@@ -141,12 +141,12 @@ const BroadcastModal = ({ isOpen, onClose, defaultGrade = '', defaultCourseId = 
             className="p-2 text-purple-200 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
             title="Close"
           >
-            <FaTimes className="text-lg" />
+            <FaTimes className="text-base sm:text-lg" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
           {feedback && (
             <div className={`p-4 rounded-xl text-sm font-semibold flex items-center gap-2 ${
               feedback.type === 'success' 

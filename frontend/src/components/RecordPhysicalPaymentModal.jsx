@@ -12,12 +12,26 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
   // Form State
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState('');
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH_COUNTER');
   const [receiptNumber, setReceiptNumber] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [remarks, setRemarks] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
+
+  const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
+
+  const findMatchingGradeInCourse = (courseObj, studentGradeVal) => {
+    if (!courseObj?.enrolledGrades?.length) return null;
+    const norm = normalizeGrade(studentGradeVal);
+    if (!norm) return courseObj.enrolledGrades[0] || null;
+    return courseObj.enrolledGrades.find(g => {
+      const gNorm = normalizeGrade(g.gradeNumber);
+      const parts = String(g.gradeNumber).split(/[\&,/\+\-]|(?:\s+and\s+)/i).map(normalizeGrade);
+      return gNorm === norm || parts.includes(norm);
+    }) || courseObj.enrolledGrades[0] || null;
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -50,13 +64,73 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
     }
   };
 
-  // Automatically update amount when course is selected
+  const handleStudentChange = (e) => {
+    const sId = e.target.value;
+    setSelectedStudentId(sId);
+    const stu = students.find(s => s._id === sId);
+    if (stu && selectedCourseId) {
+      const crs = courses.find(c => c._id === selectedCourseId);
+      if (crs) {
+        const matched = findMatchingGradeInCourse(crs, stu.grade);
+        if (matched) {
+          setSelectedGrade(matched.gradeNumber);
+          const gFee = (matched.fee !== undefined && matched.fee !== null && Number(matched.fee) >= 0)
+            ? Number(matched.fee)
+            : (crs.price || 2500);
+          setAmount(gFee);
+        }
+      }
+    }
+  };
+
+  // Automatically update grade and amount when course is selected
   const handleCourseChange = (e) => {
     const courseId = e.target.value;
     setSelectedCourseId(courseId);
     const selectedCourse = courses.find(c => c._id === courseId);
+    const currentStudent = students.find(s => s._id === selectedStudentId);
+
     if (selectedCourse) {
-      setAmount(selectedCourse.price || 2500);
+      if (selectedCourse.enrolledGrades && selectedCourse.enrolledGrades.length > 0) {
+        const matched = findMatchingGradeInCourse(selectedCourse, currentStudent?.grade);
+        if (matched) {
+          setSelectedGrade(matched.gradeNumber);
+          const gFee = (matched.fee !== undefined && matched.fee !== null && Number(matched.fee) >= 0)
+            ? Number(matched.fee)
+            : (selectedCourse.price || 2500);
+          setAmount(gFee);
+        } else {
+          setSelectedGrade(selectedCourse.enrolledGrades[0].gradeNumber);
+          const gFee = (selectedCourse.enrolledGrades[0].fee !== undefined && selectedCourse.enrolledGrades[0].fee !== null && Number(selectedCourse.enrolledGrades[0].fee) >= 0)
+            ? Number(selectedCourse.enrolledGrades[0].fee)
+            : (selectedCourse.price || 2500);
+          setAmount(gFee);
+        }
+      } else {
+        setSelectedGrade(currentStudent?.grade || 'Grade 6');
+        setAmount(selectedCourse.price || 2500);
+      }
+    } else {
+      setSelectedGrade('');
+      setAmount('');
+    }
+  };
+
+  // When grade is selected manually
+  const handleGradeChange = (e) => {
+    const gNum = e.target.value;
+    setSelectedGrade(gNum);
+    const selectedCourse = courses.find(c => c._id === selectedCourseId);
+    if (selectedCourse && selectedCourse.enrolledGrades) {
+      const gObj = selectedCourse.enrolledGrades.find(g => g.gradeNumber === gNum);
+      if (gObj) {
+        const gFee = (gObj.fee !== undefined && gObj.fee !== null && Number(gObj.fee) >= 0)
+          ? Number(gObj.fee)
+          : (selectedCourse.price || 2500);
+        setAmount(gFee);
+      } else {
+        setAmount(selectedCourse.price || 2500);
+      }
     }
   };
 
@@ -70,6 +144,10 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
       toast.error('Please select a course.');
       return;
     }
+    if (!selectedGrade) {
+      toast.error('Please select a grade / class.');
+      return;
+    }
     if (!amount || isNaN(amount) || Number(amount) <= 0) {
       toast.error('Please enter a valid payment amount.');
       return;
@@ -80,6 +158,7 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
       const res = await api.post('/payments/record-physical-payment', {
         studentId: selectedStudentId,
         courseId: selectedCourseId,
+        grade: selectedGrade,
         amount: Number(amount),
         paymentMethod,
         receiptNumber: receiptNumber.trim(),
@@ -114,6 +193,7 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
   });
 
   const selectedStudent = students.find(s => s._id === selectedStudentId);
+  const selectedCourse = courses.find(c => c._id === selectedCourseId);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
@@ -185,7 +265,7 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
 
               <select
                 value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
+                onChange={handleStudentChange}
                 className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-800 dark:text-white font-semibold cursor-pointer"
                 required
               >
@@ -205,8 +285,13 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
 
             {/* Field 2: Select Course */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                Select Course <span className="text-red-500">*</span>
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <span>Select Course <span className="text-red-500">*</span></span>
+                {selectedCourse && (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
+                    {selectedCourse.enrolledGrades?.length || 0} Grade Class(es) Available
+                  </span>
+                )}
               </label>
               <select
                 value={selectedCourseId}
@@ -217,10 +302,51 @@ const RecordPhysicalPaymentModal = ({ isOpen, onClose, onSuccess, initialStudent
                 <option value="">-- Choose Course ({courses.length} Active Courses) --</option>
                 {courses.map(c => (
                   <option key={c._id} value={c._id}>
-                    {c.title} — LKR {(c.price || 2500).toLocaleString()}
+                    {c.title}
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Field 3: Select Grade / Class for this Course */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <span>Select Grade / Class Tier <span className="text-red-500">*</span></span>
+                {selectedGrade && selectedStudent?.grade && normalizeGrade(selectedGrade) === normalizeGrade(selectedStudent.grade) && (
+                  <span className="text-purple-700 dark:text-purple-400 font-bold text-[11px]">
+                    ✓ Auto-matched with student's grade ({selectedStudent.grade})
+                  </span>
+                )}
+              </label>
+              {selectedCourse && selectedCourse.enrolledGrades && selectedCourse.enrolledGrades.length > 0 ? (
+                <select
+                  value={selectedGrade}
+                  onChange={handleGradeChange}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border-2 border-purple-300 dark:border-purple-800 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-purple-950 dark:text-purple-200 font-bold cursor-pointer shadow-xs"
+                  required
+                >
+                  <option value="">-- Choose Grade / Class --</option>
+                  {selectedCourse.enrolledGrades.map((g) => {
+                    const gFee = (g.fee !== undefined && g.fee !== null && Number(g.fee) >= 0)
+                      ? Number(g.fee)
+                      : (selectedCourse.price || 2500);
+                    return (
+                      <option key={g.gradeNumber} value={g.gradeNumber}>
+                        {g.title || g.gradeNumber} ({g.gradeNumber}) — Fee: LKR {gFee.toLocaleString()}
+                      </option>
+                    );
+                  })}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="e.g. Grade 10"
+                  value={selectedGrade}
+                  onChange={(e) => setSelectedGrade(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-800 dark:text-white font-semibold"
+                  required
+                />
+              )}
             </div>
 
             {/* Grid Row: Payment Method, Amount, Date */}

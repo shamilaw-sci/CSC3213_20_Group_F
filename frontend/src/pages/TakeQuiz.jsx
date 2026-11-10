@@ -6,6 +6,8 @@ import {
   FaClock, FaCheckCircle, FaTimesCircle, FaArrowLeft, FaArrowRight, 
   FaTrophy, FaLightbulb, FaImage, FaCheckSquare, FaDotCircle, FaExclamationCircle
 } from 'react-icons/fa';
+import { getMediaUrl } from '../utils/mediaUrl';
+import ConfirmModal from '../components/ConfirmModal';
 
 const TakeQuiz = () => {
   const { quizId } = useParams();
@@ -23,6 +25,7 @@ const TakeQuiz = () => {
   const [quizFinished, setQuizFinished] = useState(false);
   const [result, setResult] = useState(null); // { score, totalPoints }
   const [reviewSubmission, setReviewSubmission] = useState(null); // Detailed answers + correct answers from GET my-submission
+  const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(null); // { unansweredCount }
 
   useEffect(() => {
     const fetchQuizDetails = async () => {
@@ -116,20 +119,17 @@ const TakeQuiz = () => {
     }
   };
 
-  const handleSubmitQuiz = async () => {
+  const handleSubmitQuiz = () => {
     let unansweredCount = 0;
-    quiz.questions.forEach((_, idx) => {
+    quiz?.questions?.forEach((_, idx) => {
       if (!isQuestionAnswered(idx)) unansweredCount++;
     });
 
-    if (unansweredCount > 0) {
-      const confirmSubmit = window.confirm(`You have ${unansweredCount} unanswered questions. Are you sure you want to submit?`);
-      if (!confirmSubmit) return;
-    } else {
-      const confirmSubmit = window.confirm("Are you sure you want to submit your quiz assessment?");
-      if (!confirmSubmit) return;
-    }
+    setShowSubmitConfirmModal({ unansweredCount });
+  };
 
+  const executeSubmitQuiz = async () => {
+    setShowSubmitConfirmModal(null);
     setSubmitting(true);
     try {
       const res = await api.post(`/quizzes/${quizId}/submit`, { answers });
@@ -355,7 +355,7 @@ const TakeQuiz = () => {
                     {question.questionImage && (
                       <div className="border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden max-w-md bg-gray-50 dark:bg-slate-800 p-2">
                         <img 
-                          src={question.questionImage.startsWith('http') ? question.questionImage : `http://localhost:5000${question.questionImage}`}
+                          src={getMediaUrl(question.questionImage)}
                           alt="Question diagram"
                           className="max-h-60 object-contain mx-auto"
                         />
@@ -481,7 +481,7 @@ const TakeQuiz = () => {
           {currentQuestion.questionImage && (
             <div className="border border-purple-100 dark:border-slate-700 rounded-2xl overflow-hidden max-w-lg mx-auto bg-gray-50 dark:bg-slate-800 p-2 shadow-inner">
               <img 
-                src={currentQuestion.questionImage.startsWith('http') ? currentQuestion.questionImage : `http://localhost:5000${currentQuestion.questionImage}`}
+                src={getMediaUrl(currentQuestion.questionImage)}
                 alt="Question Diagram"
                 className="max-h-72 object-contain mx-auto"
               />
@@ -591,6 +591,20 @@ const TakeQuiz = () => {
         </div>
 
       </div>
+
+      <ConfirmModal
+        isOpen={!!showSubmitConfirmModal}
+        onClose={() => setShowSubmitConfirmModal(null)}
+        onConfirm={executeSubmitQuiz}
+        title="Submit Quiz Assessment"
+        message={
+          showSubmitConfirmModal?.unansweredCount > 0
+            ? `You have ${showSubmitConfirmModal.unansweredCount} unanswered question${showSubmitConfirmModal.unansweredCount > 1 ? 's' : ''}. Are you sure you want to finish and submit your quiz now?`
+            : "Are you sure you want to finalize and submit your quiz assessment?"
+        }
+        confirmText="Yes, Submit Assessment"
+        type={showSubmitConfirmModal?.unansweredCount > 0 ? "warning" : "primary"}
+      />
     </div>
   );
 };

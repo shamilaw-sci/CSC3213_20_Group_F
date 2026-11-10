@@ -16,7 +16,10 @@ import {
   FaArrowLeft,
   FaAward,
   FaShieldAlt,
-  FaGraduationCap
+  FaGraduationCap,
+  FaBars,
+  FaTimes,
+  FaArrowRight
 } from 'react-icons/fa';
 import { INSTITUTE_INFO } from '../utils/instituteData';
 import { useTheme } from '../context/ThemeContext';
@@ -24,6 +27,9 @@ import { useTheme } from '../context/ThemeContext';
 const AboutUs = () => {
   const navigate = useNavigate();
   const { isDark, toggleTheme: contextToggleTheme, setDarkMode } = useTheme();
+
+  // Mobile menu open state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Dark/Light Theme state
   const [isDarkMode, setIsDarkMode] = useState(isDark);
@@ -80,13 +86,13 @@ const AboutUs = () => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div
-            className="flex items-center gap-3.5 cursor-pointer group"
+            className="flex items-center gap-2.5 sm:gap-3.5 cursor-pointer group shrink-0"
             onClick={() => navigate('/')}
           >
             <img
               src="/assets/kirula_logo.png"
               alt="Kirula Education Center"
-              className="h-11 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              className="h-9 sm:h-11 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
             />
             <div
               className={`h-8 w-px hidden sm:block ${
@@ -104,7 +110,7 @@ const AboutUs = () => {
                 LuminaLearn
               </span>
               <span
-                className={`text-xs font-medium ${
+                className={`hidden sm:block text-xs font-medium ${
                   isDarkMode ? 'text-slate-400' : 'text-slate-500'
                 }`}
               >
@@ -144,10 +150,11 @@ const AboutUs = () => {
             </button>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Theme Toggle - Desktop & tablet only */}
             <button
               onClick={toggleTheme}
-              className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+              className={`hidden sm:flex p-2.5 rounded-xl border transition-all cursor-pointer ${
                 isDarkMode
                   ? 'bg-slate-900 border-slate-800 text-yellow-400 hover:bg-slate-800'
                   : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-purple-300 shadow-2xs'
@@ -163,13 +170,79 @@ const AboutUs = () => {
 
             <button
               onClick={() => navigate('/login')}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-700 via-purple-800 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl shadow-md shadow-purple-900/20 hover:shadow-purple-700/30 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-purple-700 via-purple-800 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-md shadow-purple-900/20 hover:shadow-purple-700/30 transition-all cursor-pointer"
             >
               <span>Portal Login</span>
               <FaSignInAlt className="text-xs" />
             </button>
+
+            {/* Mobile Hamburger Menu Toggle Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className={`md:hidden p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer ${
+                isDarkMode
+                  ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+              title={isMobileMenuOpen ? "Close navigation" : "Open navigation"}
+              aria-label="Toggle navigation"
+            >
+              {isMobileMenuOpen ? <FaTimes className="text-base" /> : <FaBars className="text-base" />}
+            </button>
           </div>
         </div>
+
+        {/* --- MOBILE NAVIGATION SHEET --- */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl px-4 py-4 space-y-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex flex-col space-y-1 text-sm font-semibold">
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); navigate('/'); }}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors text-left"
+              >
+                <span>🏠 Home</span>
+                <FaArrowRight className="text-xs text-purple-500" />
+              </button>
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); navigate('/instructors'); }}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors text-left"
+              >
+                <span>👨‍🏫 Instructors</span>
+                <FaArrowRight className="text-xs text-purple-500" />
+              </button>
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); navigate('/instructors#timetable'); }}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors text-left"
+              >
+                <span>📅 Timetable</span>
+                <FaArrowRight className="text-xs text-purple-500" />
+              </button>
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); navigate('/about'); }}
+                className="flex items-center justify-between p-3 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 font-bold transition-colors text-left"
+              >
+                <span>🏛️ About Us</span>
+                <FaArrowRight className="text-xs text-purple-500" />
+              </button>
+            </div>
+
+            {/* Mobile theme toggle row */}
+            <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800/70 flex items-center justify-between px-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Theme</span>
+              <button
+                onClick={toggleTheme}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                  isDarkMode
+                    ? 'bg-slate-900 border-slate-800 text-yellow-400'
+                    : 'bg-white border-slate-200 text-slate-700'
+                }`}
+              >
+                {isDarkMode ? <FaSun className="text-sm text-yellow-400" /> : <FaMoon className="text-sm text-purple-600" />}
+                <span>{isDarkMode ? 'Dark Mode' : 'Light Mode'}</span>
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* --- HERO SECTION --- */}

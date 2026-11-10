@@ -17,7 +17,7 @@ const institutionalKnowledge = fs.existsSync(filePath)
     : "No institutional data uploaded yet.";
 
 // Candidate Gemini model list in order of preference (active models)
-const CANDIDATE_MODELS = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.5-flash'];
+const CANDIDATE_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.5-flash'];
 
 // Helper to execute Gemini generation using @google/genai SDK or REST fallback
 async function generateGeminiReply(systemInstruction, userMessage) {
@@ -29,7 +29,12 @@ async function generateGeminiReply(systemInstruction, userMessage) {
     // 1. Try standard @google/genai package across candidate models
     try {
         const { GoogleGenAI } = require('@google/genai');
-        const ai = new GoogleGenAI({ apiKey });
+        const ai = new GoogleGenAI({
+   	 	apiKey,
+    		httpOptions: {
+        	timeout: 10000
+    		}
+	});
 
         for (const modelName of CANDIDATE_MODELS) {
             try {

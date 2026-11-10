@@ -24,6 +24,8 @@ const Review = require('../models/Review');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail, sendPasscodeEmail } = require('../utils/emailService');
+const { authLimiter, otpLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
+const { getCategoryDir } = require('../services/fileStorage');
 const {
   sendVerificationOTP,
   formatSriLankaPhone,
@@ -32,6 +34,18 @@ const {
   sendParentCredentialSMS
 } = require('../services/smsService');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Helper to issue JWT token with single-session tracking specifically for students
+const generateUserToken = async (user) => {
+  const payload = { id: user._id, role: user.role };
+  if (user.role === 'student') {
+    const sessionId = crypto.randomUUID();
+    user.activeSessionId = sessionId;
+    await user.save();
+    payload.sessionId = sessionId;
+  }
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+};
 
 // Helper to parse time strings (24h '14:30' or 12h '02:30 PM') to minutes
 const parseTimeToMinutes = (timeStr) => {
@@ -110,6 +124,16 @@ const generatePhysicalRegistrationNumber = async (grade, dateOfBirth) => {
 };
 
 // Helper to ensure parent account exists and links student without creating duplicate accounts
+// Helper to generate a secure, readable temporary password for new auto-created accounts
+const generateTemporaryPassword = (prefix = 'P@') => {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+  let rand = '';
+  for (let i = 0; i < 6; i++) {
+    rand += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `${prefix}${rand}`;
+};
+
 const ensureParentAccount = async (parentPhone, studentId, studentName = 'Student') => {
   if (!parentPhone || !parentPhone.trim()) return null;
   const cleanedPhone = parentPhone.trim();
@@ -147,7 +171,7 @@ const ensureParentAccount = async (parentPhone, studentId, studentName = 'Studen
       }
       return { parent, isNew: false, phone: cleanedPhone };
     } else {
-      const defaultPassword = 'Parent@123';
+      const defaultPassword = generateTemporaryPassword('P@');
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(defaultPassword, salt);
 
@@ -163,7 +187,7 @@ const ensureParentAccount = async (parentPhone, studentId, studentName = 'Studen
       };
 
       parent = await User.create(parentData);
-      console.log(`👨‍👩‍👧 Created new parent account for ${cleanedPhone} with default password (${defaultPassword})`);
+      console.log(`👨‍👩‍👧 Created new parent account for ${cleanedPhone} with unique temporary password (${defaultPassword})`);
       return { parent, isNew: true, defaultPassword, phone: cleanedPhone };
     }
   } catch (err) {
@@ -173,7 +197,7 @@ const ensureParentAccount = async (parentPhone, studentId, studentName = 'Studen
 };
 
 
-// Helper function to convert base64 data URIs to static files in /uploads for super-fast image loading
+// Helper function to convert base64 data URIs to static files in public storage (/media/...) for super-fast image loading
 const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
   if (!base64OrPath) return "";
   if (!base64OrPath.startsWith('data:')) {
@@ -190,17 +214,15 @@ const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
     else if (mimeType.includes('webp')) ext = 'webp';
     else if (mimeType.includes('gif')) ext = 'gif';
 
-    const uploadsDir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
+    const category = (prefix === 'banner' || prefix === 'cardimage' || prefix === 'course') ? 'courses' : 'profiles';
+    const targetDir = getCategoryDir(category);
 
     const filename = `${prefix}-${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
-    const filePath = path.join(uploadsDir, filename);
+    const filePath = path.join(targetDir, filename);
     const buffer = Buffer.from(base64Data, 'base64');
     fs.writeFileSync(filePath, buffer);
 
-    return `/uploads/${filename}`;
+    return `/media/${category}/${filename}`;
   } catch (err) {
     console.error("Error converting base64 to static file:", err);
     return base64OrPath;
@@ -208,7 +230,7 @@ const convertBase64ToStaticFile = (base64OrPath, prefix = 'img') => {
 };
 
 // --- LOGIN ROUTE (STUDENTS & STAFF) ---
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
   const input = (email || req.body.identifier || req.body.registrationNumber || '').trim();
 
@@ -234,12 +256,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Create Token
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    // Create Token (with single-session tracking for students)
+    const token = await generateUserToken(user);
 
     // Return user info and mustChangePassword flag
     res.json({
@@ -270,7 +288,7 @@ router.post('/login', async (req, res) => {
 });
 
 // --- PARENT PORTAL LOGIN ROUTE ---
-router.post('/parent-login', async (req, res) => {
+router.post('/parent-login', authLimiter, async (req, res) => {
   const { phoneNumber, phone, password } = req.body;
   const rawPhone = (phoneNumber || phone || req.body.identifier || '').trim();
 
@@ -300,14 +318,10 @@ router.post('/parent-login', async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, parent.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Incorrect password. If this is your first login, use your default password (e.g. Parent@123)." });
+      return res.status(400).json({ message: "Incorrect password. If this is your first login, please use the temporary password sent via SMS." });
     }
 
-    const token = jwt.sign(
-      { id: parent._id, role: parent.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = await generateUserToken(parent);
 
     res.json({
       token,
@@ -329,7 +343,7 @@ router.post('/parent-login', async (req, res) => {
 });
 
 // --- STEP 1: INITIATE SELF-REGISTRATION (EMAIL OR PHONE) ---
-router.post('/register-initiate', async (req, res) => {
+router.post('/register-initiate', otpLimiter, async (req, res) => {
   const {
     registrationType = 'email',
     email,
@@ -456,7 +470,7 @@ router.post('/register-initiate', async (req, res) => {
 });
 
 // --- STEP 2: VERIFY CODE & COMPLETE SELF-REGISTRATION ---
-router.post('/register-verify', async (req, res) => {
+router.post('/register-verify', otpLimiter, async (req, res) => {
   const { identifier, code, createParentAccount = true } = req.body;
 
   if (!identifier || !code) {
@@ -554,7 +568,7 @@ router.post('/register-verify', async (req, res) => {
         sendParentCredentialSMS({
           parentPhone,
           studentName: newUser.name,
-          defaultPassword: parentResult.defaultPassword || 'Parent@123'
+          temporaryPassword: parentResult.defaultPassword
         }).catch(smsErr => console.error('Parent Credential SMS error:', smsErr));
       }
     }
@@ -579,11 +593,7 @@ router.post('/register-verify', async (req, res) => {
       console.error('Registration notification trigger error:', notifErr.message);
     }
 
-    const token = jwt.sign(
-      { id: newUser._id, role: newUser.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = await generateUserToken(newUser);
 
     res.status(201).json({
       token,
@@ -652,11 +662,7 @@ router.post('/register', async (req, res) => {
         mustChangePassword: false
       });
 
-      const token = jwt.sign(
-        { id: newParent._id, role: newParent.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '1d' }
-      );
+      const token = await generateUserToken(newParent);
 
       return res.status(201).json({
         token,
@@ -738,11 +744,7 @@ router.post('/register', async (req, res) => {
       console.error('Registration notification trigger error:', notifErr.message);
     }
 
-    const token = jwt.sign(
-      { id: newUser._id, role: newUser.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = await generateUserToken(newUser);
 
     res.status(201).json({
       token,
@@ -840,11 +842,7 @@ router.post('/google-register', async (req, res) => {
       console.error('Google Registration notification error:', notifErr.message);
     }
 
-    const token = jwt.sign(
-      { id: newUser._id, role: newUser.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = await generateUserToken(newUser);
 
     res.status(201).json({
       token,
@@ -905,11 +903,7 @@ router.post('/google', async (req, res) => {
       await user.save();
     }
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = await generateUserToken(user);
 
     res.json({
       token,
@@ -962,7 +956,7 @@ router.post('/change-password', protect, async (req, res) => {
 });
 
 // --- FORGOT PASSWORD INITIATE (EMAIL / REG NO / PHONE) ---
-router.post('/forgot-password-initiate', async (req, res) => {
+router.post('/forgot-password-initiate', otpLimiter, async (req, res) => {
   const { identifier } = req.body;
   const input = (identifier || req.body.email || '').trim();
 
@@ -1063,7 +1057,7 @@ router.post('/forgot-password-initiate', async (req, res) => {
 });
 
 // --- FORGOT PASSWORD VERIFY & RESET ---
-router.post('/forgot-password-verify-reset', async (req, res) => {
+router.post('/forgot-password-verify-reset', otpLimiter, async (req, res) => {
   const { identifier, code, newPassword } = req.body;
 
   if (!identifier || !code || !newPassword) {
@@ -1118,7 +1112,7 @@ router.post('/forgot-password-verify-reset', async (req, res) => {
 });
 
 // --- LEGACY FORGOT PASSWORD ROUTE (FOR EMAIL LINKS) ---
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -1150,7 +1144,7 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // --- LEGACY RESET PASSWORD ROUTE ---
-router.post('/reset-password/:token', async (req, res) => {
+router.post('/reset-password/:token', passwordResetLimiter, async (req, res) => {
   const { newPassword } = req.body;
   const { token } = req.params;
 
@@ -1580,7 +1574,7 @@ router.post('/users', protect, isAdmin, async (req, res) => {
           sendParentCredentialSMS({
             parentPhone: user.parentsPhoneNumber,
             studentName: user.name,
-            defaultPassword: parentResult.defaultPassword || 'Parent@123'
+            temporaryPassword: parentResult.defaultPassword
           }).catch(smsErr => console.error('Parent Credential SMS Error:', smsErr));
         }
       } else if (role === 'parent') {
@@ -1809,12 +1803,12 @@ router.get('/teacher-profile/:id', protect, async (req, res) => {
       let banner = c.banner || '';
       let cardImage = c.cardImage || '';
       if (banner && !banner.startsWith('http') && !banner.startsWith('data:')) {
-        const filename = banner.includes('/uploads/') ? banner.split('/uploads/').pop() : banner.replace(/^\//, '');
-        banner = `/uploads/${filename}`;
+        const filename = banner.includes('/') ? banner.split('/').pop() : banner;
+        banner = `/media/courses/${filename}`;
       }
       if (cardImage && !cardImage.startsWith('http') && !cardImage.startsWith('data:')) {
-        const filename = cardImage.includes('/uploads/') ? cardImage.split('/uploads/').pop() : cardImage.replace(/^\//, '');
-        cardImage = `/uploads/${filename}`;
+        const filename = cardImage.includes('/') ? cardImage.split('/').pop() : cardImage;
+        cardImage = `/media/courses/${filename}`;
       }
       return {
         ...c,
@@ -1825,14 +1819,14 @@ router.get('/teacher-profile/:id', protect, async (req, res) => {
 
     let profilePicture = teacher.profilePicture || '';
     if (profilePicture && !profilePicture.startsWith('http') && !profilePicture.startsWith('data:')) {
-      const filename = profilePicture.includes('/uploads/') ? profilePicture.split('/uploads/').pop() : profilePicture.replace(/^\//, '');
-      profilePicture = `/uploads/${filename}`;
+      const filename = profilePicture.includes('/') ? profilePicture.split('/').pop() : profilePicture;
+      profilePicture = `/media/profiles/${filename}`;
     }
 
     let coverPicture = teacher.coverPicture || '';
     if (coverPicture && !coverPicture.startsWith('http') && !coverPicture.startsWith('data:')) {
-      const filename = coverPicture.includes('/uploads/') ? coverPicture.split('/uploads/').pop() : coverPicture.replace(/^\//, '');
-      coverPicture = `/uploads/${filename}`;
+      const filename = coverPicture.includes('/') ? coverPicture.split('/').pop() : coverPicture;
+      coverPicture = `/media/profiles/${filename}`;
     }
 
     res.json({
@@ -1923,14 +1917,14 @@ router.put('/teacher-profile/:id', protect, async (req, res) => {
 
     let formattedProfilePic = teacher.profilePicture || '';
     if (formattedProfilePic && !formattedProfilePic.startsWith('http') && !formattedProfilePic.startsWith('data:')) {
-      const filename = formattedProfilePic.includes('/uploads/') ? formattedProfilePic.split('/uploads/').pop() : formattedProfilePic.replace(/^\//, '');
-      formattedProfilePic = `/uploads/${filename}`;
+      const filename = formattedProfilePic.includes('/') ? formattedProfilePic.split('/').pop() : formattedProfilePic;
+      formattedProfilePic = `/media/profiles/${filename}`;
     }
 
     let formattedCoverPic = teacher.coverPicture || '';
     if (formattedCoverPic && !formattedCoverPic.startsWith('http') && !formattedCoverPic.startsWith('data:')) {
-      const filename = formattedCoverPic.includes('/uploads/') ? formattedCoverPic.split('/uploads/').pop() : formattedCoverPic.replace(/^\//, '');
-      formattedCoverPic = `/uploads/${filename}`;
+      const filename = formattedCoverPic.includes('/') ? formattedCoverPic.split('/').pop() : formattedCoverPic;
+      formattedCoverPic = `/media/profiles/${filename}`;
     }
 
     res.json({
@@ -3426,6 +3420,20 @@ router.post('/link-child', protect, async (req, res) => {
   } catch (err) {
     console.error("Link Child Error:", err);
     res.status(500).json({ message: "Failed to link child account: " + err.message });
+  }
+});
+
+// --- LOGOUT ROUTE ---
+router.post('/logout', protect, async (req, res) => {
+  try {
+    if (req.user && req.user.role === 'student') {
+      req.user.activeSessionId = null;
+      await req.user.save();
+    }
+    res.json({ success: true, message: "Logged out successfully." });
+  } catch (err) {
+    console.error("Logout Error:", err);
+    res.status(500).json({ message: "Error during logout: " + err.message });
   }
 });
 

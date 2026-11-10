@@ -320,7 +320,7 @@ const ManageUsers = () => {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 font-sans text-gray-800 dark:text-gray-100 transition-colors duration-200">
+    <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 font-sans text-gray-800 dark:text-gray-100 transition-colors duration-200">
 
       {/* Top Header & Actions Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
@@ -333,38 +333,42 @@ const ManageUsers = () => {
           </p>
         </div>
 
-        {/* Action Buttons styled as popups trigger */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        {/* Action Buttons: Responsive 2x2 grid on mobile, flex row on desktop */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
           <button
+            type="button"
             onClick={() => setShowRegisterStudentModal(true)}
-            className="px-4 py-2.5 bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
+            className="px-3 sm:px-4 py-2.5 bg-gradient-to-r from-[#2d1b64] to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-bold text-[11px] sm:text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer text-center"
           >
-            <FaUserGraduate className="text-amber-400 text-sm" />
-            <span>+ Register New Student</span>
+            <FaUserGraduate className="text-amber-400 text-xs sm:text-sm shrink-0" />
+            <span className="truncate">Register Student</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setShowBatchGradeModal(true)}
-            className="px-4 py-2.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-900 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer"
+            className="px-3 sm:px-4 py-2.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-900 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 font-bold text-[11px] sm:text-xs rounded-xl transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer text-center"
           >
-            <FaSyncAlt className="text-indigo-600 dark:text-indigo-400 text-xs" />
-            <span>Batch Grade Update</span>
+            <FaSyncAlt className="text-indigo-600 dark:text-indigo-400 text-xs shrink-0" />
+            <span className="truncate">Batch Grade</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setShowAllQrModal(true)}
-            className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-900 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer shadow-2xs"
+            className="px-3 sm:px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-900 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 font-bold text-[11px] sm:text-xs rounded-xl transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer shadow-2xs text-center"
           >
-            <FaQrcode className="text-emerald-700 dark:text-emerald-400 text-xs" />
-            <span>View All Student QR Cards</span>
+            <FaQrcode className="text-emerald-700 dark:text-emerald-400 text-xs shrink-0" />
+            <span className="truncate">Student QR Cards</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setShowAddStaffModal(true)}
-            className="px-4 py-2.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer"
+            className="px-3 sm:px-4 py-2.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800 font-bold text-[11px] sm:text-xs rounded-xl transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer text-center"
           >
-            <FaPlus className="text-purple-700 dark:text-purple-400 text-xs" />
-            <span>Add Staff / Admin</span>
+            <FaPlus className="text-purple-700 dark:text-purple-400 text-xs shrink-0" />
+            <span className="truncate">Add Staff</span>
           </button>
         </div>
       </div>
@@ -372,25 +376,26 @@ const ManageUsers = () => {
       {/* Search & Role Filter Tabs */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-2 border-b border-gray-100 dark:border-slate-800">
 
-        {/* Category Tabs */}
-        <div className="flex space-x-2 overflow-x-auto pb-1 scrollbar-none">
+        {/* Category Tabs: 3x2 Grid on Mobile, Flex Row on Desktop */}
+        <div className="grid grid-cols-3 sm:flex sm:space-x-2 gap-1.5 sm:gap-2 w-full md:w-auto">
           {[
-            { id: 'All', label: 'All Users', count: users.length },
-            { id: 'student', label: 'Students', count: users.filter(u => u.role === 'student').length },
-            { id: 'teacher', label: 'Teachers', count: users.filter(u => u.role === 'teacher').length },
-            { id: 'counter_staff', label: 'Counter Staff', count: users.filter(u => u.role === 'counter_staff').length },
-            { id: 'parent', label: 'Parents', count: users.filter(u => u.role === 'parent').length },
-            { id: 'admin', label: 'Admins', count: users.filter(u => u.role === 'admin').length }
+            { id: 'All', label: 'All', fullLabel: 'All Users', count: users.length },
+            { id: 'student', label: 'Students', fullLabel: 'Students', count: users.filter(u => u.role === 'student').length },
+            { id: 'teacher', label: 'Teachers', fullLabel: 'Teachers', count: users.filter(u => u.role === 'teacher').length },
+            { id: 'counter_staff', label: 'Staff', fullLabel: 'Counter Staff', count: users.filter(u => u.role === 'counter_staff').length },
+            { id: 'parent', label: 'Parents', fullLabel: 'Parents', count: users.filter(u => u.role === 'parent').length },
+            { id: 'admin', label: 'Admins', fullLabel: 'Admins', count: users.filter(u => u.role === 'admin').length }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${activeTab === tab.id
+              className={`px-2 sm:px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center ${activeTab === tab.id
                   ? 'bg-[#2d1b64] text-white shadow-sm'
                   : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white'
                 }`}
             >
-              <span>{tab.label}</span>
+              <span className="sm:hidden">{tab.label}</span>
+              <span className="hidden sm:inline">{tab.fullLabel}</span>
               <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'
                 }`}>
                 {tab.count}
@@ -421,8 +426,8 @@ const ManageUsers = () => {
 
       </div>
 
-      {/* Users Table */}
-      <div className="overflow-x-auto rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs">
+      {/* Users Table (Desktop View - hidden on mobile < md) */}
+      <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50/80 dark:bg-slate-800/80 text-gray-600 dark:text-gray-300 uppercase text-[11px] tracking-wider border-b border-gray-200 dark:border-slate-700 font-bold">
@@ -575,6 +580,104 @@ const ManageUsers = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile User Cards View (visible only on mobile < md) */}
+      <div className="md:hidden space-y-3">
+        {paginatedUsers.length > 0 ? (
+          paginatedUsers.map((u) => (
+            <div key={u._id} className="bg-white dark:bg-slate-800/90 p-3.5 sm:p-4 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xs space-y-3 overflow-hidden">
+              <div className="flex items-start justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-slate-700 flex items-center justify-center text-sm shrink-0">
+                    {getRoleIcon(u.role)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-extrabold text-sm text-gray-900 dark:text-white flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{u.name}</span>
+                      {currentUserId === u._id && (
+                        <span className="text-[9px] bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 font-extrabold px-1.5 py-0.5 rounded shrink-0">You</span>
+                      )}
+                    </h4>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{u.email || 'No Email'}</p>
+                  </div>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold capitalize border shrink-0 whitespace-nowrap ${
+                  u.role === 'admin'
+                    ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                    : u.role === 'teacher'
+                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                    : u.role === 'counter_staff'
+                    ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                    : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                }`}>
+                  {u.role?.replace('_', ' ')}
+                </span>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-slate-900/60 p-3 rounded-xl border border-gray-100 dark:border-slate-800 space-y-1.5 text-xs">
+                {u.registrationNumber && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 dark:text-gray-400 text-[10px] font-bold uppercase">Reg Number</span>
+                    <span className="font-mono font-bold text-purple-950 dark:text-purple-300 text-[11px]">{u.registrationNumber}</span>
+                  </div>
+                )}
+                {u.grade && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 dark:text-gray-400 text-[10px] font-bold uppercase">Grade</span>
+                    <span className="font-bold text-gray-800 dark:text-white text-[11px]">{u.grade}</span>
+                  </div>
+                )}
+                {u.studentType && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 dark:text-gray-400 text-[10px] font-bold uppercase">Mode</span>
+                    <span className="font-semibold text-gray-700 dark:text-gray-300 text-[11px]">
+                      {u.studentType === 'physical' ? '🏫 Physical' : '💻 Online'}
+                    </span>
+                  </div>
+                )}
+                {u.parentsPhoneNumber && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 dark:text-gray-400 text-[10px] font-bold uppercase">Parent Phone</span>
+                    <span className="font-mono text-gray-700 dark:text-gray-300 text-[11px]">{u.parentsPhoneNumber}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 dark:text-gray-400 text-[10px] font-bold uppercase">Joined Date</span>
+                  <span className="text-gray-600 dark:text-gray-400 text-[11px]">{new Date(u.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                {u.role === 'student' ? (
+                  <button
+                    onClick={() => setSelectedQrStudent(u)}
+                    className="px-3 py-1.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FaQrcode className="text-purple-700 dark:text-purple-400 text-xs" />
+                    <span>View QR Pass</span>
+                  </button>
+                ) : (
+                  <div></div>
+                )}
+
+                {currentUserId !== u._id && (
+                  <button
+                    onClick={() => handleDelete(u._id, u.name)}
+                    className="px-3 py-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-300 font-bold text-xs rounded-xl transition flex items-center gap-1 cursor-pointer border border-red-200 dark:border-red-900/40"
+                  >
+                    <FaTrash className="text-[10px]" />
+                    <span>Delete</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="p-8 text-center bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-200 dark:border-slate-800 text-gray-500 dark:text-gray-400 font-medium text-xs">
+            No users found matching query.
+          </div>
+        )}
       </div>
 
       {/* Pagination Footer (25 records per page) */}
@@ -902,7 +1005,7 @@ const ManageUsers = () => {
                   Do you want to create or link a parent account associated with phone number <strong>{studentForm.parentsPhoneNumber}</strong>?
                 </p>
                 <div className="mt-2.5 pt-2 border-t border-purple-200/80 dark:border-purple-800/60 text-[11px] text-purple-700 dark:text-purple-400">
-                  🔑 Default temporary password: <strong className="font-mono text-purple-900 dark:text-purple-300">Parent@123</strong> (Mandatory password change on 1st login).
+                  📲 A unique temporary password will be generated and sent via SMS to the parent's phone number.
                 </div>
               </div>
 

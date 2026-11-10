@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import api from '../utils/api';
-import { useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaArrowRight, FaPhone, FaUserGraduate, FaUserFriends, FaEye, FaEyeSlash, FaSun, FaMoon } from 'react-icons/fa';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { FaEnvelope, FaLock, FaArrowRight, FaPhone, FaUserGraduate, FaUserFriends, FaEye, FaEyeSlash, FaSun, FaMoon, FaShieldAlt } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
 import { useTheme } from '../context/ThemeContext';
@@ -14,8 +14,11 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const isConcurrentSession = new URLSearchParams(location.search).get('reason') === 'concurrent_session';
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -146,18 +149,31 @@ const Login = () => {
       </div>
 
       {/* Right Side - Login Panel */}
-      <div className="flex w-full items-center justify-center bg-white dark:bg-slate-900/95 lg:dark:bg-slate-900/95 dark:backdrop-blur-xl px-6 py-10 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto border-l border-transparent dark:border-slate-800 transition-colors">
+      <div className="flex w-full items-center justify-center bg-white dark:bg-slate-900/95 lg:dark:bg-slate-900/95 dark:backdrop-blur-xl px-4 sm:px-6 py-8 sm:py-10 lg:w-[45%] lg:rounded-l-[40px] shadow-2xl z-20 overflow-y-auto border-l border-transparent dark:border-slate-800 transition-colors">
         <div className="w-full max-w-md py-2">
+
+          {/* Mobile Branding Logo */}
+          <div className="lg:hidden flex flex-col items-center mb-6 text-center">
+            <img
+              src="/assets/LuminaLearn_Logo_banner.png"
+              alt="LuminaLearn Logo"
+              className="h-14 sm:h-16 w-auto object-contain mb-1 drop-shadow-sm cursor-pointer"
+              onClick={() => navigate('/')}
+            />
+            <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+              Smart Learning Platform
+            </span>
+          </div>
 
           {/* Header */}
           <div className="mb-6">
-            <h2 className="text-3xl sm:text-4xl font-black text-[#1e1e38] dark:text-white tracking-tight">Login</h2>
-            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400 font-medium">
+            <h2 className="text-2xl sm:text-4xl font-black text-[#1e1e38] dark:text-white tracking-tight">Login</h2>
+            <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
               Sign in to your learning account or parent portal
             </p>
 
             {/* Portal Switcher Tabs */}
-            <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1.5 rounded-2xl gap-2 mt-5 border border-slate-200/80 dark:border-slate-700/80">
+            <div className="flex bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl sm:rounded-2xl gap-1.5 sm:gap-2 mt-4 sm:mt-5 border border-slate-200/80 dark:border-slate-700/80">
               <button
                 type="button"
                 onClick={() => setPortalType('student')}
@@ -180,6 +196,19 @@ const Login = () => {
               </button>
             </div>
           </div>
+
+          {/* Concurrent Session Termination Alert Banner */}
+          {isConcurrentSession && (
+            <div className="mb-5 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-3 text-amber-700 dark:text-amber-300 text-xs sm:text-sm animate-fade-in shadow-sm">
+              <FaShieldAlt className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-900 dark:text-amber-200">Security Notice: Previous Session Ended</p>
+                <p className="mt-0.5 text-xs opacity-90 leading-relaxed">
+                  Your session was automatically logged out because this student account was logged in from another browser or device. LuminaLearn enforces single active session policy for students to protect account integrity.
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-4 mt-6">
 

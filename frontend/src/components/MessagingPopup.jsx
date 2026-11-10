@@ -14,21 +14,10 @@ import {
   FaTrashAlt
 } from 'react-icons/fa';
 import api from '../utils/api';
+import { getMediaUrl } from '../utils/mediaUrl';
+import { downloadProtectedFile } from '../utils/fileApi';
 
-const getImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-    return url;
-  }
-  let filename = url;
-  if (url.includes('/uploads/')) {
-    filename = url.split('/uploads/').pop();
-  } else if (url.startsWith('/')) {
-    filename = url.substring(1);
-  }
-  const backendBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
-  return `${backendBase}/uploads/${filename}`;
-};
+const getImageUrl = (url) => getMediaUrl(url);
 
 const formatFileSize = (bytes) => {
   if (!bytes || bytes === 0) return '0 B';
@@ -36,6 +25,35 @@ const formatFileSize = (bytes) => {
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const getChatDateLabel = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+
+  const now = new Date();
+  const msgDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const diffTime = todayDate - msgDate;
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+
+  if (d.getFullYear() === now.getFullYear()) {
+    return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+const formatFullDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 const getRoleBadge = (role) => {
@@ -356,7 +374,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 w-[420px] max-w-[calc(100vw-2.5rem)] h-[580px] max-h-[calc(100vh-8rem)] bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+    <div className="fixed inset-x-2 bottom-3 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] h-[82vh] sm:h-[580px] max-h-[calc(100vh-4rem)] bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
 
       {/* --- POPUP HEADER --- */}
       <div className="bg-gradient-to-r from-purple-700 via-lumina-purple to-purple-900 text-white p-4 flex items-center justify-between shadow-md">
@@ -394,7 +412,7 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
               }}
               className="bg-white/20 hover:bg-white/30 text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1"
             >
-              + New Chat
+              New Chat
             </button>
           )}
           <button
@@ -614,83 +632,100 @@ const MessagingPopup = ({ isOpen, onClose, onUnreadUpdate }) => {
             {loading ? (
               <div className="p-8 text-center text-xs text-gray-400 dark:text-gray-500">Loading conversation...</div>
             ) : messages.length > 0 ? (
-              messages.map((msg) => {
-                const rawSender = msg.sender;
-                const senderId = (typeof rawSender === 'object' && rawSender !== null)
-                  ? (rawSender._id || rawSender.id)
-                  : rawSender;
-                const currentUserId = currentUser._id || currentUser.id;
-                const isMe = String(senderId) === String(currentUserId);
+              (() => {
+                let lastDateLabel = null;
+                return messages.map((msg) => {
+                  const rawSender = msg.sender;
+                  const senderId = (typeof rawSender === 'object' && rawSender !== null)
+                    ? (rawSender._id || rawSender.id)
+                    : rawSender;
+                  const currentUserId = currentUser._id || currentUser.id;
+                  const isMe = String(senderId) === String(currentUserId);
 
-                return (
-                  <div
-                    key={msg._id}
-                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-                  >
+                  const currentDateLabel = getChatDateLabel(msg.createdAt);
+                  const showDateDivider = currentDateLabel && currentDateLabel !== lastDateLabel;
+                  if (showDateDivider) {
+                    lastDateLabel = currentDateLabel;
+                  }
 
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-xs text-xs ${isMe
-                        ? 'bg-lumina-purple text-white rounded-br-none'
-                        : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 border border-gray-200/80 dark:border-slate-700 rounded-bl-none'
-                        }`}
-                    >
-                      {/* ATTACHMENTS RENDER */}
-                      {msg.attachments && msg.attachments.length > 0 && (
-                        <div className="mb-2 space-y-2">
-                          {msg.attachments.map((att, idx) => (
-                            <div key={idx} className="overflow-hidden rounded-lg">
-                              {att.category === 'image' ? (
-                                <div className="group relative">
-                                  <img
-                                    src={getImageUrl(att.url)}
-                                    alt={att.originalName}
-                                    className="max-h-48 rounded-lg object-cover cursor-pointer border border-black/10"
-                                    onClick={() => window.open(getImageUrl(att.url), '_blank')}
-                                  />
-                                </div>
-                              ) : (
-                                <a
-                                  href={getImageUrl(att.url)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`flex items-center gap-2 p-2 rounded-lg text-xs font-semibold ${isMe ? 'bg-purple-800/60 text-white hover:bg-purple-800' : 'bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700'
-                                    } transition-colors`}
-                                >
-                                  <FaFileAlt className="text-base flex-shrink-0" />
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate text-[11px] font-bold">{att.originalName}</p>
-                                    <p className="text-[9px] opacity-80">{formatFileSize(att.fileSize)}</p>
-                                  </div>
-                                  <FaDownload className="text-xs" />
-                                </a>
-                              )}
-                            </div>
-                          ))}
+                  return (
+                    <React.Fragment key={msg._id}>
+                      {showDateDivider && (
+                        <div className="flex items-center justify-center my-3 select-none w-full">
+                          <div className="bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 px-3.5 py-1 rounded-full text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-2xs backdrop-blur-md flex items-center gap-1.5">
+                            <span className="text-purple-600 dark:text-purple-400">📅</span>
+                            <span>{currentDateLabel}</span>
+                          </div>
                         </div>
                       )}
+                      <div
+                        className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                      >
+                        <div
+                          className={`max-w-[82%] rounded-2xl px-4 py-2.5 shadow-xs text-[13.5px] sm:text-sm font-medium ${isMe
+                            ? 'bg-lumina-purple text-white rounded-br-none'
+                            : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 border border-gray-200/80 dark:border-slate-700 rounded-bl-none'
+                            }`}
+                        >
+                          {/* ATTACHMENTS RENDER */}
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <div className="mb-2 space-y-2">
+                              {msg.attachments.map((att, idx) => (
+                                <div key={idx} className="overflow-hidden rounded-lg">
+                                  {att.category === 'image' ? (
+                                    <div className="group relative">
+                                      <img
+                                        src={getImageUrl(att.url)}
+                                        alt={att.originalName}
+                                        className="max-h-48 rounded-lg object-cover cursor-pointer border border-black/10"
+                                        onClick={() => window.open(getImageUrl(att.url), '_blank')}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadProtectedFile(`/files/message/${msg._id}/${idx}?download=true`, att.originalName || 'attachment')}
+                                      className={`w-full flex items-center gap-2 p-2 rounded-lg text-xs font-semibold ${isMe ? 'bg-purple-800/60 text-white hover:bg-purple-800' : 'bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700'
+                                        } transition-colors cursor-pointer text-left`}
+                                    >
+                                      <FaFileAlt className="text-base flex-shrink-0" />
+                                      <div className="min-w-0 flex-1">
+                                        <p className="truncate text-[11px] font-bold">{att.originalName}</p>
+                                        <p className="text-[9px] opacity-80">{formatFileSize(att.fileSize)}</p>
+                                      </div>
+                                      <FaDownload className="text-xs" />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
 
-                      {/* TEXT CONTENT */}
-                      {msg.content && <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
+                          {/* TEXT CONTENT */}
+                          {msg.content && <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
 
-                      {/* TIMESTAMP & READ TICK & DELETE BUTTON */}
-                      <div className={`mt-1 text-[9px] flex items-center justify-end gap-1.5 opacity-80 ${isMe ? 'text-purple-200' : 'text-gray-400 dark:text-gray-500'}`}>
-                        <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        {(isMe || currentUser.role === 'admin') && (
-                          <button
-                            type="button"
-                            onClick={() => triggerDeleteMessageConfirm(msg._id)}
-                            className="hover:text-red-400 p-0.5 transition-colors cursor-pointer opacity-75 hover:opacity-100"
-                            title="Delete message"
-                          >
-                            <FaTrashAlt className="text-[10px]" />
-                          </button>
-                        )}
+                          {/* TIMESTAMP & READ TICK & DELETE BUTTON */}
+                          <div className={`mt-1 text-[9px] flex items-center justify-end gap-1.5 opacity-80 ${isMe ? 'text-purple-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                            <span title={formatFullDateTime(msg.createdAt)}>
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {(isMe || currentUser.role === 'admin') && (
+                              <button
+                                type="button"
+                                onClick={() => triggerDeleteMessageConfirm(msg._id)}
+                                className="hover:text-red-400 p-0.5 transition-colors cursor-pointer opacity-75 hover:opacity-100"
+                                title="Delete message"
+                              >
+                                <FaTrashAlt className="text-[10px]" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
-
-                    </div>
-                  </div>
-                );
-              })
+                    </React.Fragment>
+                  );
+                });
+              })()
             ) : (
               <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-xs">
                 No messages in this conversation yet. Say hello!

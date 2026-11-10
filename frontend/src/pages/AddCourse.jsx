@@ -135,14 +135,6 @@ const AddCourse = () => {
   const [cardPreview, setCardPreview] = useState(null);
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('All');
 
-  const [bankDetails, setBankDetails] = useState({
-    bankName: '',
-    accountName: '',
-    accountNumber: '',
-    branchName: '',
-    paymentInstructions: ''
-  });
-
   const [cropFile, setCropFile] = useState(null);
   const [cropMode, setCropMode] = useState('banner');
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -189,7 +181,6 @@ const AddCourse = () => {
     setCardImageFile(null);
     setBannerPreview(null);
     setCardPreview(null);
-    setBankDetails({ bankName: '', accountName: '', accountNumber: '', branchName: '', paymentInstructions: '' });
     setNewTeacherData({ teacherName: '', teacherEmail: '', defaultPassword: '' });
     setSelectedTeacherId('');
   };
@@ -312,7 +303,6 @@ const AddCourse = () => {
     formData.append('title', courseData.title);
     formData.append('description', courseData.description);
     formData.append('studentType', studentType);
-    formData.append('bankDetails', JSON.stringify(bankDetails));
 
     if (bannerFile)    formData.append('banner',    bannerFile);
     if (cardImageFile) formData.append('cardImage', cardImageFile);
@@ -558,74 +548,6 @@ const AddCourse = () => {
                   </div>
                 ))}
             </div>
-          </div>
-        </div>
-
-        <hr className="my-4 border-gray-200 dark:border-slate-800" />
-
-        {/* Bank Account Details Section for Bank Slip Deposits */}
-        <div className="bg-purple-50/60 dark:bg-slate-800 p-5 rounded-2xl border border-purple-200 dark:border-slate-700 space-y-4">
-          <div>
-            <h3 className="font-extrabold text-purple-950 dark:text-purple-200 text-base flex items-center gap-2">
-              <span>🏦</span> Bank Deposit Account Details (For Bank Slip Payments)
-            </h3>
-            <p className="text-xs text-purple-700 dark:text-purple-400 mt-0.5">
-              Specify the institute bank account information where students can transfer funds and upload deposit slips.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">Bank Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Sampath Bank / Commercial Bank"
-                className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 text-gray-800 dark:text-white rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-purple-600"
-                value={bankDetails.bankName}
-                onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">Account Holder Name</label>
-              <input
-                type="text"
-                placeholder="e.g. LuminaLearn Education Pvt Ltd"
-                className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 text-gray-800 dark:text-white rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-purple-600"
-                value={bankDetails.accountName}
-                onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">Account Number</label>
-              <input
-                type="text"
-                placeholder="e.g. 1098 7654 3210"
-                className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 text-gray-800 dark:text-white rounded-xl text-xs font-mono font-bold outline-none focus:ring-2 focus:ring-purple-600"
-                value={bankDetails.accountNumber}
-                onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">Branch Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Colombo Super Branch"
-                className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 text-gray-800 dark:text-white rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-purple-600"
-                value={bankDetails.branchName}
-                onChange={(e) => setBankDetails({ ...bankDetails, branchName: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-900 dark:text-purple-300 mb-1">Deposit Instructions for Students</label>
-            <textarea
-              rows="2"
-              placeholder="e.g. Deposit exact course fee of LKR 2,500 and upload a clear photo/receipt of the bank transfer slip."
-              className="w-full p-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-slate-700 text-gray-800 dark:text-white rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-purple-600"
-              value={bankDetails.paymentInstructions}
-              onChange={(e) => setBankDetails({ ...bankDetails, paymentInstructions: e.target.value })}
-            ></textarea>
           </div>
         </div>
 
