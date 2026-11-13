@@ -34,6 +34,7 @@ const {
   sendParentCredentialSMS
 } = require('../services/smsService');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const { logAudit } = require('../services/auditLogger');
 
 // Helper to issue JWT token with single-session tracking specifically for students
 const generateUserToken = async (user) => {
@@ -595,6 +596,30 @@ router.post('/register-verify', otpLimiter, async (req, res) => {
 
     const token = await generateUserToken(newUser);
 
+    logAudit({
+      actor: {
+        userId: newUser._id,
+        name: newUser.name,
+        email: newUser.email || '',
+        role: newUser.role
+      },
+      action: 'USER_CREATE',
+      entity: 'User',
+      entityId: newUser._id,
+      summary: `Student self-registered: "${newUser.name}" (${newUser.registrationNumber || newUser.email || 'Online Student'})`,
+      diff: {
+        before: null,
+        after: {
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          grade: newUser.grade,
+          studentType: newUser.studentType,
+          registrationNumber: newUser.registrationNumber
+        }
+      }
+    });
+
     res.status(201).json({
       token,
       message: `Registration successful! Your Online Registration ID is ${newUser.registrationNumber}`,
@@ -746,6 +771,30 @@ router.post('/register', async (req, res) => {
 
     const token = await generateUserToken(newUser);
 
+    logAudit({
+      actor: {
+        userId: newUser._id,
+        name: newUser.name,
+        email: newUser.email || '',
+        role: newUser.role
+      },
+      action: 'USER_CREATE',
+      entity: 'User',
+      entityId: newUser._id,
+      summary: `Student self-registered: "${newUser.name}" (${newUser.registrationNumber || newUser.email || 'Online Student'})`,
+      diff: {
+        before: null,
+        after: {
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          grade: newUser.grade,
+          studentType: newUser.studentType,
+          registrationNumber: newUser.registrationNumber
+        }
+      }
+    });
+
     res.status(201).json({
       token,
       user: {
@@ -843,6 +892,30 @@ router.post('/google-register', async (req, res) => {
     }
 
     const token = await generateUserToken(newUser);
+
+    logAudit({
+      actor: {
+        userId: newUser._id,
+        name: newUser.name,
+        email: newUser.email || '',
+        role: newUser.role
+      },
+      action: 'USER_CREATE',
+      entity: 'User',
+      entityId: newUser._id,
+      summary: `Student self-registered: "${newUser.name}" (${newUser.registrationNumber || newUser.email || 'Online Student'})`,
+      diff: {
+        before: null,
+        after: {
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          grade: newUser.grade,
+          studentType: newUser.studentType,
+          registrationNumber: newUser.registrationNumber
+        }
+      }
+    });
 
     res.status(201).json({
       token,
@@ -1605,6 +1678,25 @@ router.post('/users', protect, isAdmin, async (req, res) => {
       console.error('Admin create user notification error:', notifErr.message);
     }
 
+    logAudit({
+      req,
+      action: 'USER_CREATE',
+      entity: 'User',
+      entityId: createdUser._id,
+      summary: `Admin created ${createdUser.role} user "${createdUser.name}" (${createdUser.email || createdUser.registrationNumber || 'No Identifier'})`,
+      diff: {
+        before: null,
+        after: {
+          name: createdUser.name,
+          email: createdUser.email,
+          role: createdUser.role,
+          grade: createdUser.grade,
+          studentType: createdUser.studentType,
+          registrationNumber: createdUser.registrationNumber
+        }
+      }
+    });
+
     res.status(201).json({
       message: "User created successfully. Temporary password assigned.",
       user: createdUser
@@ -1621,13 +1713,28 @@ router.put('/users/:id/role', protect, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: "Access Denied" });
 
   try {
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.id,
-      { role: req.body.role },
-      { new: true }
-    ).select('-password');
+    const existingUser = await User.findById(req.params.id);
+    if (!existingUser) return res.status(404).json({ message: "User not found" });
 
-    res.json(updatedUser);
+    const oldRole = existingUser.role;
+    existingUser.role = req.body.role;
+    const updatedUser = await existingUser.save();
+
+    logAudit({
+      req,
+      action: 'USER_ROLE_CHANGE',
+      entity: 'User',
+      entityId: updatedUser._id,
+      summary: `Updated role for "${updatedUser.name}" from "${oldRole}" to "${req.body.role}"`,
+      diff: {
+        before: { role: oldRole },
+        after: { role: req.body.role }
+      }
+    });
+
+    const userObj = updatedUser.toObject();
+    delete userObj.password;
+    res.json(userObj);
   } catch (err) {
     res.status(500).json({ message: "Failed to update role" });
   }
@@ -1649,7 +1756,27 @@ router.delete('/users/:id', protect, async (req, res) => {
         }
       }
     );
+    const userToDelete = await User.findById(userId).lean();
     await User.findByIdAndDelete(userId);
+
+    logAudit({
+      req,
+      action: 'USER_DELETE',
+      entity: 'User',
+      entityId: userId,
+      summary: `Deleted user "${userToDelete?.name || userId}" (Role: ${userToDelete?.role || 'Unknown'}, Reg: ${userToDelete?.registrationNumber || 'N/A'})`,
+      diff: {
+        before: userToDelete ? {
+          name: userToDelete.name,
+          email: userToDelete.email,
+          role: userToDelete.role,
+          grade: userToDelete.grade,
+          registrationNumber: userToDelete.registrationNumber
+        } : null,
+        after: null
+      }
+    });
+
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete user" });
@@ -1666,17 +1793,30 @@ router.put('/users/:id/grade', protect, async (req, res) => {
   }
 
   try {
-    const updatedUser = await User.findOneAndUpdate(
-      { _id: req.params.id, role: 'student' },
-      { grade: grade.trim() },
-      { new: true }
-    ).select('-password');
-
-    if (!updatedUser) {
+    const existingStudent = await User.findOne({ _id: req.params.id, role: 'student' });
+    if (!existingStudent) {
       return res.status(404).json({ message: "Student not found." });
     }
 
-    res.json(updatedUser);
+    const oldGrade = existingStudent.grade;
+    existingStudent.grade = grade.trim();
+    const updatedUser = await existingStudent.save();
+
+    logAudit({
+      req,
+      action: 'USER_UPDATE',
+      entity: 'User',
+      entityId: updatedUser._id,
+      summary: `Updated grade for student "${updatedUser.name}" from "${oldGrade}" to "${grade.trim()}"`,
+      diff: {
+        before: { grade: oldGrade },
+        after: { grade: grade.trim() }
+      }
+    });
+
+    const userObj = updatedUser.toObject();
+    delete userObj.password;
+    res.json(userObj);
   } catch (err) {
     console.error("Update Grade Error:", err);
     res.status(500).json({ message: "Failed to update student grade" });
@@ -1699,6 +1839,17 @@ router.post('/users/batch-update-grade', protect, async (req, res) => {
     );
 
     const modifiedCount = result.modifiedCount ?? result.nModified ?? 0;
+
+    logAudit({
+      req,
+      action: 'USER_UPDATE',
+      entity: 'User',
+      summary: `Batch updated ${modifiedCount} students from Grade "${sourceGrade}" to Grade "${targetGrade}"`,
+      diff: {
+        before: { grade: sourceGrade, affectedCount: modifiedCount },
+        after: { grade: targetGrade, affectedCount: modifiedCount }
+      }
+    });
 
     res.json({
       message: `Successfully updated ${modifiedCount} students from ${sourceGrade} to ${targetGrade}.`,

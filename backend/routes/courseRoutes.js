@@ -15,6 +15,7 @@ const upload = require('../middleware/upload');
 const { getClassNameFromGrade } = require('../utils/migration');
 const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
 const { getCategoryDir, deleteFile } = require('../services/fileStorage');
+const { logAudit } = require('../services/auditLogger');
 
 // Extract the raw filename if a full path is stored, and build a dynamic URL or canonical media path
 const getFullUrl = (req, filenameOrUrl) => {
@@ -243,6 +244,24 @@ router.post('/enroll', protect, isAdmin, async (req, res) => {
             console.error('Enroll notification error:', notifErr.message);
         }
 
+        logAudit({
+            req,
+            action: 'ENROLLMENT_CREATE',
+            entity: 'Course',
+            entityId: course._id,
+            summary: `Enrolled student "${student.name}" into "${course.title}" (${trimmedClass})`,
+            diff: {
+                before: null,
+                after: {
+                    studentId: student._id,
+                    studentName: student.name,
+                    courseId: course._id,
+                    courseTitle: course.title,
+                    className: trimmedClass
+                }
+            }
+        });
+
         res.status(200).json({ message: "Student enrolled in class successfully.", enrollment: enrollmentDoc });
     } catch (err) {
         console.error("Enroll student error:", err);
@@ -300,6 +319,18 @@ router.post('/unenroll', protect, isAdmin, async (req, res) => {
         } catch (notifErr) {
             console.error('Unenroll notification error:', notifErr.message);
         }
+
+        logAudit({
+            req,
+            action: 'ENROLLMENT_REVOKE',
+            entity: 'Course',
+            entityId: course._id,
+            summary: `Removed student "${studentId}" from "${course.title}" (${className.trim()})`,
+            diff: {
+                before: { studentId, courseId: course._id, className: className.trim() },
+                after: null
+            }
+        });
 
         res.status(200).json({ message: "Student removed from class successfully." });
     } catch (err) {
@@ -395,6 +426,23 @@ router.post(
             } catch (notifErr) {
                 console.error('Course notification trigger error:', notifErr.message);
             }
+
+            logAudit({
+                req,
+                action: 'COURSE_CREATE',
+                entity: 'Course',
+                entityId: newCourse._id,
+                summary: `Created new course "${newCourse.title}" assigned to teacher "${teacherName}"`,
+                diff: {
+                    before: null,
+                    after: {
+                        title: newCourse.title,
+                        instructor: instructorId,
+                        teacherName,
+                        studentType: newCourse.studentType
+                    }
+                }
+            });
 
             res.status(201).json({ message: "Course created successfully!", courseId: newCourse._id });
         } catch (err) {
@@ -538,7 +586,20 @@ router.delete('/:id', protect, isAdmin, async (req, res) => {
         await Lesson.deleteMany({ course: course._id });
         await Enrollment.deleteMany({ course: course._id });
         const courseTitle = course.title;
+        const courseId = course._id;
         await course.deleteOne();
+
+        logAudit({
+            req,
+            action: 'COURSE_DELETE',
+            entity: 'Course',
+            entityId: courseId,
+            summary: `Deleted course "${courseTitle}" along with associated lessons and enrollments`,
+            diff: {
+                before: { title: courseTitle, id: courseId },
+                after: null
+            }
+        });
 
         res.json({ message: `Course "${courseTitle}" Successfully Deleted!` });
     } catch (err) {

@@ -32,6 +32,8 @@ import CreateQuiz from './pages/CreateQuiz';
 import TakeQuiz from './pages/TakeQuiz';
 import QuizSubmissions from './pages/QuizSubmissions';
 import SmsSettings from './pages/SmsSettings';
+import AuditLogs from './pages/AuditLogs';
+import ExportBackupCenter from './pages/ExportBackupCenter';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -172,6 +174,18 @@ function App() {
           <Route path="/parent-dashboard" element={
             <ProtectedRoute allowedRoles={['parent', 'admin']}>
               <ParentDashboard />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/audit-logs" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AuditLogs />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/export-center" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <ExportBackupCenter />
             </ProtectedRoute>
           } />
 

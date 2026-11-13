@@ -10,6 +10,7 @@ const Payment = require('../models/Payment');
 const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authMiddleware');
 const { sendAttendanceSMS } = require('../services/smsService');
 const { notifyParentsOfStudent } = require('../utils/notificationHelper');
+const { logAudit } = require('../services/auditLogger');
 
 const isStaffTeacherOrAdmin = (req, res, next) => {
   if (
@@ -152,6 +153,23 @@ router.post('/', protect, async (req, res) => {
       console.error('Attendance notification error:', notifErr.message);
     }
 
+    logAudit({
+      req,
+      action: 'ATTENDANCE_MARK',
+      entity: 'Attendance',
+      entityId: newAttendance._id,
+      summary: `Marked student "${student.name}" as "${status}" on ${formattedDate}`,
+      diff: {
+        before: null,
+        after: {
+          studentId: student._id,
+          studentName: student.name,
+          status,
+          date: populatedAttendance.date
+        }
+      }
+    });
+
     res.status(201).json({
       message: "Attendance marked successfully!",
       attendance: populatedAttendance
@@ -234,6 +252,21 @@ router.post('/mark-batch', protect, async (req, res) => {
         // Silent catch for notification error
       }
     }
+
+    logAudit({
+      req,
+      action: 'ATTENDANCE_MARK',
+      entity: 'Attendance',
+      summary: `Batch marked attendance for ${savedRecords.length} student(s) on ${normalizedDate.toISOString().split('T')[0]}`,
+      diff: {
+        before: null,
+        after: {
+          count: savedRecords.length,
+          courseId: courseId || null,
+          scheduleId: scheduleId || null
+        }
+      }
+    });
 
     res.json({
       message: `Successfully recorded attendance for ${savedRecords.length} student(s)!`,
@@ -964,6 +997,26 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
     } else {
       responseMessage = `Attendance already logged for ${student.name} today!`;
       isAlreadyScanned = true;
+    }
+
+    if (!existingScan && newScanRecord) {
+      logAudit({
+        req,
+        action: 'ATTENDANCE_MARK',
+        entity: 'Attendance',
+        entityId: newScanRecord._id,
+        summary: `QR Check-in recorded for student "${student.name}" (${student.registrationNumber || 'No Reg'}) for "${targetCourseTitle}"`,
+        diff: {
+          before: null,
+          after: {
+            studentId: student._id,
+            studentName: student.name,
+            mode: 'PHYSICAL_QR',
+            status: 'Present',
+            paymentStatus
+          }
+        }
+      });
     }
 
     res.status(200).json({

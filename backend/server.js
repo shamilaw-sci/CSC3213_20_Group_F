@@ -20,6 +20,8 @@ const messageRoutes = require('./routes/messageRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const fileRoutes = require('./routes/fileRoutes');
+const auditLogRoutes = require('./routes/auditLogRoutes');
+const exportRoutes = require('./routes/exportRoutes');
 const fileStorage = require('./services/fileStorage');
 
 const app = express();
@@ -96,6 +98,8 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/export', exportRoutes);
 
 
 // --- GLOBAL ERROR HANDLER ---

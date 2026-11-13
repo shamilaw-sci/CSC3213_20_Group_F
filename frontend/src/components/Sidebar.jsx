@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaHome, FaBook, FaCalendarCheck, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt, FaUserPlus, FaSms, FaTimes } from 'react-icons/fa';
+import { FaHome, FaBook, FaCalendarCheck, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt, FaUserPlus, FaSms, FaTimes, FaShieldAlt, FaDatabase } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 
 const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
@@ -143,6 +143,8 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
                 <Link to="/manage-users" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/manage-users')}`}><FaUsers /> Manage Users</Link>
                 <Link to="/enrollments" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/enrollments')}`}><FaUserPlus /> Enrollments</Link>
                 <Link to="/sms-settings" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/sms-settings')}`}><FaSms /> SMS Settings</Link>
+                <Link to="/audit-logs" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/audit-logs')}`}><FaShieldAlt /> Audit Logs</Link>
+                <Link to="/export-center" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/export-center')}`}><FaDatabase /> Export & Backup</Link>
               </>
             )}
           </>
