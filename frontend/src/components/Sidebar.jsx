@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaHome, FaBook, FaCalendarCheck, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt, FaUserPlus, FaSms, FaTimes } from 'react-icons/fa';
+import { FaHome, FaBook, FaCalendarCheck, FaCalendarAlt, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt, FaUserPlus, FaSms, FaTimes } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 
 const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
@@ -117,6 +117,9 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
             <Link to="/parent-dashboard" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/parent-dashboard')}`}>
               <FaHome /> Child Dashboard
             </Link>
+            <Link to="/calendar" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/calendar')}`}>
+              <FaCalendarAlt /> Timetable & Calendar
+            </Link>
             <Link to="/courses" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/courses')}`}>
               <FaBook /> Institute Courses
             </Link>
@@ -127,6 +130,7 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
         ) : (
           <>
             <Link to="/dashboard" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/dashboard')}`}><FaHome /> Dashboard</Link>
+            <Link to="/calendar" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/calendar')}`}><FaCalendarAlt /> Timetable & Calendar</Link>
             <Link to="/courses" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/courses')}`}><FaBook /> Courses</Link>
             {role !== 'student' && (
               <Link to="/attendance" className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${isActive('/attendance')}`}><FaCalendarCheck /> Attendance</Link>

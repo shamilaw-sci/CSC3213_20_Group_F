@@ -37,10 +37,13 @@ import {
   FaSearch,
   FaAward,
   FaCommentDots,
-  FaClipboardList
+  FaClipboardList,
+  FaEdit,
+  FaHistory
 } from 'react-icons/fa';
 import StudentIdCard from './StudentIdCard';
 import AddScheduleModal from './AddScheduleModal';
+import RescheduleModal from './RescheduleModal';
 import ConfirmModal from './ConfirmModal';
 import EarlyWarningSection from './EarlyWarningSection';
 import StudentPerformanceModal from './StudentPerformanceModal';
@@ -605,6 +608,8 @@ const AdminDashboard = ({ user }) => {
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState(null);
+  const [reschedulingSchedule, setReschedulingSchedule] = useState(null);
   const [deleteScheduleModal, setDeleteScheduleModal] = useState(null);
 
   useEffect(() => {
@@ -643,16 +648,23 @@ const AdminDashboard = ({ user }) => {
     }
 
     try {
-      const res = await api.post('/schedule', scheduleData);
-      toast.success(res.data.message || "Class added to timetable successfully!");
-      if (res.data.schedule) {
-        setSchedule(prev => [...prev, res.data.schedule]);
+      if (scheduleData._id) {
+        const res = await api.put(`/schedule/${scheduleData._id}`, scheduleData);
+        toast.success(res.data.message || "Class schedule updated successfully!");
+        setSchedule(prev => prev.map(s => s._id === scheduleData._id ? res.data.schedule : s));
       } else {
-        fetchAdminData();
+        const res = await api.post('/schedule', scheduleData);
+        toast.success(res.data.message || "Class added to timetable successfully!");
+        if (res.data.schedule) {
+          setSchedule(prev => [...prev, res.data.schedule]);
+        } else {
+          fetchAdminData();
+        }
       }
       setShowModal(false);
+      setEditingSchedule(null);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to add class schedule");
+      toast.error(err.response?.data?.message || "Failed to save class schedule");
       throw err;
     }
   };
@@ -966,12 +978,23 @@ const AdminDashboard = ({ user }) => {
                 <h3 className="font-extrabold text-slate-800 dark:text-white text-base">Institute Master Timetable</h3>
                 <p className="text-xs text-slate-400 dark:text-slate-400 font-medium">Recurring class schedules and room assignments</p>
               </div>
-              <button
-                onClick={() => setShowModal(true)}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-black text-xs px-4 py-2.5 rounded-2xl flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs self-start sm:self-auto"
-              >
-                <FaPlusCircle /> Add Class Session
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/calendar')}
+                  className="bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold text-xs px-3.5 py-2.5 rounded-2xl flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs self-start sm:self-auto"
+                >
+                  <FaCalendarAlt /> Interactive Calendar
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingSchedule(null);
+                    setShowModal(true);
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-black text-xs px-4 py-2.5 rounded-2xl flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs self-start sm:self-auto"
+                >
+                  <FaPlusCircle /> Add Class Session
+                </button>
+              </div>
             </div>
 
             {/* Day of Week Filter Bar */}
@@ -1056,13 +1079,32 @@ const AdminDashboard = ({ user }) => {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteSchedule(sch._id, sch.title)}
-                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 p-2 rounded-xl transition cursor-pointer shrink-0 ml-2"
-                        title="Delete Class Schedule"
-                      >
-                        <FaTrash className="text-sm" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <button
+                          onClick={() => setReschedulingSchedule(sch)}
+                          className="text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 p-2 rounded-xl transition cursor-pointer"
+                          title="Reschedule or Postpone Class"
+                        >
+                          <FaHistory className="text-xs" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingSchedule(sch);
+                            setShowModal(true);
+                          }}
+                          className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 p-2 rounded-xl transition cursor-pointer"
+                          title="Edit Class Schedule"
+                        >
+                          <FaEdit className="text-xs" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSchedule(sch._id, sch.title)}
+                          className="text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 p-2 rounded-xl transition cursor-pointer"
+                          title="Delete Class Schedule"
+                        >
+                          <FaTrash className="text-xs" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })
@@ -1149,15 +1191,29 @@ const AdminDashboard = ({ user }) => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 6. CREATE SCHEDULE MODAL */}
+      {/* 6. CREATE / EDIT SCHEDULE MODAL */}
       {/* ========================================================================= */}
       <AddScheduleModal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => {
+          setShowModal(false);
+          setEditingSchedule(null);
+        }}
         onSave={handleSaveSchedule}
         courses={courses}
         teachers={teachers}
         gradeOptions={gradeOptions}
+        editSchedule={editingSchedule}
+      />
+
+      {/* Reschedule / Postpone Modal */}
+      <RescheduleModal
+        isOpen={!!reschedulingSchedule}
+        onClose={() => setReschedulingSchedule(null)}
+        schedule={reschedulingSchedule}
+        onSuccess={(updated) => {
+          setSchedule(prev => prev.map(s => s._id === updated._id ? updated : s));
+        }}
       />
 
       <ConfirmModal
@@ -1668,9 +1724,18 @@ const TeacherDashboard = ({ user }) => {
                 </h3>
                 <p className="text-xs text-slate-400 dark:text-slate-400 font-medium">Recurring class schedule assigned to your lecture slots</p>
               </div>
-              <span className="bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-black px-3 py-1 rounded-xl border border-purple-100 dark:border-purple-800/60">
-                {schedule.length} Total Slots
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/calendar')}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                >
+                  <FaCalendarAlt /> Open Calendar
+                </button>
+                <span className="bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-black px-3 py-2 rounded-xl border border-purple-100 dark:border-purple-800/60">
+                  {schedule.length} Total Slots
+                </span>
+              </div>
             </div>
 
             {/* Day of Week Filter Bar */}
@@ -2502,9 +2567,18 @@ const StudentDashboard = ({ user }) => {
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">Weekly class schedule matching your registered grade</p>
               </div>
-              <span className="bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-black px-3 py-1 rounded-xl border border-purple-100 dark:border-purple-800/60">
-                {schedule?.length || 0} Classes Scheduled
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/calendar')}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                >
+                  <FaCalendarAlt /> Open Calendar
+                </button>
+                <span className="bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-black px-3 py-2 rounded-xl border border-purple-100 dark:border-purple-800/60">
+                  {schedule?.length || 0} Classes Scheduled
+                </span>
+              </div>
             </div>
 
             {/* Day of Week Filter Bar */}

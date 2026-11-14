@@ -33,6 +33,7 @@ import TakeQuiz from './pages/TakeQuiz';
 import QuizSubmissions from './pages/QuizSubmissions';
 import SmsSettings from './pages/SmsSettings';
 import StudentPerformanceDetails from './pages/StudentPerformanceDetails';
+import TimetableCalendar from './pages/TimetableCalendar';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -112,6 +113,7 @@ function App() {
           
           {/* Level 1: Accessible to EVERYONE (Student, Teacher, Admin) */}
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/calendar" element={<TimetableCalendar />} />
           <Route path="/courses" element={<Courses />} /> 
           <Route path="/course/:courseId" element={<ErrorBoundary><CourseDetails /></ErrorBoundary>} />
           <Route path="/courses/:courseId" element={<ErrorBoundary><CourseDetails /></ErrorBoundary>} />
