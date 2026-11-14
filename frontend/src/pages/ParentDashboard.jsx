@@ -5,16 +5,18 @@ import {
   FaUserGraduate, FaCalendarCheck, FaReceipt, FaBookOpen, 
   FaUserFriends, FaPlus, FaCheckCircle, FaTimesCircle, FaClock, 
   FaSync, FaIdCard, FaBuilding, FaChalkboardTeacher, FaClipboardList, FaTrophy,
-  FaClipboardCheck, FaAward, FaCommentDots
+  FaClipboardCheck, FaAward, FaCommentDots, FaExclamationTriangle, FaShieldAlt, FaEye, FaArrowRight
 } from 'react-icons/fa';
+import StudentPerformanceModal from '../components/StudentPerformanceModal';
 
 const ParentDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedChildIndex, setSelectedChildIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState('attendance'); // 'attendance' | 'payments' | 'courses' | 'link'
+  const [activeTab, setActiveTab] = useState('attendance'); // 'attendance' | 'payments' | 'courses' | 'reading' | 'quizzes' | 'assignments' | 'warnings' | 'link'
   const [linkRegNo, setLinkRegNo] = useState('');
   const [linking, setLinking] = useState(false);
+  const [showPerformanceModal, setShowPerformanceModal] = useState(false);
 
   const fetchParentData = async () => {
     setLoading(true);
@@ -67,6 +69,8 @@ const ParentDashboard = () => {
   const logs = currentChildObj?.attendanceLogs || [];
   const payments = currentChildObj?.payments || [];
   const courses = currentChildObj?.courses || [];
+  const earlyWarning = currentChildObj?.earlyWarning || null;
+  const childWarnings = earlyWarning?.warnings || [];
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-800 dark:text-gray-100 p-4 sm:p-8 space-y-8 max-w-7xl mx-auto transition-colors duration-200">
@@ -230,8 +234,99 @@ const ParentDashboard = () => {
 
           </div>
 
+          {/* Academic Alerts & Early Warning Notification Banner */}
+          {childWarnings.length > 0 ? (
+            <div className="p-5 sm:p-6 rounded-3xl bg-amber-50/90 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-800 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200 dark:border-amber-900/60 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                    <FaExclamationTriangle />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-amber-950 dark:text-amber-200 flex items-center gap-2">
+                      Academic Attention Alert: {child?.name}
+                    </h3>
+                    <p className="text-xs text-amber-800/80 dark:text-amber-300/80 font-medium">
+                      Our system detected {childWarnings.length} academic indicator(s) requiring parental guidance.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPerformanceModal(true)}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
+                >
+                  <FaEye /> View Full Performance Report
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {childWarnings.map((w, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-amber-200 dark:border-amber-900/40 space-y-1.5 text-xs shadow-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 bg-amber-100 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 rounded-md font-black uppercase text-[10px]">
+                        {w.category}
+                      </span>
+                      <span className="font-mono font-bold text-slate-500 text-[11px]">
+                        {w.metric}
+                      </span>
+                    </div>
+                    <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
+                      {w.reason}
+                    </p>
+                    {w.action && (
+                      <p className="text-purple-700 dark:text-purple-300 text-[11px] font-semibold pt-1 border-t border-slate-100 dark:border-slate-800 flex items-start gap-1">
+                        <span>💡 <strong>Advice for Parent:</strong> {w.action}</span>
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 sm:p-5 rounded-3xl bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
+                  <FaCheckCircle />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                    Good Academic Standing — No Warning Alerts Active
+                  </h4>
+                  <p className="text-xs text-emerald-800/80 dark:text-emerald-400 font-medium">
+                    {child?.name} is meeting institute attendance standards (≥75%), completing coursework, and maintaining progress.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPerformanceModal(true)}
+                className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-center shadow-xs active:scale-95"
+              >
+                <FaEye /> Performance Report
+              </button>
+            </div>
+          )}
+
           {/* Tab Navigation */}
           <div className="flex flex-wrap border-b border-slate-200 dark:border-slate-800 gap-2 pb-2">
+            <button
+              onClick={() => setActiveTab('warnings')}
+              className={`px-5 py-2.5 text-sm font-bold rounded-2xl transition cursor-pointer flex items-center gap-2 ${
+                activeTab === 'warnings'
+                  ? 'bg-purple-900 text-white shadow-md'
+                  : childWarnings.length > 0
+                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800'
+              }`}
+            >
+              <FaExclamationTriangle className={childWarnings.length > 0 ? "text-amber-500 animate-pulse" : "text-slate-400"} />
+              Academic Alerts ({childWarnings.length})
+            </button>
             <button
               onClick={() => setActiveTab('attendance')}
               className={`px-5 py-2.5 text-sm font-bold rounded-2xl transition cursor-pointer flex items-center gap-2 ${
@@ -303,6 +398,111 @@ const ParentDashboard = () => {
               <FaPlus /> Link Another Child
             </button>
           </div>
+
+          {/* TAB 0: ACADEMIC ALERTS & EARLY WARNING NOTICES */}
+          {activeTab === 'warnings' && (
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-6 animate-fadeIn">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <FaShieldAlt className="text-amber-500" /> Academic Early Warning & Performance Alerts
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-gray-400">
+                    Proactive learning alerts monitoring attendance continuity, quiz mark trends, and homework submissions
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPerformanceModal(true)}
+                  className="px-4 py-2 bg-purple-900 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs self-start sm:self-center shrink-0"
+                >
+                  <FaEye /> Open Detailed Performance View
+                </button>
+              </div>
+
+              {childWarnings.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {childWarnings.map((w, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-4 rounded-2xl border space-y-2 ${
+                          w.severity === 'high'
+                            ? 'bg-red-50/70 dark:bg-red-950/30 border-red-200 dark:border-red-900/60'
+                            : 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`px-2.5 py-0.5 rounded-lg text-xs font-black uppercase tracking-wide ${
+                            w.severity === 'high'
+                              ? 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-200'
+                              : 'bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200'
+                          }`}>
+                            {w.category}
+                          </span>
+                          <span className="font-mono font-bold text-xs text-slate-600 dark:text-slate-300">
+                            {w.metric}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
+                          {w.reason}
+                        </p>
+                        {w.action && (
+                          <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 text-[11px] text-purple-700 dark:text-purple-300 font-medium flex items-start gap-1.5">
+                            <span>💡 <strong>Recommendation:</strong> {w.action}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 text-center space-y-2">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-2xl mx-auto shadow-sm">
+                    <FaCheckCircle />
+                  </div>
+                  <h4 className="text-base font-extrabold text-emerald-900 dark:text-emerald-200">
+                    Excellent Academic Standing!
+                  </h4>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300 max-w-md mx-auto">
+                    {child?.name} has 0 warning alerts. Class attendance is above 75%, assessment results are consistent, and assignments are submitted on time.
+                  </p>
+                </div>
+              )}
+
+              {/* 4 Summary Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Attendance Rate</span>
+                  <span className={`text-xl font-black ${metrics.attendanceRate < 75 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {metrics.attendanceRate}%
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">{metrics.present} of {metrics.total} attended</span>
+                </div>
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Quiz Average</span>
+                  <span className="text-xl font-black text-slate-800 dark:text-white">
+                    {currentChildObj?.quizMetrics?.averageQuizPercent || 0}%
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">{currentChildObj?.quizMetrics?.totalQuizzes || 0} Quizzes taken</span>
+                </div>
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Assignments</span>
+                  <span className="text-xl font-black text-slate-800 dark:text-white">
+                    {currentChildObj?.assignmentMetrics?.totalAssignments || 0}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">{currentChildObj?.assignmentMetrics?.gradedCount || 0} Graded</span>
+                </div>
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Study PDFs</span>
+                  <span className="text-xl font-black text-slate-800 dark:text-white">
+                    {(currentChildObj?.readingProgress || []).length}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">Notes Tracked</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* TAB 1: ATTENDANCE LOGS */}
           {activeTab === 'attendance' && (
@@ -857,6 +1057,13 @@ const ParentDashboard = () => {
           )}
         </>
       )}
+
+      {/* STUDENT PERFORMANCE & EARLY WARNING MODAL */}
+      <StudentPerformanceModal
+        isOpen={showPerformanceModal}
+        onClose={() => setShowPerformanceModal(false)}
+        studentId={child?._id}
+      />
 
     </div>
   );

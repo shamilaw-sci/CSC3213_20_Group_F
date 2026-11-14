@@ -32,6 +32,7 @@ import CreateQuiz from './pages/CreateQuiz';
 import TakeQuiz from './pages/TakeQuiz';
 import QuizSubmissions from './pages/QuizSubmissions';
 import SmsSettings from './pages/SmsSettings';
+import StudentPerformanceDetails from './pages/StudentPerformanceDetails';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -141,6 +142,8 @@ function App() {
 
           <Route path="/payments" element={<Payments />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/student-performance/:studentId" element={<StudentPerformanceDetails />} />
+          <Route path="/performance/:studentId" element={<StudentPerformanceDetails />} />
           <Route path="/settings" element={<Settings />} />
 
           {/* Level 2: Restricted Access (Admin Only) */}

@@ -42,6 +42,8 @@ import {
 import StudentIdCard from './StudentIdCard';
 import AddScheduleModal from './AddScheduleModal';
 import ConfirmModal from './ConfirmModal';
+import EarlyWarningSection from './EarlyWarningSection';
+import StudentPerformanceModal from './StudentPerformanceModal';
 
 // Grade options matching registration grade requirements
 const gradeOptions = [
@@ -1081,6 +1083,11 @@ const AdminDashboard = ({ user }) => {
       </div>
 
       {/* ========================================================================= */}
+      {/* 4B. STUDENT PERFORMANCE & EARLY WARNING SYSTEM */}
+      {/* ========================================================================= */}
+      <EarlyWarningSection role="admin" />
+
+      {/* ========================================================================= */}
       {/* 5. ADMINISTRATIVE QUICK ACTION DOCK */}
       {/* ========================================================================= */}
       <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 text-white shadow-lg border border-purple-800/60">
@@ -1890,6 +1897,9 @@ const TeacherDashboard = ({ user }) => {
         </div>
       </div>
 
+      {/* 4B. STUDENTS NEEDING ACADEMIC ATTENTION (EARLY WARNING SYSTEM) */}
+      <EarlyWarningSection role="teacher" customTitle="Students Needing Academic Attention (Early Warning System)" />
+
       {/* 5. TEACHER QUICK ACTIONS DOCK */}
       <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 text-white shadow-lg border border-purple-800/60">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3 mb-4">
@@ -1985,6 +1995,7 @@ const StudentDashboard = ({ user }) => {
   // Modals State
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [ratingModalCourse, setRatingModalCourse] = useState(null);
+  const [showPerformanceModal, setShowPerformanceModal] = useState(false);
 
   useEffect(() => {
     fetchStudentData();
@@ -2093,6 +2104,12 @@ const StudentDashboard = ({ user }) => {
               className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer active:scale-95"
             >
               <FaChartLine /> Analytics
+            </button>
+            <button
+              onClick={() => setShowPerformanceModal(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white border border-purple-400/30 font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-md cursor-pointer active:scale-95"
+            >
+              <FaTrophy /> My Academic Performance
             </button>
           </>
         }
@@ -2744,6 +2761,13 @@ const StudentDashboard = ({ user }) => {
         onClose={() => setRatingModalCourse(null)}
         course={ratingModalCourse}
         onRatingSubmitted={handleRatingSubmitted}
+      />
+
+      {/* STUDENT PERFORMANCE & EARLY WARNING MODAL */}
+      <StudentPerformanceModal
+        isOpen={showPerformanceModal}
+        onClose={() => setShowPerformanceModal(false)}
+        studentId={user?._id || user?.id}
       />
     </div>
   );
