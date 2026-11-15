@@ -20,7 +20,7 @@ import AddCourse from './pages/AddCourse';
 import ChangePassword from './pages/ChangePassword';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import Courses from './pages/Courses'; 
+import Courses from './pages/Courses';
 import CourseDetails from './pages/CourseDetails';
 import ManageUsers from './pages/ManageUsers';
 import Attendance from './pages/Attendance';
@@ -32,6 +32,10 @@ import CreateQuiz from './pages/CreateQuiz';
 import TakeQuiz from './pages/TakeQuiz';
 import QuizSubmissions from './pages/QuizSubmissions';
 import SmsSettings from './pages/SmsSettings';
+import AuditLogs from './pages/AuditLogs';
+import ExportBackupCenter from './pages/ExportBackupCenter';
+import StudentPerformanceDetails from './pages/StudentPerformanceDetails';
+import TimetableCalendar from './pages/TimetableCalendar';
 
 // --- PROTECTED ROUTE & ROLE SECURITY LOGIC ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -108,13 +112,14 @@ function App() {
         {/* === DASHBOARD & PROTECTED ROUTES === */}
         {/* Everything inside here gets the Sidebar and Header automatically */}
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-          
+
           {/* Level 1: Accessible to EVERYONE (Student, Teacher, Admin) */}
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/courses" element={<Courses />} /> 
+          <Route path="/calendar" element={<TimetableCalendar />} />
+          <Route path="/courses" element={<Courses />} />
           <Route path="/course/:courseId" element={<ErrorBoundary><CourseDetails /></ErrorBoundary>} />
           <Route path="/courses/:courseId" element={<ErrorBoundary><CourseDetails /></ErrorBoundary>} />
-          
+
           <Route path="/course/:courseId/create-quiz" element={
             <ProtectedRoute allowedRoles={['teacher', 'admin']}>
               <CreateQuiz />
@@ -126,7 +131,7 @@ function App() {
               <CreateQuiz />
             </ProtectedRoute>
           } />
-          
+
           <Route path="/quiz/:quizId/take" element={
             <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
               <TakeQuiz />
@@ -141,6 +146,8 @@ function App() {
 
           <Route path="/payments" element={<Payments />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/student-performance/:studentId" element={<StudentPerformanceDetails />} />
+          <Route path="/performance/:studentId" element={<StudentPerformanceDetails />} />
           <Route path="/settings" element={<Settings />} />
 
           {/* Level 2: Restricted Access (Admin Only) */}
@@ -175,6 +182,18 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/audit-logs" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AuditLogs />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/export-center" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <ExportBackupCenter />
+            </ProtectedRoute>
+          } />
+
           <Route path="/sms-settings" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <SmsSettings />
@@ -182,7 +201,7 @@ function App() {
           } />
 
         </Route>
-        
+
         {/* Catch-all for random URLs */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>

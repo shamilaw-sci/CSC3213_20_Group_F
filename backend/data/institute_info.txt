@@ -68,6 +68,7 @@ Other Information:
 - Admission & Fees Policy: 
     Physical students Monthly fees are payable on or before the 7th of every month. 
     Online payments are updated instantly.
+    Access to the classes will be restrict if payment not settled within the first 3 weeks of the current month.
 - Attendance Policy: Physical attendance is logged via QR code/Barcode counter. Online students mark attendance via weekly lesson access.
 - Student Support Email: admin.luminalearn@gmail.com
 - Copyrights: LuminaLearn by Kirula Education Center @ 2026

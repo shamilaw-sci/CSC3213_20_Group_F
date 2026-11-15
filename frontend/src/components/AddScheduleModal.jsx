@@ -10,8 +10,11 @@ import {
   FaPlusCircle,
   FaCheckCircle,
   FaLink,
-  FaGraduationCap
+  FaGraduationCap,
+  FaExclamationTriangle,
+  FaEdit
 } from 'react-icons/fa';
+import api from '../utils/api';
 
 // Standard 12-hour time options
 const HOURS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
@@ -92,8 +95,11 @@ export default function AddScheduleModal({
   onSave,
   courses = [],
   teachers = [],
-  gradeOptions = []
+  gradeOptions = [],
+  editSchedule = null
 }) {
+  const isEditing = !!editSchedule;
+
   const [formData, setFormData] = useState({
     title: '',
     className: '',
@@ -102,11 +108,16 @@ export default function AddScheduleModal({
     endTime: '12:00 PM',
     courseId: '',
     teacherId: '',
-    room: 'Hall A'
+    room: 'Hall A',
+    eventType: 'class',
+    date: '',
+    subject: '',
+    description: ''
   });
 
   const [submitting, setSubmitting] = useState(false);
   const [selectedCourseObj, setSelectedCourseObj] = useState(null);
+  const [conflictWarning, setConflictWarning] = useState(null);
 
   // Time sub-states
   const [startTimeParts, setStartTimeParts] = useState(parseTimeString('10:00 AM'));
@@ -114,21 +125,49 @@ export default function AddScheduleModal({
 
   useEffect(() => {
     if (isOpen) {
-      setFormData({
-        title: '',
-        className: '',
-        dayOfWeek: 'Saturday',
-        startTime: '10:00 AM',
-        endTime: '12:00 PM',
-        courseId: '',
-        teacherId: '',
-        room: 'Hall A'
-      });
-      setSelectedCourseObj(null);
-      setStartTimeParts(parseTimeString('10:00 AM'));
-      setEndTimeParts(parseTimeString('12:00 PM'));
+      if (editSchedule) {
+        setFormData({
+          title: editSchedule.title || '',
+          className: editSchedule.className || '',
+          dayOfWeek: editSchedule.dayOfWeek || 'Saturday',
+          startTime: editSchedule.startTime || '10:00 AM',
+          endTime: editSchedule.endTime || '12:00 PM',
+          courseId: editSchedule.courseId?._id || editSchedule.courseId || '',
+          teacherId: editSchedule.teacherId?._id || editSchedule.teacherId || '',
+          room: editSchedule.room || 'Hall A',
+          eventType: editSchedule.eventType || 'class',
+          date: editSchedule.date || '',
+          subject: editSchedule.subject || '',
+          description: editSchedule.description || ''
+        });
+        setStartTimeParts(parseTimeString(editSchedule.startTime || '10:00 AM'));
+        setEndTimeParts(parseTimeString(editSchedule.endTime || '12:00 PM'));
+
+        const cId = editSchedule.courseId?._id || editSchedule.courseId;
+        const matched = courses.find(c => c && c._id === cId);
+        setSelectedCourseObj(matched || null);
+      } else {
+        setFormData({
+          title: '',
+          className: '',
+          dayOfWeek: 'Saturday',
+          startTime: '10:00 AM',
+          endTime: '12:00 PM',
+          courseId: '',
+          teacherId: '',
+          room: 'Hall A',
+          eventType: 'class',
+          date: '',
+          subject: '',
+          description: ''
+        });
+        setSelectedCourseObj(null);
+        setStartTimeParts(parseTimeString('10:00 AM'));
+        setEndTimeParts(parseTimeString('12:00 PM'));
+      }
+      setConflictWarning(null);
     }
-  }, [isOpen]);
+  }, [isOpen, editSchedule]);
 
   if (!isOpen) return null;
 
@@ -138,6 +177,7 @@ export default function AddScheduleModal({
     setStartTimeParts(updated);
     const formatted = formatTimeString(updated);
     setFormData(prev => ({ ...prev, startTime: formatted }));
+    checkConflictsLive(formatted, formatTimeString(endTimeParts));
   };
 
   // Handle End Time changes
@@ -146,6 +186,7 @@ export default function AddScheduleModal({
     setEndTimeParts(updated);
     const formatted = formatTimeString(updated);
     setFormData(prev => ({ ...prev, endTime: formatted }));
+    checkConflictsLive(formatTimeString(startTimeParts), formatted);
   };
 
   // Quick duration click (e.g. +120 mins for 2 hours)
@@ -154,6 +195,7 @@ export default function AddScheduleModal({
     const newEndStr = addMinutesToTime(currentStart, minutes);
     setEndTimeParts(parseTimeString(newEndStr));
     setFormData(prev => ({ ...prev, endTime: newEndStr }));
+    checkConflictsLive(currentStart, newEndStr);
   };
 
   // Apply preset slot
@@ -165,6 +207,31 @@ export default function AddScheduleModal({
       startTime: slot.start,
       endTime: slot.end
     }));
+    checkConflictsLive(slot.start, slot.end);
+  };
+
+  // Live conflict preflight checking
+  const checkConflictsLive = async (sTime, eTime) => {
+    try {
+      const res = await api.post('/schedule/check-conflicts', {
+        scheduleId: editSchedule?._id || null,
+        teacherId: formData.teacherId || undefined,
+        room: formData.room || 'Main Hall',
+        className: formData.className || '',
+        dayOfWeek: formData.dayOfWeek || '',
+        date: formData.date || null,
+        startTime: sTime || formatTimeString(startTimeParts),
+        endTime: eTime || formatTimeString(endTimeParts)
+      });
+
+      if (res.data.hasConflict) {
+        setConflictWarning(res.data.conflicts[0]);
+      } else {
+        setConflictWarning(null);
+      }
+    } catch (err) {
+      console.warn("Live conflict check error:", err);
+    }
   };
 
   // Handle course linking with automatic cascade to teacher, title & grade
@@ -183,7 +250,6 @@ export default function AddScheduleModal({
     if (matchedCourse) {
       setSelectedCourseObj(matchedCourse);
 
-      // Safely extract teacher id string
       let assignedTeacherId = '';
       if (matchedCourse.instructor) {
         if (typeof matchedCourse.instructor === 'object') {
@@ -193,7 +259,6 @@ export default function AddScheduleModal({
         }
       }
 
-      // Safely extract primary grade string
       let targetGrade = '';
       if (typeof matchedCourse.grade === 'string' && matchedCourse.grade) {
         targetGrade = matchedCourse.grade;
@@ -209,7 +274,7 @@ export default function AddScheduleModal({
       setFormData(prev => ({
         ...prev,
         courseId: selectedCourseId,
-        title: matchedCourse.title || prev.title || '',
+        title: prev.title || matchedCourse.title || '',
         className: targetGrade || prev.className || '',
         teacherId: assignedTeacherId || prev.teacherId || ''
       }));
@@ -229,7 +294,16 @@ export default function AddScheduleModal({
         startTime: formatTimeString(startTimeParts),
         endTime: formatTimeString(endTimeParts)
       };
-      await onSave(finalPayload);
+
+      if (isEditing) {
+        finalPayload._id = editSchedule._id;
+      }
+
+      await onSave(finalPayload, isEditing);
+    } catch (err) {
+      if (err.response?.data?.conflicts) {
+        setConflictWarning(err.response.data.conflicts[0]);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -278,12 +352,14 @@ export default function AddScheduleModal({
 
           <div className="flex items-center gap-3.5 pr-8">
             <div className="p-3 bg-amber-400 text-purple-950 rounded-2xl text-xl font-black shadow-md flex items-center justify-center">
-              <FaCalendarAlt />
+              {isEditing ? <FaEdit /> : <FaCalendarAlt />}
             </div>
             <div>
-              <h3 className="text-lg sm:text-xl font-extrabold tracking-tight">Add Class to Timetable</h3>
+              <h3 className="text-lg sm:text-xl font-extrabold tracking-tight">
+                {isEditing ? "Edit Class Schedule" : "Add Class or Examination to Timetable"}
+              </h3>
               <p className="text-indigo-200 text-xs mt-0.5 font-medium">
-                Schedule course class sessions with linked teachers, target grades, and standardized time slots.
+                Automatic conflict detection will ensure teachers, rooms, and grades do not overlap.
               </p>
             </div>
           </div>
@@ -291,6 +367,32 @@ export default function AddScheduleModal({
 
         {/* Form Body - Scrollable */}
         <form onSubmit={handleSubmit} className="p-5 sm:p-7 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
+
+          {/* Section 0: Event Category (Class vs Examination) */}
+          <div className="bg-slate-50/80 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-700 flex items-center justify-between gap-3">
+            <span className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider">
+              Event Category:
+            </span>
+            <div className="flex gap-2">
+              {[
+                { id: 'class', label: '📘 Regular Lecture / Class' },
+                { id: 'examination', label: '📝 Examination / Test' }
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, eventType: cat.id })}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    formData.eventType === cat.id
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Section 1: Course & Class Linking */}
           <div className="bg-slate-50/80 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-4">
@@ -325,7 +427,6 @@ export default function AddScheduleModal({
                   const gradeLabel = typeof c.grade === 'string'
                     ? c.grade
                     : (Array.isArray(c.enrolledGrades) && c.enrolledGrades[0]?.gradeNumber ? c.enrolledGrades[0].gradeNumber : '');
-
                   const teacherLabel = c.instructor?.name || (typeof c.instructor === 'string' ? 'Teacher Assigned' : '');
 
                   return (
@@ -362,13 +463,13 @@ export default function AddScheduleModal({
               {/* Class Title */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1 uppercase tracking-wider">
-                  Class / Session Title <span className="text-red-500">*</span>
+                  Session Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Grade 10 Science - Theory"
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs transition"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 shadow-xs transition"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
@@ -381,22 +482,23 @@ export default function AddScheduleModal({
                 </label>
                 <select
                   required
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs cursor-pointer transition"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 shadow-xs cursor-pointer transition"
                   value={typeof formData.className === 'string' ? formData.className : ''}
-                  onChange={(e) => setFormData({ ...formData, className: e.target.value })}
+                  onChange={(e) => {
+                    const cName = e.target.value;
+                    setFormData({ ...formData, className: cName });
+                    checkConflictsLive(formatTimeString(startTimeParts), formatTimeString(endTimeParts));
+                  }}
                 >
                   <option value="">-- Select Target Grade / Class --</option>
-
-                  {/* Course specific grades group if applicable */}
                   {courseSpecificGrades.length > 0 && (
-                    <optgroup label="Course Enrolled Grades / Classes" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
+                    <optgroup label="Course Enrolled Grades / Classes">
                       {courseSpecificGrades.map(cg => (
                         <option key={cg} value={cg}>{cg} (Course Cohort)</option>
                       ))}
                     </optgroup>
                   )}
-
-                  <optgroup label="All Institute Grades" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
+                  <optgroup label="All Institute Grades">
                     {gradeOptions.map(g => (
                       <option key={g} value={g}>{g}</option>
                     ))}
@@ -420,7 +522,7 @@ export default function AddScheduleModal({
             {/* Day of Week */}
             <div>
               <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
-                Day of the Week <span className="text-red-500">*</span>
+                Recurring Day of the Week <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-7 gap-1.5">
                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => {
@@ -429,17 +531,37 @@ export default function AddScheduleModal({
                     <button
                       key={d}
                       type="button"
-                      onClick={() => setFormData({ ...formData, dayOfWeek: d })}
-                      className={`py-2 text-center rounded-xl text-xs font-bold transition-all cursor-pointer ${isSelected
+                      onClick={() => {
+                        setFormData({ ...formData, dayOfWeek: d });
+                        checkConflictsLive(formatTimeString(startTimeParts), formatTimeString(endTimeParts));
+                      }}
+                      className={`py-2 text-center rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        isSelected
                           ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20'
-                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-slate-700 hover:bg-purple-50 dark:hover:bg-slate-700'
-                        }`}
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-slate-700 hover:bg-purple-50'
+                      }`}
                     >
                       {d.slice(0, 3)}
                     </button>
                   );
                 })}
               </div>
+            </div>
+
+            {/* Optional Specific Date */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1 uppercase tracking-wider">
+                Or Specific Date (Optional for one-off sessions / exams)
+              </label>
+              <input
+                type="date"
+                value={formData.date || ''}
+                onChange={(e) => {
+                  setFormData({ ...formData, date: e.target.value });
+                  checkConflictsLive(formatTimeString(startTimeParts), formatTimeString(endTimeParts));
+                }}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium"
+              />
             </div>
 
             {/* Quick Presets */}
@@ -453,7 +575,7 @@ export default function AddScheduleModal({
                     key={idx}
                     type="button"
                     onClick={() => handleApplyPreset(slot)}
-                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 font-semibold px-2.5 py-1.5 rounded-xl transition cursor-pointer shadow-2xs"
+                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-purple-300 hover:bg-purple-50 text-slate-700 dark:text-gray-300 font-semibold px-2.5 py-1.5 rounded-xl transition cursor-pointer shadow-2xs"
                   >
                     ⚡ {slot.start} – {slot.end}
                   </button>
@@ -463,7 +585,6 @@ export default function AddScheduleModal({
 
             {/* Start Time & End Time Clean Boxes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
               {/* START TIME */}
               <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
                 <div className="flex justify-between items-center">
@@ -477,7 +598,7 @@ export default function AddScheduleModal({
 
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 mb-0.5 uppercase">Hour</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-0.5 uppercase">Hour</label>
                     <select
                       className="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                       value={startTimeParts.hour}
@@ -486,11 +607,9 @@ export default function AddScheduleModal({
                       {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
                   </div>
-
-                  <span className="text-slate-400 dark:text-gray-500 font-extrabold text-lg pt-4">:</span>
-
+                  <span className="text-slate-400 font-extrabold text-lg pt-4">:</span>
                   <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 mb-0.5 uppercase">Minute</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-0.5 uppercase">Minute</label>
                     <select
                       className="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                       value={startTimeParts.minute}
@@ -499,7 +618,6 @@ export default function AddScheduleModal({
                       {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </div>
-
                   <div className="pt-4">
                     <div className="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
                       {PERIODS.map(p => (
@@ -507,10 +625,9 @@ export default function AddScheduleModal({
                           key={p}
                           type="button"
                           onClick={() => updateStartTime('period', p)}
-                          className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition cursor-pointer ${startTimeParts.period === p
-                              ? 'bg-purple-600 text-white shadow-xs'
-                              : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
-                            }`}
+                          className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition cursor-pointer ${
+                            startTimeParts.period === p ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 dark:text-gray-400'
+                          }`}
                         >
                           {p}
                         </button>
@@ -533,7 +650,7 @@ export default function AddScheduleModal({
 
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 mb-0.5 uppercase">Hour</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-0.5 uppercase">Hour</label>
                     <select
                       className="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                       value={endTimeParts.hour}
@@ -542,11 +659,9 @@ export default function AddScheduleModal({
                       {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
                   </div>
-
-                  <span className="text-slate-400 dark:text-gray-500 font-extrabold text-lg pt-4">:</span>
-
+                  <span className="text-slate-400 font-extrabold text-lg pt-4">:</span>
                   <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 mb-0.5 uppercase">Minute</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-0.5 uppercase">Minute</label>
                     <select
                       className="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                       value={endTimeParts.minute}
@@ -555,7 +670,6 @@ export default function AddScheduleModal({
                       {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </div>
-
                   <div className="pt-4">
                     <div className="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
                       {PERIODS.map(p => (
@@ -563,10 +677,9 @@ export default function AddScheduleModal({
                           key={p}
                           type="button"
                           onClick={() => updateEndTime('period', p)}
-                          className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition cursor-pointer ${endTimeParts.period === p
-                              ? 'bg-indigo-600 text-white shadow-xs'
-                              : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
-                            }`}
+                          className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition cursor-pointer ${
+                            endTimeParts.period === p ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 dark:text-gray-400'
+                          }`}
                         >
                           {p}
                         </button>
@@ -577,10 +690,10 @@ export default function AddScheduleModal({
               </div>
             </div>
 
-            {/* Set End Time by Duration Bar */}
+            {/* Quick Duration Bar */}
             <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-bold text-slate-600 dark:text-gray-300 flex items-center gap-1.5">
-                <FaClock className="text-indigo-500 dark:text-indigo-400 text-xs" /> Set End Time by Duration:
+                <FaClock className="text-indigo-500 text-xs" /> Set End Time by Duration:
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {[
@@ -594,7 +707,7 @@ export default function AddScheduleModal({
                     key={item.mins}
                     type="button"
                     onClick={() => handleQuickDuration(item.mins)}
-                    className="px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-900 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-gray-300 font-bold transition active:scale-95 cursor-pointer"
+                    className="px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-900 hover:bg-purple-50 hover:text-purple-700 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-gray-300 font-bold transition active:scale-95 cursor-pointer"
                   >
                     {item.label}
                   </button>
@@ -616,9 +729,13 @@ export default function AddScheduleModal({
                   Assign Teacher
                 </label>
                 <select
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs cursor-pointer transition"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 shadow-xs cursor-pointer transition"
                   value={typeof formData.teacherId === 'string' ? formData.teacherId : ''}
-                  onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
+                  onChange={(e) => {
+                    const tId = e.target.value;
+                    setFormData({ ...formData, teacherId: tId });
+                    checkConflictsLive(formatTimeString(startTimeParts), formatTimeString(endTimeParts));
+                  }}
                 >
                   <option value="">-- No Specific Teacher Assigned --</option>
                   {teachers.map(t => {
@@ -635,28 +752,33 @@ export default function AddScheduleModal({
               {/* Room / Location */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-gray-300 mb-1 uppercase tracking-wider">
-                  Room / Location
+                  Classroom / Venue Allocation
                 </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="e.g. Hall A, Lab 2"
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-xs transition"
-                    value={formData.room}
-                    onChange={(e) => setFormData({ ...formData, room: e.target.value })}
-                  />
-                </div>
-                {/* Room Quick Suggestions */}
+                <input
+                  type="text"
+                  placeholder="e.g. Hall A, Lab 2"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 shadow-xs transition"
+                  value={formData.room}
+                  onChange={(e) => {
+                    const r = e.target.value;
+                    setFormData({ ...formData, room: r });
+                    checkConflictsLive(formatTimeString(startTimeParts), formatTimeString(endTimeParts));
+                  }}
+                />
                 <div className="flex flex-wrap gap-1 mt-1.5">
                   {ROOM_PRESETS.slice(0, 5).map(roomName => (
                     <button
                       key={roomName}
                       type="button"
-                      onClick={() => setFormData({ ...formData, room: roomName })}
-                      className={`text-[10px] px-2 py-0.5 rounded-md border font-semibold transition cursor-pointer ${formData.room === roomName
-                          ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border-purple-300 dark:border-purple-800'
-                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-                        }`}
+                      onClick={() => {
+                        setFormData({ ...formData, room: roomName });
+                        checkConflictsLive(formatTimeString(startTimeParts), formatTimeString(endTimeParts));
+                      }}
+                      className={`text-[10px] px-2 py-0.5 rounded-md border font-semibold transition cursor-pointer ${
+                        formData.room === roomName
+                          ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border-purple-300'
+                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-slate-700'
+                      }`}
                     >
                       {roomName}
                     </button>
@@ -666,28 +788,16 @@ export default function AddScheduleModal({
             </div>
           </div>
 
-          {/* Timetable Entry Preview Card */}
-          <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-inner border border-slate-800 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-500/20 border border-purple-400/30 rounded-xl text-purple-300">
-                <FaCalendarAlt className="text-lg" />
-              </div>
+          {/* Live Conflict Warning Box */}
+          {conflictWarning && (
+            <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 flex items-start gap-3 text-xs animate-shake shadow-xs">
+              <FaExclamationTriangle className="text-rose-500 text-base mt-0.5 shrink-0" />
               <div>
-                <span className="text-[10px] uppercase tracking-widest text-purple-300 font-extrabold block">
-                  Timetable Slot Preview
-                </span>
-                <p className="text-sm font-extrabold text-white mt-0.5">
-                  {formData.title || 'Untitled Class'} ({typeof formData.className === 'string' && formData.className ? formData.className : 'No Grade'})
-                </p>
-                <div className="flex flex-wrap gap-x-3 text-xs text-slate-300 font-medium mt-0.5">
-                  <span>📅 {formData.dayOfWeek}</span>
-                  <span>🕒 {formatTimeString(startTimeParts)} – {formatTimeString(endTimeParts)}</span>
-                  <span>📍 {formData.room || 'Main Hall'}</span>
-                  {assignedTeacherObj && <span>👨‍🏫 {assignedTeacherObj.name}</span>}
-                </div>
+                <strong className="font-black block uppercase tracking-wider text-[11px]">Timetable Conflict Warning!</strong>
+                <p className="mt-0.5 font-semibold">{conflictWarning.message}</p>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Modal Footer Actions */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
@@ -706,12 +816,12 @@ export default function AddScheduleModal({
               {submitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Adding Class...</span>
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
-                  <FaPlusCircle className="text-sm" />
-                  <span>Add Class to Timetable</span>
+                  {isEditing ? <FaEdit className="text-sm" /> : <FaPlusCircle className="text-sm" />}
+                  <span>{isEditing ? "Save Schedule Changes" : "Add Class to Timetable"}</span>
                 </>
               )}
             </button>

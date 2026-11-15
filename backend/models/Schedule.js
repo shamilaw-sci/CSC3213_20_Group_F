@@ -38,6 +38,42 @@ const ScheduleSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: 'Main Hall'
+  },
+  eventType: {
+    type: String,
+    enum: ['class', 'examination', 'event', 'deadline'],
+    default: 'class'
+  },
+  date: {
+    type: String, // Optional specific date: "YYYY-MM-DD"
+    default: null
+  },
+  status: {
+    type: String,
+    enum: ['scheduled', 'postponed', 'rescheduled', 'cancelled'],
+    default: 'scheduled'
+  },
+  postponeReason: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  rescheduledTo: {
+    date: { type: String, default: '' },
+    dayOfWeek: { type: String, default: '' },
+    startTime: { type: String, default: '' },
+    endTime: { type: String, default: '' },
+    room: { type: String, default: '' }
+  },
+  subject: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  description: {
+    type: String,
+    trim: true,
+    default: ''
   }
 }, { timestamps: true });
 

@@ -14,6 +14,7 @@ const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authM
 const { sendSMS, maskPhoneNumber, sendPaymentSMS } = require('../services/smsService');
 const { sendPaymentReceiptEmail } = require('../utils/emailService');
 const { notifyParentsOfStudent } = require('../utils/notificationHelper');
+const { logAudit } = require('../services/auditLogger');
 
 // Bank Slip Multer Storage Configuration
 const paymentUploadStorage = multer.diskStorage({
@@ -570,6 +571,27 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
       console.error('Physical payment notification error:', notifErr.message);
     }
 
+    logAudit({
+      req,
+      action: 'PAYMENT_RECORD',
+      entity: 'Payment',
+      entityId: payment._id,
+      summary: `Recorded physical payment of LKR ${finalAmount.toLocaleString()} for student "${student.name}" in "${course.title}" (Receipt: ${transactionId})`,
+      diff: {
+        before: null,
+        after: {
+          studentId: student._id,
+          studentName: student.name,
+          courseId: course._id,
+          courseTitle: course.title,
+          amount: finalAmount,
+          transactionId,
+          paymentMethod: finalPaymentMethod,
+          status: 'COMPLETED'
+        }
+      }
+    });
+
     res.status(201).json({
       success: true,
       message: `Physical payment of LKR ${finalAmount.toLocaleString()} recorded successfully! Student enrolled in ${course.title}.`,
@@ -859,6 +881,18 @@ router.put('/:id/approve-slip', protect, isCounterStaffOrAdmin, async (req, res)
       }
     }
 
+    logAudit({
+      req,
+      action: 'PAYMENT_APPROVE',
+      entity: 'Payment',
+      entityId: payment._id,
+      summary: `Approved bank slip payment #${payment.transactionId} for student "${student?.name || 'Unknown'}" in "${course?.title || 'Unknown Course'}" (LKR ${payment.amount})`,
+      diff: {
+        before: { status: 'PENDING_APPROVAL' },
+        after: { status: 'COMPLETED' }
+      }
+    });
+
     res.json({
       success: true,
       message: `Bank slip for ${student?.name || 'student'} approved successfully! Course unlocked.`,
@@ -931,6 +965,18 @@ router.put('/:id/reject-slip', protect, isCounterStaffOrAdmin, async (req, res) 
         console.error('Reject slip notification error:', notifErr.message);
       }
     }
+
+    logAudit({
+      req,
+      action: 'PAYMENT_REJECT',
+      entity: 'Payment',
+      entityId: payment._id,
+      summary: `Rejected bank slip payment #${payment.transactionId} for student "${payment.student?.name || 'Unknown'}". Reason: "${payment.rejectionReason}"`,
+      diff: {
+        before: { status: 'PENDING_APPROVAL' },
+        after: { status: 'REJECTED', rejectionReason: payment.rejectionReason }
+      }
+    });
 
     res.json({
       success: true,
