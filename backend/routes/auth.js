@@ -26,6 +26,7 @@ const crypto = require('crypto');
 const { sendResetPasswordEmail, sendRegistrationWelcomeEmail, sendPasscodeEmail } = require('../utils/emailService');
 const { authLimiter, otpLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 const { getCategoryDir } = require('../services/fileStorage');
+const { analyzeStudentPerformance } = require('../services/earlyWarningService');
 const {
   sendVerificationOTP,
   formatSriLankaPhone,
@@ -3458,6 +3459,13 @@ router.get('/parent-summary', protect, async (req, res) => {
           return (s.marks || 0) >= passMark;
         }).length;
 
+        let earlyWarning = null;
+        try {
+          earlyWarning = await analyzeStudentPerformance(childId);
+        } catch (warnErr) {
+          console.error("Early warning eval error for child:", warnErr.message);
+        }
+
         return {
           child: {
             _id: child._id,
@@ -3470,6 +3478,7 @@ router.get('/parent-summary', protect, async (req, res) => {
             nicNumber: child.nicNumber,
             profilePicture: child.profilePicture
           },
+          earlyWarning,
           courses: courses.map(c => ({
             _id: c._id,
             title: c.title,
