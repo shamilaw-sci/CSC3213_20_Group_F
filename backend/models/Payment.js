@@ -22,6 +22,15 @@ const paymentSchema = new mongoose.Schema({
   month: {
     type: String
   },
+  year: {
+    type: Number,
+    default: () => new Date().getFullYear()
+  },
+  paymentType: {
+    type: String,
+    enum: ['ENROLLMENT', 'MONTHLY_FEE'],
+    default: 'MONTHLY_FEE'
+  },
   amount: {
     type: Number,
     required: true
@@ -75,6 +84,8 @@ const paymentSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+paymentSchema.index({ student: 1, course: 1, month: 1, year: 1, status: 1 });
 
 const Payment = mongoose.model('Payment', paymentSchema);
 

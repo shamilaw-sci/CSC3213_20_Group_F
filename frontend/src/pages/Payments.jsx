@@ -390,7 +390,7 @@ const Payments = () => {
                             <div>
                               <p className="font-bold text-gray-900 dark:text-white">{item.course?.title || 'Course Fee'}</p>
                               <span className="text-[11px] text-purple-700 dark:text-purple-400 font-bold block">
-                                {formattedGrade}
+                                {formattedGrade} {item.month ? `• ${item.month} ${item.year || ''}` : ''}
                               </span>
                             </div>
                           </div>
@@ -543,7 +543,9 @@ const Payments = () => {
                         </div>
                         <div>
                           <h4 className="font-extrabold text-sm text-gray-900 dark:text-white leading-tight">{item.course?.title || 'Course Fee'}</h4>
-                          <span className="text-[10px] text-purple-700 dark:text-purple-400 font-bold block">{formattedGrade}</span>
+                          <span className="text-[10px] text-purple-700 dark:text-purple-400 font-bold block">
+                            {formattedGrade} {item.month ? `• ${item.month} ${item.year || ''}` : ''}
+                          </span>
                         </div>
                       </div>
                       <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">

@@ -134,6 +134,8 @@ const CourseDetails = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [showMonthlyFeeModal, setShowMonthlyFeeModal] = useState(false);
+  const [feeStatus, setFeeStatus] = useState(null);
   const [showStudentPicker, setShowStudentPicker] = useState(false);
   const [selectedEnrollGrade, setSelectedEnrollGrade] = useState(null);
   const [gradeStudents, setGradeStudents] = useState([]);
@@ -835,10 +837,22 @@ const CourseDetails = () => {
       });
       toast.success(res.data.message || "Review submitted successfully!");
       await fetchReviews();
+      fetchFeeStatus();
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to submit review");
     } finally {
       setIsSubmittingReview(false);
+    }
+  };
+
+  const fetchFeeStatus = async () => {
+    if (user?.role === 'student' && courseId) {
+      try {
+        const res = await api.get(`/payments/fee-status/${courseId}`);
+        setFeeStatus(res.data);
+      } catch (err) {
+        console.error("Error fetching fee status:", err);
+      }
     }
   };
 
@@ -881,6 +895,7 @@ const CourseDetails = () => {
       }));
 
       await fetchReviews();
+      fetchFeeStatus();
     } catch (err) {
       if (!course) toast.error("Failed to fetch details.");
     } finally {
@@ -2343,9 +2358,16 @@ const CourseDetails = () => {
                           return;
                         }
 
-                        if (user?.role === 'student' && !alreadyEnrolled) {
-                          toast.error("Please click the '+ Enroll Course' button above to enroll before accessing the workspace.");
-                          return;
+                        if (user?.role === 'student') {
+                          if (!alreadyEnrolled) {
+                            toast.error("Please click the '+ Enroll Course' button above to enroll before accessing the workspace.");
+                            return;
+                          }
+                          if (feeStatus && !feeStatus.isAllowed) {
+                            setShowMonthlyFeeModal(true);
+                            toast.error(feeStatus.message || "Monthly tuition fee payment required past Week 3 to access classes.");
+                            return;
+                          }
                         }
                         setSelectedGrade(eg.gradeNumber);
                       }}
@@ -2358,7 +2380,9 @@ const CourseDetails = () => {
                               ? 'border-red-200 dark:border-red-900/60 bg-red-50/40 dark:bg-red-950/20 cursor-pointer'
                               : user?.role === 'student' && !alreadyEnrolled
                                 ? 'border-gray-200 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/40 cursor-pointer hover:border-purple-300'
-                                : 'bg-white dark:bg-slate-900 border-purple-100/80 dark:border-slate-800 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer group'
+                                : user?.role === 'student' && feeStatus && !feeStatus.isAllowed
+                                  ? 'border-amber-300 dark:border-amber-700/80 bg-amber-50/50 dark:bg-amber-950/30 cursor-pointer hover:border-amber-500'
+                                  : 'bg-white dark:bg-slate-900 border-purple-100/80 dark:border-slate-800 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer group'
                       }`}
                     >
                       <div>
@@ -2479,7 +2503,9 @@ const CourseDetails = () => {
                               ? '🗓️ Live Class scheduled. Click to view schedule.'
                               : user?.role === 'student' && !alreadyEnrolled
                                 ? 'Enroll required to view announcements & lessons'
-                                : 'Click to view announcements and lessons'}
+                                : user?.role === 'student' && feeStatus && !feeStatus.isAllowed
+                                  ? '🔒 Monthly fee required past Week 3. Click to pay & unlock.'
+                                  : 'Click to view announcements and lessons'}
                         </p>
                       </div>
 
@@ -2520,6 +2546,87 @@ const CourseDetails = () => {
       {/* VIEW 2: CLASS WORKSPACE CONTENT PANEL (Shown when a class is clicked) */}
       {selectedGrade !== null && (
         <div className="space-y-6">
+
+          {/* Monthly Fee Grace Period Alert Banner */}
+          {user?.role === 'student' && feeStatus?.status === 'GRACE_PERIOD' && (
+            <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border-2 border-amber-500/50 dark:border-amber-500/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-fadeIn">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl shrink-0">
+                  <FaExclamationTriangle />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-amber-950 dark:text-amber-200 text-sm">
+                    Monthly Tuition Notice — {feeStatus.currentMonth} {feeStatus.currentYear}
+                  </h4>
+                  <p className="text-xs text-amber-900/80 dark:text-amber-300/90 mt-0.5 leading-relaxed">
+                    Tuition is due by Week 3 ({feeStatus.deadlineDateStr}). You have <span className="font-bold underline">{feeStatus.daysRemaining} day(s) remaining</span> before class workspace access is restricted.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMonthlyFeeModal(true)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 shrink-0 cursor-pointer flex items-center gap-2"
+              >
+                <FaCreditCard />
+                <span>Settle Fee Now</span>
+              </button>
+            </div>
+          )}
+
+          {/* Pending Approval Banner */}
+          {user?.role === 'student' && feeStatus?.status === 'PENDING_APPROVAL' && (
+            <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 flex items-center gap-3.5 text-blue-900 dark:text-blue-200 shadow-sm animate-fadeIn">
+              <span className="text-2xl shrink-0">🏦</span>
+              <div className="text-xs">
+                <span className="font-bold block text-sm">Bank Slip Pending Admin Verification</span>
+                Your bank deposit slip for {feeStatus.currentMonth} {feeStatus.currentYear} is being verified by administration. Temporary access is granted.
+              </div>
+            </div>
+          )}
+
+          {/* Locked Paywall Screen (Shown when student fee is overdue past 3rd week) */}
+          {user?.role === 'student' && feeStatus && !feeStatus.isAllowed ? (
+            <div className="bg-white dark:bg-slate-900 border-2 border-red-300 dark:border-red-900/60 rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto shadow-xl space-y-6 animate-fadeIn my-6">
+              <div className="w-20 h-20 mx-auto rounded-3xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center text-4xl shadow-inner">
+                <FaLock />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-gray-900 dark:text-white">
+                  Class Access Restricted
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-lg mx-auto">
+                  Tuition fee for <span className="font-extrabold text-purple-700 dark:text-purple-400">{feeStatus.currentMonth} {feeStatus.currentYear}</span> is overdue past Week 3 (Deadline was {feeStatus.deadlineDateStr}). Settle your monthly payment to regain immediate access to live streams, video lessons, and downloadable materials.
+                </p>
+              </div>
+
+              <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/80 rounded-2xl p-4 max-w-sm mx-auto flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Monthly Fee</span>
+                <span className="text-lg font-black text-purple-900 dark:text-purple-200">
+                  LKR {(course?.fee || feeStatus.feeAmount || 2500).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMonthlyFeeModal(true)}
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-800 text-white font-black text-sm shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <FaCreditCard />
+                  <span>Settle Monthly Fee</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedGrade(null)}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-extrabold text-sm transition cursor-pointer"
+                >
+                  Back to Classes
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
 
           {/* Active Live Stream Player (Shows while live stream is actively broadcasting at TOP) */}
           {currentLesson?.liveStream?.isLive && (
@@ -4171,6 +4278,8 @@ const CourseDetails = () => {
               </div>
             )}
           </div>
+            </>
+          )}
 
         </div>
       )}
@@ -4743,6 +4852,20 @@ const CourseDetails = () => {
         course={course}
         student={user}
         onEnrollSuccess={fetchCourseDetails}
+      />
+
+      {/* Monthly Fee Settlement Modal */}
+      <CourseEnrollmentModal
+        isOpen={showMonthlyFeeModal}
+        onClose={() => setShowMonthlyFeeModal(false)}
+        course={course}
+        student={user}
+        isMonthlyFee={true}
+        feeStatus={feeStatus}
+        onPaymentSuccess={() => {
+          fetchFeeStatus();
+          fetchCourseDetails();
+        }}
       />
 
       {/* Teacher Profile Modal */}

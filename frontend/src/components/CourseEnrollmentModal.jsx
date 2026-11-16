@@ -2,7 +2,16 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 
-const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSuccess }) => {
+const CourseEnrollmentModal = ({ 
+  isOpen, 
+  onClose, 
+  course, 
+  student, 
+  onEnrollSuccess,
+  isMonthlyFee = false,
+  feeStatus = null,
+  onPaymentSuccess = null
+}) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -147,12 +156,19 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
       if (slipReference && slipReference.trim()) {
         formData.append('transactionId', slipReference.trim());
       }
+      if (isMonthlyFee) {
+        formData.append('month', feeStatus?.currentMonth || new Date().toLocaleString('en-US', { month: 'long' }));
+        formData.append('year', feeStatus?.currentYear || new Date().getFullYear());
+      }
 
       const res = await api.post('/payments/submit-bank-slip', formData);
 
       toast.success(res.data.message || 'Bank slip submitted successfully! Pending Admin approval.');
       if (onEnrollSuccess) {
         onEnrollSuccess();
+      }
+      if (onPaymentSuccess) {
+        onPaymentSuccess();
       }
       onClose();
     } catch (err) {
@@ -274,12 +290,17 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
         amount: courseFee,
         grade: selectedGradeOption || student?.grade,
         cardLastFour,
-        otpCode: otpCode.trim()
+        otpCode: otpCode.trim(),
+        month: isMonthlyFee ? (feeStatus?.currentMonth || new Date().toLocaleString('en-US', { month: 'long' })) : undefined,
+        year: isMonthlyFee ? (feeStatus?.currentYear || new Date().getFullYear()) : undefined
       });
 
-      toast.success(res.data.message || 'Payment & Enrollment successful!');
+      toast.success(res.data.message || (isMonthlyFee ? 'Monthly tuition fee settled successfully!' : 'Payment & Enrollment successful!'));
       if (onEnrollSuccess) {
         onEnrollSuccess();
+      }
+      if (onPaymentSuccess) {
+        onPaymentSuccess();
       }
       onClose();
     } catch (err) {
@@ -310,17 +331,25 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
           </button>
 
           <div className="flex items-center space-x-3 pr-16">
-            <span className="text-2xl sm:text-3xl">🎓</span>
+            <span className="text-2xl sm:text-3xl">{isMonthlyFee ? '💳' : '🎓'}</span>
             <div>
-              <h3 className="text-base sm:text-lg font-bold leading-tight">Course Registration & Payment</h3>
-              <p className="text-xs text-indigo-200 truncate max-w-xs sm:max-w-md mt-0.5">{course.title}</p>
+              <h3 className="text-base sm:text-lg font-bold leading-tight">
+                {isMonthlyFee ? 'Monthly Tuition Settlement' : 'Course Registration & Payment'}
+              </h3>
+              <p className="text-xs text-indigo-200 truncate max-w-xs sm:max-w-md mt-0.5">
+                {course.title} {isMonthlyFee && feeStatus?.currentMonth ? `• ${feeStatus.currentMonth} ${feeStatus.currentYear || ''}` : ''}
+              </p>
             </div>
           </div>
 
           {/* Flow Information Badge */}
           <div className="flex items-center gap-2 mt-3 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 text-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block"></span>
-            <span className="font-medium text-white/90">Option: Direct Bank Deposit & Slip Verification</span>
+            <span className={`w-2 h-2 rounded-full ${isMonthlyFee && feeStatus?.status === 'OVERDUE' ? 'bg-amber-400' : 'bg-emerald-400'} animate-ping inline-block`}></span>
+            <span className="font-medium text-white/90">
+              {isMonthlyFee 
+                ? `Billing Month: ${feeStatus?.currentMonth || 'Current Month'} ${feeStatus?.currentYear || ''} • Settle fee to unlock class workspace`
+                : 'Option: Direct Bank Deposit & Slip Verification'}
+            </span>
           </div>
         </div>
 
@@ -330,6 +359,27 @@ const CourseEnrollmentModal = ({ isOpen, onClose, course, student, onEnrollSucce
           {/* STEP 1: Registration Form */}
           {step === 1 && (
             <div className="space-y-4">
+
+              {isMonthlyFee && (
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/40 dark:to-indigo-950/40 border border-purple-200 dark:border-purple-800 rounded-xl p-3.5 flex items-center justify-between gap-3 shadow-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700 dark:text-purple-300 block">
+                      Billing Period
+                    </span>
+                    <span className="text-sm font-black text-purple-950 dark:text-white">
+                      {feeStatus?.currentMonth || 'November'} {feeStatus?.currentYear || new Date().getFullYear()}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700 dark:text-purple-300 block">
+                      Monthly Tuition Fee
+                    </span>
+                    <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                      LKR {courseFee.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Student Information (Database Records) */}
               <div className="bg-purple-50/70 dark:bg-slate-800/80 rounded-xl p-3 sm:p-3.5 border border-purple-100 dark:border-slate-700">

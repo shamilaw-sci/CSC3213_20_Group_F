@@ -11,6 +11,7 @@ const Notification = require('../models/Notification');
 const Attendance = require('../models/Attendance');
 const Enrollment = require('../models/Enrollment');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
+const { checkStudentFeeStatus } = require('../utils/feeAccessHelper');
 const uploadPdfMiddleware = require('../middleware/pdfUpload');
 const { sendCourseUpdateEmail } = require('../utils/emailService');
 const { getClassEnrolledStudents } = require('../utils/enrollmentHelper');
@@ -202,17 +203,40 @@ router.get('/course/:courseId', protect, async (req, res) => {
                 teacherMessage: "No teacher message for this class yet."
             }));
 
+        let finalLessons = existingLessons;
         if (missingGrades.length > 0) {
             try {
                 const created = await Lesson.insertMany(missingGrades);
-                const allGrades = [...existingLessons, ...created].sort((a, b) => String(a.grade).localeCompare(String(b.grade)));
-                return res.json(allGrades);
+                finalLessons = [...existingLessons, ...created].sort((a, b) => String(a.grade).localeCompare(String(b.grade)));
             } catch (createErr) {
                 // If duplicate key or parallel creation, return current
             }
         }
 
-        res.json(existingLessons);
+        // Student Monthly Fee Clearance Check
+        if (req.user && req.user.role === 'student') {
+            const feeStatus = await checkStudentFeeStatus(req.user._id, req.params.courseId);
+            if (!feeStatus.isAllowed) {
+                // Redact live stream URLs, video lessons, and PDF materials from JSON
+                finalLessons = finalLessons.map(l => ({
+                    ...l,
+                    feeLocked: true,
+                    feeStatus,
+                    videoLessons: [],
+                    pdfMaterials: [],
+                    liveStream: l.liveStream ? {
+                        isLive: l.liveStream.isLive,
+                        isScheduled: l.liveStream.isScheduled,
+                        scheduledStartTime: l.liveStream.scheduledStartTime,
+                        title: l.liveStream.title,
+                        thumbnail: l.liveStream.thumbnail,
+                        youtubeUrl: '' // Redacted
+                    } : null
+                }));
+            }
+        }
+
+        res.json(finalLessons);
     } catch (err) {
         console.error("GET /lessons/course/:courseId error:", err);
         res.status(500).json({ error: "Failed to get lesson data: " + err.message });

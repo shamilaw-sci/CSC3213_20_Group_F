@@ -15,6 +15,7 @@ const { sendSMS, maskPhoneNumber, sendPaymentSMS } = require('../services/smsSer
 const { sendPaymentReceiptEmail } = require('../utils/emailService');
 const { notifyParentsOfStudent } = require('../utils/notificationHelper');
 const { logAudit } = require('../services/auditLogger');
+const { checkStudentFeeStatus } = require('../utils/feeAccessHelper');
 
 // Bank Slip Multer Storage Configuration
 const paymentUploadStorage = multer.diskStorage({
@@ -231,14 +232,24 @@ router.post('/process-mock', protect, async (req, res) => {
     const randomDigits = Math.floor(1000 + Math.random() * 9000);
     const transactionId = `PAY-${Date.now()}-${randomDigits}`;
 
-    // 5. Create Payment Record
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+    // 5. Determine Enrollment Status & Billing Cycle
+    const isAlreadyEnrolled = Array.isArray(course.enrolledStudents) && course.enrolledStudents.some(
+      id => id && id.toString() === studentId.toString()
+    );
+    const now = new Date();
+    const targetMonth = req.body.month || now.toLocaleString('en-US', { month: 'long' });
+    const targetYear = Number(req.body.year) || now.getFullYear();
+    const paymentType = isAlreadyEnrolled ? 'MONTHLY_FEE' : 'ENROLLMENT';
+
+    // 6. Create Payment Record
     const newPayment = await Payment.create({
       student: studentId,
       studentId: studentId,
       course: courseId,
       courseId: courseId,
-      month: currentMonth,
+      month: targetMonth,
+      year: targetYear,
+      paymentType,
       amount: paymentAmount,
       currency: 'LKR',
       enrollmentDate: enrollmentDate ? new Date(enrollmentDate) : new Date(),
@@ -246,20 +257,20 @@ router.post('/process-mock', protect, async (req, res) => {
       transactionId,
       status: 'COMPLETED',
       cardLastFour: cardLastFour || '4242',
-      paymentDate: new Date()
+      paymentDate: new Date(),
+      remarks: paymentType === 'MONTHLY_FEE'
+        ? `Monthly Tuition Fee (${targetMonth} ${targetYear}) - ${formattedClassName}`
+        : `Initial Enrollment Fee (${formattedClassName})`
     });
 
-    // 6. Create or Update Enrollment Record
+    // 7. Create or Update Enrollment Record
     await Enrollment.findOneAndUpdate(
       { student: studentId, course: courseId },
       { student: studentId, course: courseId, className: formattedClassName },
       { upsert: true, new: true }
     );
 
-    // 7. Synchronize Course enrolledStudents and classes
-    const isAlreadyEnrolled = course.enrolledStudents.some(
-      id => id.toString() === studentId.toString()
-    );
+    // 8. Synchronize Course enrolledStudents and classes
     if (!isAlreadyEnrolled) {
       course.enrolledStudents.push(studentId);
     }
@@ -269,7 +280,7 @@ router.post('/process-mock', protect, async (req, res) => {
       course.classes.push({ className: formattedClassName, enrolledStudents: [studentId] });
     } else {
       const isStudentInClass = targetClass.enrolledStudents.some(
-        id => id.toString() === studentId.toString()
+        id => id && id.toString() === studentId.toString()
       );
       if (!isStudentInClass) {
         targetClass.enrolledStudents.push(studentId);
@@ -346,7 +357,9 @@ router.post('/process-mock', protect, async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Payment verified and enrollment completed successfully!',
+      message: paymentType === 'MONTHLY_FEE'
+        ? `Monthly tuition for ${targetMonth} ${targetYear} settled successfully!`
+        : 'Payment verified and enrollment completed successfully!',
       transactionId,
       payment: newPayment
     });
@@ -354,6 +367,34 @@ router.post('/process-mock', protect, async (req, res) => {
   } catch (err) {
     console.error('Process mock payment error:', err);
     res.status(500).json({ error: 'Payment processing failed: ' + err.message, message: 'Payment processing failed: ' + err.message });
+  }
+});
+
+// @route   GET /api/payments/fee-status/:courseId
+// @desc    Get monthly fee clearance status for student and course
+// @access  Private
+router.get('/fee-status/:courseId', protect, async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+    let targetStudentId = req.user._id;
+
+    // If teacher/admin inspecting a specific student
+    if ((req.user.role === 'admin' || req.user.role === 'teacher' || req.user.role === 'counter_staff') && req.query.studentId) {
+      targetStudentId = req.query.studentId;
+    } else if (req.user.role === 'admin' || req.user.role === 'teacher' || req.user.role === 'instructor') {
+      // Teachers and Admins themselves have full access
+      return res.json({
+        isAllowed: true,
+        status: 'ADMIN_BYPASS',
+        message: 'Admin / Teacher role has unrestricted access.'
+      });
+    }
+
+    const feeStatus = await checkStudentFeeStatus(targetStudentId, courseId);
+    res.json(feeStatus);
+  } catch (err) {
+    console.error('Fetch fee status error:', err);
+    res.status(500).json({ error: 'Failed to evaluate fee status: ' + err.message });
   }
 });
 
@@ -452,7 +493,13 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
       ? receiptNumber.trim() 
       : `REC-PHYS-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+    const now = new Date();
+    const targetMonth = req.body.month || now.toLocaleString('en-US', { month: 'long' });
+    const targetYear = Number(req.body.year) || now.getFullYear();
+    const isAlreadyEnrolled = Array.isArray(course.enrolledStudents) && course.enrolledStudents.some(
+      id => id && id.toString() === studentId.toString()
+    );
+    const paymentType = isAlreadyEnrolled ? 'MONTHLY_FEE' : 'ENROLLMENT';
 
     // 1. Create Payment record
     const payment = await Payment.create({
@@ -460,7 +507,9 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
       studentId: studentId,
       course: courseId,
       courseId: courseId,
-      month: currentMonth,
+      month: targetMonth,
+      year: targetYear,
+      paymentType,
       amount: finalAmount,
       currency: 'LKR',
       enrollmentDate: paymentDate ? new Date(paymentDate) : new Date(),
@@ -469,7 +518,9 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
       status: 'COMPLETED',
       cardLastFour: 'CASH',
       paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
-      remarks: remarks || `In-Person Counter Payment (${formattedClassName})`
+      remarks: remarks || (paymentType === 'MONTHLY_FEE' 
+        ? `In-Person Monthly Tuition (${targetMonth} ${targetYear} - ${formattedClassName})` 
+        : `In-Person Counter Payment (${formattedClassName})`)
     });
 
     // 2. Create or Update Enrollment Record
@@ -480,9 +531,6 @@ router.post('/record-physical-payment', protect, isCounterStaffOrAdmin, async (r
     );
 
     // 3. Synchronize Course enrolledStudents and classes
-    const isAlreadyEnrolled = course.enrolledStudents.some(
-      id => id.toString() === studentId.toString()
-    );
     if (!isAlreadyEnrolled) {
       course.enrolledStudents.push(studentId);
     }
@@ -633,26 +681,48 @@ router.post('/submit-bank-slip', protect, paymentUpload.single('slip'), async (r
       return res.status(404).json({ error: 'Course not found.', message: 'Course not found.' });
     }
 
+    const now = new Date();
+    const targetMonth = req.body.month || now.toLocaleString('en-US', { month: 'long' });
+    const targetYear = Number(req.body.year) || now.getFullYear();
+
     // Check if student already enrolled
-    const isEnrolled = course.enrolledStudents?.some(id => id.toString() === studentId.toString());
-    if (isEnrolled) {
-      return res.status(400).json({ error: 'You are already enrolled in this course.', message: 'You are already enrolled in this course.' });
-    }
+    const isEnrolled = Array.isArray(course.enrolledStudents) && course.enrolledStudents.some(
+      id => id && id.toString() === studentId.toString()
+    );
+    const paymentType = isEnrolled ? 'MONTHLY_FEE' : 'ENROLLMENT';
 
     const { className: formattedClassName, fee: finalAmount } = resolveGradeAndFee(course, grade || student.grade, amount);
     const txId = transactionId && transactionId.trim() ? transactionId.trim() : `REC-SLIP-${Date.now()}`;
 
-    // Check duplicate pending slip for same student & course
+    // Check duplicate pending slip for same student, course, month and year
     const existingPending = await Payment.findOne({
       student: studentId,
       course: courseId,
+      month: targetMonth,
+      year: targetYear,
       status: 'PENDING_APPROVAL'
     });
 
     if (existingPending) {
       return res.status(400).json({ 
-        error: 'You already have a bank slip pending Admin approval for this course.', 
-        message: 'You already have a bank slip pending Admin approval for this course.' 
+        error: `You already have a bank slip pending Admin approval for ${targetMonth} ${targetYear}.`, 
+        message: `You already have a bank slip pending Admin approval for ${targetMonth} ${targetYear}.` 
+      });
+    }
+
+    // Check if already completed for this month
+    const existingCompleted = await Payment.findOne({
+      student: studentId,
+      course: courseId,
+      month: targetMonth,
+      year: targetYear,
+      status: 'COMPLETED'
+    });
+
+    if (existingCompleted) {
+      return res.status(400).json({
+        error: `Tuition fee for ${targetMonth} ${targetYear} has already been settled.`,
+        message: `Tuition fee for ${targetMonth} ${targetYear} has already been settled.`
       });
     }
 
@@ -661,6 +731,9 @@ router.post('/submit-bank-slip', protect, paymentUpload.single('slip'), async (r
       studentId,
       course: courseId,
       courseId,
+      month: targetMonth,
+      year: targetYear,
+      paymentType,
       amount: finalAmount,
       currency: 'LKR',
       paymentMethod: 'BANK_SLIP',
@@ -670,7 +743,9 @@ router.post('/submit-bank-slip', protect, paymentUpload.single('slip'), async (r
       depositorName: depositorName || student.name,
       depositDate: depositDate ? new Date(depositDate) : new Date(),
       paymentDate: new Date(),
-      remarks: `Bank Slip for ${formattedClassName}`
+      remarks: paymentType === 'MONTHLY_FEE'
+        ? `Monthly Fee (${targetMonth} ${targetYear}) - ${formattedClassName}`
+        : `Bank Slip for ${formattedClassName}`
     });
 
     // Notify Admins & Student
