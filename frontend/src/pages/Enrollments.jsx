@@ -1,3 +1,8 @@
+/**
+ * @file Enrollments.jsx
+ * @description Enrollments Management Page. Interface for managing student course enrollments, viewing physical/online admission status, and toggling active access.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';

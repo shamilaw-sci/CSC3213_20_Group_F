@@ -1,3 +1,8 @@
+/**
+ * @file mediaUrl.js
+ * @description Media URL Resolver. Normalizes and constructs absolute URLs for course thumbnails, profile avatars, banners, and local asset fallbacks.
+ */
+
 import { getBackendBaseUrl } from './api';
 
 /**

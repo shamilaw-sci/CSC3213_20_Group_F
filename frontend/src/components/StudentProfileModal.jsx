@@ -1,3 +1,8 @@
+/**
+ * @file StudentProfileModal.jsx
+ * @description Student Profile Modal. Dialog for viewing and modifying student profile details, parent contact numbers, and learning preferences.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { 
   FaUserGraduate, 

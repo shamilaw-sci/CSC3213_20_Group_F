@@ -1,3 +1,8 @@
+/**
+ * @file CourseEnrollmentModal.jsx
+ * @description Course Enrollment Modal. Allows students to enroll in courses, select physical/online learning tracks, and initiate payment transactions.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';

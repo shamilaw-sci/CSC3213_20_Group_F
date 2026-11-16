@@ -1,3 +1,8 @@
+/**
+ * @file AuditLog.js
+ * @description Audit Log Model Schema. Maintains an immutable log of critical system operations and administrative actions (logins, user creations, course modifications, settings updates) with IP address, user agent, and timestamp.
+ */
+
 const mongoose = require('mongoose');
 
 const auditLogSchema = new mongoose.Schema({

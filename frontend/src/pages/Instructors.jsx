@@ -1,3 +1,8 @@
+/**
+ * @file Instructors.jsx
+ * @description Instructors Directory Page. Showcases teaching faculty, biographies, subject specializations, and associated course links.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {

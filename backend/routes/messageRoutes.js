@@ -1,3 +1,8 @@
+/**
+ * @file messageRoutes.js
+ * @description Direct Messaging Routes. Powers 1-on-1 private conversations between teachers, students, and parents, supporting text messages, voice recordings, and read status.
+ */
+
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');

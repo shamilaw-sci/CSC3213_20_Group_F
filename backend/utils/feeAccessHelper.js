@@ -1,3 +1,8 @@
+/**
+ * @file feeAccessHelper.js
+ * @description Fee Access Helper Utility. Evaluates student tuition fee payment status, monthly billing cycles, cutoff deadlines (Week 3), and determines whether a student has active or restricted course access.
+ */
+
 const Course = require('../models/Course');
 const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');

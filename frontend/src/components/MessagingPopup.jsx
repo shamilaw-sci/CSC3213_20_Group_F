@@ -1,3 +1,8 @@
+/**
+ * @file MessagingPopup.jsx
+ * @description Direct Messaging Popup. Modal enabling private 1-on-1 messaging between teachers, students, and parents with voice note recording and attachments.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import {

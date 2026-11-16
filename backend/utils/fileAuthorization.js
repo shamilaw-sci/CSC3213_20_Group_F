@@ -1,3 +1,8 @@
+/**
+ * @file fileAuthorization.js
+ * @description File Authorization Helper Utility. Enforces fine-grained permission checks for private files (lesson PDFs, assignment briefs, submissions, quizzes, payment slips) based on user roles and enrollment status.
+ */
+
 const path = require('path');
 const Course = require('../models/Course');
 const Lesson = require('../models/Lesson');

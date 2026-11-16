@@ -1,3 +1,8 @@
+/**
+ * @file progressRoutes.js
+ * @description Reading Progress Routes. Tracks student reading activity and page completion metrics on course PDF lecture materials.
+ */
+
 const express = require('express');
 const router = express.Router();
 const ReadingProgress = require('../models/ReadingProgress');

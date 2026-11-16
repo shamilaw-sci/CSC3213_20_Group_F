@@ -1,3 +1,8 @@
+/**
+ * @file AddCourse.jsx
+ * @description Add / Edit Course Page. Course authoring interface allowing teachers and administrators to create courses, define syllabuses, set prices, and upload banner media.
+ */
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import api from '../utils/api';

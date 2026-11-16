@@ -1,3 +1,8 @@
+/**
+ * @file QuizSubmissions.jsx
+ * @description Quiz Submissions Overview Page. Teacher evaluation page to inspect student quiz attempts, score distributions, and individual response keys.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';

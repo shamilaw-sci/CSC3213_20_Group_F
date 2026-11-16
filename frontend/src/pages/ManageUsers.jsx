@@ -1,3 +1,8 @@
+/**
+ * @file ManageUsers.jsx
+ * @description User Management Page. Administrative dashboard to create, inspect, search, filter, and modify user accounts across all five roles.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';

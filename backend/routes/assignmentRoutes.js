@@ -1,3 +1,8 @@
+/**
+ * @file assignmentRoutes.js
+ * @description Assignment Routes. Handles CRUD operations for course assignments, file attachment uploads, student assignment submissions, and instructor grading with marks and feedback.
+ */
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');

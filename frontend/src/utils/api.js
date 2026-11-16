@@ -1,3 +1,8 @@
+/**
+ * @file api.js
+ * @description Axios API Client Utility. Configures centralized base URLs, request interceptors with JWT Authorization headers, and API error handlers.
+ */
+
 import axios from 'axios';
 
 /**

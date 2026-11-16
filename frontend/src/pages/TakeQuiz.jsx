@@ -1,3 +1,8 @@
+/**
+ * @file TakeQuiz.jsx
+ * @description Take Quiz Interactive Page. Timed student quiz assessment interface with question navigation, timer countdown, and instant automatic submission grading.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';

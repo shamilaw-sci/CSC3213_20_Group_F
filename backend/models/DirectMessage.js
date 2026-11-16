@@ -1,3 +1,8 @@
+/**
+ * @file DirectMessage.js
+ * @description Direct Message Model Schema. Manages 1-on-1 private messaging between students, teachers, and parents, including text content, audio voice notes, file attachments, and read receipts.
+ */
+
 const mongoose = require('mongoose');
 
 const DirectMessageSchema = new mongoose.Schema({

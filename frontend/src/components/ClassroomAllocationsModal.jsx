@@ -1,3 +1,8 @@
+/**
+ * @file ClassroomAllocationsModal.jsx
+ * @description Classroom Allocations Modal. Displays and manages physical classroom/hall allocations, preventing scheduling clashes across classes.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   FaDoorOpen,

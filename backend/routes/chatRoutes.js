@@ -1,3 +1,8 @@
+/**
+ * @file chatRoutes.js
+ * @description LuminaChat AI Routes. Integrates with the Google Gemini API to power the institutional virtual assistant, feeding curriculum, timetable, and student context for answers.
+ */
+
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');

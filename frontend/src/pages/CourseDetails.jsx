@@ -1,3 +1,8 @@
+/**
+ * @file CourseDetails.jsx
+ * @description Course Details & Classroom Hub Page. Core curriculum hub rendering 4-week modular lessons, video lectures, protected PDF notes, quizzes, assignments, and live streaming sessions.
+ */
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
@@ -26,6 +31,7 @@ import {
 import { getMediaUrl } from '../utils/mediaUrl';
 import { downloadProtectedFile } from '../utils/fileApi';
 
+// Extracts the 11-character YouTube video ID from various YouTube URL formats
 const getYouTubeVideoId = (url) => {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -33,13 +39,16 @@ const getYouTubeVideoId = (url) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+// Generates the standard high-quality YouTube thumbnail preview image URL
 const getYouTubeThumbnail = (url) => {
   const videoId = getYouTubeVideoId(url);
   return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
 };
 
+// Resolves absolute or relative media URL using the global mediaUrl utility
 const getImageUrl = (url) => getMediaUrl(url);
 
+// Normalizes grade string representations (e.g. 'Grade 10' -> '10') for comparison
 const normalizeGrade = (g) => g ? String(g).toLowerCase().replace(/\s+/g, '').replace('grade', '') : '';
 
 const CourseDetails = () => {

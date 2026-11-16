@@ -1,3 +1,8 @@
+/**
+ * @file ExportBackupCenter.jsx
+ * @description Data Export & Backup Center. Administrative hub for generating RFC-4180 CSV reports, JSON data dumps, and compressed gzip database archives.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';

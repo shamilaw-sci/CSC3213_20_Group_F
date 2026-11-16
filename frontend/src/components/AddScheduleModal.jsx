@@ -1,3 +1,8 @@
+/**
+ * @file AddScheduleModal.jsx
+ * @description Add Schedule Modal. Modal dialog to create new timetable classes or schedule YouTube live streams with course, grade, hall/room, and time slots.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   FaCalendarAlt,

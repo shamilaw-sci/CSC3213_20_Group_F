@@ -1,3 +1,8 @@
+/**
+ * @file Assignment.js
+ * @description Assignment Model Schema. Defines homework/course assignments with title, description, attachments, maximum marks, deadline dates, grade, month/week modular blocks, and late submission settings.
+ */
+
 const mongoose = require('mongoose');
 
 const assignmentSchema = new mongoose.Schema({

@@ -1,3 +1,8 @@
+/**
+ * @file ConfirmModal.jsx
+ * @description Confirmation Dialog Modal. Generic reusable confirmation modal for dangerous or critical operations (deletions, cancellations, overrides).
+ */
+
 import React from 'react';
 import { FaExclamationTriangle, FaTrashAlt, FaInfoCircle, FaSpinner } from 'react-icons/fa';
 

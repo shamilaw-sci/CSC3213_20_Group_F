@@ -1,3 +1,8 @@
+/**
+ * @file auditLogTest.js
+ * @description Audit Log Test Suite. Verifies sensitive field redaction, client IP extraction, and audit log generation under simulated scenarios.
+ */
+
 const { sanitizePayload } = require('../services/auditLogger');
 const AuditLog = require('../models/AuditLog');
 

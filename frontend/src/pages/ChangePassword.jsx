@@ -1,3 +1,8 @@
+/**
+ * @file ChangePassword.jsx
+ * @description Change Password Page. User security page enabling mandatory first-time password changes or elective account password updates.
+ */
+
 import React, { useState } from 'react';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';

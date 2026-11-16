@@ -1,3 +1,8 @@
+/**
+ * @file ParentDashboard.jsx
+ * @description Parent Portal Dashboard. Dedicated monitoring portal for parents to track their children's daily attendance timestamps, quiz scores, and tuition fee payments.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';

@@ -1,3 +1,8 @@
+/**
+ * @file StudentIdCard.jsx
+ * @description Printable Student ID Card Component. Renders high-resolution student identity badges with photo, registration number, barcode, and QR code pass.
+ */
+
 import React, { useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 

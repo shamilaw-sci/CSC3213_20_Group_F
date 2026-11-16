@@ -1,3 +1,8 @@
+/**
+ * @file paymentRoutes.js
+ * @description Payment Processing Routes. Handles online card checkouts with SMS OTP verification, counter cash transactions with receipts, fee access checks, and parent SMS alerts.
+ */
+
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');

@@ -1,3 +1,8 @@
+/**
+ * @file fileRoutes.js
+ * @description Secure File Access Routes. Serves private PDFs, assignments, submissions, and audio attachments via tokenized, role-authorized, streaming endpoints.
+ */
+
 const express = require('express');
 const router = express.Router();
 const path = require('path');

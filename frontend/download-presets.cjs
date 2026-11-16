@@ -1,3 +1,8 @@
+/**
+ * @file download-presets.cjs
+ * @description Download Preset Images CommonJS Script. CommonJS format utility script to download sample course preset images.
+ */
+
 const fs = require('fs');
 const path = require('path');
 const https = require('https');

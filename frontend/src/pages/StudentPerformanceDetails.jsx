@@ -1,3 +1,8 @@
+/**
+ * @file StudentPerformanceDetails.jsx
+ * @description Student Performance Details Page. In-depth academic report card displaying attendance percentages, assignment submissions, and quiz mark progression.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {

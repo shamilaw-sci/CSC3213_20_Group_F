@@ -1,3 +1,8 @@
+/**
+ * @file PdfReaderModal.jsx
+ * @description In-App PDF Reader Modal. Feature-rich PDF viewer with zoom controls, page navigation, fullscreen mode, and automatic reading progress tracking.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
 import { fetchBlobUrl, downloadProtectedFile } from '../utils/fileApi';

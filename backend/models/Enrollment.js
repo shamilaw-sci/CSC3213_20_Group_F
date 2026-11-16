@@ -1,3 +1,8 @@
+/**
+ * @file Enrollment.js
+ * @description Enrollment Model Schema. Represents student course enrollments, tracking enrollment date, payment status (paid, pending, overdue), student type (physical/online), and access validity.
+ */
+
 const mongoose = require('mongoose');
 
 const enrollmentSchema = new mongoose.Schema({

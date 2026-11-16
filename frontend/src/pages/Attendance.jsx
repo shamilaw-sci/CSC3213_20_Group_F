@@ -1,3 +1,8 @@
+/**
+ * @file Attendance.jsx
+ * @description Attendance Management & QR Scanner Page. Counter desk interface featuring high-speed webcam QR code scanning, manual student lookup, and daily attendance logs.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';

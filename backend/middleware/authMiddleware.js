@@ -1,3 +1,10 @@
+/**
+ * @file authMiddleware.js
+ * @description Authentication and Role-Based Access Control (RBAC) middleware.
+ * Verifies JWT bearer tokens, enforces single active session rules for students,
+ * and restricts route access to authorized roles (Admin, Teacher, Counter Staff).
+ */
+
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 

@@ -1,3 +1,8 @@
+/**
+ * @file QuizSubmission.js
+ * @description Quiz Submission Model Schema. Records student quiz attempts, submitted answers, automatic scoring results, percentage achieved, pass/fail status, and attempt duration.
+ */
+
 const mongoose = require('mongoose');
 
 const quizSubmissionSchema = new mongoose.Schema({

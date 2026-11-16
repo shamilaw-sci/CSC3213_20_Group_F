@@ -1,3 +1,8 @@
+/**
+ * @file SmsSettings.jsx
+ * @description SMS Gateway Configuration Page. Admin interface to manage Text.lk API tokens, test SMS message dispatch, and check live SMS credit balance.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';

@@ -1,3 +1,8 @@
+/**
+ * @file main.jsx
+ * @description Application Client Entry Point. Mounts the root React DOM with StrictMode, ThemeProvider context, and optional Google OAuth Provider.
+ */
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { GoogleOAuthProvider } from '@react-oauth/google'

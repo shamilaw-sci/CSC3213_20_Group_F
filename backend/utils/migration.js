@@ -1,3 +1,8 @@
+/**
+ * @file migration.js
+ * @description Storage Migration Utility. Scans legacy flat upload files, categorizes them by file prefix and MIME type, moves them to structured storage directories, and updates database references.
+ */
+
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');

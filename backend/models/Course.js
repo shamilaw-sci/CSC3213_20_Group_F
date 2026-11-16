@@ -1,3 +1,8 @@
+/**
+ * @file Course.js
+ * @description Course Model Schema. Represents educational courses with subject, grade, instructor reference, monthly tuition fees, cover/card media, status (active/draft/archived), and syllabus details.
+ */
+
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({

@@ -1,3 +1,8 @@
+/**
+ * @file exportService.js
+ * @description Data Export & Backup Service. Generates RFC-4180 compliant CSV exports, JSON dumps, and gzip-compressed backup archives for students, teachers, payments, attendance, courses, and system audit logs.
+ */
+
 const zlib = require('zlib');
 const User = require('../models/User');
 const Course = require('../models/Course');

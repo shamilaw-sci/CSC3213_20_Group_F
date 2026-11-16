@@ -1,3 +1,8 @@
+/**
+ * @file searchRoutes.js
+ * @description Global Search Routes. Performs indexed multi-entity search across courses, instructors, lessons, and student directories.
+ */
+
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');

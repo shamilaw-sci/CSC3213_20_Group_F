@@ -1,3 +1,8 @@
+/**
+ * @file LiveEndFeedbackModal.jsx
+ * @description Live Session Feedback Modal. Modal presented upon live class completion for students to submit rating emojis, reviews, and learning feedback.
+ */
+
 import React, { useState } from 'react';
 import { 
   FaStar, 

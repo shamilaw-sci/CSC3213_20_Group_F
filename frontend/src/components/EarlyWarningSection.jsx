@@ -1,3 +1,8 @@
+/**
+ * @file EarlyWarningSection.jsx
+ * @description Early Warning Analytics Section. Dashboard component identifying at-risk students with poor attendance, failing quiz scores, or overdue fees.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   FaExclamationTriangle,

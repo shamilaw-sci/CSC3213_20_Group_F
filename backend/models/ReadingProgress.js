@@ -1,3 +1,8 @@
+/**
+ * @file ReadingProgress.js
+ * @description Reading Progress Model Schema. Tracks student reading engagement with course PDF documents, storing last read page number, maximum page reached, total pages, and completion percentage.
+ */
+
 const mongoose = require('mongoose');
 
 const ReadingProgressSchema = new mongoose.Schema({

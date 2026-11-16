@@ -1,3 +1,8 @@
+/**
+ * @file CreateQuiz.jsx
+ * @description Create Quiz Page. Teacher assessment authoring tool to build timed online quizzes with multiple-choice, multi-select, and diagram-based questions.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';

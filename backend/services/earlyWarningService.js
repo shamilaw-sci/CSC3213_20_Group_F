@@ -1,3 +1,8 @@
+/**
+ * @file earlyWarningService.js
+ * @description Early Warning Service. Analyzes individual and cohort student performance metrics (attendance rate, quiz grade progression, missing assignments, learning activity recency) to flag academic and engagement risk levels.
+ */
+
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');

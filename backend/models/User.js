@@ -1,3 +1,8 @@
+/**
+ * @file User.js
+ * @description User Model Schema. Core user account model supporting five RBAC roles (Admin, Teacher, Counter Staff, Student, Parent), physical/online student tracking, session tracking, password hashing, and parent contact links.
+ */
+
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({

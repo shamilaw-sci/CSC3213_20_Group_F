@@ -1,3 +1,8 @@
+/**
+ * @file Review.js
+ * @description Review Model Schema. Manages student course reviews and star ratings (1-5), including written feedback, approval status, and timestamps.
+ */
+
 const mongoose = require('mongoose');
 
 const reviewSchema = new mongoose.Schema({

@@ -1,3 +1,8 @@
+/**
+ * @file fileSecurityTest.js
+ * @description File Security Test Suite. Tests authorization checks and tokenized access permissions for private PDFs, assignments, and submissions.
+ */
+
 const path = require('path');
 const fs = require('fs');
 const http = require('http');

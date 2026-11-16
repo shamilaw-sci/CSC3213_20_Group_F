@@ -1,3 +1,8 @@
+/**
+ * @file instituteData.js
+ * @description Institute Repository & Metadata. Provides institutional profile information, founder details, policies, and contact channels for LuminaLearn.
+ */
+
 // Data repository for Kirula Education Center & LuminaLearn Platform
 
 export const INSTITUTE_INFO = {

@@ -1,3 +1,8 @@
+/**
+ * @file Register.jsx
+ * @description User Registration Component. Supports student self-registration and counter registration with phone number verification and grade selection.
+ */
+
 import React, { useState } from 'react';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';

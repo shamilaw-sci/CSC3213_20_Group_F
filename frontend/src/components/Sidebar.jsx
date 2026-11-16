@@ -1,3 +1,8 @@
+/**
+ * @file Sidebar.jsx
+ * @description Navigation Sidebar Component. Renders dynamic navigation menu items based on active user role (Admin, Teacher, Counter Staff, Student, Parent).
+ */
+
 import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaHome, FaBook, FaCalendarCheck, FaCalendarAlt, FaCreditCard, FaChartBar, FaUsers, FaSignOutAlt, FaUserPlus, FaSms, FaTimes, FaShieldAlt, FaDatabase } from 'react-icons/fa';

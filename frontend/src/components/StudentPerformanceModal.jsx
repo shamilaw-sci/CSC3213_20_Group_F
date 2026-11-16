@@ -1,3 +1,8 @@
+/**
+ * @file StudentPerformanceModal.jsx
+ * @description Student Performance Drilldown Modal. Detailed analytical popup displaying a student's attendance record, quiz mark trends, and assignment status.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   FaTimes,

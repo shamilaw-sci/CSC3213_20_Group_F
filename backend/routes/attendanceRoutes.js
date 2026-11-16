@@ -1,3 +1,8 @@
+/**
+ * @file attendanceRoutes.js
+ * @description Attendance Routes. Provides endpoints for QR code scanning, manual attendance recording, attendance history queries, CSV export, and automated parent SMS notifications.
+ */
+
 const express = require('express');
 const router = express.Router();
 const Attendance = require('../models/Attendance');

@@ -1,3 +1,8 @@
+/**
+ * @file RecordPhysicalPaymentModal.jsx
+ * @description Record Physical Payment Modal. Desk counter modal for logging cash tuition payments, custom physical receipt numbers, and parent SMS triggers.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';

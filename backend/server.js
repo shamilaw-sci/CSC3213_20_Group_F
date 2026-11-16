@@ -1,3 +1,8 @@
+/**
+ * @file server.js
+ * @description Main Express Server Entry Point. Configures CORS policies, request parsers, static file serving, Socket.IO real-time channels (chat, live stream viewer heartbeat), MongoDB database connection, and registers all REST API routes.
+ */
+
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const express = require('express');

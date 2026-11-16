@@ -1,3 +1,8 @@
+/**
+ * @file TeacherAvailability.js
+ * @description Teacher Availability Model Schema. Stores weekly recurring office hours, time slots, and meeting availability defined by instructors for student consultation.
+ */
+
 const mongoose = require('mongoose');
 
 const TeacherAvailabilitySchema = new mongoose.Schema({

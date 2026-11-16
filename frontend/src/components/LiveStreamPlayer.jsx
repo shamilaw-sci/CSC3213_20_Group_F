@@ -1,3 +1,8 @@
+/**
+ * @file LiveStreamPlayer.jsx
+ * @description Live Stream Video Player. Embeds YouTube live video player with heartbeat telemetry tracking active student watch duration and attendance.
+ */
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { 
   FaVideo, 

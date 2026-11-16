@@ -1,3 +1,8 @@
+/**
+ * @file earlyWarningRoutes.js
+ * @description Early Warning & Analytics Routes. Provides risk assessment endpoints identifying students with low attendance, falling quiz marks, missing assignments, or payment arrears.
+ */
+
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');

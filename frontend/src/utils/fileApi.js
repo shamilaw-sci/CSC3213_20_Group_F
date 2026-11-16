@@ -1,3 +1,8 @@
+/**
+ * @file fileApi.js
+ * @description File API Utility. Fetches protected files (lesson PDFs, submissions, assignments) via authorized API requests and manages temporary Blob URLs.
+ */
+
 import api from './api';
 
 /**

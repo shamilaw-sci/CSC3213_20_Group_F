@@ -1,3 +1,8 @@
+/**
+ * @file ForgotPassword.jsx
+ * @description Forgot Password Page. Allows users to request password reset OTP verification codes via registered email or SMS.
+ */
+
 import React, { useState } from 'react';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';

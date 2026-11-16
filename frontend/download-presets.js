@@ -1,3 +1,8 @@
+/**
+ * @file download-presets.js
+ * @description Download Preset Images Script. Utility script that downloads high-resolution educational banner and preset images for course creation.
+ */
+
 const fs = require('fs');
 const path = require('path');
 const https = require('https');

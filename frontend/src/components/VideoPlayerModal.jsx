@@ -1,3 +1,8 @@
+/**
+ * @file VideoPlayerModal.jsx
+ * @description Video Lesson Player Modal. Modal player for recorded course video lessons with video controls and lesson notes.
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import { FaTimes, FaPlay, FaPause, FaExpand, FaCompress, FaSlidersH, FaShieldAlt, FaCheck, FaChevronUp } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';

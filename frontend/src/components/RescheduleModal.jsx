@@ -1,3 +1,8 @@
+/**
+ * @file RescheduleModal.jsx
+ * @description Reschedule Class Modal. Allows instructors and administrators to change class session dates, notify students, and send automated SMS alerts.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   FaHistory,

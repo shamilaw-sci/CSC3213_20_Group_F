@@ -1,3 +1,8 @@
+/**
+ * @file CameraCaptureModal.jsx
+ * @description Camera Capture Modal. Live webcam snapshot modal allowing counter staff or students to capture and crop profile photos on registration.
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import { FaCamera, FaTimes, FaRedo, FaCheck, FaVideoSlash } from 'react-icons/fa';
 

@@ -1,3 +1,8 @@
+/**
+ * @file seedAdmin.js
+ * @description Database Seed Script for Administrator. Checks for an existing admin user in MongoDB and automatically creates a default administrator account if none exists.
+ */
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');

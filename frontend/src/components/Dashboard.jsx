@@ -1,3 +1,8 @@
+/**
+ * @file Dashboard.jsx
+ * @description Role-Based Dashboard Component. Main dashboard interface rendering role-tailored analytics cards, active sessions, timetable summaries, and action shortcuts.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useNavigate, Link, Navigate } from 'react-router-dom';

@@ -1,3 +1,8 @@
+/**
+ * @file Payments.jsx
+ * @description Payments Management & Checkout Page. Manages student tuition payments, online card checkout with SMS OTP, counter cash transactions, and downloadable PDF receipts.
+ */
+
 import React, { useEffect, useState } from 'react';
 import API from '../utils/api';
 import { toast } from 'react-hot-toast';
