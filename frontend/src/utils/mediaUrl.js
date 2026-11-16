@@ -24,6 +24,12 @@ export function getMediaUrl(url, fallback = '') {
     return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
   }
 
+  // Frontend static sample presets (e.g. /sample-presets/p1.jpg)
+  if (trimmed.startsWith('/sample-presets/') || trimmed.startsWith('sample-presets/') || trimmed.includes('sample-presets/')) {
+    const filename = trimmed.split('sample-presets/').pop();
+    return `/sample-presets/${filename}`;
+  }
+
   const backendBase = getBackendBaseUrl();
 
   // If already prefixed with /media/ or /api/files/

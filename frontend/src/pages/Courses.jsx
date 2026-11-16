@@ -215,13 +215,22 @@ const Courses = () => {
       (course.instructor?.name && course.instructor.name.toLowerCase().includes(searchQuery.toLowerCase()));
   };
 
+  // Helper: check if course matches the selected student type filter (All, Online, Physical)
+  const matchesStudentTypeFilter = (course) => {
+    if (!studentTypeFilter || studentTypeFilter.toLowerCase() === 'all') return true;
+    const filter = studentTypeFilter.toLowerCase().trim();
+    const targetType = (course.studentType || 'all').toLowerCase().trim();
+    if (targetType === 'all' || targetType === 'both') return true;
+    return targetType === filter;
+  };
+
   // Students: enrolled courses first, then available unenrolled courses matching their grade & student type
   const enrolledCourses = user?.role === 'student'
-    ? courses.filter(course => isStudentEnrolled(course) && isGradeAllowed(course) && matchesSearch(course))
+    ? courses.filter(course => isStudentEnrolled(course) && isGradeAllowed(course) && matchesSearch(course) && matchesStudentTypeFilter(course))
     : [];
 
   const availableCourses = user?.role === 'student'
-    ? courses.filter(course => !isStudentEnrolled(course) && isGradeAllowed(course) && isStudentTypeCompatible(course) && matchesSearch(course))
+    ? courses.filter(course => !isStudentEnrolled(course) && isGradeAllowed(course) && isStudentTypeCompatible(course) && matchesSearch(course) && matchesStudentTypeFilter(course))
     : [];
 
   // Admin & Parent: all institute courses | Teacher: only their courses | Students use enrolledCourses + availableCourses
@@ -234,7 +243,7 @@ const Courses = () => {
           const instId = (course.instructor?._id || course.instructor)?.toString();
           return tId && instId === tId;
         })
-    ).filter(course => matchesSearch(course));
+    ).filter(course => matchesSearch(course) && matchesStudentTypeFilter(course));
 
   const [enrollingCourseId, setEnrollingCourseId] = useState(null);
 
@@ -581,6 +590,7 @@ const Courses = () => {
               Filter:
             </span>
             <button
+              type="button"
               onClick={() => setStudentTypeFilter('ALL')}
               className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${
                 studentTypeFilter === 'ALL'
@@ -591,6 +601,7 @@ const Courses = () => {
               🌐 All Courses
             </button>
             <button
+              type="button"
               onClick={() => setStudentTypeFilter('online')}
               className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${
                 studentTypeFilter === 'online'
@@ -601,6 +612,7 @@ const Courses = () => {
               💻 Online
             </button>
             <button
+              type="button"
               onClick={() => setStudentTypeFilter('physical')}
               className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${
                 studentTypeFilter === 'physical'
