@@ -56,7 +56,13 @@ const CourseDetails = () => {
   const [pdfProgressMap, setPdfProgressMap] = useState({});
   const [activePdfModal, setActivePdfModal] = useState(null);
   const [activeVideoModal, setActiveVideoModal] = useState(null);
-  const user = JSON.parse(localStorage.getItem('user'));
+  const user = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  }, []);
 
   // Course Review & Teacher Rating States
   const [courseReviews, setCourseReviews] = useState([]);

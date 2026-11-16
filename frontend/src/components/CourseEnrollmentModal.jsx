@@ -56,7 +56,7 @@ const CourseEnrollmentModal = ({
       setOtpError('');
       setSmsPhone(student?.phoneNumber || student?.parentsPhoneNumber || '');
     }
-  }, [isOpen, student]);
+  }, [isOpen]);
 
   // Countdown timer for Resend OTP button
   useEffect(() => {
@@ -112,7 +112,7 @@ const CourseEnrollmentModal = ({
         setSelectedGradeOption(course.enrolledGrades[0].gradeNumber);
       }
     }
-  }, [course, student]);
+  }, [course?._id, student?.grade]);
 
   const activeGradeObj = getMatchingGrade(selectedGradeOption) || getMatchingGrade(student?.grade);
   const courseFee = (activeGradeObj && activeGradeObj.fee !== undefined && activeGradeObj.fee !== null && Number(activeGradeObj.fee) >= 0)
