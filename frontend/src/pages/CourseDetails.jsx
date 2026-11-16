@@ -2357,23 +2357,20 @@ const CourseDetails = () => {
                             toast.error("This grade stream is currently deactivated.");
                             return;
                           }
-                          toast.error("This grade stream is currently deactivated.");
-                          return;
-                        }
 
-                        if (user?.role === 'student') {
-                          if (!alreadyEnrolled) {
-                            toast.error("Please click the '+ Enroll Course' button above to enroll before accessing the workspace.");
-                            return;
+                          if (user?.role === 'student') {
+                            if (!alreadyEnrolled) {
+                              toast.error("Please click the '+ Enroll Course' button above to enroll before accessing the workspace.");
+                              return;
+                            }
+                            if (feeStatus && !feeStatus.isAllowed) {
+                              setShowMonthlyFeeModal(true);
+                              toast.error(feeStatus.message || "Monthly tuition fee payment required past Week 3 to access classes.");
+                              return;
+                            }
                           }
-                          if (feeStatus && !feeStatus.isAllowed) {
-                            setShowMonthlyFeeModal(true);
-                            toast.error(feeStatus.message || "Monthly tuition fee payment required past Week 3 to access classes.");
-                            return;
-                          }
-                        }
-                        setSelectedGrade(eg.gradeNumber);
-                      }}
+                          setSelectedGrade(eg.gradeNumber);
+                        }}
                       className={`p-6 rounded-2xl shadow-xs border transition-all duration-300 hover:-translate-y-1 hover:shadow-md relative ${
                         isGradeLive
                           ? 'border-2 border-red-500/80 bg-red-50/20 dark:bg-red-950/25 shadow-xl shadow-red-900/15 ring-2 ring-red-400/40 cursor-pointer animate-pulse-subtle'
