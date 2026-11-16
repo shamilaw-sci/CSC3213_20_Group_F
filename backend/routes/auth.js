@@ -1977,8 +1977,13 @@ router.get('/teacher-profile/:id', protect, async (req, res) => {
 
     let coverPicture = teacher.coverPicture || '';
     if (coverPicture && !coverPicture.startsWith('http') && !coverPicture.startsWith('data:')) {
-      const filename = coverPicture.includes('/') ? coverPicture.split('/').pop() : coverPicture;
-      coverPicture = `/media/profiles/${filename}`;
+      if (coverPicture.includes('sample-presets')) {
+        const filename = coverPicture.split('sample-presets/').pop();
+        coverPicture = `/sample-presets/${filename}`;
+      } else {
+        const filename = coverPicture.includes('/') ? coverPicture.split('/').pop() : coverPicture;
+        coverPicture = `/media/profiles/${filename}`;
+      }
     }
 
     res.json({
@@ -2075,8 +2080,13 @@ router.put('/teacher-profile/:id', protect, async (req, res) => {
 
     let formattedCoverPic = teacher.coverPicture || '';
     if (formattedCoverPic && !formattedCoverPic.startsWith('http') && !formattedCoverPic.startsWith('data:')) {
-      const filename = formattedCoverPic.includes('/') ? formattedCoverPic.split('/').pop() : formattedCoverPic;
-      formattedCoverPic = `/media/profiles/${filename}`;
+      if (formattedCoverPic.includes('sample-presets')) {
+        const filename = formattedCoverPic.split('sample-presets/').pop();
+        formattedCoverPic = `/sample-presets/${filename}`;
+      } else {
+        const filename = formattedCoverPic.includes('/') ? formattedCoverPic.split('/').pop() : formattedCoverPic;
+        formattedCoverPic = `/media/profiles/${filename}`;
+      }
     }
 
     res.json({

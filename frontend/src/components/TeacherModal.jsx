@@ -221,6 +221,8 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null); // Selected course for in-modal preview view
   const [showCoursesList, setShowCoursesList] = useState(false); // Toggle to show assigned courses on click
+  const [profileImgError, setProfileImgError] = useState(false);
+  const [coverImgError, setCoverImgError] = useState(false);
 
   // System Image Cropper States
   const [cropFile, setCropFile] = useState(null);
@@ -274,9 +276,11 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
       const croppedBase64 = await getCroppedImg(cropFile, croppedAreaPixels, cropAspect);
       if (cropSourceType === 'profile') {
         setEditProfilePicture(croppedBase64);
+        setProfileImgError(false);
         toast.success("Cropped Profile Photo updated!");
       } else {
         setEditCoverPicture(croppedBase64);
+        setCoverImgError(false);
         toast.success("Cropped Cover Banner updated!");
       }
       setIsCropping(false);
@@ -398,6 +402,9 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
   useEffect(() => {
     if (!isOpen || !activeTeacherId) return;
 
+    setProfileImgError(false);
+    setCoverImgError(false);
+
     // ⚡ INSTANT UNBLOCKING LOAD: If teacher prop is passed, render it instantly (0ms) so modal pops up immediately!
     if (teacher) {
       setProfileData(prev => ({
@@ -418,8 +425,21 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
     const fetchTeacherProfile = async () => {
       try {
         const res = await api.get(`/auth/teacher-profile/${activeTeacherId}`);
-        setProfileData(res.data);
-        populateEditForm(res.data?.teacher);
+        setProfileData(prev => ({
+          ...res.data,
+          teacher: {
+            ...prev?.teacher,
+            ...res.data?.teacher,
+            profilePicture: res.data?.teacher?.profilePicture || prev?.teacher?.profilePicture || teacher?.profilePicture || '',
+            coverPicture: res.data?.teacher?.coverPicture || prev?.teacher?.coverPicture || teacher?.coverPicture || ''
+          }
+        }));
+        populateEditForm({
+          ...teacher,
+          ...res.data?.teacher,
+          profilePicture: res.data?.teacher?.profilePicture || teacher?.profilePicture || '',
+          coverPicture: res.data?.teacher?.coverPicture || teacher?.coverPicture || ''
+        });
         if (res.data?.teacher?.teacherTags && res.data.teacher.teacherTags.length > 0) {
           setTeacherTags(res.data.teacher.teacherTags);
         }
@@ -445,8 +465,8 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
     setContactsList(parseContactsList(tData));
     setEditBio(tData.bio || '');
     setEditPhoneNumber(tData.phoneNumber || '');
-    setEditProfilePicture(tData.profilePicture || '');
-    setEditCoverPicture(tData.coverPicture || '');
+    if (tData.profilePicture) setEditProfilePicture(tData.profilePicture);
+    if (tData.coverPicture) setEditCoverPicture(tData.coverPicture);
   };
 
   const handleImageChange = (e, type = 'profile') => {
@@ -457,6 +477,9 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
       toast.error("Photo size should be under 5MB");
       return;
     }
+
+    if (type === 'profile') setProfileImgError(false);
+    if (type === 'cover') setCoverImgError(false);
 
     openCropperForSource(file, type);
   };
@@ -613,12 +636,12 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
 
         {/* Cover Banner (Facebook Style) - Expanded for Crystal-Clear Picture Display */}
         <div className="relative h-40 sm:h-64 bg-gradient-to-r from-[#2d1b64] via-purple-900 to-indigo-900 shadow-inner group/cover overflow-hidden">
-          {displayCover ? (
+          {(displayCover && !coverImgError) ? (
             <img
               src={getImageUrl(displayCover)}
               alt="Teacher Cover Page"
               className="w-full h-full object-cover object-center transition-transform duration-500 group-hover/cover:scale-105"
-              onError={(e) => { e.target.style.display = 'none'; }}
+              onError={() => setCoverImgError(true)}
             />
           ) : (
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
@@ -679,12 +702,12 @@ const TeacherModal = ({ teacher, teacherId, isOpen, onClose }) => {
               }`}
               title={!isEditing ? "Click to view full picture" : "Profile Avatar"}
             >
-              {(isEditing ? editProfilePicture : currentTeacher?.profilePicture) ? (
+              {((isEditing ? editProfilePicture : currentTeacher?.profilePicture) && !profileImgError) ? (
                 <img
                   src={getImageUrl(isEditing ? editProfilePicture : currentTeacher.profilePicture)}
-                  alt={currentTeacher.name}
+                  alt={currentTeacher?.name || 'Teacher'}
                   className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover ring-4 ring-white dark:ring-slate-800 shadow-2xl border-2 border-purple-100 dark:border-slate-700 bg-white dark:bg-slate-800 group-hover:ring-purple-600 transition-all duration-300"
-                  onError={(e) => { e.target.style.display = 'none'; }}
+                  onError={() => setProfileImgError(true)}
                 />
               ) : (
                 <div className="w-28 h-28 sm:w-36 sm:h-36 bg-gradient-to-br from-purple-600 to-[#2d1b64] text-white rounded-full flex items-center justify-center font-extrabold text-4xl sm:text-5xl ring-4 ring-white dark:ring-slate-800 shadow-2xl border-2 border-purple-100 dark:border-slate-700 group-hover:ring-purple-600 transition-all duration-300">
