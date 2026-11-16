@@ -104,7 +104,7 @@ const resolveGradeAndFee = (course, studentGradeParam, requestedAmount) => {
 // @access  Private (Student)
 router.post('/send-otp', protect, async (req, res) => {
   try {
-    const { courseId } = req.body;
+    const { courseId, phone } = req.body;
     const studentId = req.user._id;
 
     if (!courseId) {
@@ -116,7 +116,7 @@ router.post('/send-otp', protect, async (req, res) => {
       return res.status(404).json({ error: 'Student account not found.', message: 'Student account not found.' });
     }
 
-    const studentPhone = student.parentsPhoneNumber || student.phoneNumber;
+    const studentPhone = (phone && phone.trim()) || student.phoneNumber || student.parentsPhoneNumber;
     if (!studentPhone) {
       return res.status(400).json({ 
         error: 'No registered mobile phone number found for student. Please update your profile.', 
@@ -140,21 +140,21 @@ router.post('/send-otp', protect, async (req, res) => {
       expiresAt: new Date(Date.now() + 5 * 60 * 1000)
     });
 
-    // 4. Dispatch SMS message via Gateway / Console Simulator
+    // 4. Dispatch SMS message via Text.lk Gateway (bypasses marketing toggle for security OTP)
     const smsMessage = `Your LuminaLearn verification OTP code is ${generatedOtp}. Valid for 5 minutes. Do not share this code.`;
     await sendSMS({
       phone: studentPhone,
       message: smsMessage,
       otpCode: generatedOtp,
-      studentName: student.name
+      studentName: student.name,
+      bypassMasterSwitch: true
     });
 
     const maskedPhone = maskPhoneNumber(studentPhone);
 
     res.status(200).json({
       success: true,
-      message: `OTP sent successfully to ${maskedPhone}.`,
-      otpCode: generatedOtp, // Included for on-screen demo helper
+      message: `OTP sent successfully via SMS to ${maskedPhone}.`,
       phoneMasked: maskedPhone
     });
 

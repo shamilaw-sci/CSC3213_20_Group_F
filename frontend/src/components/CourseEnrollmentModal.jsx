@@ -38,11 +38,11 @@ const CourseEnrollmentModal = ({
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
   const [cardError, setCardError] = useState('');
+  const [smsPhone, setSmsPhone] = useState(student?.phoneNumber || student?.parentsPhoneNumber || '');
 
   // Step 3 State: OTP Verification
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState('');
-  const [demoOtpCode, setDemoOtpCode] = useState('');
   const [phoneMasked, setPhoneMasked] = useState('');
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
@@ -54,8 +54,9 @@ const CourseEnrollmentModal = ({
       setCardError('');
       setSlipError('');
       setOtpError('');
+      setSmsPhone(student?.phoneNumber || student?.parentsPhoneNumber || '');
     }
-  }, [isOpen]);
+  }, [isOpen, student]);
 
   // Countdown timer for Resend OTP button
   useEffect(() => {
@@ -206,19 +207,22 @@ const CourseEnrollmentModal = ({
     setExpiry(raw);
   };
 
-  // Request Real OTP from Backend
+  // Request Real OTP from Backend via SMS Gateway
   const requestOtpDispatch = async () => {
     setSendingOtp(true);
     setOtpError('');
     try {
-      const res = await api.post('/payments/send-otp', { courseId: course._id });
+      const targetPhone = smsPhone || student?.phoneNumber || student?.parentsPhoneNumber;
+      const res = await api.post('/payments/send-otp', { 
+        courseId: course._id,
+        phone: targetPhone
+      });
 
-      setDemoOtpCode(res.data.otpCode || '');
-      setPhoneMasked(res.data.phoneMasked || student?.parentsPhoneNumber || '');
+      setPhoneMasked(res.data.phoneMasked || targetPhone || '');
       setResendTimer(60);
       setCanResend(false);
       setOtpCode('');
-      toast.success(res.data.message || 'OTP code sent to mobile!');
+      toast.success(res.data.message || 'OTP code sent via SMS to mobile!');
       return true;
     } catch (err) {
       const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to dispatch OTP.';
@@ -270,6 +274,12 @@ const CourseEnrollmentModal = ({
 
     if (!cvv || cvv.length < 3 || cvv.length > 4 || isNaN(cvv)) {
       setCardError('Please enter a valid 3 or 4 digit CVV code.');
+      return;
+    }
+
+    const targetPhone = smsPhone || student?.phoneNumber || student?.parentsPhoneNumber;
+    if (!targetPhone || !targetPhone.trim()) {
+      setCardError('Please enter a valid mobile number to receive the SMS OTP.');
       return;
     }
 
@@ -687,10 +697,10 @@ const CourseEnrollmentModal = ({
             </div>
           )}
 
-          {/* STEP 2: Online Payment Gateway (Card Details) - Preserved for when card payment is enabled */}
+          {/* STEP 2: Online Payment Gateway (Card Details) */}
           {step === 2 && (
-            <form onSubmit={handleProceedToOTP} className="space-y-4">
-              <div className="flex justify-between items-center bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 dark:from-slate-800 dark:via-purple-950/40 dark:to-slate-800 border border-indigo-100 dark:border-slate-700 p-3 rounded-xl">
+            <form onSubmit={handleProceedToOTP} className="space-y-4" autoComplete="off">
+              <div className="flex justify-between items-center bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 dark:from-slate-800 dark:via-purple-950/40 dark:to-slate-800 border border-indigo-100 dark:border-slate-700 p-3 rounded-xl shadow-xs">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-extrabold text-indigo-950 dark:text-indigo-200">Payment Gateway</span>
                   <span className="text-[10px] bg-indigo-200/70 dark:bg-indigo-950/80 text-indigo-900 dark:text-indigo-300 px-2 py-0.5 rounded-full font-bold border border-indigo-300/40 dark:border-indigo-800">
@@ -698,7 +708,28 @@ const CourseEnrollmentModal = ({
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-xs">Visa / Mastercard</span>
+                  {cardType === 'visa' ? (
+                    <span className="inline-flex items-center gap-1.5 bg-blue-600 text-white font-black text-xs px-2.5 py-0.5 rounded-md shadow-xs animate-fadeIn">
+                      <span>VISA</span>
+                      <span className="text-[10px] font-bold opacity-90">Debit/Credit</span>
+                    </span>
+                  ) : cardType === 'mastercard' ? (
+                    <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 text-white font-black text-xs px-2.5 py-0.5 rounded-md shadow-xs animate-fadeIn">
+                      <span className="flex -space-x-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-300 inline-block"></span>
+                      </span>
+                      <span>Mastercard</span>
+                    </span>
+                  ) : cardType === 'amex' ? (
+                    <span className="inline-flex items-center gap-1 bg-cyan-600 text-white font-black text-xs px-2.5 py-0.5 rounded-md shadow-xs animate-fadeIn">
+                      <span>AMEX</span>
+                    </span>
+                  ) : (
+                    <span className="font-bold text-xs text-gray-500 dark:text-gray-400">
+                      Visa / Mastercard
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -714,10 +745,15 @@ const CourseEnrollmentModal = ({
                 </label>
                 <input
                   type="text"
+                  name="mock_c_holder"
+                  autoComplete="off"
+                  spellCheck="false"
+                  data-lpignore="true"
+                  data-form-type="other"
                   placeholder="e.g. A.B. PERERA"
                   value={cardholderName}
                   onChange={(e) => setCardholderName(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-semibold text-xs uppercase"
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-semibold text-xs uppercase placeholder:text-gray-400/30 dark:placeholder:text-slate-500/35 placeholder:font-normal"
                   required
                 />
               </div>
@@ -726,15 +762,49 @@ const CourseEnrollmentModal = ({
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                   Card Number (16 Digits)
                 </label>
-                <input
-                  type="text"
-                  placeholder="4000 0000 0000 0000"
-                  value={cardNumber}
-                  onChange={handleCardNumberChange}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-xs"
-                  maxLength={19}
-                  required
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    name="mock_c_num"
+                    id="mock_c_num"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    data-lpignore="true"
+                    data-form-type="other"
+                    placeholder="4000 0000 0000 0000"
+                    value={cardNumber}
+                    onChange={handleCardNumberChange}
+                    className="w-full pl-3 pr-24 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-xs placeholder:text-gray-400/30 dark:placeholder:text-slate-500/35 placeholder:font-normal tracking-wider"
+                    maxLength={19}
+                    required
+                  />
+                  <div className="absolute right-2.5 flex items-center pointer-events-none select-none">
+                    {cardType === 'visa' && (
+                      <span className="bg-blue-600 text-white font-black text-[10px] px-2 py-0.5 rounded shadow-xs tracking-wider animate-fadeIn">
+                        VISA
+                      </span>
+                    )}
+                    {cardType === 'mastercard' && (
+                      <span className="bg-gradient-to-r from-red-600 to-amber-500 text-white font-black text-[10px] px-2 py-0.5 rounded shadow-xs flex items-center gap-1 animate-fadeIn">
+                        <span className="w-2 h-2 rounded-full bg-red-400 inline-block -mr-1"></span>
+                        <span className="w-2 h-2 rounded-full bg-amber-300 inline-block"></span>
+                        <span>MC</span>
+                      </span>
+                    )}
+                    {cardType === 'amex' && (
+                      <span className="bg-cyan-600 text-white font-black text-[10px] px-2 py-0.5 rounded shadow-xs animate-fadeIn">
+                        AMEX
+                      </span>
+                    )}
+                    {cardType === 'none' && (
+                      <span className="text-[10px] text-gray-400/60 dark:text-gray-500/60 font-bold tracking-wider">
+                        VISA/MC
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -744,10 +814,15 @@ const CourseEnrollmentModal = ({
                   </label>
                   <input
                     type="text"
+                    name="mock_c_exp"
+                    autoComplete="off"
+                    spellCheck="false"
+                    data-lpignore="true"
+                    data-form-type="other"
                     placeholder="MM/YY"
                     value={expiry}
                     onChange={handleExpiryChange}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-xs"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-xs placeholder:text-gray-400/30 dark:placeholder:text-slate-500/35 placeholder:font-normal"
                     maxLength={5}
                     required
                   />
@@ -758,14 +833,42 @@ const CourseEnrollmentModal = ({
                   </label>
                   <input
                     type="password"
+                    name="mock_c_cvv"
+                    autoComplete="new-password"
+                    spellCheck="false"
+                    data-lpignore="true"
+                    data-form-type="other"
                     placeholder="123"
                     value={cvv}
                     onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-xs"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-xs placeholder:text-gray-400/30 dark:placeholder:text-slate-500/35 placeholder:font-normal"
                     maxLength={4}
                     required
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>📱 SMS OTP Delivery Number</span>
+                  <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold normal-case">Direct text.lk SMS gateway</span>
+                </label>
+                <input
+                  type="tel"
+                  name="mock_c_phone"
+                  autoComplete="off"
+                  spellCheck="false"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  placeholder="e.g. 0771234567"
+                  value={smsPhone}
+                  onChange={(e) => setSmsPhone(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-gray-800 dark:text-white font-mono font-bold text-xs placeholder:text-gray-400/30 dark:placeholder:text-slate-500/35 placeholder:font-normal"
+                  required
+                />
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 block">
+                  A 6-digit 2FA security OTP will be dispatched via SMS to this mobile number for authorization.
+                </span>
               </div>
             </form>
           )}
@@ -784,14 +887,10 @@ const CourseEnrollmentModal = ({
                 </p>
               </div>
 
-              {demoOtpCode && (
-                <div className="bg-purple-50 dark:bg-slate-800 border border-purple-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-purple-900 dark:text-purple-300 font-medium">
-                  📱 <strong>Generated OTP Code:</strong>{' '}
-                  <span className="bg-purple-200 dark:bg-purple-950 text-purple-950 dark:text-purple-200 px-2 py-0.5 rounded font-mono font-bold text-xs">
-                    {demoOtpCode}
-                  </span>
-                </div>
-              )}
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-2.5 text-xs text-emerald-800 dark:text-emerald-300 font-medium flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>SMS OTP dispatched to <strong>{phoneMasked || student?.parentsPhoneNumber || 'your mobile'}</strong></span>
+              </div>
 
               {otpError && (
                 <div className="bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-xs p-2.5 rounded-xl border border-red-200 dark:border-red-800 font-medium">
@@ -805,7 +904,7 @@ const CourseEnrollmentModal = ({
                   placeholder="000000"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="w-44 mx-auto px-3 py-2 bg-gray-50 dark:bg-slate-800 border-2 border-purple-500 rounded-xl text-center text-xl font-mono font-bold tracking-[0.4em] focus:ring-2 focus:ring-purple-200 outline-none text-purple-950 dark:text-purple-300 shadow-inner"
+                  className="w-44 mx-auto px-3 py-2 bg-gray-50 dark:bg-slate-800 border-2 border-purple-500 rounded-xl text-center text-xl font-mono font-bold tracking-[0.4em] focus:ring-2 focus:ring-purple-200 outline-none text-purple-950 dark:text-purple-300 shadow-inner placeholder:text-gray-400/30 dark:placeholder:text-slate-500/35 placeholder:font-normal"
                   maxLength={6}
                   required
                 />
