@@ -295,10 +295,10 @@ cd CSC3213_20_Group_F
 
 This project is developed by **Group F** for the course **CSC3213: Project in Computer Science I**, **Department of Statistics and Computer Science, Faculty of Science, University of Peradeniya**.
 
-| **Thanuka Vishal** | S/21/372 | `thanukavishal22@gmail.com` | [@thanukavishal](https://github.com/thanukavishal)
-| **Pathum Gunawardhana** | S/21/060 | `s21060@sci.pdn.ac.lk` | [@PathumGunawardhana](https://github.com/PathumGunawardhana)
-| **Rashmika Wijewardhana** | S/21/580 | `s21580@sci.pdn.ac.lk` | [@rashwije18](https://github.com/rashwije18)
-| **Sakindu Rathnasiri** | S/21/486 | `s21486@sci.pdn.ac.lk` | [@Sakindu99](https://github.com/Sakindu99)
+| **Thanuka Vishal** | S/21/372 | `thanukavishal22@gmail.com` | [@thanukavishal](https://github.com/thanukavishal)<br>
+| **Pathum Gunawardhana** | S/21/060 | `s21060@sci.pdn.ac.lk` | [@PathumGunawardhana](https://github.com/PathumGunawardhana)<br>
+| **Rashmika Wijewardhana** | S/21/580 | `s21580@sci.pdn.ac.lk` | [@rashwije18](https://github.com/rashwije18)<br>
+| **Sakindu Rathnasiri** | S/21/486 | `s21486@sci.pdn.ac.lk` | [@Sakindu99](https://github.com/Sakindu99)<br>
 
 ---
 
