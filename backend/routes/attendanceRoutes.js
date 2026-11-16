@@ -11,6 +11,7 @@ const { protect, isAdmin, isCounterStaffOrAdmin } = require('../middleware/authM
 const { sendAttendanceSMS } = require('../services/smsService');
 const { notifyParentsOfStudent } = require('../utils/notificationHelper');
 const { logAudit } = require('../services/auditLogger');
+const { checkStudentFeeStatus } = require('../utils/feeAccessHelper');
 
 const isStaffTeacherOrAdmin = (req, res, next) => {
   if (
@@ -858,34 +859,21 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
       }
     }
 
-    // CHECK PAYMENT STATUS (Checks Payment collection and Enrollment collection)
+    // CHECK PAYMENT STATUS (Using comprehensive monthly fee access evaluator)
     let paymentStatus = 'UNSETTLED';
     if (resolvedCourseId) {
-      const existingPayment = await Payment.findOne({
-        student: student._id,
-        course: resolvedCourseId,
-        status: 'COMPLETED'
-      });
-
-      const existingEnrollment = await Enrollment.findOne({
-        student: student._id,
-        course: resolvedCourseId,
-        paymentStatus: { $in: ['PAID', 'COMPLETED', 'APPROVED'] }
-      });
-
-      if (existingPayment || existingEnrollment) {
-        paymentStatus = 'PAID';
-      } else {
-        // Fallback: check if student has any completed payment for the current month
-        const anyPayment = await Payment.findOne({ student: student._id, status: 'COMPLETED' });
-        if (anyPayment) {
+      try {
+        const feeCheck = await checkStudentFeeStatus(student._id, resolvedCourseId);
+        if (feeCheck.status === 'PAID') {
           paymentStatus = 'PAID';
+        } else if (feeCheck.status === 'PENDING_APPROVAL') {
+          paymentStatus = 'PENDING_APPROVAL';
+        } else {
+          paymentStatus = 'UNSETTLED';
         }
-      }
-    } else {
-      const anyPayment = await Payment.findOne({ student: student._id, status: 'COMPLETED' });
-      if (anyPayment) {
-        paymentStatus = 'PAID';
+      } catch (fErr) {
+        console.error("Attendance feeCheck error:", fErr.message);
+        paymentStatus = 'UNSETTLED';
       }
     }
 

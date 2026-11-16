@@ -7,6 +7,7 @@ const DirectMessage = require('../models/DirectMessage');
 const Quiz = require('../models/Quiz');
 const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
+const { checkStudentFeeStatus } = require('./feeAccessHelper');
 
 /**
  * Helper to check if a user is enrolled in a specific course and grade/class
@@ -94,6 +95,17 @@ async function authorizeLessonPdf(user, lessonId, pdfId) {
       return { allowed: false, status: 403, error: 'You are not enrolled in this course class.' };
     }
 
+    // Check monthly fee clearance
+    const feeStatus = await checkStudentFeeStatus(user._id, lesson.course?._id || lesson.course);
+    if (!feeStatus.isAllowed) {
+      return {
+        allowed: false,
+        status: 403,
+        code: 'FEE_PAYMENT_REQUIRED',
+        error: feeStatus.message || 'Monthly fee payment required to access study materials.'
+      };
+    }
+
     // Check download policy
     let canDownload = pdf.allowDownload !== false;
     if (pdf.downloadDelayType === 'disabled' || pdf.allowDownload === false) {
@@ -133,6 +145,15 @@ async function authorizeAssignment(user, assignmentId) {
     const enrolled = await isStudentEnrolled(user, assignment.course?._id || assignment.course, assignment.grade);
     if (!enrolled) {
       return { allowed: false, status: 403, error: 'You are not enrolled in this course.' };
+    }
+    const feeStatus = await checkStudentFeeStatus(user._id, assignment.course?._id || assignment.course);
+    if (!feeStatus.isAllowed) {
+      return {
+        allowed: false,
+        status: 403,
+        code: 'FEE_PAYMENT_REQUIRED',
+        error: feeStatus.message || 'Monthly fee payment required to access assignments.'
+      };
     }
     return { allowed: true, assignment, canDownload: true };
   }
@@ -216,6 +237,10 @@ async function authorizeLiveAttachment(user, lessonId, messageId) {
     const enrolled = await isStudentEnrolled(user, lesson.course?._id || lesson.course, lesson.grade);
     if (!enrolled) {
       return { allowed: false, status: 403, error: 'You are not enrolled in this live classroom.' };
+    }
+    const feeStatus = await checkStudentFeeStatus(user._id, lesson.course?._id || lesson.course);
+    if (!feeStatus.isAllowed) {
+      return { allowed: false, status: 403, error: feeStatus.message || 'Monthly fee payment required.' };
     }
     return { allowed: true, lesson };
   }
