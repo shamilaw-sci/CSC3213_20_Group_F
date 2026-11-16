@@ -1,3 +1,8 @@
+/**
+ * @file quizRoutes.js
+ * @description Quiz Assessment Routes. Provides endpoints for quiz creation, question diagrams, quiz attempts, real-time timer tracking, and automated scoring.
+ */
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');

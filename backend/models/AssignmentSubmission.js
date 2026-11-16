@@ -1,3 +1,8 @@
+/**
+ * @file AssignmentSubmission.js
+ * @description Assignment Submission Model Schema. Stores student submissions (uploaded files, submission timestamp, status) along with instructor evaluation marks, feedback notes, and graded timestamps.
+ */
+
 const mongoose = require('mongoose');
 
 const assignmentSubmissionSchema = new mongoose.Schema({

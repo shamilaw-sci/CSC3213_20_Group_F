@@ -1,3 +1,8 @@
+/**
+ * @file LiveReplyModal.jsx
+ * @description Live Question Reply Modal. Allows instructors during a live stream to view, listen to student voice questions, and record audio/text replies.
+ */
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   FaTimes, 

@@ -1,4 +1,9 @@
 /**
+ * @file inMemoryModel.js
+ * @description In-Memory Database Fallback Utility. Provides mock data stores and CRUD operations to keep the server operational during local development or unit testing without MongoDB Atlas.
+ */
+
+/**
  * In-Memory Model Fallback
  * Used when MongoDB is not available for testing/development
  * 

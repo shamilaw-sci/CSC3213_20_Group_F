@@ -1,3 +1,8 @@
+/**
+ * @file Quiz.js
+ * @description Quiz Model Schema. Defines online quizzes associated with courses and modular weeks, containing questions (MCQ, multi-select, true/false), time limits, passing scores, answer keys, and explanations.
+ */
+
 const mongoose = require('mongoose');
 
 const questionSchema = new mongoose.Schema({

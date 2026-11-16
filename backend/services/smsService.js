@@ -1,4 +1,9 @@
 /**
+ * @file smsService.js
+ * @description SMS Gateway Service. Handles automated Sri Lankan phone number normalization and SMS dispatch via Text.lk REST API v3, including fallback mechanisms and development simulation.
+ */
+
+/**
  * SMS Service - Text.lk Gateway Integration
  * Supports automated phone normalization for Sri Lanka numbers,
  * text.lk REST API v3 dispatch, and development simulation fallback.

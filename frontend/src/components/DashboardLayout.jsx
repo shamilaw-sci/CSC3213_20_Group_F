@@ -1,3 +1,8 @@
+/**
+ * @file DashboardLayout.jsx
+ * @description Dashboard Layout Wrapper. Responsive application layout comprising top navigation header, role-based sidebar, and dark mode theme container.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import BroadcastModal from './BroadcastModal';

@@ -1,3 +1,8 @@
+/**
+ * @file TeacherAvailabilityModal.jsx
+ * @description Teacher Availability Modal. Interface for teachers to define recurring weekly consultation hours and availability slots.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   FaUserClock,

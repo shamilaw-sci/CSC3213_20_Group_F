@@ -1,3 +1,8 @@
+/**
+ * @file SystemSetting.js
+ * @description System Setting Model Schema. Stores key-value application settings, institution metadata, and external gateway credentials (such as Text.lk SMS API keys and balances).
+ */
+
 const mongoose = require('mongoose');
 
 const SystemSettingSchema = new mongoose.Schema({

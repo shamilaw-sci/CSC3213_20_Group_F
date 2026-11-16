@@ -1,3 +1,8 @@
+/**
+ * @file emailService.js
+ * @description Email Notification Service. Transacts transactional emails (password resets, account verification, welcome emails, notifications) using Brevo (Sendinblue) API with SMTP fallback.
+ */
+
 const SibApiV3Sdk = require('sib-api-v3-sdk');
 
 /**

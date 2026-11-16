@@ -1,3 +1,8 @@
+/**
+ * @file Payment.js
+ * @description Payment Model Schema. Records all financial transactions including online card payments and counter desk physical cash receipts, capturing student details, amount, reference numbers, and parent SMS receipt status.
+ */
+
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({

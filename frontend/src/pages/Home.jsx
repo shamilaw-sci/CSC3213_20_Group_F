@@ -1,3 +1,8 @@
+/**
+ * @file Home.jsx
+ * @description Public Home Landing Page. LuminaLearn homepage highlighting institute features, academic programs, upcoming classes, and testimonials.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {

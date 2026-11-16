@@ -1,3 +1,8 @@
+/**
+ * @file auth.js
+ * @description Authentication & User Routes. Implements multi-role registration, login with single-session enforcement, password reset flows with OTP/tokens, and user management endpoints.
+ */
+
 const fs = require('fs');
 const path = require('path');
 const express = require('express');

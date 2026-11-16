@@ -1,3 +1,8 @@
+/**
+ * @file OTP.js
+ * @description One-Time Password (OTP) Model Schema. Stores temporary 6-digit SMS verification codes with automatic TTL expiration for secure registration and card checkout verification.
+ */
+
 const mongoose = require('mongoose');
 
 const otpSchema = new mongoose.Schema({

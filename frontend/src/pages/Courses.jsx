@@ -1,3 +1,8 @@
+/**
+ * @file Courses.jsx
+ * @description Course Catalog Page. Browse and search available academic courses with grade filtering, instructor details, enrollment badges, and tuition fees.
+ */
+
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';

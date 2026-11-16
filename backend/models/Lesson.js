@@ -1,3 +1,8 @@
+/**
+ * @file Lesson.js
+ * @description Lesson Model Schema. Represents weekly modular course lessons containing video lecture links, protected PDF lecture notes, PDF download delay/lock settings, and published status.
+ */
+
 const mongoose = require('mongoose');
 
 const lessonSchema = new mongoose.Schema({

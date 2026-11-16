@@ -1,3 +1,8 @@
+/**
+ * @file lessonRoutes.js
+ * @description Lesson Management Routes. Handles creation, ordering, and publishing of weekly modular lessons, video links, PDF lecture notes, and download protection locks.
+ */
+
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');

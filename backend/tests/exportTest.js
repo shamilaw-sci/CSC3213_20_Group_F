@@ -1,3 +1,8 @@
+/**
+ * @file exportTest.js
+ * @description Export Service Test Suite. Verifies RFC-4180 CSV conversion, date formatting, quote escaping, and gzip compression functionality.
+ */
+
 const { convertToCSV, studentColumns, compressGzip } = require('../services/exportService');
 const zlib = require('zlib');
 

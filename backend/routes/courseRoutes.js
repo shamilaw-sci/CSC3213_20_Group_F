@@ -1,3 +1,8 @@
+/**
+ * @file courseRoutes.js
+ * @description Course Management Routes. Handles course creation, syllabus updates, teacher assignments, grade filtering, banner image uploads, and enrollment lists.
+ */
+
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');

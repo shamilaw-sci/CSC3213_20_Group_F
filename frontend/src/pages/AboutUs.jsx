@@ -1,3 +1,8 @@
+/**
+ * @file AboutUs.jsx
+ * @description About Us Page. Public informational page presenting Kirula Education Center background, founder message, institute policies, and contact channels.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {

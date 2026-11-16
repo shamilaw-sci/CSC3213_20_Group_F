@@ -1,3 +1,8 @@
+/**
+ * @file LiveThumbnailCropperModal.jsx
+ * @description Live Thumbnail Cropper Modal. Image cropper interface allowing instructors to format and upload 16:9 banner thumbnails for live streams.
+ */
+
 import React, { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { FaTimes, FaCrop, FaSearchPlus, FaSearchMinus, FaCheck, FaRedo, FaUndo } from 'react-icons/fa';

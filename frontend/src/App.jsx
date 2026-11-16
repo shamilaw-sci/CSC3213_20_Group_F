@@ -1,3 +1,8 @@
+/**
+ * @file App.jsx
+ * @description Root Application Component. Configures client-side React Router routing, role-based ProtectedRoute guards, global toast notifications, and layout wrapping.
+ */
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';

@@ -1,3 +1,8 @@
+/**
+ * @file ChatWidget.jsx
+ * @description LuminaChat AI Floating Widget. Institutional AI assistant widget powered by Google Gemini API to answer student questions regarding classes, fees, and syllabus.
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import api, { getApiBaseUrl } from '../utils/api';
 import axios from 'axios';

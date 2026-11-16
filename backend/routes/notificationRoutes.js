@@ -1,3 +1,8 @@
+/**
+ * @file notificationRoutes.js
+ * @description Notification Routes. Fetches unread notifications for authenticated users and marks specific notifications or all notifications as read.
+ */
+
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');

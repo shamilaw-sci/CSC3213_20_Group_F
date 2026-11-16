@@ -1,3 +1,8 @@
+/**
+ * @file exportRoutes.js
+ * @description Export & Backup Routes. Enables administrators to download full system JSON backups, gzip archives, and CSV reports for students, staff, payments, and attendance.
+ */
+
 const express = require('express');
 const router = express.Router();
 const { protect, isAdmin } = require('../middleware/authMiddleware');

@@ -1,3 +1,8 @@
+/**
+ * @file notificationHelper.js
+ * @description Notification Helper Utility. Dispatches in-app notifications and alerts to users, with support for identifying and notifying linked parents of enrolled students.
+ */
+
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 

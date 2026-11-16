@@ -1,3 +1,8 @@
+/**
+ * @file Login.jsx
+ * @description Authentication Login Component. Provides multi-role login interface with password visibility toggle, forgot password link, and single-session enforcement.
+ */
+
 import React, { useState } from 'react';
 import api from '../utils/api';
 import { useNavigate, useLocation } from 'react-router-dom';

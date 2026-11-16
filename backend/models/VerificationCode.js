@@ -1,3 +1,8 @@
+/**
+ * @file VerificationCode.js
+ * @description Verification Code Model Schema. Handles email and phone account verification tokens, password reset tokens, and expiry timeframes.
+ */
+
 const mongoose = require('mongoose');
 
 const verificationCodeSchema = new mongoose.Schema({

@@ -1,3 +1,8 @@
+/**
+ * @file auditLogRoutes.js
+ * @description Audit Log Routes. Exposes protected administrative endpoints to query, filter, search, and paginate system audit log events.
+ */
+
 const express = require('express');
 const router = express.Router();
 const AuditLog = require('../models/AuditLog');

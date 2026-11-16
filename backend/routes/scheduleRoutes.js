@@ -1,3 +1,8 @@
+/**
+ * @file scheduleRoutes.js
+ * @description Schedule & Timetable Routes. Manages classroom schedules, weekly recurring timetables, reschedule requests with SMS alerts, and YouTube live streaming metadata.
+ */
+
 const express = require('express');
 const router = express.Router();
 const Schedule = require('../models/Schedule');

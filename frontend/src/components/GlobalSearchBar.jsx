@@ -1,3 +1,8 @@
+/**
+ * @file GlobalSearchBar.jsx
+ * @description Global Search Bar. Interactive search input with autocomplete suggestions across courses, lessons, instructors, and student records.
+ */
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {

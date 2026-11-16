@@ -1,3 +1,8 @@
+/**
+ * @file InteractiveCalendar.jsx
+ * @description Interactive Timetable Calendar. Full calendar view rendering class schedules, scheduled live streams, exam dates, and monthly/weekly views.
+ */
+
 import React, { useState, useMemo } from 'react';
 import {
   FaCalendarAlt,

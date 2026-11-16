@@ -1,5 +1,6 @@
 /**
- * Lightweight, dependency-free in-memory rate limiter for sensitive authentication endpoints.
+ * @file rateLimiter.js
+ * @description In-memory rate limiting middleware for sensitive authentication and OTP endpoints.
  * Protects against brute-force attacks on login, OTP verification, and password reset routes.
  */
 

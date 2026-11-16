@@ -1,3 +1,10 @@
+/**
+ * @file pdfUpload.js
+ * @description Multer upload middleware configured specifically for lesson PDF documents.
+ * Handles storage destination in lessons directory, generates unique file names,
+ * validates PDF MIME types, and enforces a 15MB file size limit.
+ */
+
 const multer = require('multer');
 const path = require('path');
 const { getCategoryDir } = require('../services/fileStorage');

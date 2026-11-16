@@ -1,3 +1,8 @@
+/**
+ * @file Analytics.jsx
+ * @description Analytics & Reports Dashboard. High-level institutional reporting interface rendering revenue charts, student attendance rates, course popularities, and grade breakdowns.
+ */
+
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import API from '../utils/api';

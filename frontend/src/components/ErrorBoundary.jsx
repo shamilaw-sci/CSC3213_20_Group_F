@@ -1,3 +1,8 @@
+/**
+ * @file ErrorBoundary.jsx
+ * @description Application Error Boundary. Catches unhandled JavaScript exceptions in child component trees to display a graceful fallback recovery UI.
+ */
+
 import React from 'react';
 import { FaExclamationTriangle, FaRedo, FaArrowLeft } from 'react-icons/fa';
 

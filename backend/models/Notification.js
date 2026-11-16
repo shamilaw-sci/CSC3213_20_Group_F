@@ -1,3 +1,8 @@
+/**
+ * @file Notification.js
+ * @description Notification Model Schema. Manages system, course, payment, and live broadcast alerts delivered to specific users, tracking read/unread status and redirect URLs.
+ */
+
 const mongoose = require('mongoose');
 
 const NotificationSchema = new mongoose.Schema({

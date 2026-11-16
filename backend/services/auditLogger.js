@@ -1,3 +1,8 @@
+/**
+ * @file auditLogger.js
+ * @description Audit Logging Service. Sanitizes sensitive payload fields (passwords, tokens, OTPs) and writes structured, immutable audit log records to MongoDB for administrative and security tracking.
+ */
+
 const AuditLog = require('../models/AuditLog');
 
 /**

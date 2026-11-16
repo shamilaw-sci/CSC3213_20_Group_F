@@ -1,3 +1,8 @@
+/**
+ * @file StudentLiveFeedbackWindow.jsx
+ * @description Student Live Feedback Floating Window. Compact floating interface during live lectures for sending instant reaction emojis and feedback.
+ */
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   FaGraduationCap, 

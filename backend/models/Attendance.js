@@ -1,3 +1,8 @@
+/**
+ * @file Attendance.js
+ * @description Attendance Model Schema. Records physical and online attendance for students per course and session, tracking check-in time, counter staff marker, QR pass scans, and parent SMS notification delivery status.
+ */
+
 const mongoose = require('mongoose');
 
 const AttendanceSchema = new mongoose.Schema({

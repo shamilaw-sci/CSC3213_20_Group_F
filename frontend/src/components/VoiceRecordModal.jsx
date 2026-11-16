@@ -1,3 +1,8 @@
+/**
+ * @file VoiceRecordModal.jsx
+ * @description Voice Recording Modal. MediaRecorder microphone component to capture, preview, re-record, and attach audio voice messages to chat.
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   FaMicrophone, 

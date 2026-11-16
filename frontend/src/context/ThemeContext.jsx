@@ -1,3 +1,8 @@
+/**
+ * @file ThemeContext.jsx
+ * @description Theme Context Provider. Manages dark/light theme switching, persists user preferences in localStorage, and handles time-based default modes.
+ */
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext();

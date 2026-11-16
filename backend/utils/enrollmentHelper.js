@@ -1,3 +1,8 @@
+/**
+ * @file enrollmentHelper.js
+ * @description Enrollment Helper Utility. Resolves and matches all active student users enrolled in a specific course class/grade across MongoDB enrollment collections and course documents.
+ */
+
 const User = require('../models/User');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');

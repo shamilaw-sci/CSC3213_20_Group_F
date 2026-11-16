@@ -1,3 +1,8 @@
+/**
+ * @file AuditLogs.jsx
+ * @description System Audit Logs Page. Protected administrative page to search, filter, and inspect security audit trails across user logins, course modifications, and system edits.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';

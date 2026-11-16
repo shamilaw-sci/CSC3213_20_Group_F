@@ -1,3 +1,8 @@
+/**
+ * @file ScheduledLiveHero.jsx
+ * @description Scheduled Live Hero Widget. Promotional hero banner notifying enrolled students when a scheduled live class is starting or active.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { 
   FaYoutube, 

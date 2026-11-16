@@ -1,3 +1,9 @@
+/**
+ * @file upload.js
+ * @description General image upload middleware for public course banners, thumbnails, and media.
+ * Stores files in the courses storage directory with allowed image MIME validation and a 5MB size limit.
+ */
+
 const multer = require('multer');
 const path = require('path');
 const { getCategoryDir } = require('../services/fileStorage');

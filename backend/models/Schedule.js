@@ -1,3 +1,8 @@
+/**
+ * @file Schedule.js
+ * @description Schedule Model Schema. Represents class timetables and live stream sessions, including course reference, date, start/end times, hall/room allocations, YouTube live stream IDs, and active viewer status.
+ */
+
 const mongoose = require('mongoose');
 
 const ScheduleSchema = new mongoose.Schema({

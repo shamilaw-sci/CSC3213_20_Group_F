@@ -1,3 +1,8 @@
+/**
+ * @file TimetableCalendar.jsx
+ * @description Master Timetable Calendar Page. Comprehensive institutional calendar displaying weekly recurring classes, hall allocations, and live stream schedules.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   FaCalendarAlt,

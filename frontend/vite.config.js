@@ -1,3 +1,8 @@
+/**
+ * @file vite.config.js
+ * @description Vite Build Configuration. Sets up Vite plugins for React, development server host binding, and optimized dependency pre-bundling.
+ */
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 

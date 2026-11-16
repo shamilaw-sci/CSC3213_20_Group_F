@@ -1,3 +1,8 @@
+/**
+ * @file tailwind.config.js
+ * @description Tailwind CSS Configuration. Configures content purge paths, custom brand colors (luminaPurple, luminaLight), and dark mode class strategy.
+ */
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',

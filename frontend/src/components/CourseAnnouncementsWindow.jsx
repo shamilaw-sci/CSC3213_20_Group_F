@@ -1,3 +1,8 @@
+/**
+ * @file CourseAnnouncementsWindow.jsx
+ * @description Course Announcements Window. Floating or docked window displaying course-specific announcements, timetable notices, and deadlines.
+ */
+
 import React, { useState } from 'react';
 import { FaBullhorn, FaChevronDown, FaChevronUp, FaChalkboardTeacher, FaCalendarAlt } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';

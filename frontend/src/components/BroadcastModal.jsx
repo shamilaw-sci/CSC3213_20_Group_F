@@ -1,3 +1,8 @@
+/**
+ * @file BroadcastModal.jsx
+ * @description Broadcast Modal. Admin/Teacher modal to compose and broadcast announcements to students, parents, or specific grades via SMS and in-app alerts.
+ */
+
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { 

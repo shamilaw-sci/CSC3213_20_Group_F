@@ -1,3 +1,8 @@
+/**
+ * @file TeacherModal.jsx
+ * @description Teacher Management Modal. Admin modal to add new instructors, update biographies, and link teaching subjects and grade levels.
+ */
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cropper from 'react-easy-crop';

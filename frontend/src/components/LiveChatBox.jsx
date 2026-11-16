@@ -1,3 +1,8 @@
+/**
+ * @file LiveChatBox.jsx
+ * @description Live Stream Real-Time Chat Box. Interactive chat room for live classes supporting text discussions, voice notes, hand-raises, and teacher moderation.
+ */
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   FaPaperPlane,

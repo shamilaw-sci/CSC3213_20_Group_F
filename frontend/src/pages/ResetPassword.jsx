@@ -1,3 +1,8 @@
+/**
+ * @file ResetPassword.jsx
+ * @description Reset Password Page. Form to verify 6-digit OTP code and configure a new account password following a reset request.
+ */
+
 import React, { useState } from 'react';
 import api from '../utils/api';
 import { useNavigate, useParams } from 'react-router-dom';

@@ -1,3 +1,8 @@
+/**
+ * @file LiveViewersModal.jsx
+ * @description Live Viewers Modal. Displays the real-time roster of active student participants currently watching an ongoing live lecture.
+ */
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   FaUserGraduate, 

@@ -1,3 +1,8 @@
+/**
+ * @file settingRoutes.js
+ * @description System Settings Routes. Allows administrators to configure institute profile info, announcements, and Text.lk SMS gateway credentials and balance checks.
+ */
+
 const express = require('express');
 const router = express.Router();
 const SystemSetting = require('../models/SystemSetting');

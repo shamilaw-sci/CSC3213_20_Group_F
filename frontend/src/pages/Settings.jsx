@@ -1,3 +1,8 @@
+/**
+ * @file Settings.jsx
+ * @description System Settings Page. General administration page to configure institute metadata, academic calendar parameters, and announcement banners.
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';

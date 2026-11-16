@@ -1,3 +1,10 @@
+/**
+ * @file privateUpload.js
+ * @description Secure upload middleware for sensitive/private file categories
+ * (lessons, assignments, submissions, quizzes, messages, live-chat, payments).
+ * Restricts allowed MIME types and enforces category-specific file size limits.
+ */
+
 const multer = require('multer');
 const path = require('path');
 const { getCategoryDir } = require('../services/fileStorage');

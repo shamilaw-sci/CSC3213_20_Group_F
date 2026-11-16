@@ -1,3 +1,8 @@
+/**
+ * @file fileStorage.js
+ * @description File Storage Service. Manages physical storage directories for public media and private documents (lessons, assignments, submissions, quizzes, payments, messages), resolving local paths and MIME types.
+ */
+
 const path = require('path');
 const fs = require('fs');
 
