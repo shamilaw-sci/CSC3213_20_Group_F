@@ -190,23 +190,47 @@ const StudentPerformanceDetails = () => {
 
           {/* 4 Performance Metric Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-              <span className="text-xs font-bold uppercase text-slate-500">Attendance Rate</span>
+            <div
+              onClick={() => setActiveTab('attendance')}
+              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 cursor-pointer hover:border-purple-400 hover:shadow-md transition group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase text-slate-500">Attendance Rate</span>
+                <span className="text-[11px] font-bold text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">View Logs →</span>
+              </div>
               <div className="text-3xl font-black text-slate-900 dark:text-white">{attendance.rate}%</div>
               <p className="text-xs text-slate-500">{attendance.present} present / {attendance.total} sessions</p>
             </div>
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-              <span className="text-xs font-bold uppercase text-slate-500">Quiz Assessment Avg</span>
+            <div
+              onClick={() => setActiveTab('quizzes')}
+              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 cursor-pointer hover:border-purple-400 hover:shadow-md transition group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase text-slate-500">Quiz Assessment Avg</span>
+                <span className="text-[11px] font-bold text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">View Quizzes →</span>
+              </div>
               <div className="text-3xl font-black text-slate-900 dark:text-white">{quizzes.averagePercentage}%</div>
               <p className="text-xs text-slate-500">{quizzes.totalAttempted} assessments completed</p>
             </div>
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-              <span className="text-xs font-bold uppercase text-slate-500">Homework Submissions</span>
+            <div
+              onClick={() => setActiveTab('assignments')}
+              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 cursor-pointer hover:border-purple-400 hover:shadow-md transition group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase text-slate-500">Homework Submissions</span>
+                <span className="text-[11px] font-bold text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">View Tasks →</span>
+              </div>
               <div className="text-3xl font-black text-slate-900 dark:text-white">{assignments.totalSubmitted}</div>
               <p className="text-xs text-slate-500">{assignments.totalMissing} missing or overdue</p>
             </div>
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-              <span className="text-xs font-bold uppercase text-slate-500">Reading Progress</span>
+            <div
+              onClick={() => setActiveTab('reading')}
+              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 cursor-pointer hover:border-purple-400 hover:shadow-md transition group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase text-slate-500">Reading Progress</span>
+                <span className="text-[11px] font-bold text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">View Reading →</span>
+              </div>
               <div className="text-3xl font-black text-slate-900 dark:text-white">{reading.averageProgress}%</div>
               <p className="text-xs text-slate-500">{reading.completedPdfs} of {reading.totalPdfs} PDFs finished</p>
             </div>

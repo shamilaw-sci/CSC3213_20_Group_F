@@ -281,7 +281,7 @@ const CourseDetails = () => {
       const updated = { ...prev, [strId]: !prev[strId] };
       try {
         localStorage.setItem(`lumina_user_done_${user?._id || 'guest'}_${id}`, JSON.stringify(updated));
-      } catch (e) {}
+      } catch (e) { }
       return updated;
     });
   };
@@ -509,7 +509,7 @@ const CourseDetails = () => {
 
   // For students: aggregate ALL course content across lessons for the selected/enrolled grade with dates (latest on top)
   const allCourseVideos = useMemo(() => {
-    const targetLessons = lessons.filter(l => 
+    const targetLessons = lessons.filter(l =>
       !selectedGrade || normalizeGrade(l.grade) === normalizeGrade(selectedGrade)
     );
     const vids = [];
@@ -524,16 +524,16 @@ const CourseDetails = () => {
       });
     });
     return vids.sort((a, b) => {
-      const timeA = new Date(a.date || a.createdAt || 0).getTime() || 
+      const timeA = new Date(a.date || a.createdAt || 0).getTime() ||
         (a._id && String(a._id).length >= 8 ? parseInt(String(a._id).substring(0, 8), 16) * 1000 : 0);
-      const timeB = new Date(b.date || b.createdAt || 0).getTime() || 
+      const timeB = new Date(b.date || b.createdAt || 0).getTime() ||
         (b._id && String(b._id).length >= 8 ? parseInt(String(b._id).substring(0, 8), 16) * 1000 : 0);
       return timeB - timeA;
     });
   }, [lessons, selectedGrade]);
 
   const allCoursePdfs = useMemo(() => {
-    const targetLessons = lessons.filter(l => 
+    const targetLessons = lessons.filter(l =>
       !selectedGrade || normalizeGrade(l.grade) === normalizeGrade(selectedGrade)
     );
     const pdfs = [];
@@ -548,16 +548,16 @@ const CourseDetails = () => {
       });
     });
     return pdfs.sort((a, b) => {
-      const timeA = new Date(a.date || a.uploadedAt || 0).getTime() || 
+      const timeA = new Date(a.date || a.uploadedAt || 0).getTime() ||
         (a._id && String(a._id).length >= 8 ? parseInt(String(a._id).substring(0, 8), 16) * 1000 : 0);
-      const timeB = new Date(b.date || b.uploadedAt || 0).getTime() || 
+      const timeB = new Date(b.date || b.uploadedAt || 0).getTime() ||
         (b._id && String(b._id).length >= 8 ? parseInt(String(b._id).substring(0, 8), 16) * 1000 : 0);
       return timeB - timeA;
     });
   }, [lessons, selectedGrade]);
 
   const allCourseAssignments = useMemo(() => {
-    const asgns = assignments.filter(asgn => 
+    const asgns = assignments.filter(asgn =>
       !selectedGrade || !asgn.grade || normalizeGrade(asgn.grade) === normalizeGrade(selectedGrade)
     );
     return asgns.sort((a, b) => {
@@ -568,7 +568,7 @@ const CourseDetails = () => {
   }, [assignments, selectedGrade]);
 
   const allCourseQuizzes = useMemo(() => {
-    const qzs = quizzes.filter(q => 
+    const qzs = quizzes.filter(q =>
       !selectedGrade || !q.grade || normalizeGrade(q.grade) === normalizeGrade(selectedGrade)
     );
     return qzs.sort((a, b) => {
@@ -712,14 +712,14 @@ const CourseDetails = () => {
           );
 
           if (
-            activeLiveLesson.liveStream?.isLive !== res.data.isLive || 
+            activeLiveLesson.liveStream?.isLive !== res.data.isLive ||
             activeLiveLesson.liveStream?.isScheduled !== res.data.isScheduled ||
             statusNoticeChanged
           ) {
             // If live stream just ended and current user is a student actively watching this live class, automatically show the feedback & reactions modal
             if (
-              activeLiveLesson.liveStream?.isLive && 
-              res.data.isLive === false && 
+              activeLiveLesson.liveStream?.isLive &&
+              res.data.isLive === false &&
               user?.role === 'student' &&
               selectedGrade === activeLiveLesson.grade &&
               currentLesson?._id === activeLiveLesson._id
@@ -748,7 +748,7 @@ const CourseDetails = () => {
             }));
           }
         }
-      } catch (err) {}
+      } catch (err) { }
     }, 3000);
 
     return () => clearInterval(interval);
@@ -877,7 +877,7 @@ const CourseDetails = () => {
             setLoading(false);
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     try {
@@ -1726,7 +1726,7 @@ const CourseDetails = () => {
         const d = new Date(ls.scheduledStartTime);
         setScheduledDate(d.toISOString().split('T')[0]);
         setScheduledTime(d.toTimeString().slice(0, 5));
-      } catch (e) {}
+      } catch (e) { }
     }
     setShowLiveModal(true);
   };
@@ -1769,7 +1769,7 @@ const CourseDetails = () => {
 
   const handleEndLiveStream = () => {
     if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
     }
     setShowEndStreamConfirmModal(true);
   };
@@ -1778,9 +1778,9 @@ const CourseDetails = () => {
     const currentGradeLesson = (lessons || []).find(l => normalizeGrade(l.grade) === normalizeGrade(selectedGrade));
     const targetLesson = (currentGradeLesson && (currentGradeLesson.liveStream?.isLive || currentGradeLesson.liveStream?.isScheduled))
       ? currentGradeLesson
-      : (lessons || []).find(l => l.liveStream?.isLive || l.liveStream?.isScheduled) 
-        || currentGradeLesson 
-        || (lessons || [])[0];
+      : (lessons || []).find(l => l.liveStream?.isLive || l.liveStream?.isScheduled)
+      || currentGradeLesson
+      || (lessons || [])[0];
 
     setIsEndingStream(true);
     setShowEndStreamConfirmModal(false);
@@ -1865,8 +1865,8 @@ const CourseDetails = () => {
     return timeB - timeA;
   })[0] : null;
 
-  const currentLesson = latestLiveLessonForGrade 
-    || lessons.find(l => l.liveStream?.isLive || l.liveStream?.isScheduled) 
+  const currentLesson = latestLiveLessonForGrade
+    || lessons.find(l => l.liveStream?.isLive || l.liveStream?.isScheduled)
     || lessons[0];
   const studentGrade = user?.grade;
   const alreadyEnrolled = course?.enrolledStudents?.some(
@@ -2005,8 +2005,8 @@ const CourseDetails = () => {
                 type="button"
                 onClick={() => setShowSchedule(!showSchedule)}
                 className={`px-5 py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-300 shadow-lg flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:scale-95 border ${showSchedule
-                    ? 'bg-gradient-to-r from-purple-800 via-indigo-900 to-slate-900 text-white border-purple-400/60 shadow-purple-900/30 ring-2 ring-purple-400/30'
-                    : 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-900 hover:from-purple-800 hover:to-indigo-950 text-white border-purple-400/50 shadow-purple-600/30 ring-2 ring-purple-300/40'
+                  ? 'bg-gradient-to-r from-purple-800 via-indigo-900 to-slate-900 text-white border-purple-400/60 shadow-purple-900/30 ring-2 ring-purple-400/30'
+                  : 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-900 hover:from-purple-800 hover:to-indigo-950 text-white border-purple-400/50 shadow-purple-600/30 ring-2 ring-purple-300/40'
                   }`}
               >
                 <div className="flex items-center gap-2">
@@ -2153,68 +2153,61 @@ const CourseDetails = () => {
           </div>
 
           {/* Styled Course Title Banner */}
-          <div className={`relative overflow-hidden rounded-3xl p-5 sm:p-6 text-center transition-all duration-300 border shadow-lg ${
-            isDark 
-              ? 'bg-slate-900/95 border-purple-900/50 shadow-slate-950/60' 
-              : 'bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/80 border-purple-200/90 shadow-purple-900/5'
-          }`}>
+          <div className={`relative overflow-hidden rounded-3xl p-5 sm:p-6 text-center transition-all duration-300 border shadow-lg ${isDark
+            ? 'bg-slate-900/95 border-purple-900/50 shadow-slate-950/60'
+            : 'bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/80 border-purple-200/90 shadow-purple-900/5'
+            }`}>
             <div className="relative z-10 max-w-4xl mx-auto space-y-3">
-              <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight ${
-                isDark 
-                  ? 'text-white' 
-                  : 'bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 bg-clip-text text-transparent'
-              }`}>
+              <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight ${isDark
+                ? 'text-white'
+                : 'bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 bg-clip-text text-transparent'
+                }`}>
                 {course?.title}
               </h1>
 
               {/* Metadata Pills: Academic Term, Week Module, Today's Date, Live Time */}
               <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1 select-none">
                 {/* Academic Month & Year */}
-                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${
-                  isDark 
-                    ? 'bg-purple-950/60 border-purple-800/80 text-purple-300' 
-                    : 'bg-purple-50/90 border-purple-200/90 text-purple-950'
-                }`}>
+                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${isDark
+                  ? 'bg-purple-950/60 border-purple-800/80 text-purple-300'
+                  : 'bg-purple-50/90 border-purple-200/90 text-purple-950'
+                  }`}>
                   <FaCalendarAlt className="text-purple-600 dark:text-purple-400 text-xs" />
                   <span>{selectedMonth ? (selectedMonth.includes(currentTime.getFullYear().toString()) ? selectedMonth : `${selectedMonth} ${currentTime.getFullYear()}`) : currentTime.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                 </span>
 
                 {/* Session / Week Module */}
-                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${
-                  isDark 
-                    ? 'bg-indigo-950/60 border-indigo-800/80 text-indigo-300' 
-                    : 'bg-indigo-50/90 border-indigo-200/90 text-indigo-950'
-                }`}>
+                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${isDark
+                  ? 'bg-indigo-950/60 border-indigo-800/80 text-indigo-300'
+                  : 'bg-indigo-50/90 border-indigo-200/90 text-indigo-950'
+                  }`}>
                   <FaBookOpen className="text-indigo-600 dark:text-indigo-400 text-xs" />
                   <span>Week {activeWeek}</span>
                 </span>
 
                 {/* Today's Day Name */}
-                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${
-                  isDark 
-                    ? 'bg-emerald-950/60 border-emerald-800/80 text-emerald-300' 
-                    : 'bg-emerald-50/90 border-emerald-200/90 text-emerald-950'
-                }`}>
+                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${isDark
+                  ? 'bg-emerald-950/60 border-emerald-800/80 text-emerald-300'
+                  : 'bg-emerald-50/90 border-emerald-200/90 text-emerald-950'
+                  }`}>
                   <FaCalendarCheck className="text-emerald-600 dark:text-emerald-400 text-xs" />
                   <span>{currentTime.toLocaleDateString('en-US', { weekday: 'long' })}</span>
                 </span>
 
                 {/* Today's Date */}
-                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${
-                  isDark 
-                    ? 'bg-teal-950/60 border-teal-800/80 text-teal-300' 
-                    : 'bg-teal-50/90 border-teal-200/90 text-teal-950'
-                }`}>
+                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${isDark
+                  ? 'bg-teal-950/60 border-teal-800/80 text-teal-300'
+                  : 'bg-teal-50/90 border-teal-200/90 text-teal-950'
+                  }`}>
                   <FaCalendarAlt className="text-teal-600 dark:text-teal-400 text-xs" />
                   <span>{currentTime.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</span>
                 </span>
 
                 {/* Live Clock Time */}
-                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${
-                  isDark 
-                    ? 'bg-amber-950/60 border-amber-800/80 text-amber-300' 
-                    : 'bg-amber-50/90 border-amber-200/90 text-amber-950'
-                }`}>
+                <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-2 shadow-2xs ${isDark
+                  ? 'bg-amber-950/60 border-amber-800/80 text-amber-300'
+                  : 'bg-amber-50/90 border-amber-200/90 text-amber-950'
+                  }`}>
                   <FaClock className="text-amber-500 text-xs animate-pulse" />
                   <span>{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                 </span>
@@ -2262,55 +2255,56 @@ const CourseDetails = () => {
                 {course?.enrolledGrades?.map((eg) => {
                   const effectiveFee = (eg.fee !== undefined && eg.fee !== null && Number(eg.fee) >= 0) ? Number(eg.fee) : (course?.price || 2500);
                   return (
-                  <div
-                    key={eg.gradeNumber}
-                    className="relative bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500 cursor-pointer group"
-                  >
-                    <div className="absolute right-4 top-4 flex flex-col gap-1.5 z-10">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openStudentPicker(eg.gradeNumber);
-                        }}
-                        className="rounded-full border border-green-200 dark:border-green-800/60 bg-green-50 dark:bg-green-950/40 px-3 py-1 text-xs font-semibold text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60 transition cursor-pointer shadow-xs"
-                      >
-                        Manage Students
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditGradeModal({
-                            gradeId: eg._id || eg.id || eg.gradeNumber,
-                            gradeNumber: eg.gradeNumber,
-                            title: eg.title || eg.gradeNumber,
-                            fee: effectiveFee
-                          });
-                        }}
-                        className="rounded-full border border-purple-200 dark:border-purple-800/60 bg-purple-50 dark:bg-purple-950/40 px-3 py-1 text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition cursor-pointer shadow-xs"
-                      >
-                        Edit Fee / Title
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleGrade(eg.gradeNumber);
-                        }}
-                        className="rounded-full border border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/40 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60 transition cursor-pointer shadow-xs"
-                      >
-                        Remove
-                      </button>
+                    <div
+                      key={eg.gradeNumber}
+                      className="relative bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500 cursor-pointer group"
+                    >
+                      <div className="absolute right-4 top-4 flex flex-col gap-1.5 z-10">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openStudentPicker(eg.gradeNumber);
+                          }}
+                          className="rounded-full border border-green-200 dark:border-green-800/60 bg-green-50 dark:bg-green-950/40 px-3 py-1 text-xs font-semibold text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60 transition cursor-pointer shadow-xs"
+                        >
+                          Manage Students
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditGradeModal({
+                              gradeId: eg._id || eg.id || eg.gradeNumber,
+                              gradeNumber: eg.gradeNumber,
+                              title: eg.title || eg.gradeNumber,
+                              fee: effectiveFee
+                            });
+                          }}
+                          className="rounded-full border border-purple-200 dark:border-purple-800/60 bg-purple-50 dark:bg-purple-950/40 px-3 py-1 text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition cursor-pointer shadow-xs"
+                        >
+                          Edit Fee / Title
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleGrade(eg.gradeNumber);
+                          }}
+                          className="rounded-full border border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/40 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60 transition cursor-pointer shadow-xs"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="mb-2 text-xs text-gray-400 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 font-bold transition-colors">{eg.gradeNumber}</div>
+                      <h4 className="text-lg font-extrabold text-gray-800 dark:text-white mb-1 group-hover:text-purple-900 dark:group-hover:text-purple-300 transition-colors pr-24">{eg.title || eg.gradeNumber}</h4>
+                      <div className="my-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        Fee: LKR {effectiveFee.toLocaleString()}
+                      </div>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">This class can enrol in the course when assigned.</p>
                     </div>
-                    <div className="mb-2 text-xs text-gray-400 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 font-bold transition-colors">{eg.gradeNumber}</div>
-                    <h4 className="text-lg font-extrabold text-gray-800 dark:text-white mb-1 group-hover:text-purple-900 dark:group-hover:text-purple-300 transition-colors pr-24">{eg.title || eg.gradeNumber}</h4>
-                    <div className="my-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                      Fee: LKR {effectiveFee.toLocaleString()}
-                    </div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">This class can enrol in the course when assigned.</p>
-                  </div>
-                )})}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -2344,20 +2338,23 @@ const CourseDetails = () => {
                     const isGradeScheduled = Boolean(gradeLesson?.liveStream?.isScheduled && !isGradeEnded && !isGradeLive);
 
                     return (
-                    <div
-                      key={eg.gradeNumber}
-                      onClick={() => {
-                        if (isDeactive) {
-                          if (user?.role === 'admin') {
-                            setSelectedGrade(eg.gradeNumber);
-                            return;
-                          }
-                          if (user?.role === 'teacher') {
-                            if (deactivatedByRole === 'admin') {
-                              toast.error("This grade stream was deactivated by Admin. You cannot access it.");
+                      <div
+                        key={eg.gradeNumber}
+                        onClick={() => {
+                          if (isDeactive) {
+                            if (user?.role === 'admin') {
+                              setSelectedGrade(eg.gradeNumber);
                               return;
                             }
-                            setSelectedGrade(eg.gradeNumber);
+                            if (user?.role === 'teacher') {
+                              if (deactivatedByRole === 'admin') {
+                                toast.error("This grade stream was deactivated by Admin. You cannot access it.");
+                                return;
+                              }
+                              setSelectedGrade(eg.gradeNumber);
+                              return;
+                            }
+                            toast.error("This grade stream is currently deactivated.");
                             return;
                           }
                           toast.error("This grade stream is currently deactivated.");
@@ -2403,103 +2400,101 @@ const CourseDetails = () => {
                                   : user?.role === 'student' && !alreadyEnrolled
                                     ? 'bg-gray-200 dark:bg-slate-800 text-gray-500 dark:text-gray-400'
                                     : 'bg-[#f3f4f6] dark:bg-slate-800 group-hover:bg-[#2d1b64] group-hover:text-white'
-                          }`}>
-                            {isGradeLive ? '🔴' : isGradeScheduled ? '🗓️' : isDeactive ? '🔒' : user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
+                              }`}>
+                              {isGradeLive ? '🔴' : isGradeScheduled ? '🗓️' : isDeactive ? '🔒' : user?.role === 'student' && !alreadyEnrolled ? '🔒' : '🎓'}
+                            </div>
+
+                            {/* Status Badge Rendering */}
+                            {isGradeLive ? (
+                              <span className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-red-500/30 flex items-center gap-1.5 border border-red-400/50 animate-pulse">
+                                <span className="w-2 h-2 rounded-full bg-white"></span>
+                                LIVE NOW
+                              </span>
+                            ) : isGradeScheduled ? (
+                              <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-orange-500/30 flex items-center gap-1.5 border border-amber-400/50">
+                                🗓️ SCHEDULED
+                              </span>
+                            ) : user?.role === 'student' && !alreadyEnrolled ? (
+                              <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200 dark:border-amber-800">
+                                🔒 Enroll Required
+                              </span>
+                            ) : isDeactive ? (
+                              canToggleStatus ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (course?.status === 'deactive' || course?.isActive === false) {
+                                      toast.error("This full course is currently deactivated. Please activate the full course first to manage grade statuses.");
+                                      return;
+                                    }
+                                    if (user?.role === 'admin' && deactivatedByRole === 'teacher') {
+                                      toast.error("This grade stream was deactivated by Teacher. Only the teacher can reactivate it.");
+                                      return;
+                                    }
+                                    setDeactivateConfirmGrade({
+                                      gradeId: eg._id || eg.id,
+                                      gradeNumber: eg.gradeNumber,
+                                      title: eg.title || eg.gradeNumber,
+                                      isDeactive: true,
+                                      deactivatedBy: eg.deactivatedBy
+                                    });
+                                  }}
+                                  className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-red-500 transition-all cursor-pointer hover:scale-105"
+                                  title="Click to Reactivate Grade Stream"
+                                >
+                                  <FaLock className="text-xs" /> Deactive
+                                </button>
+                              ) : (
+                                <span className="bg-red-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-red-500 opacity-80 cursor-not-allowed" title="Deactivated by Admin">
+                                  <FaLock className="text-xs" /> Deactive
+                                </span>
+                              )
+                            ) : (
+                              canToggleStatus ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (course?.status === 'deactive' || course?.isActive === false) {
+                                      toast.error("This full course is currently deactivated. Please activate the full course first to manage grade statuses.");
+                                      return;
+                                    }
+                                    setDeactivateConfirmGrade({
+                                      gradeId: eg._id || eg.id,
+                                      gradeNumber: eg.gradeNumber,
+                                      title: eg.title || eg.gradeNumber,
+                                      isDeactive: false,
+                                      deactivatedBy: eg.deactivatedBy
+                                    });
+                                  }}
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1.5 border border-emerald-400 transition-all cursor-pointer hover:scale-105"
+                                  title="Click to Deactivate Grade Stream"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                  Active
+                                </button>
+                              ) : (
+                                <span className="bg-emerald-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1.5 border border-emerald-400">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                  Active
+                                </span>
+                              )
+                            )}
                           </div>
 
-                          {/* Status Badge Rendering */}
-                          {isGradeLive ? (
-                            <span className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-red-500/30 flex items-center gap-1.5 border border-red-400/50 animate-pulse">
-                              <span className="w-2 h-2 rounded-full bg-white"></span>
-                              LIVE NOW
-                            </span>
-                          ) : isGradeScheduled ? (
-                            <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-orange-500/30 flex items-center gap-1.5 border border-amber-400/50">
-                              🗓️ SCHEDULED
-                            </span>
-                          ) : user?.role === 'student' && !alreadyEnrolled ? (
-                            <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200 dark:border-amber-800">
-                              🔒 Enroll Required
-                            </span>
-                          ) : isDeactive ? (
-                            canToggleStatus ? (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (course?.status === 'deactive' || course?.isActive === false) {
-                                    toast.error("This full course is currently deactivated. Please activate the full course first to manage grade statuses.");
-                                    return;
-                                  }
-                                  if (user?.role === 'admin' && deactivatedByRole === 'teacher') {
-                                    toast.error("This grade stream was deactivated by Teacher. Only the teacher can reactivate it.");
-                                    return;
-                                  }
-                                  setDeactivateConfirmGrade({
-                                    gradeId: eg._id || eg.id,
-                                    gradeNumber: eg.gradeNumber,
-                                    title: eg.title || eg.gradeNumber,
-                                    isDeactive: true,
-                                    deactivatedBy: eg.deactivatedBy
-                                  });
-                                }}
-                                className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-red-500 transition-all cursor-pointer hover:scale-105"
-                                title="Click to Reactivate Grade Stream"
-                              >
-                                <FaLock className="text-xs" /> Deactive
-                              </button>
-                            ) : (
-                              <span className="bg-red-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-red-500 opacity-80 cursor-not-allowed" title="Deactivated by Admin">
-                                <FaLock className="text-xs" /> Deactive
-                              </span>
-                            )
-                          ) : (
-                            canToggleStatus ? (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (course?.status === 'deactive' || course?.isActive === false) {
-                                    toast.error("This full course is currently deactivated. Please activate the full course first to manage grade statuses.");
-                                    return;
-                                  }
-                                  setDeactivateConfirmGrade({
-                                    gradeId: eg._id || eg.id,
-                                    gradeNumber: eg.gradeNumber,
-                                    title: eg.title || eg.gradeNumber,
-                                    isDeactive: false,
-                                    deactivatedBy: eg.deactivatedBy
-                                  });
-                                }}
-                                className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1.5 border border-emerald-400 transition-all cursor-pointer hover:scale-105"
-                                title="Click to Deactivate Grade Stream"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                                Active
-                              </button>
-                            ) : (
-                              <span className="bg-emerald-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1.5 border border-emerald-400">
-                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                                Active
-                              </span>
-                            )
-                          )}
-                        </div>
-
-                        <h3 className={`text-2xl font-bold mb-2 transition-colors ${
-                          isGradeLive
+                          <h3 className={`text-2xl font-bold mb-2 transition-colors ${isGradeLive
                             ? 'text-red-600 dark:text-red-400'
-                            : user?.role === 'student' && !alreadyEnrolled 
-                              ? 'text-gray-700 dark:text-gray-300' 
+                            : user?.role === 'student' && !alreadyEnrolled
+                              ? 'text-gray-700 dark:text-gray-300'
                               : 'text-gray-800 dark:text-white group-hover:text-[#2d1b64] dark:group-hover:text-purple-300'
-                        }`}>
-                          {eg.title || eg.gradeNumber}
-                        </h3>
-                        
-                        <p className={`text-xs mt-2 font-bold ${
-                          isGradeLive 
-                            ? 'text-red-600 dark:text-red-400 animate-pulse' 
-                            : isGradeScheduled 
+                            }`}>
+                            {eg.title || eg.gradeNumber}
+                          </h3>
+
+                          <p className={`text-xs mt-2 font-bold ${isGradeLive
+                            ? 'text-red-600 dark:text-red-400 animate-pulse'
+                            : isGradeScheduled
                               ? 'text-amber-600 dark:text-amber-400'
                               : 'text-gray-400 font-medium'
                         }`}>
@@ -2529,8 +2524,8 @@ const CourseDetails = () => {
                               }}
                               disabled={isDeactive && deactivatedByRole === 'admin'}
                               className={`rounded-xl border px-4 py-2 text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${isDeactive && deactivatedByRole === 'admin'
-                                  ? 'border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed opacity-60'
-                                  : 'border-green-200 dark:border-green-900/60 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60 hover:border-green-300 cursor-pointer'
+                                ? 'border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed opacity-60'
+                                : 'border-green-200 dark:border-green-900/60 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60 hover:border-green-300 cursor-pointer'
                                 }`}
                             >
                               <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2734,11 +2729,10 @@ const CourseDetails = () => {
                       }
                       setShowLiveModal(true);
                     }}
-                    className={`w-full 2xl:w-auto px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 border shrink-0 whitespace-nowrap ${
-                      currentLesson?.liveStream?.isLive
-                        ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white border-red-400/50 shadow-red-900/40'
-                        : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white border-red-500/40 shadow-red-900/40'
-                    }`}
+                    className={`w-full 2xl:w-auto px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 border shrink-0 whitespace-nowrap ${currentLesson?.liveStream?.isLive
+                      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white border-red-400/50 shadow-red-900/40'
+                      : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] text-white border-red-500/40 shadow-red-900/40'
+                      }`}
                   >
                     <div className="flex items-center gap-1">
                       <FaYoutube className="text-sm text-white drop-shadow-xs" />
@@ -2869,155 +2863,153 @@ const CourseDetails = () => {
           {/* Academic Month Selector (Visible only to Teachers & Admins) */}
           {isTeacherOrAdmin && (
             <div className="bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-5 transition-all duration-300">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 dark:from-purple-500/20 dark:to-indigo-500/20 border border-purple-200/50 dark:border-purple-800/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl shadow-xs shrink-0 font-black">
-                  🗓️
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 dark:from-purple-500/20 dark:to-indigo-500/20 border border-purple-200/50 dark:border-purple-800/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl shadow-xs shrink-0 font-black">
+                    🗓️
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
+                      Academic Month Selector
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Select a month to view weekly study materials and attendance logs. Future months are locked.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-black text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
-                    Academic Month Selector
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Select a month to view weekly study materials and attendance logs. Future months are locked.
-                  </p>
-                </div>
-              </div>
 
-              {/* Year Navigation */}
-              <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 shadow-inner shrink-0 self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={handleNavYearPrev}
-                  disabled={navYear <= MIN_NAV_YEAR}
-                  className="w-7 h-7 rounded-xl bg-white dark:bg-slate-700 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white text-slate-600 dark:text-slate-200 flex items-center justify-center transition-all duration-200 shadow-2xs active:scale-90 font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                  title="Previous Year"
-                >
-                  ‹
-                </button>
-                <span className="px-3 font-extrabold text-slate-900 dark:text-white text-sm tabular-nums tracking-wide">{navYear}</span>
-                <button
-                  type="button"
-                  onClick={handleNavYearNext}
-                  disabled={navYear >= currentYear}
-                  className="w-7 h-7 rounded-xl bg-white dark:bg-slate-700 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white text-slate-600 dark:text-slate-200 flex items-center justify-center transition-all duration-200 shadow-2xs active:scale-90 font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                  title="Next Year"
-                >
-                  ›
-                </button>
-              </div>
-            </div>
-
-            {/* 12-Month Grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 sm:gap-3">
-              {availableMonths.map(({ label, monthIdx, locked }) => {
-                const isSelected = selectedMonth === label;
-                return (
+                {/* Year Navigation */}
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 shadow-inner shrink-0 self-start sm:self-auto">
                   <button
-                    key={label}
                     type="button"
-                    disabled={locked}
-                    onClick={() => !locked && setSelectedMonth(label)}
-                    title={locked ? 'This month is not available yet' : label}
-                    className={`relative px-3 py-3 rounded-2xl text-xs font-black transition-all duration-200 text-center leading-tight overflow-hidden ${
-                      locked
+                    onClick={handleNavYearPrev}
+                    disabled={navYear <= MIN_NAV_YEAR}
+                    className="w-7 h-7 rounded-xl bg-white dark:bg-slate-700 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white text-slate-600 dark:text-slate-200 flex items-center justify-center transition-all duration-200 shadow-2xs active:scale-90 font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    title="Previous Year"
+                  >
+                    ‹
+                  </button>
+                  <span className="px-3 font-extrabold text-slate-900 dark:text-white text-sm tabular-nums tracking-wide">{navYear}</span>
+                  <button
+                    type="button"
+                    onClick={handleNavYearNext}
+                    disabled={navYear >= currentYear}
+                    className="w-7 h-7 rounded-xl bg-white dark:bg-slate-700 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white text-slate-600 dark:text-slate-200 flex items-center justify-center transition-all duration-200 shadow-2xs active:scale-90 font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    title="Next Year"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+
+              {/* 12-Month Grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 sm:gap-3">
+                {availableMonths.map(({ label, monthIdx, locked }) => {
+                  const isSelected = selectedMonth === label;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      disabled={locked}
+                      onClick={() => !locked && setSelectedMonth(label)}
+                      title={locked ? 'This month is not available yet' : label}
+                      className={`relative px-3 py-3 rounded-2xl text-xs font-black transition-all duration-200 text-center leading-tight overflow-hidden ${locked
                         ? 'bg-slate-100/50 dark:bg-slate-800/20 text-slate-400 dark:text-slate-600 border border-dashed border-slate-200 dark:border-slate-800/80 cursor-not-allowed opacity-65'
                         : isSelected
                           ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-700 text-white shadow-lg shadow-purple-600/30 ring-2 ring-purple-400/80 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 scale-[1.03] cursor-pointer border border-purple-400/30'
                           : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-700 dark:text-slate-200 hover:text-purple-700 dark:hover:text-purple-300 border border-slate-200/60 dark:border-slate-800 hover:border-purple-300/80 dark:hover:border-purple-700/60 shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer'
-                    }`}
-                  >
-                    {locked && (
-                      <span className="absolute top-1.5 right-1.5 text-[10px] text-slate-400 dark:text-slate-500">🔒</span>
-                    )}
-                    <span className="block text-xs sm:text-sm font-extrabold tracking-tight">{MONTH_NAMES[monthIdx].slice(0, 3)}</span>
-                    {isSelected && !locked && (
-                      <span className="inline-block text-[9px] font-black bg-white/25 backdrop-blur-xs text-white px-2 py-0.5 rounded-full mt-1 uppercase tracking-wider shadow-xs">
-                        ACTIVE
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                        }`}
+                    >
+                      {locked && (
+                        <span className="absolute top-1.5 right-1.5 text-[10px] text-slate-400 dark:text-slate-500">🔒</span>
+                      )}
+                      <span className="block text-xs sm:text-sm font-extrabold tracking-tight">{MONTH_NAMES[monthIdx].slice(0, 3)}</span>
+                      {isSelected && !locked && (
+                        <span className="inline-block text-[9px] font-black bg-white/25 backdrop-blur-xs text-white px-2 py-0.5 rounded-full mt-1 uppercase tracking-wider shadow-xs">
+                          ACTIVE
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
           )}
 
           {/* Class Sessions & Workspace (Visible only to Teachers & Admins) */}
           {isTeacherOrAdmin && (
             <div className="bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-5 transition-all duration-300">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 border border-indigo-200/50 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl shadow-xs shrink-0 font-black">
-                  📅
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 border border-indigo-200/50 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl shadow-xs shrink-0 font-black">
+                    📅
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
+                      Class Sessions & Workspace — <span className="text-purple-700 dark:text-purple-400">{selectedMonth}</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                      {activeSchedule ? (
+                        <span>Timetable: <strong className="text-slate-900 dark:text-purple-200 font-extrabold bg-purple-100/70 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-200/60 dark:border-purple-800/60">{activeSchedule.dayOfWeek} ({activeSchedule.startTime} - {activeSchedule.endTime})</strong> • {currentMonthSessions.length} sessions in {selectedMonth}</span>
+                      ) : (
+                        <span>Select a scheduled class date to access study materials and attendance logs. ({currentMonthSessions.length} sessions in {selectedMonth})</span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-black text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
-                    Class Sessions & Workspace — <span className="text-purple-700 dark:text-purple-400">{selectedMonth}</span>
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-                    {activeSchedule ? (
-                      <span>Timetable: <strong className="text-slate-900 dark:text-purple-200 font-extrabold bg-purple-100/70 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-200/60 dark:border-purple-800/60">{activeSchedule.dayOfWeek} ({activeSchedule.startTime} - {activeSchedule.endTime})</strong> • {currentMonthSessions.length} sessions in {selectedMonth}</span>
-                    ) : (
-                      <span>Select a scheduled class date to access study materials and attendance logs. ({currentMonthSessions.length} sessions in {selectedMonth})</span>
-                    )}
-                  </p>
-                </div>
+                <span className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white text-xs font-black shadow-md shadow-purple-500/20 flex items-center gap-1.5 shrink-0 self-start sm:self-auto border border-purple-400/30">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Active: {activeSessionObj.label}
+                </span>
               </div>
-              <span className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white text-xs font-black shadow-md shadow-purple-500/20 flex items-center gap-1.5 shrink-0 self-start sm:self-auto border border-purple-400/30">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Active: {activeSessionObj.label}
-              </span>
-            </div>
 
-            <div className={`grid grid-cols-2 sm:grid-cols-3 ${currentMonthSessions.length >= 5 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 sm:gap-4`}>
-              {currentMonthSessions.map((session) => {
-                const wNum = session.weekNumber;
-                const isAttended = attendedWeeks.includes(wNum);
-                const isActive = activeWeek === wNum;
+              <div className={`grid grid-cols-2 sm:grid-cols-3 ${currentMonthSessions.length >= 5 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 sm:gap-4`}>
+                {currentMonthSessions.map((session) => {
+                  const wNum = session.weekNumber;
+                  const isAttended = attendedWeeks.includes(wNum);
+                  const isActive = activeWeek === wNum;
 
-                return (
-                  <button
-                    key={wNum}
-                    type="button"
-                    onClick={() => setActiveWeek(wNum)}
-                    className={`p-3 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden group ${
-                      isActive
+                  return (
+                    <button
+                      key={wNum}
+                      type="button"
+                      onClick={() => setActiveWeek(wNum)}
+                      className={`p-3 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden group ${isActive
                         ? 'bg-gradient-to-br from-purple-500/10 via-indigo-500/5 to-purple-600/15 dark:from-purple-950/70 dark:to-indigo-950/50 border-2 border-purple-500/80 shadow-lg shadow-purple-500/15 ring-4 ring-purple-500/10 scale-[1.02] -translate-y-0.5'
                         : 'bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700/60 hover:bg-white dark:hover:bg-slate-800 shadow-2xs hover:shadow-md hover:-translate-y-0.5'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2 gap-1">
-                      <span className={`text-[11px] sm:text-sm font-black tracking-tight flex items-center gap-1 min-w-0 truncate ${isActive ? 'text-purple-950 dark:text-purple-200' : 'text-slate-800 dark:text-slate-200'}`}>
-                        <span className="shrink-0 text-xs">🗓️</span>
-                        <span className="truncate">{session.label}</span>
-                      </span>
-                      {isAttended ? (
-                        <span className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-0.5 shrink-0 whitespace-nowrap">
-                          <span>✓</span> Attended
+                        }`}
+                    >
+                      <div className="flex items-center justify-between mb-2 gap-1">
+                        <span className={`text-[11px] sm:text-sm font-black tracking-tight flex items-center gap-1 min-w-0 truncate ${isActive ? 'text-purple-950 dark:text-purple-200' : 'text-slate-800 dark:text-slate-200'}`}>
+                          <span className="shrink-0 text-xs">🗓️</span>
+                          <span className="truncate">{session.label}</span>
                         </span>
-                      ) : (
-                        <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-0.5 shrink-0 whitespace-nowrap">
-                          <span>⏳</span> Pending
+                        {isAttended ? (
+                          <span className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-0.5 shrink-0 whitespace-nowrap">
+                            <span>✓</span> Attended
+                          </span>
+                        ) : (
+                          <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-0.5 shrink-0 whitespace-nowrap">
+                            <span>⏳</span> Pending
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 dark:border-slate-700/50 mt-1 gap-1">
+                        <span className="text-[11px] sm:text-xs font-extrabold text-purple-700 dark:text-purple-300 shrink-0">
+                          Session {wNum}
+                          {session.isFifthWeek ? <span className="hidden sm:inline"> • 5th Class</span> : ''}
                         </span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 dark:border-slate-700/50 mt-1 gap-1">
-                      <span className="text-[11px] sm:text-xs font-extrabold text-purple-700 dark:text-purple-300 shrink-0">
-                        Session {wNum}
-                        {session.isFifthWeek ? <span className="hidden sm:inline"> • 5th Class</span> : ''}
-                      </span>
-                      <span className={`text-[10px] sm:text-[11px] font-extrabold flex items-center gap-0.5 transition-transform group-hover:translate-x-0.5 shrink-0 ${isAttended ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'}`}>
-                        <span className="hidden sm:inline">{isAttended ? 'Logged ✓' : 'View Lesson'}</span>
-                        <span className="sm:hidden">{isAttended ? 'Logged' : 'View'}</span>
-                        <span className="text-[10px]">→</span>
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+                        <span className={`text-[10px] sm:text-[11px] font-extrabold flex items-center gap-0.5 transition-transform group-hover:translate-x-0.5 shrink-0 ${isAttended ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'}`}>
+                          <span className="hidden sm:inline">{isAttended ? 'Logged ✓' : 'View Lesson'}</span>
+                          <span className="sm:hidden">{isAttended ? 'Logged' : 'View'}</span>
+                          <span className="text-[10px]">→</span>
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
           )}
 
           {/* Physical Student Notice Banner & Online Student Weekly Attendance (Visible only to Teachers & Admins) */}
@@ -3110,16 +3102,14 @@ const CourseDetails = () => {
           {/* SECTION 1: TEACHER'S ANNOUNCEMENT (Visible only to Teachers & Admins) */}
           {/* ========================================================================= */}
           {isTeacherOrAdmin && (
-            <div className={`rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${
-              isDark 
-                ? 'bg-slate-900/95 border-amber-900/40 shadow-slate-950/60' 
-                : 'bg-gradient-to-br from-[#fffdf7] via-white to-[#fff9ee] border-amber-300/80 shadow-amber-900/5'
-            }`}>
+            <div className={`rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${isDark
+              ? 'bg-slate-900/95 border-amber-900/40 shadow-slate-950/60'
+              : 'bg-gradient-to-br from-[#fffdf7] via-white to-[#fff9ee] border-amber-300/80 shadow-amber-900/5'
+              }`}>
               <div
                 onClick={() => toggleSection('announcement')}
-                className={`w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors text-left cursor-pointer select-none ${
-                  isDark ? 'hover:bg-slate-800/60' : 'hover:bg-amber-50/50'
-                }`}
+                className={`w-full p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors text-left cursor-pointer select-none ${isDark ? 'hover:bg-slate-800/60' : 'hover:bg-amber-50/50'
+                  }`}
               >
                 <div className="flex items-start sm:items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
                   <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
@@ -3208,12 +3198,11 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 2: VIDEO LESSONS (Expandable) */}
           {/* ========================================================================= */}
-          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${
-            isDark 
-              ? 'bg-slate-900/95 border-indigo-900/40 shadow-slate-950/60' 
-              : 'bg-gradient-to-br from-[#f8f7ff] via-white to-[#f3f0ff] border-indigo-300/80 shadow-indigo-900/5'
-          } ${!isTeacherOrAdmin && !seenSections.videos && !isVideoWatched && allCourseVideos.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
-            
+          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${isDark
+            ? 'bg-slate-900/95 border-red-900/40 shadow-slate-950/60'
+            : 'bg-gradient-to-br from-[#f8f7ff] via-white to-[#f3f0ff] border-red-300/80 shadow-indigo-900/5'
+            } ${!isTeacherOrAdmin && !seenSections.videos && !isVideoWatched && allCourseVideos.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
+
             {!isTeacherOrAdmin && !seenSections.videos && !isVideoWatched && allCourseVideos.length > 0 && (
               <span className="absolute -top-1 -left-1 flex h-3.5 w-3.5 z-20 pointer-events-none" title="New / Unseen video content">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -3270,11 +3259,10 @@ const CourseDetails = () => {
                   </span>
 
                   {!isTeacherOrAdmin && allCourseVideos.length > 0 && (
-                    <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${
-                      allCourseVideos.filter(v => doneItemsMap[String(v._id || v.url)]).length === allCourseVideos.length
-                        ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
-                        : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                    }`}>
+                    <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${allCourseVideos.filter(v => doneItemsMap[String(v._id || v.url)]).length === allCourseVideos.length
+                      ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
+                      : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                      }`}>
                       {allCourseVideos.filter(v => doneItemsMap[String(v._id || v.url)]).length === allCourseVideos.length
                         ? '✓ Done'
                         : `Remaining: ${allCourseVideos.length - allCourseVideos.filter(v => doneItemsMap[String(v._id || v.url)]).length}`}
@@ -3339,23 +3327,23 @@ const CourseDetails = () => {
                     )}
                   </div>
                 ) : (
-                  (isTeacherOrAdmin 
+                  (isTeacherOrAdmin
                     ? [...(currentLesson?.videoLessons || [])].sort((a, b) => {
-                        const timeA = a.createdAt || a.date 
-                          ? new Date(a.createdAt || a.date).getTime() 
-                          : (a._id && String(a._id).length >= 8 ? parseInt(String(a._id).substring(0, 8), 16) * 1000 : 0);
-                        const timeB = b.createdAt || b.date 
-                          ? new Date(b.createdAt || b.date).getTime() 
-                          : (b._id && String(b._id).length >= 8 ? parseInt(String(b._id).substring(0, 8), 16) * 1000 : 0);
-                        return timeB - timeA;
-                      })
+                      const timeA = a.createdAt || a.date
+                        ? new Date(a.createdAt || a.date).getTime()
+                        : (a._id && String(a._id).length >= 8 ? parseInt(String(a._id).substring(0, 8), 16) * 1000 : 0);
+                      const timeB = b.createdAt || b.date
+                        ? new Date(b.createdAt || b.date).getTime()
+                        : (b._id && String(b._id).length >= 8 ? parseInt(String(b._id).substring(0, 8), 16) * 1000 : 0);
+                      return timeB - timeA;
+                    })
                     : allCourseVideos
                   )
                     .map((vid) => {
                       const dlStatus = getMaterialDownloadStatus(vid);
                       const thumbnail = getYouTubeThumbnail(vid.url);
                       const isItemDone = Boolean(doneItemsMap[String(vid._id || vid.url)]);
-                      const formattedDate = vid.createdAt || vid.date 
+                      const formattedDate = vid.createdAt || vid.date
                         ? new Date(vid.createdAt || vid.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                         : (vid._id && String(vid._id).length >= 8 ? new Date(parseInt(String(vid._id).substring(0, 8), 16) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null);
 
@@ -3399,7 +3387,7 @@ const CourseDetails = () => {
                               >
                                 {vid.title}
                               </h5>
-                              
+
                               <div className="flex flex-wrap items-center gap-2 mt-1.5">
                                 {formattedDate && (
                                   <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/90 px-2.5 py-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700">
@@ -3431,11 +3419,10 @@ const CourseDetails = () => {
                               <button
                                 type="button"
                                 onClick={() => toggleItemDone(vid._id || vid.url)}
-                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${
-                                  isItemDone
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
-                                    : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
-                                }`}
+                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${isItemDone
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
+                                  : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                                  }`}
                                 title={isItemDone ? "Marked as done" : "Click to mark as done"}
                               >
                                 {isItemDone ? (
@@ -3462,9 +3449,9 @@ const CourseDetails = () => {
                               </button>
                             )}
                           </div>
-                      </div>
-                    );
-                  })
+                        </div>
+                      );
+                    })
                 )}
               </div>
             )}
@@ -3473,11 +3460,10 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 3: STUDY MATERIALS — PDF NOTES (Expandable) */}
           {/* ========================================================================= */}
-          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${
-            isDark 
-              ? 'bg-slate-900/95 border-rose-900/40 shadow-slate-950/60' 
-              : 'bg-gradient-to-br from-[#fff7f9] via-white to-[#fff0f3] border-rose-300/80 shadow-rose-900/5'
-          } ${!isTeacherOrAdmin && !seenSections.pdfs && !isPdfDownloaded && allCoursePdfs.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
+          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${isDark
+            ? 'bg-slate-900/95 border-rose-900/40 shadow-slate-950/60'
+            : 'bg-gradient-to-br from-[#fff7f9] via-white to-[#fff0f3] border-rose-300/80 shadow-rose-900/5'
+            } ${!isTeacherOrAdmin && !seenSections.pdfs && !isPdfDownloaded && allCoursePdfs.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
 
             {!isTeacherOrAdmin && !seenSections.pdfs && !isPdfDownloaded && allCoursePdfs.length > 0 && (
               <span className="absolute -top-1 -left-1 flex h-3.5 w-3.5 z-20 pointer-events-none" title="New / Unseen study materials">
@@ -3535,11 +3521,10 @@ const CourseDetails = () => {
                   </span>
 
                   {!isTeacherOrAdmin && allCoursePdfs.length > 0 && (
-                    <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${
-                      allCoursePdfs.filter(p => doneItemsMap[String(p._id || p.title || p.filename)]).length === allCoursePdfs.length
-                        ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
-                        : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                    }`}>
+                    <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${allCoursePdfs.filter(p => doneItemsMap[String(p._id || p.title || p.filename)]).length === allCoursePdfs.length
+                      ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
+                      : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                      }`}>
                       {allCoursePdfs.filter(p => doneItemsMap[String(p._id || p.title || p.filename)]).length === allCoursePdfs.length
                         ? '✓ Done'
                         : `Remaining: ${allCoursePdfs.length - allCoursePdfs.filter(p => doneItemsMap[String(p._id || p.title || p.filename)]).length}`}
@@ -3613,7 +3598,7 @@ const CourseDetails = () => {
                     const pTotal = pProg?.totalPages || 0;
                     const pNextPage = pProg?.nextPageToRead || (pMaxRead > 0 ? Math.min(pTotal, pMaxRead + 1) : 1);
                     const dlStatus = getMaterialDownloadStatus(pdf);
-                    const formattedPdfDate = pdf.uploadedAt || pdf.date 
+                    const formattedPdfDate = pdf.uploadedAt || pdf.date
                       ? new Date(pdf.uploadedAt || pdf.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                       : (pdf._id && String(pdf._id).length >= 8 ? new Date(parseInt(String(pdf._id).substring(0, 8), 16) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null);
 
@@ -3644,10 +3629,10 @@ const CourseDetails = () => {
                                 </div>
 
                                 <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${pPercent >= 100
-                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                                    : pPercent > 0
-                                      ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border-purple-300 dark:border-purple-800'
-                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-gray-300 border-slate-300 dark:border-slate-700'
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                                  : pPercent > 0
+                                    ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border-purple-300 dark:border-purple-800'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-gray-300 border-slate-300 dark:border-slate-700'
                                   }`}>
                                   {pPercent >= 100
                                     ? '✓ 100% Completed'
@@ -3659,10 +3644,10 @@ const CourseDetails = () => {
 
                               {isTeacherOrAdmin && (
                                 <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${dlStatus.status === 'immediate'
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                                    : dlStatus.status === 'scheduled'
-                                      ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-slate-700'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                  : dlStatus.status === 'scheduled'
+                                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-slate-700'
                                   }`}>
                                   {dlStatus.status === 'immediate' ? '🟢 Immediate Download' : dlStatus.status === 'scheduled' ? `⏳ Unlocks ${dlStatus.formattedDate} (${dlStatus.daysRemaining}d)` : '🚫 Download Off'}
                                 </span>
@@ -3688,11 +3673,10 @@ const CourseDetails = () => {
                             <button
                               type="button"
                               onClick={() => toggleItemDone(pdf._id || pdf.title || pdf.filename)}
-                              className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${
-                                isPdfItemDone
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
-                                  : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
-                              }`}
+                              className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${isPdfItemDone
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
+                                : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                                }`}
                               title={isPdfItemDone ? "Marked as done" : "Click to mark as done"}
                             >
                               {isPdfItemDone ? (
@@ -3772,11 +3756,10 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 4: ASSIGNMENTS & HOMEWORK (Expandable) */}
           {/* ========================================================================= */}
-          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${
-            isDark 
-              ? 'bg-slate-900/95 border-orange-900/40 shadow-slate-950/60' 
-              : 'bg-gradient-to-br from-[#fff7f2] via-white to-[#ffede5] border-orange-300/80 shadow-orange-900/5'
-          } ${!isTeacherOrAdmin && !seenSections.assignments && allCourseAssignments.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
+          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${isDark
+            ? 'bg-slate-900/95 border-orange-900/40 shadow-slate-950/60'
+            : 'bg-gradient-to-br from-[#fff7f2] via-white to-[#ffede5] border-orange-300/80 shadow-orange-900/5'
+            } ${!isTeacherOrAdmin && !seenSections.assignments && allCourseAssignments.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
 
             {!isTeacherOrAdmin && !seenSections.assignments && allCourseAssignments.length > 0 && (
               <span className="absolute -top-1 -left-1 flex h-3.5 w-3.5 z-20 pointer-events-none" title="New / Pending assignments">
@@ -3831,11 +3814,10 @@ const CourseDetails = () => {
               <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800/60 w-full sm:w-auto">
                 <div className="flex items-center gap-2 flex-wrap">
                   {!isTeacherOrAdmin && allCourseAssignments.length > 0 && (
-                    <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${
-                      allCourseAssignments.filter(a => doneItemsMap[String(a._id || a.title)]).length === allCourseAssignments.length
-                        ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
-                        : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                    }`}>
+                    <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${allCourseAssignments.filter(a => doneItemsMap[String(a._id || a.title)]).length === allCourseAssignments.length
+                      ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
+                      : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                      }`}>
                       {allCourseAssignments.filter(a => doneItemsMap[String(a._id || a.title)]).length === allCourseAssignments.length
                         ? '✓ Done'
                         : `Remaining: ${allCourseAssignments.length - allCourseAssignments.filter(a => doneItemsMap[String(a._id || a.title)]).length}`}
@@ -3934,9 +3916,8 @@ const CourseDetails = () => {
                               Max: {asgn.maxMarks || 100} Marks
                             </span>
                             {asgn.dueDate && (
-                              <span className={`px-3 py-1 font-bold rounded-xl border flex items-center gap-1 ${
-                                isOverdue ? 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-slate-700'
-                              }`}>
+                              <span className={`px-3 py-1 font-bold rounded-xl border flex items-center gap-1 ${isOverdue ? 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-slate-700'
+                                }`}>
                                 <FaClock /> Due: {new Date(asgn.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                               </span>
                             )}
@@ -4015,11 +3996,10 @@ const CourseDetails = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenSubmitModal(asgn)}
-                                  className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 ${
-                                    isSubmitted
-                                      ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-white'
-                                      : 'bg-purple-700 hover:bg-purple-800 text-white'
-                                  }`}
+                                  className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 ${isSubmitted
+                                    ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-white'
+                                    : 'bg-purple-700 hover:bg-purple-800 text-white'
+                                    }`}
                                 >
                                   <FaFileUpload /> {isSubmitted ? 'Resubmit / Update Solution' : 'Submit Solution'}
                                 </button>
@@ -4031,11 +4011,10 @@ const CourseDetails = () => {
                               <button
                                 type="button"
                                 onClick={() => toggleItemDone(asgn._id || asgn.title)}
-                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${
-                                  isAsgnDone
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
-                                    : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
-                                }`}
+                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${isAsgnDone
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
+                                  : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                                  }`}
                                 title={isAsgnDone ? "Marked as done" : "Click to mark as done"}
                               >
                                 {isAsgnDone ? (
@@ -4064,11 +4043,10 @@ const CourseDetails = () => {
           {/* ========================================================================= */}
           {/* SECTION 5: QUIZZES & ASSESSMENTS (Expandable) */}
           {/* ========================================================================= */}
-          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${
-            isDark 
-              ? 'bg-slate-900/95 border-teal-900/40 shadow-slate-950/60' 
-              : 'bg-gradient-to-br from-[#f0fdfa] via-white to-[#e6faf5] border-teal-300/80 shadow-teal-900/5'
-          } ${!isTeacherOrAdmin && !seenSections.quizzes && allCourseQuizzes.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
+          <div className={`relative rounded-3xl border transition-all duration-300 shadow-xl overflow-hidden ${isDark
+            ? 'bg-slate-900/95 border-teal-900/40 shadow-slate-950/60'
+            : 'bg-gradient-to-br from-[#f0fdfa] via-white to-[#e6faf5] border-teal-300/80 shadow-teal-900/5'
+            } ${!isTeacherOrAdmin && !seenSections.quizzes && allCourseQuizzes.length > 0 ? 'ring-2 ring-emerald-500/60 border-emerald-400 dark:border-emerald-500/60' : ''}`}>
 
             {!isTeacherOrAdmin && !seenSections.quizzes && allCourseQuizzes.length > 0 && (
               <span className="absolute -top-1 -left-1 flex h-3.5 w-3.5 z-20 pointer-events-none" title="New / Unattempted quizzes">
@@ -4095,11 +4073,10 @@ const CourseDetails = () => {
 
               <div className="flex items-center gap-2.5 shrink-0">
                 {!isTeacherOrAdmin && allCourseQuizzes.length > 0 && (
-                  <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${
-                    allCourseQuizzes.filter(q => doneItemsMap[String(q._id || q.title)]).length === allCourseQuizzes.length
-                      ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
-                      : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                  }`}>
+                  <span className={`text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-xl border whitespace-nowrap ${allCourseQuizzes.filter(q => doneItemsMap[String(q._id || q.title)]).length === allCourseQuizzes.length
+                    ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-black'
+                    : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                    }`}>
                     {allCourseQuizzes.filter(q => doneItemsMap[String(q._id || q.title)]).length === allCourseQuizzes.length
                       ? '✓ Done'
                       : `Remaining: ${allCourseQuizzes.length - allCourseQuizzes.filter(q => doneItemsMap[String(q._id || q.title)]).length}`}
@@ -4161,7 +4138,7 @@ const CourseDetails = () => {
                   }) : [...allCourseQuizzes].sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0))).map((quiz) => {
                     const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
                     const isQuizDone = Boolean(doneItemsMap[String(quiz._id || quiz.title)]);
-                    const formattedQuizDate = quiz.createdAt || quiz.date 
+                    const formattedQuizDate = quiz.createdAt || quiz.date
                       ? new Date(quiz.createdAt || quiz.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                       : null;
                     return (
@@ -4201,8 +4178,8 @@ const CourseDetails = () => {
                               <button
                                 onClick={() => handleToggleQuizActive(quiz._id)}
                                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${quiz.isActive
-                                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800'
-                                    : 'bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60 border border-green-200 dark:border-green-800'
+                                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800'
+                                  : 'bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60 border border-green-200 dark:border-green-800'
                                   }`}
                               >
                                 {quiz.isActive ? 'Deactivate' : 'Activate'}
@@ -4256,11 +4233,10 @@ const CourseDetails = () => {
                             <button
                               type="button"
                               onClick={() => toggleItemDone(quiz._id || quiz.title)}
-                              className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${
-                                isQuizDone
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
-                                  : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
-                              }`}
+                              className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 border ${isQuizDone
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/20'
+                                : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                                }`}
                               title={isQuizDone ? "Marked as done" : "Click to mark as done"}
                             >
                               {isQuizDone ? (
@@ -4372,11 +4348,10 @@ const CourseDetails = () => {
                           filteredPickerStudents.filter(s => s.isEnrolled).map((student) => (
                             <div
                               key={student._id}
-                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
-                                selectedStudentDetail?._id === student._id
-                                  ? "bg-purple-50/70 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800 shadow-sm"
-                                  : "bg-white dark:bg-slate-800 border-gray-150 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/60"
-                              }`}
+                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${selectedStudentDetail?._id === student._id
+                                ? "bg-purple-50/70 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800 shadow-sm"
+                                : "bg-white dark:bg-slate-800 border-gray-150 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/60"
+                                }`}
                             >
                               {user?.role === 'admin' && (
                                 <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
@@ -4431,11 +4406,10 @@ const CourseDetails = () => {
                           filteredPickerStudents.filter(s => !s.isEnrolled).map((student) => (
                             <div
                               key={student._id}
-                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
-                                selectedStudentDetail?._id === student._id
-                                  ? "bg-purple-50/70 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800 shadow-sm"
-                                  : "bg-white dark:bg-slate-800 border-gray-150 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/60"
-                              }`}
+                              className={`flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${selectedStudentDetail?._id === student._id
+                                ? "bg-purple-50/70 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800 shadow-sm"
+                                : "bg-white dark:bg-slate-800 border-gray-150 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/60"
+                                }`}
                             >
                               {user?.role === 'admin' && (
                                 <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
@@ -4588,9 +4562,8 @@ const CourseDetails = () => {
                       <button
                         type="button"
                         onClick={() => setStudentDetailTab("attendance")}
-                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                          studentDetailTab === "attendance" ? "border-purple-600 text-purple-700 dark:text-purple-400 font-extrabold" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300"
-                        }`}
+                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${studentDetailTab === "attendance" ? "border-purple-600 text-purple-700 dark:text-purple-400 font-extrabold" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300"
+                          }`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -4600,9 +4573,8 @@ const CourseDetails = () => {
                       <button
                         type="button"
                         onClick={() => setStudentDetailTab("payments")}
-                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                          studentDetailTab === "payments" ? "border-purple-600 text-purple-700 dark:text-purple-400 font-extrabold" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300"
-                        }`}
+                        className={`flex-1 pb-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${studentDetailTab === "payments" ? "border-purple-600 text-purple-700 dark:text-purple-400 font-extrabold" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300"
+                          }`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -4661,10 +4633,9 @@ const CourseDetails = () => {
                                     <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
                                       <td className="p-3 font-semibold text-gray-800 dark:text-gray-200">{new Date(record.date).toLocaleDateString()}</td>
                                       <td className="p-3 text-right whitespace-nowrap">
-                                        <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
-                                          record.status === 'Present' ? 'bg-green-100 dark:bg-green-950/80 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800' :
+                                        <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${record.status === 'Present' ? 'bg-green-100 dark:bg-green-950/80 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800' :
                                           'bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
-                                        }`}>
+                                          }`}>
                                           {record.status}
                                         </span>
                                       </td>
@@ -4805,9 +4776,8 @@ const CourseDetails = () => {
         <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-100 p-6 sm:p-7 shadow-2xl border border-purple-100 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3.5">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-md ${
-                deactivateConfirmGrade.isDeactive ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-300'
-              }`}>
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-md ${deactivateConfirmGrade.isDeactive ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-300'
+                }`}>
                 {deactivateConfirmGrade.isDeactive ? <FaLockOpen /> : <FaLock />}
               </div>
               <div>
@@ -4840,8 +4810,8 @@ const CourseDetails = () => {
                 type="button"
                 onClick={() => executeToggleGradeStatus(deactivateConfirmGrade)}
                 className={`px-5 py-2.5 text-xs font-extrabold text-white rounded-xl transition shadow-md cursor-pointer ${deactivateConfirmGrade.isDeactive
-                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'
-                    : 'bg-red-600 hover:bg-red-700 shadow-red-200'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'
+                  : 'bg-red-600 hover:bg-red-700 shadow-red-200'
                   }`}
               >
                 Yes, {deactivateConfirmGrade.isDeactive ? 'Activate Grade' : 'Deactivate Grade'}
@@ -5142,7 +5112,7 @@ const CourseDetails = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">
-                    {isScheduledLive 
+                    {isScheduledLive
                       ? (currentLesson?.liveStream?.isScheduled ? 'Manage Scheduled Live Class' : 'Schedule YouTube Live Class')
                       : (currentLesson?.liveStream?.isLive ? 'Manage Active Live Class' : 'Start YouTube Live Class')}
                   </h3>
@@ -5163,11 +5133,10 @@ const CourseDetails = () => {
               <button
                 type="button"
                 onClick={() => setIsScheduledLive(false)}
-                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
-                  !isScheduledLive
-                    ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/25 ring-1 ring-red-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700'
-                }`}
+                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${!isScheduledLive
+                  ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/25 ring-1 ring-red-400'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700'
+                  }`}
               >
                 {!isScheduledLive ? (
                   <span className="relative flex h-2.5 w-2.5">
@@ -5183,11 +5152,10 @@ const CourseDetails = () => {
               <button
                 type="button"
                 onClick={() => setIsScheduledLive(true)}
-                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer ${
-                  isScheduledLive
-                    ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white shadow-md shadow-purple-600/25 ring-1 ring-purple-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700'
-                }`}
+                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer ${isScheduledLive
+                  ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white shadow-md shadow-purple-600/25 ring-1 ring-purple-400'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700'
+                  }`}
               >
                 <FaCalendarAlt className={`text-sm ${isScheduledLive ? 'text-purple-200' : 'text-purple-600'}`} />
                 <span>Schedule for Later</span>
@@ -5251,7 +5219,7 @@ const CourseDetails = () => {
                           value={scheduledDate}
                           onChange={(e) => setScheduledDate(e.target.value)}
                           onClick={(e) => {
-                            try { e.target.showPicker?.(); } catch (err) {}
+                            try { e.target.showPicker?.(); } catch (err) { }
                           }}
                           className="w-full rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-bold text-gray-800 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 cursor-pointer shadow-2xs hover:border-purple-400 transition-all"
                           required={isScheduledLive}
@@ -5271,7 +5239,7 @@ const CourseDetails = () => {
                           value={scheduledTime}
                           onChange={(e) => setScheduledTime(e.target.value)}
                           onClick={(e) => {
-                            try { e.target.showPicker?.(); } catch (err) {}
+                            try { e.target.showPicker?.(); } catch (err) { }
                           }}
                           className="w-full rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-bold text-gray-800 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 cursor-pointer shadow-2xs hover:border-purple-400 transition-all"
                           required={isScheduledLive}
@@ -5372,17 +5340,16 @@ const CourseDetails = () => {
                   <button
                     type="submit"
                     disabled={isPublishingLive}
-                    className={`px-5 py-2.5 rounded-2xl ${
-                      isScheduledLive
-                        ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 shadow-purple-600/30'
-                        : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] shadow-red-600/30'
-                    } text-white font-extrabold text-xs sm:text-sm transition-all duration-300 shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-2 border border-white/20 transform hover:-translate-y-0.5 active:scale-95`}
+                    className={`px-5 py-2.5 rounded-2xl ${isScheduledLive
+                      ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 shadow-purple-600/30'
+                      : 'bg-gradient-to-r from-[#FF0000] via-[#E60000] to-[#CC0000] hover:from-[#E60000] hover:to-[#B30000] shadow-red-600/30'
+                      } text-white font-extrabold text-xs sm:text-sm transition-all duration-300 shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-2 border border-white/20 transform hover:-translate-y-0.5 active:scale-95`}
                   >
                     {isScheduledLive ? <FaCalendarAlt className="text-sm" /> : <FaYoutube className="text-xl text-white" />}
                     <span>
-                      {isPublishingLive 
-                        ? (isScheduledLive ? 'Scheduling...' : 'Publishing...') 
-                        : isScheduledLive 
+                      {isPublishingLive
+                        ? (isScheduledLive ? 'Scheduling...' : 'Publishing...')
+                        : isScheduledLive
                           ? (currentLesson?.liveStream?.isScheduled ? 'Update Scheduled Stream' : 'Schedule Live Class')
                           : (currentLesson?.liveStream?.isLive ? 'Update Live Stream' : 'Publish Live Class')}
                     </span>
@@ -5404,14 +5371,14 @@ const CourseDetails = () => {
 
       {/* INTERACTIVE END LIVE STREAM CONFIRMATION MODAL */}
       {showEndStreamConfirmModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn"
           onClick={() => {
             setIsEndingStream(false);
             setShowEndStreamConfirmModal(false);
           }}
         >
-          <div 
+          <div
             className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-scaleUp"
             onClick={(e) => e.stopPropagation()}
           >
@@ -5476,11 +5443,11 @@ const CourseDetails = () => {
 
       {/* INTERACTIVE STREAM ENDED SUCCESS & SUMMARY MODAL */}
       {showEndStreamSuccessModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn select-none"
           onClick={() => setShowEndStreamSuccessModal(false)}
         >
-          <div 
+          <div
             className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-scaleUp text-center"
             onClick={(e) => e.stopPropagation()}
           >

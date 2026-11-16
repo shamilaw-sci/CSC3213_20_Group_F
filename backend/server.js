@@ -57,8 +57,10 @@ const corsOptions = {
 app.use(express.json({ limit: '50mb' })); // Parses incoming JSON requests
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors(corsOptions)); // Enables Cross-Origin Resource Sharing
-app.use('/media', cors(corsOptions), express.static(path.join(__dirname, 'storage/public'))); // Public media (courses/profiles)
-app.use('/uploads', cors(corsOptions), express.static(path.join(__dirname, 'uploads'))); // Legacy uploads compatibility
+app.use('/media/profiles', cors(corsOptions), express.static(path.join(__dirname, 'storage/public/profiles')), express.static(path.join(__dirname, 'uploads')));
+app.use('/media/courses', cors(corsOptions), express.static(path.join(__dirname, 'storage/public/courses')), express.static(path.join(__dirname, 'uploads')));
+app.use('/media', cors(corsOptions), express.static(path.join(__dirname, 'storage/public')), express.static(path.join(__dirname, 'uploads'))); // Public media (courses/profiles)
+app.use('/uploads', cors(corsOptions), express.static(path.join(__dirname, 'uploads')), express.static(path.join(__dirname, 'storage/public/profiles')), express.static(path.join(__dirname, 'storage/public/courses'))); // Legacy uploads compatibility
 
 // --- ROOT HEALTH CHECK ---
 app.get('/', (req, res) => {

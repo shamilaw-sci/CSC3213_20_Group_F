@@ -290,20 +290,18 @@ export default function InteractiveCalendar({
                   setCurrentDate(cell.date);
                   setViewMode('day');
                 }}
-                className={`min-h-[115px] sm:min-h-[135px] p-1.5 sm:p-2 transition flex flex-col justify-between cursor-pointer hover:bg-purple-50/40 dark:hover:bg-slate-800/50 ${
-                  cell.isCurrentMonth ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/50 dark:bg-slate-950/40 text-slate-400'
-                } ${isToday ? 'ring-2 ring-inset ring-purple-500 bg-purple-50/20 dark:bg-purple-950/20' : ''}`}
+                className={`min-h-[115px] sm:min-h-[135px] p-1.5 sm:p-2 transition flex flex-col justify-between cursor-pointer hover:bg-purple-50/40 dark:hover:bg-slate-800/50 ${cell.isCurrentMonth ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/50 dark:bg-slate-950/40 text-slate-400'
+                  } ${isToday ? 'ring-2 ring-inset ring-purple-500 bg-purple-50/20 dark:bg-purple-950/20' : ''}`}
               >
                 {/* Date Header */}
                 <div className="flex items-center justify-between mb-1">
                   <span
-                    className={`text-xs font-black w-6 h-6 rounded-full flex items-center justify-center ${
-                      isToday
+                    className={`text-xs font-black w-6 h-6 rounded-full flex items-center justify-center ${isToday
                         ? 'bg-purple-600 text-white shadow-xs'
                         : cell.isCurrentMonth
-                        ? 'text-slate-800 dark:text-white'
-                        : 'text-slate-400 dark:text-slate-600'
-                    }`}
+                          ? 'text-slate-800 dark:text-white'
+                          : 'text-slate-400 dark:text-slate-600'
+                      }`}
                   >
                     {cell.date.getDate()}
                   </span>
@@ -389,9 +387,8 @@ export default function InteractiveCalendar({
                   {SHORT_DAYS[date.getDay()]}
                 </span>
                 <span
-                  className={`text-base font-black inline-flex items-center justify-center w-8 h-8 rounded-full mt-1 ${
-                    isToday ? 'bg-purple-600 text-white shadow-xs' : ''
-                  }`}
+                  className={`text-base font-black inline-flex items-center justify-center w-8 h-8 rounded-full mt-1 ${isToday ? 'bg-purple-600 text-white shadow-xs' : ''
+                    }`}
                 >
                   {date.getDate()}
                 </span>
@@ -410,9 +407,8 @@ export default function InteractiveCalendar({
             return (
               <div
                 key={dateKey}
-                className={`p-2 space-y-2.5 transition flex flex-col ${
-                  isToday ? 'bg-purple-50/20 dark:bg-purple-950/20' : 'bg-white dark:bg-slate-900'
-                }`}
+                className={`p-2 space-y-2.5 transition flex flex-col ${isToday ? 'bg-purple-50/20 dark:bg-purple-950/20' : 'bg-white dark:bg-slate-900'
+                  }`}
               >
                 {daySchedules.length > 0 ? (
                   daySchedules.map((sch) => {
@@ -784,11 +780,10 @@ export default function InteractiveCalendar({
                   key={v.id}
                   type="button"
                   onClick={() => setViewMode(v.id)}
-                  className={`px-3 py-1.5 text-xs font-black rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
-                    viewMode === v.id
+                  className={`px-3 py-1.5 text-xs font-black rounded-xl transition flex items-center gap-1.5 cursor-pointer ${viewMode === v.id
                       ? 'bg-purple-600 text-white shadow-xs'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   <span className="text-[11px]">{v.icon}</span>
                   <span>{v.label}</span>
