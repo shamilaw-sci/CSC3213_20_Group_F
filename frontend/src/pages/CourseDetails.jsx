@@ -1,6 +1,34 @@
 /**
  * @file CourseDetails.jsx
  * @description Course Details & Classroom Hub Page. Core curriculum hub rendering 4-week modular lessons, video lectures, protected PDF notes, quizzes, assignments, and live streaming sessions.
+ * =========================================================================================
+ * 🎨 MASTER UI & CSS CUSTOMIZATION DIRECTORY (HOW TO CHANGE COLORS / STYLES):
+ * =========================================================================================
+ * 1. 4-WEEK MODULAR TABS (Line ~1650):
+ *    - Active Week Tab: 'bg-[#2d1b64] text-white shadow-lg border border-purple-500/40'
+ *      To change Active Tab to Blue:  'bg-blue-900 text-white shadow-lg border-blue-500'
+ *      To change Active Tab to Green: 'bg-emerald-900 text-white shadow-lg border-emerald-500'
+ * 2. PROGRESS BARS (PDF Reading & Material Completion):
+ *    - PDF Progress Bar (Line ~3620): 'h-full rounded-full transition-all duration-500'
+ *      100% Complete: 'bg-emerald-500' (Change to Blue: 'bg-blue-600')
+ *      In Progress:   'bg-purple-600'  (Change to Amber: 'bg-amber-500')
+ * 3. STUDENT ATTENDANCE HISTORY TABLE (Line ~4640):
+ *    - Table element: <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 text-left text-xs">
+ *    - thead: 'bg-gray-50 dark:bg-slate-800 font-bold uppercase tracking-wider text-gray-500'
+ *      To change thead to Dark Purple: 'bg-[#2d1b64] text-white font-bold'
+ *      To change thead to Ocean Blue:   'bg-blue-900 text-white font-bold'
+ *    - thead row: border-b border-gray-200 dark:border-slate-700
+ *    - Present badge: 'bg-green-100 text-green-800 border-green-200'
+ *    - Absent badge:  'bg-red-100 text-red-800 border-red-200'
+ * 4. ASSIGNMENT ACTION BUTTONS (Line ~4005):
+ *    - "Submit Solution" Button: 'bg-purple-700 hover:bg-purple-800 text-white'
+ *      To change to Blue:  'bg-blue-600 hover:bg-blue-700 text-white'
+ *      To change to Green: 'bg-emerald-600 hover:bg-emerald-700 text-white'
+ *    - "Mark as Done" Button: 'bg-emerald-600 hover:bg-emerald-700 text-white'
+ * 5. TEACHER EVALUATION DRAWER (Line ~6050):
+ *    - Modal container: 'bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8'
+ *    - "Save Grade" Button (Line ~6220): 'bg-emerald-600 hover:bg-emerald-700 text-white'
+ * =========================================================================================
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -4635,6 +4663,18 @@ const CourseDetails = () => {
 
                           {/* History Table */}
                           <div className="rounded-xl border border-gray-150 dark:border-slate-800 overflow-hidden">
+                            {/*
+                              🎨 ATTENDANCE HISTORY TABLE STYLES & COLOR REPLACEMENTS:
+                              - Table element: 'min-w-full divide-y divide-gray-200 dark:divide-slate-800'
+                              - thead Header: 'bg-gray-50 dark:bg-slate-800'
+                                To change thead to Dark Purple: 'bg-[#2d1b64] text-white'
+                                To change thead to Royal Blue:   'bg-blue-900 text-white'
+                                To change thead to Emerald:      'bg-emerald-900 text-white'
+                              - Row divider: 'divide-y divide-gray-150 dark:divide-slate-800'
+                              - Row hover: 'hover:bg-gray-50/50 dark:hover:bg-slate-800/50'
+                              - Present Badge: 'bg-green-100 text-green-800' (Change to Blue: 'bg-blue-100 text-blue-800')
+                              - Absent Badge:  'bg-red-100 text-red-800'     (Change to Gray: 'bg-gray-100 text-gray-800')
+                            */}
                             <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 text-left text-xs">
                               <thead className="bg-gray-50 dark:bg-slate-800 font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-slate-700">
                                 <tr>

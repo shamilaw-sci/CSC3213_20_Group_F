@@ -13,6 +13,26 @@
  *    - 'handleDownloadQrImage': Renders a luxury 600x740 canvas and exports a high-res PNG file.
  *    - 'handlePrintCard': Opens a browser print dialog with custom styling for printing on PVC plastic cards.
  * =========================================================================================
+ * 🎨 MASTER UI & CSS CUSTOMIZATION DIRECTORY (HOW TO CHANGE COLORS / STYLES):
+ * =========================================================================================
+ * 1. CARD CONTAINER (Line ~200):
+ *    - Default Dark Purple: 'bg-gradient-to-br from-[#2d1b64] via-indigo-950 to-[#1e1b4b] border-indigo-500/30'
+ *    - To change to Ocean Blue:   'bg-gradient-to-br from-blue-950 via-slate-900 to-blue-900 border-blue-500/30'
+ *    - To change to Emerald Green:'bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 border-emerald-500/30'
+ *    - To change to Ruby / Crimson:'bg-gradient-to-br from-rose-950 via-slate-900 to-red-950 border-rose-500/30'
+ * 2. AVATAR / PHOTO BORDER (Line ~220):
+ *    - Avatar Box: 'bg-gradient-to-br from-amber-400 to-amber-500 border-2 border-white/80'
+ * 3. QR CONTAINER (Line ~245):
+ *    - White QR Box: 'bg-white dark:bg-slate-800 p-4 rounded-2xl border border-indigo-100 dark:border-slate-700'
+ *    - Reg No Tag:   'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-950 dark:text-indigo-200'
+ * 4. ACTION BUTTONS (Line ~270):
+ *    - "Download QR (PNG)": 'bg-emerald-500 hover:bg-emerald-600 text-white'
+ *      To change to Blue:   'bg-blue-600 hover:bg-blue-700 text-white'
+ *      To change to Purple: 'bg-purple-600 hover:bg-purple-700 text-white'
+ *    - "Print Pass":        'bg-amber-400 hover:bg-amber-500 text-purple-950'
+ *      To change to Blue:   'bg-blue-600 hover:bg-blue-700 text-white'
+ *      To change to Purple: 'bg-purple-600 hover:bg-purple-700 text-white'
+ * =========================================================================================
  */
 
 import React, { useRef } from 'react';

@@ -1,6 +1,29 @@
 /**
  * @file Attendance.jsx
  * @description Attendance Management & QR Scanner Page. Counter desk interface featuring high-speed webcam QR code scanning, manual student lookup, and daily attendance logs.
+ * =========================================================================================
+ * 🎨 MASTER UI & CSS CUSTOMIZATION DIRECTORY (HOW TO CHANGE COLORS / STYLES):
+ * =========================================================================================
+ * 1. SCANNER KIOSK CONTAINER (Line ~470):
+ *    - Container: 'bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800'
+ *    - Camera Active Badge: 'bg-emerald-100 text-emerald-800' (Change to Blue: 'bg-blue-100 text-blue-800')
+ *    - Target Class Dropdown: 'bg-purple-50 text-purple-950 border-purple-300'
+ * 2. NAVIGATION TABS (Line ~1060):
+ *    - Active Tab: 'bg-purple-700 text-white shadow-md'
+ *    - To change to Emerald Green: 'bg-emerald-600 text-white'
+ *    - To change to Royal Blue:    'bg-blue-600 text-white'
+ *    - To change to Amber / Gold:  'bg-amber-500 text-slate-900'
+ * 3. TABLES (DAILY ATTENDANCE & ALL-TIME HISTORY - Lines ~1255 & ~1645):
+ *    - thead Header: 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300'
+ *      To make Header Solid Purple: 'bg-[#2d1b64] text-white'
+ *      To make Header Solid Blue:   'bg-blue-900 text-white'
+ *      To make Header Solid Green:  'bg-emerald-900 text-white'
+ *    - Row Hover: 'hover:bg-purple-50/40' -> Change to 'hover:bg-blue-50/40' or 'hover:bg-slate-100'
+ * 4. ATTENDANCE STATUS PILLS:
+ *    - PRESENT (Green): 'bg-emerald-100 text-emerald-800 border-emerald-200'
+ *    - ABSENT (Red):    'bg-rose-100 text-rose-800 border-rose-200'
+ *    - LATE (Amber):    'bg-amber-100 text-amber-800 border-amber-200'
+ * =========================================================================================
  */
 
 import React, { useState, useEffect } from 'react';
@@ -1250,6 +1273,13 @@ const Attendance = () => {
                       <>
                         {/* Desktop Table View (hidden on mobile < md) */}
                         <div className="hidden md:block overflow-x-auto">
+                          {/*
+                            🎨 DAILY ATTENDANCE TABLE STYLES & COLOR REPLACEMENTS:
+                            - thead: 'bg-gray-100 dark:bg-slate-800' -> To change to Dark Purple: 'bg-[#2d1b64] text-white'
+                            - thead text: 'text-gray-600 dark:text-gray-300'
+                            - row hover: 'hover:bg-purple-50/40' -> To change to Blue hover: 'hover:bg-blue-50/40'
+                            - row divider: 'divide-y divide-gray-100 dark:divide-slate-800'
+                          */}
                           <table className="w-full text-left text-xs">
                             <thead className="bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-extrabold uppercase text-[10px] tracking-wider border-b border-gray-200 dark:border-slate-700">
                               <tr>
@@ -1642,6 +1672,13 @@ const Attendance = () => {
                       <>
                         {/* Desktop Table View (hidden on mobile < md) */}
                         <div className="hidden md:block overflow-x-auto">
+                          {/*
+                            🎨 DAILY ATTENDANCE TABLE STYLES & COLOR REPLACEMENTS:
+                            - thead: 'bg-gray-100 dark:bg-slate-800' -> To change to Dark Purple: 'bg-[#2d1b64] text-white'
+                            - thead text: 'text-gray-600 dark:text-gray-300'
+                            - row hover: 'hover:bg-purple-50/40' -> To change to Blue hover: 'hover:bg-blue-50/40'
+                            - row divider: 'divide-y divide-gray-100 dark:divide-slate-800'
+                          */}
                           <table className="w-full text-left text-xs">
                             <thead className="bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-extrabold uppercase text-[10px] tracking-wider border-b border-gray-200 dark:border-slate-700">
                               <tr>

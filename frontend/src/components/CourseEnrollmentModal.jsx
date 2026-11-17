@@ -1,6 +1,35 @@
 /**
  * @file CourseEnrollmentModal.jsx
  * @description Course Enrollment Modal. Allows students to enroll in courses, select physical/online learning tracks, and initiate payment transactions.
+ * =========================================================================================
+ * 🎨 MASTER UI & CSS CUSTOMIZATION DIRECTORY (HOW TO CHANGE COLORS / STYLES):
+ * =========================================================================================
+ * 1. MODAL HEADER BANNER (Line ~370):
+ *    - Header Background: 'bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white'
+ *      To change to Navy Blue:  'bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 text-white'
+ *      To change to Dark Green: 'bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 text-white'
+ * 2. 3-STEP WIZARD INDICATORS (Line ~440):
+ *    - Active Step Circle: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+ *      To change to Blue:  'bg-blue-600 text-white shadow-md'
+ *      To change to Green: 'bg-emerald-600 text-white shadow-md'
+ *    - Inactive Step Circle: 'bg-gray-800 text-gray-400 border border-gray-700'
+ * 3. CREDIT CARD GRAPHIC (Step 2 - Line ~690):
+ *    - Card Body: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 border border-indigo-400/30'
+ *      To change to Gold Pass: 'bg-gradient-to-br from-amber-600 via-amber-700 to-amber-900 text-white'
+ *      To change to Platinum:  'bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 text-white'
+ * 4. OTP INPUT FIELD (Step 3 - Line ~900):
+ *    - Input: 'bg-gray-900 text-amber-300 font-mono tracking-[0.5em] text-center border-2 border-purple-500/60'
+ *      To change border to Emerald: 'border-emerald-500 text-emerald-400'
+ *      To change border to Blue:    'border-blue-500 text-blue-400'
+ * 5. FOOTER ACTION BUTTONS (Line ~980):
+ *    - "Proceed to Card Payment": 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+ *      Change to Blue:  'bg-blue-600 hover:bg-blue-700 text-white'
+ *      Change to Green: 'bg-emerald-600 hover:bg-emerald-700 text-white'
+ *    - "Pay LKR X / Send OTP":    'bg-gradient-to-r from-purple-600 to-indigo-600'
+ *    - "Verify & Complete":       'bg-emerald-600 hover:bg-emerald-700 text-white'
+ *      Change to Purple: 'bg-purple-600 hover:bg-purple-700 text-white'
+ *      Change to Blue:   'bg-blue-600 hover:bg-blue-700 text-white'
+ * =========================================================================================
  */
 
 import React, { useState, useEffect } from 'react';

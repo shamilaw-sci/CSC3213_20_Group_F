@@ -1,6 +1,26 @@
 /**
  * @file Payments.jsx
  * @description Payments Management & Checkout Page. Manages student tuition payments, online card checkout with SMS OTP, counter cash transactions, and downloadable PDF receipts.
+ * =========================================================================================
+ * 🎨 MASTER UI & CSS CUSTOMIZATION DIRECTORY (HOW TO CHANGE COLORS / STYLES):
+ * =========================================================================================
+ * 1. TABLE HEADER (Line ~380):
+ *    - Current: <tr className="border-b border-gray-200/80 dark:border-slate-800 text-[11px] font-extrabold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+ *    - To add solid Purple header: className="bg-purple-900 text-white font-bold ..."
+ *    - To add solid Blue header:   className="bg-blue-900 text-white font-bold ..."
+ *    - To add solid Green header:  className="bg-emerald-900 text-white font-bold ..."
+ * 2. TABLE ROW HOVER (Line ~410):
+ *    - Current: <tr className="hover:bg-purple-50/30 dark:hover:bg-slate-800/40 transition">
+ *    - To change row hover to Blue:  hover:bg-blue-50/40 dark:hover:bg-blue-950/40
+ *    - To change row hover to Green: hover:bg-emerald-50/40 dark:hover:bg-emerald-950/40
+ * 3. STATUS BADGES:
+ *    - COMPLETED (Green): 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+ *    - PENDING (Amber):   'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+ *    - REJECTED (Red):    'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+ * 4. ACTION BUTTONS:
+ *    - "Record Counter Payment": Line ~235 -> 'bg-gradient-to-r from-amber-400 to-amber-500 text-purple-950'
+ *    - "Download Receipt": Line ~520 -> 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+ * =========================================================================================
  */
 
 import React, { useEffect, useState } from 'react';
@@ -360,6 +380,16 @@ const Payments = () => {
           <div className="bg-white dark:bg-slate-900 rounded-[30px] shadow-sm border border-gray-200/80 dark:border-slate-800 overflow-hidden p-2 sm:p-4">
             {/* Desktop Table View (hidden on mobile < md) */}
             <div className="hidden md:block overflow-x-auto">
+              {/*
+                🎨 MASTER TABLE STYLES & COLOR REPLACEMENTS:
+                - Table Container: border border-gray-200/80 dark:border-slate-800
+                - Table Header (thead): text-gray-500 dark:text-gray-400
+                  To make the Table Header dark purple: replace with 'bg-[#2d1b64] text-white'
+                  To make the Table Header ocean blue: replace with 'bg-blue-900 text-white'
+                  To make the Table Header emerald: replace with 'bg-emerald-800 text-white'
+                - Row Hover: 'hover:bg-purple-50/30' -> Change to 'hover:bg-blue-50/30' or 'hover:bg-slate-100'
+                - Cell Borders: 'divide-y divide-gray-100 dark:divide-slate-800/80'
+              */}
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-200/80 dark:border-slate-800 text-[11px] font-extrabold uppercase tracking-wider text-gray-500 dark:text-gray-400">

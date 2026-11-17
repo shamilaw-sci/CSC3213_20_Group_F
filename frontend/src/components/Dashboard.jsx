@@ -1,6 +1,35 @@
 /**
  * @file Dashboard.jsx
  * @description Role-Based Dashboard Component. Main dashboard interface rendering role-tailored analytics cards, active sessions, timetable summaries, and action shortcuts.
+ * =========================================================================================
+ * 🎨 MASTER UI & CSS CUSTOMIZATION DIRECTORY (HOW TO CHANGE COLORS / STYLES):
+ * =========================================================================================
+ * 1. HERO BANNER & ACTIVE COURSE PROGRESS CARD (Line ~2195):
+ *    - Card Background: 'bg-gradient-to-r from-slate-900 via-purple-950 to-indigo-950 text-white'
+ *      To change to Ocean Blue:   'bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white'
+ *      To change to Forest Green:  'bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white'
+ *    - Progress Bar: 'bg-gradient-to-r from-purple-400 via-indigo-400 to-emerald-400'
+ *      To change to solid Blue:    'bg-blue-500'
+ *      To change to solid Emerald: 'bg-emerald-500'
+ * 2. ACTION BUTTONS ON HERO CARD (Line ~2245):
+ *    - "Resume Learning": 'bg-white text-slate-900 hover:bg-slate-100'
+ *      To change to Emerald: 'bg-emerald-500 hover:bg-emerald-600 text-white'
+ *      To change to Blue:    'bg-blue-600 hover:bg-blue-700 text-white'
+ *    - "Rate Course": 'bg-amber-500 hover:bg-amber-600 text-white'
+ * 3. 3-KPI METRIC CARDS (Line ~2320):
+ *    - Card Container: 'bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800'
+ *    - Icon Box: 'bg-purple-50 text-purple-600' -> Change to 'bg-blue-50 text-blue-600' or 'bg-emerald-50 text-emerald-600'
+ * 4. UPCOMING ASSIGNMENTS & TASKS (Line ~2390):
+ *    - Container: 'bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100'
+ *    - Graded Status Badge:    'bg-emerald-50 text-emerald-700 border-emerald-200'
+ *    - Submitted Status Badge: 'bg-blue-50 text-blue-700 border-blue-200'
+ *    - Pending Status Badge:   'bg-amber-50 text-amber-700 border-amber-200'
+ *    - Submit / View Button:   'bg-purple-600 hover:bg-purple-700 text-white'
+ * 5. TIMETABLE DAY PILLS (Line ~2520):
+ *    - Active Day Pill:   'bg-purple-700 text-white shadow-sm'
+ *      To change to Blue: 'bg-blue-600 text-white shadow-sm'
+ *    - Inactive Day Pill: 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+ * =========================================================================
  */
 
 import React, { useState, useEffect } from 'react';
