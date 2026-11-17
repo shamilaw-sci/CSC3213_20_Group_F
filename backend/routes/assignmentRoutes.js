@@ -1,6 +1,23 @@
 /**
  * @file assignmentRoutes.js
  * @description Assignment Routes. Handles CRUD operations for course assignments, file attachment uploads, student assignment submissions, and instructor grading with marks and feedback.
+ * =========================================================================================
+ * 🗺️ MASTER FUNCTION & ROUTE INDEX (EXACT LINE DIRECTORY FOR EXAMINERS):
+ * =========================================================================================
+ * - Line 24:  isTeacherOrAdmin role authorization middleware
+ * - Line 34:  safeDeleteAssignmentFile() cleanup helper
+ * - Line 46:  Multer storage configurations (Question Sheet: 15MB, Student Solution: 25MB)
+ * - Line 129: POST   /api/assignments/                -> 1. CREATE ASSIGNMENT with Question Sheet (Teacher/Admin)
+ * - Line 252: GET    /api/assignments/course/:courseId -> 2. GET COURSE ASSIGNMENTS (With submission status)
+ * - Line 322: GET    /api/assignments/:assignmentId   -> 3. GET SINGLE ASSIGNMENT DETAILS (Metadata & Submission)
+ * - Line 350: PUT    /api/assignments/:assignmentId   -> 4. UPDATE ASSIGNMENT (Update details/replace file)
+ * - Line 411: DELETE /api/assignments/:assignmentId   -> 5. DELETE ASSIGNMENT & Cascade Submissions (Teacher/Admin)
+ * - Line 445: POST   /api/assignments/:id/submit      -> 6. SUBMIT SOLUTION FILE (Deadline/Late checks) (Student)
+ * - Line 567: GET    /api/assignments/:id/my-submission -> 7. GET STUDENT'S OWN SUBMISSION (Student)
+ * - Line 590: GET    /api/assignments/:id/submissions -> 8. GET ALL SUBMISSIONS FOR GRADING (Teacher/Admin)
+ * - Line 641: PATCH  /api/assignments/submissions/:id/grade -> 9. GRADE SUBMISSION (Marks/Feedback/SMS/Email)
+ * - Line 732: GET    /api/assignments/student/my-assignments -> 10. GET ALL ASSIGNMENTS FOR LOGGED-IN STUDENT
+ * =========================================================================================
  */
 
 const express = require('express');
@@ -104,8 +121,16 @@ const handleUpload = (fieldName) => (req, res, next) => {
 // =========================================================================
 // 1. CREATE ASSIGNMENT (Teacher/Admin)
 // =========================================================================
+// 🎓 EXPLAIN TO EXAMINER:
+// - Role Check: 'protect' validates JWT token, 'isTeacherOrAdmin' verifies user role is 'teacher' or 'admin'.
+// - Multer Processing: 'handleUpload("attachment")' handles question PDF upload (max 15MB).
+// - Validation: Ensures title, courseId, and grade are present; verifies course exists in DB.
+// - Assignment Document: Saves maximum marks (default 100), passing marks (default 50), and deadline (dueDate).
+// - Broadcast & Parents: Sends in-app notifications and email alerts to all enrolled students and parents.
+// =========================================================================
 router.post('/', protect, isTeacherOrAdmin, handleUpload('attachment'), async (req, res) => {
   try {
+    // Extract form fields sent by multipart form data
     const {
       title,
       description,
@@ -120,6 +145,7 @@ router.post('/', protect, isTeacherOrAdmin, handleUpload('attachment'), async (r
       isActive
     } = req.body;
 
+    // Validate required fields
     if (!title || !title.trim()) {
       return res.status(400).json({ error: "Assignment title is required." });
     }
@@ -130,22 +156,26 @@ router.post('/', protect, isTeacherOrAdmin, handleUpload('attachment'), async (r
       return res.status(400).json({ error: "Grade is required." });
     }
 
+    // Verify target course exists in MongoDB
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({ error: "Course not found." });
     }
 
+    // Pre-allocate ObjectId so protected file URL references the exact assignment ID
     const assignmentId = new mongoose.Types.ObjectId();
     let attachmentUrl = '';
     let attachmentName = '';
     let attachmentSize = 0;
 
+    // Check if teacher uploaded a question sheet file
     if (req.file) {
       attachmentUrl = `/api/files/assignment/${assignmentId}`;
       attachmentName = req.file.originalname;
       attachmentSize = req.file.size;
     }
 
+    // Insert new Assignment into MongoDB
     const assignment = await Assignment.create({
       _id: assignmentId,
       title: title.trim(),

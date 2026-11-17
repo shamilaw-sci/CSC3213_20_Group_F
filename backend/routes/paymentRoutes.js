@@ -1,6 +1,24 @@
 /**
  * @file paymentRoutes.js
  * @description Payment Processing Routes. Handles online card checkouts with SMS OTP verification, counter cash transactions with receipts, fee access checks, and parent SMS alerts.
+ * =========================================================================================
+ * 🗺️ MASTER FUNCTION & ROUTE INDEX (EXACT LINE DIRECTORY FOR EXAMINERS):
+ * =========================================================================================
+ * - Line 26:   paymentUploadStorage (Multer disk storage for bank slips, 10MB limit)
+ * - Line 51:   isStaffTeacherOrAdmin role authorization middleware
+ * - Line 65:   resolveGradeAndFee() helper (Dynamically maps course grades & fee amounts)
+ * - Line 138:  POST  /api/payments/send-otp          -> 1. GENERATE & DISPATCH SMS OTP (6-digit, 5-min TTL)
+ * - Line 224:  POST  /api/payments/process-mock      -> 2. VERIFY OTP & COMPLETE CARD PAYMENT (Enrolls student)
+ * - Line 427:  GET   /api/payments/fee-status/:id    -> 3. CHECK FEE SETTLEMENT STATUS (Week-3 paywall rule)
+ * - Line 455:  GET   /api/payments/my-payments       -> 4. STUDENT PERSONAL PAYMENT HISTORY & RECEIPTS
+ * - Line 471:  GET   /api/payments/all               -> 5. ALL TRANSACTIONS LEDGER (Admin & Staff)
+ * - Line 496:  GET   /api/payments/student/:id       -> 6. SPECIFIC STUDENT PAYMENT HISTORY (Admin & Staff)
+ * - Line 520:  POST  /api/payments/record-physical-payment -> 7. CASH DESK PAYMENT (Custom receipt # & SMS)
+ * - Line 710:  POST  /api/payments/submit-bank-slip  -> 8. STUDENT UPLOADS BANK SLIP (Multer 10MB limit)
+ * - Line 890:  GET   /api/payments/pending-slips     -> 9. PENDING BANK SLIP AUDIT QUEUE (Counter/Admin)
+ * - Line 897:  PUT   /api/payments/:id/approve-slip  -> 10. APPROVE BANK SLIP & GRANT ENROLLMENT ACCESS
+ * - Line 1037: PUT   /api/payments/:id/reject-slip   -> 11. REJECT BANK SLIP WITH REASON & NOTIFY STUDENT
+ * =========================================================================================
  */
 
 const express = require('express');
@@ -119,18 +137,22 @@ const resolveGradeAndFee = (course, studentGradeParam, requestedAmount) => {
 // @access  Private (Student)
 router.post('/send-otp', protect, async (req, res) => {
   try {
+    // Extract target course ID and optional override phone from request body
     const { courseId, phone } = req.body;
     const studentId = req.user._id;
 
+    // Validate course ID presence
     if (!courseId) {
       return res.status(400).json({ error: 'Course ID is required to send OTP.', message: 'Course ID is required to send OTP.' });
     }
 
+    // Retrieve student document from MongoDB
     const student = await User.findById(studentId);
     if (!student) {
       return res.status(404).json({ error: 'Student account not found.', message: 'Student account not found.' });
     }
 
+    // Determine target recipient mobile number (prefer provided phone, fallback to profile phoneNumber or parentsPhoneNumber)
     const studentPhone = (phone && phone.trim()) || student.phoneNumber || student.parentsPhoneNumber;
     if (!studentPhone) {
       return res.status(400).json({ 
@@ -139,13 +161,13 @@ router.post('/send-otp', protect, async (req, res) => {
       });
     }
 
-    // 1. Delete any existing pending OTPs for this student and course
+    // 1. Purge any stale/pre-existing OTP codes for this student and course
     await OTP.deleteMany({ student: studentId, courseId });
 
-    // 2. Generate a secure 6-digit random OTP code (e.g. 584920)
+    // 2. Cryptographically generate an unpredictable 6-digit integer (range: 100000 to 999999)
     const generatedOtp = String(crypto.randomInt(100000, 999999));
 
-    // 3. Save OTP record in MongoDB (Expires automatically in 5 minutes via TTL index)
+    // 3. Persist OTP in MongoDB; 'expiresAt' triggers automatic document removal after 5 minutes via TTL index
     await OTP.create({
       student: studentId,
       email: student.email,
@@ -155,18 +177,20 @@ router.post('/send-otp', protect, async (req, res) => {
       expiresAt: new Date(Date.now() + 5 * 60 * 1000)
     });
 
-    // 4. Dispatch SMS message via Text.lk Gateway (bypasses marketing toggle for security OTP)
+    // 4. Construct SMS message and dispatch via Text.lk v3 REST API
     const smsMessage = `Your LuminaLearn verification OTP code is ${generatedOtp}. Valid for 5 minutes. Do not share this code.`;
     await sendSMS({
       phone: studentPhone,
       message: smsMessage,
       otpCode: generatedOtp,
       studentName: student.name,
-      bypassMasterSwitch: true
+      bypassMasterSwitch: true // Security OTPs always bypass promotional SMS master toggle
     });
 
+    // 5. Mask recipient phone (+94 7X XXX X345) to protect student privacy in UI
     const maskedPhone = maskPhoneNumber(studentPhone);
 
+    // Return success response to frontend checkout modal
     res.status(200).json({
       success: true,
       message: `OTP sent successfully via SMS to ${maskedPhone}.`,

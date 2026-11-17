@@ -1,6 +1,23 @@
 /**
  * @file attendanceRoutes.js
  * @description Attendance Routes. Provides endpoints for QR code scanning, manual attendance recording, attendance history queries, CSV export, and automated parent SMS notifications.
+ * =========================================================================================
+ * 🗺️ MASTER FUNCTION & ROUTE INDEX (EXACT LINE DIRECTORY FOR EXAMINERS):
+ * =========================================================================================
+ * - Line 34:  normalizeDate() helper (Normalizes timestamps to 00:00:00 midnight)
+ * - Line 41:  parseTimeToMinutes() helper (Converts 12h/24h time strings to minute integers)
+ * - Line 74:  POST /api/attendance/               -> 1. MANUAL SINGLE ATTENDANCE MARKING (Staff/Teacher)
+ * - Line 214: POST /api/attendance/mark-batch     -> 2. BATCH ROSTER ATTENDANCE (Present/Absent/Late)
+ * - Line 306: GET  /api/attendance/student/:id    -> 3. STUDENT ATTENDANCE HISTORY & PERCENTAGE STATS
+ * - Line 348: GET  /api/attendance/my             -> 4. LOGGED-IN STUDENT'S ATTENDANCE LOGS
+ * - Line 372: GET  /api/attendance/teacher        -> 5. TEACHER'S CLASS SESSIONS ATTENDANCE
+ * - Line 413: GET  /api/attendance/stats/summary  -> 6. INSTITUTION-WIDE ATTENDANCE KPI SUMMARY (Admin)
+ * - Line 447: POST /api/attendance/submit-weekly  -> 7. ONLINE STUDENT WEEKLY ATTENDANCE LOG
+ * - Line 526: GET  /api/attendance/weekly-status/:courseId -> 8. 4-WEEK CHECKLIST & PROGRESS STATUS
+ * - Line 569: GET  /api/attendance/admin/all-logs -> 9. FILTERABLE ALL-TIME ATTENDANCE LOGS (Admin/Staff)
+ * - Line 652: GET  /api/attendance/today-scans    -> 10. LIVE SCAN FEED FOR REAL-TIME KIOSK UI
+ * - Line 756: POST /api/attendance/scan-qr        -> 11. LIVE CAMERA QR SCANNER & AUTO-CLASS ENGINE
+ * =========================================================================================
  */
 
 const express = require('express');
@@ -739,17 +756,21 @@ router.get('/today-scans', protect, isStaffTeacherOrAdmin, async (req, res) => {
 // =========================================================================
 router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
   try {
+    // 1. Extract payload from QR scanner (decoded registration number or student ObjectId)
     const { registrationNumber, studentId, courseId: reqCourseId, scheduleId: reqScheduleId } = req.body;
     const adminId = req.user._id || req.user.id;
 
+    // Validate that at least one identifier was provided
     if (!registrationNumber && !studentId) {
       return res.status(400).json({ error: "Registration Number or Student ID is required for QR scan." });
     }
 
+    // Build MongoDB query filter (Registration number takes precedence)
     const filter = registrationNumber 
       ? { registrationNumber: registrationNumber.trim() } 
       : { _id: studentId };
 
+    // Find student account in MongoDB
     const student = await User.findOne(filter);
     if (!student) {
       return res.status(404).json({ error: `Student with Reg No '${registrationNumber}' not found in database.` });
@@ -764,7 +785,7 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
     const Course = require('../models/Course');
     const Schedule = require('../models/Schedule');
 
-    // If explicit scheduleId was provided (e.g. manual selection in kiosk), resolve course and title
+    // 2. If staff selected an explicit schedule on the kiosk dropdown, resolve course and title directly
     if (resolvedScheduleId) {
       const explicitSchedule = await Schedule.findById(resolvedScheduleId).populate('courseId');
       if (explicitSchedule) {
@@ -782,7 +803,8 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
       }
     }
 
-    // AUTO-DETECT SCHEDULE BY TIME & GRADE IF NOT EXPLICITLY PROVIDED
+    // 3. AUTO-DETECT ACTIVE CLASS SCHEDULE (When set to 'AUTO' mode)
+    // Matches current day of week (e.g., 'Monday') and current minute of the day
     let foundScheduleMatch = false;
     if (!resolvedScheduleId) {
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -804,13 +826,13 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
         ...enrolledDocs.map(e => e.course ? e.course.toString() : null).filter(Boolean)
       ]);
 
-      // Find schedules matching today and student's grade
+      // Query institutional timetable for schedules matching today and student's grade
       const candidateSchedules = await Schedule.find({
         dayOfWeek: currentDay,
         className: student.grade
       }).populate('courseId');
 
-      // Sort candidate schedules by start time (earliest first), then enrolled-courses first
+      // Sort candidate schedules: prioritized by student enrollment first, then chronological class start time
       candidateSchedules.sort((a, b) => {
         const aCourseId = a.courseId ? (a.courseId._id ? a.courseId._id.toString() : a.courseId.toString()) : '';
         const bCourseId = b.courseId ? (b.courseId._id ? b.courseId._id.toString() : b.courseId.toString()) : '';
@@ -818,14 +840,13 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
         const bEnrolled = enrolledCourseIdsSet.has(bCourseId);
         if (aEnrolled && !bEnrolled) return -1;
         if (!aEnrolled && bEnrolled) return 1;
-        // Secondary sort by start time (earlier class first)
         const aStartMin = parseTimeToMinutes(a.startTime);
         const bStartMin = parseTimeToMinutes(b.startTime);
         return aStartMin - bStartMin;
       });
 
-      // Get all schedules already attended by this student today — skip them so
-      // a second QR scan correctly picks up the NEXT class, not the already-logged one
+      // BACK-TO-BACK CLASS LOGIC: Retrieve all schedules attended today by this student
+      // If student already checked into Class A, skip Class A so scan logs them into Class B!
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
       const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
       const attendedToday = await Attendance.find({
@@ -835,17 +856,16 @@ router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
       }).select('scheduleId');
       const attendedScheduleIds = new Set(attendedToday.map(a => a.scheduleId.toString()));
 
+      // Iterate through candidate schedules to find current active time window
       for (const sch of candidateSchedules) {
         if (sch.startTime) {
           const startMin = parseTimeToMinutes(sch.startTime);
           let endMin = sch.endTime ? parseTimeToMinutes(sch.endTime) : (startMin + 120);
-          // Handle overnight classes (e.g. 22:30 to 00:30)
-          if (endMin < startMin) endMin += 24 * 60;
+          if (endMin < startMin) endMin += 24 * 60; // Handle midnight crossover
 
-          // Match if current time is within schedule window (30 min before class START through class duration + 15 min buffer)
-          // e.g. a 1:30 PM to 3:30 PM class accepts scans from 1:00 PM (13:00) to 3:45 PM (15:45)
+          // Match window: 30 minutes before class START through class duration + 15 minute grace period
           if (currentMinutes >= (startMin - 30) && currentMinutes <= (endMin + 15)) {
-            // Skip this schedule if student already attended it today — move on to next class
+            // If already attended this schedule today, continue searching for next scheduled class
             if (attendedScheduleIds.has(sch._id.toString())) {
               continue;
             }
