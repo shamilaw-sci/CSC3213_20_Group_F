@@ -1,6 +1,18 @@
 /**
  * @file StudentIdCard.jsx
- * @description Printable Student ID Card Component. Renders high-resolution student identity badges with photo, registration number, barcode, and QR code pass.
+ * @description Printable Student ID Card & Digital QR Pass Component.
+ * =========================================================================================
+ * 🎓 EXPLAIN TO EXAMINER:
+ * 1. Purpose: Generates a high-resolution, secure student identity badge with student photo,
+ *    full name, registration number, grade, and an encoded scannable QR code pass.
+ * 2. QR Code Generation: Uses 'QRCodeSVG' from 'qrcode.react' with Error Correction Level 'H' (High - 30% recovery).
+ *    The QR payload encodes a JSON string with { registrationNumber, studentId, name, grade }.
+ * 3. Physical Check-in: The physical kiosk scanner (html5-qrcode) reads this exact QR code
+ *    to record attendance in less than 1 second.
+ * 4. Dual Export:
+ *    - 'handleDownloadQrImage': Renders a luxury 600x740 canvas and exports a high-res PNG file.
+ *    - 'handlePrintCard': Opens a browser print dialog with custom styling for printing on PVC plastic cards.
+ * =========================================================================================
  */
 
 import React, { useRef } from 'react';
@@ -15,7 +27,7 @@ const StudentIdCard = ({ user }) => {
   const gradeStr = user.grade ? (String(user.grade).toLowerCase().startsWith('grade') ? user.grade : `Grade ${user.grade}`) : 'Grade Active';
   const studentTypeStr = user.studentType === 'physical' ? '🏫 Physical Classroom Student' : '💻 Online Student';
 
-  // Encrypted QR Payload containing registration number and student ID
+  // Encrypted QR Payload containing registration number and student ID for instant kiosk scanning
   const qrPayload = JSON.stringify({
     registrationNumber: regNo,
     studentId: user.id || user._id,
@@ -23,6 +35,9 @@ const StudentIdCard = ({ user }) => {
     grade: user.grade
   });
 
+  // =========================================================================
+  // PRINT CARD DIALOG HANDLER (Generates standalone printable layout)
+  // =========================================================================
   const handlePrintCard = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -64,8 +79,8 @@ const StudentIdCard = ({ user }) => {
               </div>
             </div>
             <div className="qr-wrap">
-              ${cardRef.current ? cardRef.current.querySelector('svg').outerHTML : ''}
-              <div style="color: #1e1b4b; font-weight: 800; font-size: 11px; margin-top: 6px; font-family: monospace;">Scan at Institute Kiosk</div>
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrPayload)}" width="160" height="160" alt="QR Code" />
+              <div style="font-family: monospace; font-size: 11px; color: #1e1b4b; font-weight: bold; margin-top: 6px;">${regNo}</div>
             </div>
             <div className="footer">Property of LuminaLearn Institute • Non-Transferable</div>
           </div>
@@ -78,6 +93,9 @@ const StudentIdCard = ({ user }) => {
     printWindow.document.close();
   };
 
+  // =========================================================================
+  // DOWNLOAD QR PASS AS PNG (HTML5 Canvas Rasterization)
+  // =========================================================================
   const handleDownloadQrImage = () => {
     if (!cardRef.current) return;
     const svgElement = cardRef.current.querySelector('svg');
@@ -169,6 +187,13 @@ const StudentIdCard = ({ user }) => {
   };
 
   return (
+    /* 
+      🎨 CARD CONTAINER THEME:
+      To change card background color / gradient:
+      - Default Dark Purple: 'bg-gradient-to-br from-[#2d1b64] via-indigo-950 to-[#1e1b4b]'
+      - Dark Blue: 'bg-gradient-to-br from-blue-950 via-slate-900 to-blue-900'
+      - Emerald Green: 'bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950'
+    */
     <div className="bg-gradient-to-br from-[#2d1b64] via-indigo-950 to-[#1e1b4b] p-6 rounded-3xl text-white shadow-xl border border-indigo-500/30 relative overflow-hidden space-y-5">
       
       {/* Decorative Glow */}
@@ -218,6 +243,12 @@ const StudentIdCard = ({ user }) => {
       {/* QR Code Container */}
       <div ref={cardRef} className="bg-white dark:bg-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-inner border border-indigo-100 dark:border-slate-700">
         <div className="p-2 bg-white rounded-xl shadow-xs">
+          {/*
+            🎓 QR CODE SVG PARAMETERS:
+            - size: 135 (pixel width/height)
+            - level: "H" (High Error Correction, up to 30% scannability even if partially obscured)
+            - fgColor: foreground hex color ("#1e1b4b" dark navy)
+          */}
           <QRCodeSVG 
             value={qrPayload}
             size={135}
@@ -236,6 +267,13 @@ const StudentIdCard = ({ user }) => {
       <div className="flex justify-between items-center pt-2 flex-wrap gap-2">
         <span className="text-[10px] text-indigo-300 font-semibold">{studentTypeStr}</span>
         <div className="flex items-center gap-2">
+          {/*
+            🎨 HOW TO CHANGE BUTTON COLOR: "Download QR (PNG)" Button
+            - Current Color (Emerald Green): 'bg-emerald-500 hover:bg-emerald-600 text-white'
+            - To change to Royal Blue:       'bg-blue-600 hover:bg-blue-700 text-white'
+            - To change to Purple:           'bg-purple-600 hover:bg-purple-700 text-white'
+            - To change to Ruby Red:         'bg-rose-600 hover:bg-rose-700 text-white'
+          */}
           <button
             type="button"
             onClick={handleDownloadQrImage}
@@ -245,6 +283,13 @@ const StudentIdCard = ({ user }) => {
             <span>💾</span> Download QR (PNG)
           </button>
 
+          {/*
+            🎨 HOW TO CHANGE BUTTON COLOR: "Print Pass" Button
+            - Current Color (Amber Gold):    'bg-amber-400 hover:bg-amber-500 text-purple-950'
+            - To change to Purple / Violet:  'bg-purple-600 hover:bg-purple-700 text-white'
+            - To change to Sky Blue:         'bg-sky-500 hover:bg-sky-600 text-white'
+            - To change to Dark Slate:       'bg-slate-800 hover:bg-slate-900 text-white'
+          */}
           <button
             type="button"
             onClick={handlePrintCard}

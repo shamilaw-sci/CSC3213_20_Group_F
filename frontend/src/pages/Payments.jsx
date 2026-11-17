@@ -226,6 +226,13 @@ const Payments = () => {
             </div>
 
             {/* Admin Action Button: Record Counter Payment */}
+            {/*
+              🎨 HOW TO CHANGE BUTTON COLOR: "Record Counter Payment (Physical)" Button
+              - Current Color (Amber Gold):   'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-purple-950'
+              - To change to Emerald Green:   'bg-emerald-600 hover:bg-emerald-700 text-white'
+              - To change to Royal Blue:      'bg-blue-600 hover:bg-blue-700 text-white'
+              - To change to Deep Purple:     'bg-purple-600 hover:bg-purple-700 text-white'
+            */}
             {isAdmin && (
               <button
                 onClick={() => setShowPhysicalPaymentModal(true)}

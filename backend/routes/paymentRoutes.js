@@ -104,6 +104,16 @@ const resolveGradeAndFee = (course, studentGradeParam, requestedAmount) => {
   };
 };
 
+// =========================================================================
+// 1. GENERATE & DISPATCH SMS OTP (SECURE CHECKOUT)
+// =========================================================================
+// 🎓 EXPLAIN TO EXAMINER:
+// - Endpoint: POST /api/payments/send-otp
+// - Generates a 6-digit random code using Node.js crypto.randomInt(100000, 999999).
+// - Stores it in MongoDB OTP collection with a 5-minute TTL (expiresAt = Date.now() + 5 mins).
+// - Dispatches SMS via Text.lk REST API v3 to student/parent mobile phone.
+// - Returns masked phone number (+94 7X XXX X123) for UI security.
+// =========================================================================
 // @route   POST /api/payments/send-otp
 // @desc    Generate a real 6-digit random OTP, store in MongoDB (5-min TTL), and dispatch SMS
 // @access  Private (Student)
@@ -172,6 +182,18 @@ router.post('/send-otp', protect, async (req, res) => {
   }
 });
 
+// =========================================================================
+// 2. VERIFY OTP, COMPLETE PAYMENT & ENROLL STUDENT
+// =========================================================================
+// 🎓 EXPLAIN TO EXAMINER:
+// - Endpoint: POST /api/payments/process-mock
+// - Verifies OTP from database: OTP.findOne({ student, courseId, otpCode, expiresAt: { $gt: now } }).
+// - Replay Attack Protection: Immediately calls OTP.deleteOne() so the same OTP cannot be used twice.
+// - Resolves Grade & Fee: Matches student grade against Course enrolledGrades to determine fee.
+// - Generates Transaction ID: PAY-[timestamp]-[random4digits].
+// - Creates Payment record + upserts Enrollment + adds student to Course.enrolledStudents.
+// - Multi-channel alerts: Dispatches parent SMS receipt, in-app notifications, and Brevo HTML email.
+// =========================================================================
 // @route   POST /api/payments/process-mock
 // @desc    Verify real DB OTP, record payment & enroll student in course
 // @access  Private (Student)

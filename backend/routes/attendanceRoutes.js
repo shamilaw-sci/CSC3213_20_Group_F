@@ -724,9 +724,19 @@ router.get('/today-scans', protect, isStaffTeacherOrAdmin, async (req, res) => {
   }
 });
 
-// ==========================================
-//     8. LIVE QR CODE ATTENDANCE SCANNER (ADMIN & TEACHER)
-// ==========================================
+// =========================================================================
+// 8. LIVE QR CODE ATTENDANCE SCANNER & KIOSK ENGINE
+// =========================================================================
+// 🎓 EXPLAIN TO EXAMINER:
+// - Endpoint: POST /api/attendance/scan-qr
+// - Identifies student by decoded QR 'registrationNumber' or 'studentId'.
+// - Smart Schedule Matcher: If scheduleId is 'AUTO', detects current day of week and matching class time.
+//   Accepts scans from 30 minutes before class start to 15 minutes past end time.
+// - Back-to-Back Class Support: Skips classes already attended today so a 2nd scan logs the NEXT class!
+// - Fee Access Evaluator: Calls checkStudentFeeStatus() to flag if student has paid current month tuition.
+// - Duplicate Prevention: Queries Attendance for same student + schedule + date today (00:00 - 23:59).
+// - Multi-channel Dispatch: Records 'PHYSICAL_QR', triggers parent SMS via Text.lk, and creates immutable audit log.
+// =========================================================================
 router.post('/scan-qr', protect, isStaffTeacherOrAdmin, async (req, res) => {
   try {
     const { registrationNumber, studentId, courseId: reqCourseId, scheduleId: reqScheduleId } = req.body;

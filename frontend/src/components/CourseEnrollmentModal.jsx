@@ -944,6 +944,11 @@ const CourseEnrollmentModal = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/*
+              🎨 HOW TO CHANGE BUTTON COLOR: "Cancel" Button
+              - Current: 'bg-gray-800 hover:bg-red-700 text-white'
+              - To change to Gray: 'bg-gray-700 hover:bg-gray-600 text-white'
+            */}
             <button
               type="button"
               onClick={onClose}
@@ -952,6 +957,14 @@ const CourseEnrollmentModal = ({
               <span className="text-xs font-black">✕</span> Cancel
             </button>
 
+            {/* STEP 1: SUBMIT BANK SLIP BUTTON */}
+            {/*
+              🎨 HOW TO CHANGE BUTTON COLOR: "Submit Bank Slip for Approval" Button
+              - Current Color: 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+              - To change to Emerald Green: 'bg-emerald-600 hover:bg-emerald-700'
+              - To change to Royal Blue:    'bg-blue-600 hover:bg-blue-700'
+              - To change to Crimson Red:   'bg-red-600 hover:bg-red-700'
+            */}
             {step === 1 && paymentMethodType === 'BANK_SLIP' && (
               <button
                 type="button"
@@ -973,6 +986,14 @@ const CourseEnrollmentModal = ({
               </button>
             )}
 
+            {/* STEP 1: PROCEED TO CARD DETAILS BUTTON */}
+            {/*
+              🎨 HOW TO CHANGE BUTTON COLOR: "Proceed to Card Payment" Button
+              - Current Color: 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+              - To change to Royal Blue:    'bg-blue-600 hover:bg-blue-700'
+              - To change to Emerald Green: 'bg-emerald-600 hover:bg-emerald-700'
+              - To change to Amber / Gold:  'bg-amber-500 hover:bg-amber-600 text-slate-900'
+            */}
             {step === 1 && paymentMethodType === 'CARD' && (
               <button
                 type="button"
@@ -984,6 +1005,14 @@ const CourseEnrollmentModal = ({
               </button>
             )}
 
+            {/* STEP 2: DISPATCH OTP BUTTON */}
+            {/*
+              🎨 HOW TO CHANGE BUTTON COLOR: "Pay LKR X / Send OTP" Button
+              - Current Color: 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+              - To change to Emerald Green: 'bg-emerald-600 hover:bg-emerald-700'
+              - To change to Blue:          'bg-blue-600 hover:bg-blue-700'
+              - To change to Red:           'bg-rose-600 hover:bg-rose-700'
+            */}
             {step === 2 && (
               <>
                 <button
@@ -1014,6 +1043,14 @@ const CourseEnrollmentModal = ({
               </>
             )}
 
+            {/* STEP 3: VERIFY OTP AND COMPLETE PAYMENT BUTTON */}
+            {/*
+              🎨 HOW TO CHANGE BUTTON COLOR: "Verify & Complete" Button
+              - Current Color (Emerald Green): 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              - To change to Royal Blue:       'bg-blue-600 hover:bg-blue-700 text-white'
+              - To change to Deep Purple:      'bg-purple-600 hover:bg-purple-700 text-white'
+              - To change to Amber / Orange:   'bg-amber-500 hover:bg-amber-600 text-slate-900'
+            */}
             {step === 3 && (
               <>
                 <button

@@ -1,6 +1,18 @@
 /**
  * @file PdfReaderModal.jsx
- * @description In-App PDF Reader Modal. Feature-rich PDF viewer with zoom controls, page navigation, fullscreen mode, and automatic reading progress tracking.
+ * @description In-App Progressive PDF Reader Modal with Automated Progress Tracking.
+ * =========================================================================================
+ * 🎓 EXPLAIN TO EXAMINER:
+ * 1. Purpose: Allows students to read protected study pack notes and lecture sheets directly
+ *    inside LuminaLearn without downloading unprotected raw files to disk.
+ * 2. Progressive Viewport Rendering: Rather than loading 100+ pages at once (which exhausts memory),
+ *    it mounts HTML5 <canvas> wrappers and uses an 'IntersectionObserver'. Pages are rendered by PDF.js
+ *    only when they enter the user's active viewport.
+ * 3. Page & Scroll Tracking: 'onPageSeen()' tracks the furthest page viewed (maxPageRead).
+ *    A 1500ms debounce timer sends a lightweight POST to '/api/progress/pdf' updating completion %.
+ * 4. Download Permission: If the teacher set 'allowDownload: false', the download button is completely hidden.
+ * 5. Resume Capability: When opened, the reader automatically resumes from the student's last recorded page.
+ * =========================================================================================
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -322,8 +334,15 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
             : null}
         </div>
 
-        {/* Download + Close */}
+        {/* Download + Close Buttons */}
         <div style={{ display:'flex', gap:'8px' }}>
+          {/*
+            🎨 HOW TO CHANGE BUTTON COLOR: "Download" Button
+            - Current Style: background: '#1e293b' (Dark Slate)
+            - To change to Emerald Green: background: '#059669', color: '#ffffff'
+            - To change to Royal Blue:    background: '#2563eb', color: '#ffffff'
+            - To change to Deep Purple:   background: '#7c3aed', color: '#ffffff'
+          */}
           {canDownload && (
             <button 
               onClick={handleDownload} 
@@ -336,6 +355,14 @@ const PdfReaderModal = ({ pdf, courseId, lessonId, initialProgress, onClose, onP
               <span className="hidden sm:inline">Download</span>
             </button>
           )}
+
+          {/*
+            🎨 HOW TO CHANGE BUTTON COLOR: "Close" (X) Button
+            - Current Style: background: 'rgba(220,38,38,.8)' (Ruby Red)
+            - To change to Slate Gray:    background: '#334155'
+            - To change to Royal Blue:    background: '#2563eb'
+            - To change to Amber / Gold:  background: '#d97706'
+          */}
           <button onClick={onClose}
             style={{ padding:'8px 12px', background:'rgba(220,38,38,.8)', border:'none',
               borderRadius:'10px', color:'#fff', cursor:'pointer' }}>

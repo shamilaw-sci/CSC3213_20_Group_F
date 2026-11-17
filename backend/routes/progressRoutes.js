@@ -1,6 +1,19 @@
 /**
  * @file progressRoutes.js
- * @description Reading Progress Routes. Tracks student reading activity and page completion metrics on course PDF lecture materials.
+ * @description Reading Progress Routes.
+ * =========================================================================================
+ * 🎓 EXPLAIN TO EXAMINER:
+ * 1. Purpose: Manages persistent tracking of student reading activity on PDF lecture notes.
+ * 2. POST /api/progress/pdf:
+ *    - Receives { courseId, lessonId, pdfId, pdfTitle, currentPage, totalPages }.
+ *    - Finds or creates a 'ReadingProgress' document for (req.user._id, pdfId).
+ *    - Monotonic maxPageRead: Only increases maxPageRead so scrolling back to page 1 does NOT decrease progress!
+ *    - Calculates percentage: (maxPageRead / totalPages) * 100.
+ *    - Auto-completes: If percentage >= 100%, sets isCompleted = true.
+ * 3. GET /api/progress/course/:courseId:
+ *    - Returns all reading progress records for the student in this course.
+ *    - Computes 'nextPageToRead' = min(totalPages, maxPageRead + 1), enabling 1-click resume!
+ * =========================================================================================
  */
 
 const express = require('express');

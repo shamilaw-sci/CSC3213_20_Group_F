@@ -1049,6 +1049,13 @@ const Attendance = () => {
       {/* Main Workspace Container */}
       <div className="space-y-4 sm:space-y-6">
         {/* Navigation Tabs - Responsive 2x2 grid on mobile, flex on desktop */}
+        {/*
+          🎨 HOW TO CHANGE TAB / BUTTON COLOR IN ATTENDANCE:
+          - Active Tab Color (Default Deep Purple): 'bg-purple-700 text-white shadow-md'
+          - To change active tab to Emerald Green:  'bg-emerald-600 text-white shadow-md'
+          - To change active tab to Royal Blue:     'bg-blue-600 text-white shadow-md'
+          - To change active tab to Amber / Gold:   'bg-amber-500 text-slate-900 shadow-md'
+        */}
         <div className="grid grid-cols-2 lg:flex bg-white dark:bg-slate-900 p-1.5 sm:p-2 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm gap-1.5 sm:gap-2">
           {/* Admin & Counter Staff Only: Manual Marking & QR Kiosk */}
           {!isTeacher && (

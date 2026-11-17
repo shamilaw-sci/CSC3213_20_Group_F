@@ -3999,6 +3999,13 @@ const CourseDetails = () => {
                                     <FaCommentDots /> View Remarks & Feedback
                                   </button>
                                 )}
+                                {/*
+                                  🎨 HOW TO CHANGE BUTTON COLOR: "Submit Solution" Button
+                                  - Default Unsubmitted Color: 'bg-purple-700 hover:bg-purple-800 text-white'
+                                  - To change to Emerald Green: 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                  - To change to Royal Blue:    'bg-blue-600 hover:bg-blue-700 text-white'
+                                  - To change to Amber / Gold:  'bg-amber-500 hover:bg-amber-600 text-slate-900'
+                                */}
                                 <button
                                   type="button"
                                   onClick={() => handleOpenSubmitModal(asgn)}
@@ -4013,6 +4020,12 @@ const CourseDetails = () => {
                             )}
 
                             {/* Student Mark as Done Button (Right Aligned) */}
+                            {/*
+                              🎨 HOW TO CHANGE BUTTON COLOR: "Mark as Done" Button
+                              - Done State: 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                              - To change Done State to Blue: 'bg-blue-600 hover:bg-blue-700 text-white'
+                              - To change Done State to Purple: 'bg-purple-600 hover:bg-purple-700 text-white'
+                            */}
                             {!isTeacherOrAdmin && (
                               <button
                                 type="button"

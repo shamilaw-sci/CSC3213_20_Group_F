@@ -143,6 +143,13 @@ const ParentDashboard = () => {
               onChange={(e) => setLinkRegNo(e.target.value)}
               className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl text-sm font-mono font-bold outline-none border border-slate-200 dark:border-slate-700 focus:border-purple-500"
             />
+            {/*
+              🎨 HOW TO CHANGE BUTTON COLOR: "Link Child" Submit Button
+              - Current Color (Deep Purple): 'bg-purple-900 hover:bg-purple-800 text-white'
+              - To change to Emerald Green:  'bg-emerald-600 hover:bg-emerald-700 text-white'
+              - To change to Royal Blue:     'bg-blue-600 hover:bg-blue-700 text-white'
+              - To change to Amber / Gold:   'bg-amber-500 hover:bg-amber-600 text-slate-900'
+            */}
             <button
               type="submit"
               disabled={linking}

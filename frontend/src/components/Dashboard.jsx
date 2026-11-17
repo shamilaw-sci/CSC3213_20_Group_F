@@ -2232,12 +2232,25 @@ const StudentDashboard = ({ user }) => {
         <div className="flex flex-wrap items-center gap-3 relative z-10 shrink-0">
           {activeCourse ? (
             <>
+              {/*
+                🎨 HOW TO CHANGE BUTTON COLOR: "Resume Learning" Button
+                - Current: 'bg-white text-slate-900 hover:bg-slate-100'
+                - To change to Emerald Green: 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                - To change to Royal Blue:    'bg-blue-600 hover:bg-blue-700 text-white'
+                - To change to Amber / Gold:  'bg-amber-400 hover:bg-amber-500 text-purple-950'
+              */}
               <button
                 onClick={() => navigate(`/course/${activeCourse._id || activeCourse.id}`)}
                 className="bg-white text-slate-900 hover:bg-slate-100 px-5 py-3 rounded-2xl font-black text-xs transition shadow-lg flex items-center gap-2 cursor-pointer active:scale-95"
               >
                 <FaPlayCircle className="text-base text-purple-700" /> Resume Learning
               </button>
+              {/*
+                🎨 HOW TO CHANGE BUTTON COLOR: "Rate Course" Button
+                - Current (Amber): 'bg-amber-500 hover:bg-amber-600 text-white'
+                - To change to Purple: 'bg-purple-600 hover:bg-purple-700 text-white'
+                - To change to Blue:   'bg-blue-600 hover:bg-blue-700 text-white'
+              */}
               <button
                 onClick={() => setRatingModalCourse(activeCourse)}
                 className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-3 rounded-2xl font-black text-xs transition shadow-lg flex items-center gap-1.5 cursor-pointer active:scale-95 border border-amber-400/40"
